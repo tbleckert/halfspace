@@ -242,6 +242,13 @@ export interface SportmonksType {
   stat_group?: string | null
 }
 
+export interface SportmonksEventPlayer {
+  id: number
+  name: string
+  display_name?: string | null
+  image_path?: string | null
+}
+
 export interface SportmonksEvent {
   id: number
   fixture_id: number
@@ -260,6 +267,8 @@ export interface SportmonksEvent {
   injured?: boolean | null
   rescinded?: boolean | null
   type?: SportmonksType | null
+  player?: SportmonksEventPlayer | null
+  relatedPlayer?: SportmonksEventPlayer | null
 }
 
 export interface SportmonksFixtureStatistic {
@@ -395,7 +404,6 @@ export interface FixtureDetailRefresh {
 export interface FixtureOddsRefresh {
   odds: SportmonksOdd[]
   fetchedAt: number
-  pageCount: number
   rateLimit?: {
     remaining: number
     resetsAt: number

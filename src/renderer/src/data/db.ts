@@ -84,7 +84,6 @@ export interface FixtureOddsQuery {
   oddIds: number[]
   fetchedAt: number
   staleAt: number
-  pageCount: number
   rateLimitRemaining?: number
   rateLimitResetsAt?: number
   message?: string
@@ -511,7 +510,6 @@ export async function writeFixtureOddsRefresh(
     oddIds: odds.map(({ id }) => id),
     fetchedAt: refresh.fetchedAt,
     staleAt: refresh.fetchedAt + fixtureOddsCacheDuration,
-    pageCount: refresh.pageCount,
     rateLimitRemaining: refresh.rateLimit?.remaining,
     rateLimitResetsAt: refresh.rateLimit?.resetsAt,
     message: refresh.message

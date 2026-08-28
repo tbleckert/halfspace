@@ -211,6 +211,15 @@ const typeSchema = z
   })
   .passthrough()
 
+const eventPlayerSchema = z
+  .object({
+    id: z.number().int(),
+    name: z.string(),
+    display_name: z.string().nullable().optional(),
+    image_path: z.string().nullable().optional()
+  })
+  .passthrough()
+
 const eventSchema = z
   .object({
     id: z.number().int(),
@@ -229,7 +238,9 @@ const eventSchema = z
     extra_minute: z.number().int().nullable().optional(),
     injured: z.boolean().nullable().optional(),
     rescinded: z.boolean().nullable().optional(),
-    type: typeSchema.nullable().optional()
+    type: typeSchema.nullable().optional(),
+    player: eventPlayerSchema.nullable().optional(),
+    relatedPlayer: eventPlayerSchema.nullable().optional()
   })
   .passthrough()
 
@@ -380,10 +391,6 @@ const fixtureResponseSchema = z
 const fixtureOddsResponseSchema = z
   .object({
     data: z.array(oddSchema),
-    pagination: z.object({
-      current_page: z.number().int().positive(),
-      has_more: z.boolean()
-    }),
     rate_limit: z
       .object({
         remaining: z.number(),
@@ -658,7 +665,7 @@ export async function fetchFixtureById(
   const url = new URL(`${apiBaseUrl}/fixtures/${input.fixtureId}`)
   url.searchParams.set(
     'include',
-    'participants;league;state;scores;venue;stage;round;lineups;events.type;statistics.type'
+    'participants;league;state;scores;venue;stage;round;lineups;events.type;events.player;events.relatedPlayer;statistics.type'
   )
 
   let response: Response
@@ -703,60 +710,45 @@ export async function fetchFixtureOdds(
   token: string,
   fetcher: typeof fetch = fetch
 ): Promise<FixtureOddsRefresh> {
-  const odds: SportmonksOdd[] = []
   const fetchedAt = Date.now()
-  let page = 1
-  let rateLimit: FixtureOddsRefresh['rateLimit']
-  let message: string | undefined
+  const url = new URL(`${apiBaseUrl}/odds/pre-match/fixtures/${input.fixtureId}`)
+  url.searchParams.set('include', 'bookmaker;market')
 
-  while (page <= maximumPages) {
-    const url = new URL(`${apiBaseUrl}/odds/pre-match/fixtures/${input.fixtureId}`)
-    url.searchParams.set('include', 'bookmaker;market')
-    url.searchParams.set('per_page', '50')
-    url.searchParams.set('page', String(page))
+  let response: Response
 
-    let response: Response
-
-    try {
-      response = await fetcher(url, {
-        headers: {
-          Accept: 'application/json',
-          Authorization: token
-        },
-        signal: AbortSignal.timeout(20_000)
-      })
-    } catch {
-      throw new SportmonksError('network', 'Could not reach Sportmonks.')
-    }
-
-    if (!response.ok) throw errorForStatus(response.status)
-
-    let parsed: z.infer<typeof fixtureOddsResponseSchema>
-
-    try {
-      parsed = fixtureOddsResponseSchema.parse(await response.json())
-    } catch {
-      throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
-    }
-
-    odds.push(...(parsed.data as SportmonksOdd[]))
-    message = parsed.message ?? message
-
-    if (parsed.rate_limit) {
-      rateLimit = {
-        remaining: parsed.rate_limit.remaining,
-        resetsAt: fetchedAt + parsed.rate_limit.resets_in_seconds * 1000
-      }
-    }
-
-    if (!parsed.pagination.has_more) {
-      return { odds, fetchedAt, pageCount: page, rateLimit, message }
-    }
-
-    page += 1
+  try {
+    response = await fetcher(url, {
+      headers: {
+        Accept: 'application/json',
+        Authorization: token
+      },
+      signal: AbortSignal.timeout(20_000)
+    })
+  } catch {
+    throw new SportmonksError('network', 'Could not reach Sportmonks.')
   }
 
-  throw new SportmonksError('invalid_response', 'Sportmonks returned too many result pages.')
+  if (!response.ok) throw errorForStatus(response.status)
+
+  let parsed: z.infer<typeof fixtureOddsResponseSchema>
+
+  try {
+    parsed = fixtureOddsResponseSchema.parse(await response.json())
+  } catch {
+    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
+  }
+
+  return {
+    odds: parsed.data as SportmonksOdd[],
+    fetchedAt,
+    rateLimit: parsed.rate_limit
+      ? {
+          remaining: parsed.rate_limit.remaining,
+          resetsAt: fetchedAt + parsed.rate_limit.resets_in_seconds * 1000
+        }
+      : undefined,
+    message: parsed.message
+  }
 }
 
 export async function fetchCompetitionFixtures(

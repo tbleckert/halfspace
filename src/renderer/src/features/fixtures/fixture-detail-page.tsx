@@ -14,12 +14,18 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { CachedCompetition } from '@/data/db'
 import { CompetitionLogo } from '@/features/competitions/competition-logo'
+import { PlayerPhoto } from '@/features/players/player-photo'
 import { TeamLogo } from '@/features/teams/team-logo'
 import { VenueCard } from '@/features/venues/venue-card'
 import { isFixtureLive } from '@/lib/fixture-state'
 import { useOnline } from '@/lib/use-online'
 import { cn } from '@/lib/utils'
-import { fixtureOddsGroups, fixtureStatisticRows, sortedFixtureEvents } from './fixture-detail-data'
+import {
+  fixtureOddsGroups,
+  fixtureStatisticRows,
+  fixtureStatisticShare,
+  sortedFixtureEvents
+} from './fixture-detail-data'
 import { FixtureLiveIndicator } from './fixture-live-indicator'
 import type { FixtureDetailSearch } from './fixture-route'
 import { useFixtureEntity, useFixtureOdds } from './use-fixtures'
@@ -374,7 +380,13 @@ function FixtureTimeline({
         <div className="divide-y">
           {sortedEvents.map((event) => {
             const homeEvent = event.participant_id === home?.id
-            const content = <FixtureEventContent event={event} />
+            const content = (
+              <FixtureEventContent
+                align={homeEvent ? 'right' : 'left'}
+                event={event}
+                online={online}
+              />
+            )
 
             return (
               <div
@@ -416,15 +428,32 @@ function FixtureTimelineTeam({
   )
 }
 
-function FixtureEventContent({ event }: { event: SportmonksEvent }): React.JSX.Element {
+function FixtureEventContent({
+  align,
+  event,
+  online
+}: {
+  align: 'left' | 'right'
+  event: SportmonksEvent
+  online: boolean
+}): React.JSX.Element {
   return (
-    <div>
-      <p className="truncate text-sm font-medium">
-        {event.player_name ?? event.type?.name ?? 'Event'}
-      </p>
-      <p className="truncate text-xs text-muted-foreground">
-        {[event.type?.name, event.result, event.info].filter(Boolean).join(' · ')}
-      </p>
+    <div
+      className={cn('flex min-w-0 items-center gap-2.5', align === 'right' && 'flex-row-reverse')}
+    >
+      <PlayerPhoto
+        className="size-9 rounded-full bg-muted"
+        imagePath={event.player?.image_path ?? null}
+        online={online}
+      />
+      <div className="min-w-0">
+        <p className="truncate text-sm font-medium">
+          {event.player?.display_name ?? event.player_name ?? event.type?.name ?? 'Event'}
+        </p>
+        <p className="truncate text-xs text-muted-foreground">
+          {[event.type?.name, event.result, event.info].filter(Boolean).join(' · ')}
+        </p>
+      </div>
     </div>
   )
 }
@@ -579,18 +608,34 @@ function FixtureStats({
         <FixtureEmptyState>Stats not available</FixtureEmptyState>
       ) : (
         <div className="divide-y">
-          {rows.map((row) => (
-            <div
-              key={row.id}
-              className="grid grid-cols-[1fr_minmax(8rem,1.5fr)_1fr] items-center gap-4 px-4 py-3 text-sm"
-            >
-              <span className="font-semibold tabular-nums">{formatStatisticValue(row.home)}</span>
-              <span className="text-center text-muted-foreground">{row.label}</span>
-              <span className="text-right font-semibold tabular-nums">
-                {formatStatisticValue(row.away)}
-              </span>
-            </div>
-          ))}
+          {rows.map((row) => {
+            const share = fixtureStatisticShare(row.home, row.away)
+
+            return (
+              <div key={row.id} className="px-4 py-4 text-sm">
+                <div className="grid grid-cols-[1fr_minmax(8rem,1.5fr)_1fr] items-center gap-4">
+                  <span className="font-semibold tabular-nums">
+                    {formatStatisticValue(row.home)}
+                  </span>
+                  <span className="text-center text-muted-foreground">{row.label}</span>
+                  <span className="text-right font-semibold tabular-nums">
+                    {formatStatisticValue(row.away)}
+                  </span>
+                </div>
+                <div
+                  aria-hidden="true"
+                  className="mt-3 flex h-1.5 overflow-hidden rounded-full bg-muted"
+                >
+                  {share && (
+                    <>
+                      <span className="bg-blue-600" style={{ width: `${share.home}%` }} />
+                      <span className="bg-red-500" style={{ width: `${share.away}%` }} />
+                    </>
+                  )}
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
     </section>

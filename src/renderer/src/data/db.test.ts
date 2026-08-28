@@ -204,7 +204,6 @@ describe('fixture cache', () => {
   it('stores fixture odds as an on-demand cache', async () => {
     const refresh: FixtureOddsRefresh = {
       fetchedAt: Date.UTC(2026, 7, 28, 10),
-      pageCount: 1,
       odds: [
         {
           id: 701,

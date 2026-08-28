@@ -133,7 +133,7 @@ function FixtureRow({
         <time className="text-sm tabular-nums text-muted-foreground">
           {formatFixtureTime(fixture.startingAt)}
         </time>
-        {live && <FixtureLiveIndicator />}
+        {live && <FixtureLiveIndicator showLabel={false} />}
       </div>
       <div className="grid min-w-0 gap-1.5">
         <div className="flex min-w-0 items-center gap-2.5">

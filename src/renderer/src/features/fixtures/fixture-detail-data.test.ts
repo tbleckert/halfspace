@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { SportmonksEvent, SportmonksFixtureStatistic, SportmonksOdd } from '@shared/contracts'
-import { fixtureOddsGroups, fixtureStatisticRows, sortedFixtureEvents } from './fixture-detail-data'
+import {
+  fixtureOddsGroups,
+  fixtureStatisticRows,
+  fixtureStatisticShare,
+  sortedFixtureEvents
+} from './fixture-detail-data'
 
 describe('fixture detail data', () => {
   it('orders events by match time', () => {
@@ -36,6 +41,15 @@ describe('fixture detail data', () => {
     expect(fixtureStatisticRows(statistics)).toEqual([
       { id: 42, label: 'Shots', home: 12, away: 7, group: null }
     ])
+  })
+
+  it('calculates a proportional share for comparable fixture statistics', () => {
+    const share = fixtureStatisticShare(7, 11)
+    expect(share?.home).toBeCloseTo(38.89)
+    expect(share?.away).toBeCloseTo(61.11)
+    expect(fixtureStatisticShare('33%', '67%')).toEqual({ home: 33, away: 67 })
+    expect(fixtureStatisticShare(0, 0)).toBeNull()
+    expect(fixtureStatisticShare('unknown', 4)).toBeNull()
   })
 
   it('groups odds by market and bookmaker', () => {

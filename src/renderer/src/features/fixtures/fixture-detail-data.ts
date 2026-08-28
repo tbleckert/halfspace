@@ -8,6 +8,11 @@ export interface StatisticRow {
   group: string | null
 }
 
+export interface StatisticShare {
+  home: number
+  away: number
+}
+
 export interface OddsGroup {
   key: string
   market: string
@@ -40,6 +45,31 @@ export function fixtureStatisticRows(statistics: SportmonksFixtureStatistic[]): 
   }
 
   return [...rows.values()].toSorted((left, right) => left.label.localeCompare(right.label))
+}
+
+export function fixtureStatisticShare(
+  homeValue: number | string | null,
+  awayValue: number | string | null
+): StatisticShare | null {
+  const home = statisticNumber(homeValue)
+  const away = statisticNumber(awayValue)
+
+  if (home === null || away === null || home < 0 || away < 0 || home + away === 0) return null
+
+  const homeShare = (home / (home + away)) * 100
+
+  return { home: homeShare, away: 100 - homeShare }
+}
+
+function statisticNumber(value: number | string | null): number | null {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null
+  if (value === null) return null
+
+  const normalized = value.trim().replace(/%$/, '')
+  if (!/^-?\d+(?:\.\d+)?$/.test(normalized)) return null
+
+  const number = Number(normalized)
+  return Number.isFinite(number) ? number : null
 }
 
 export function fixtureOddsGroups(odds: SportmonksOdd[]): OddsGroup[] {

@@ -80,7 +80,7 @@ function EntityFixtureRow({
       <div className="mb-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
         <div className="flex min-w-0 items-center gap-2">
           <time className="shrink-0">{formatFixtureDate(fixture.startingAt)}</time>
-          {live && <FixtureLiveIndicator className="shrink-0" />}
+          {live && <FixtureLiveIndicator className="shrink-0" showLabel={false} />}
           {showCompetition && (
             <>
               <span>·</span>

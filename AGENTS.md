@@ -37,6 +37,10 @@ abstractions.
   identity and football data rather than a dense table or list.
 - Keep low-resolution provider imagery in compact supporting cards. Do not stretch it into hero
   treatment that exposes its limitations.
+- Fixture rows use the live ping alone; the fixture hero may pair it with a visible status label.
+- Fixture timelines include the event player relationship so player portraits can accompany events.
+- Fetch fixture odds lazily from the dedicated pre-match endpoint. Its response is a single,
+  non-paginated payload even when other Sportmonks collections paginate.
 - Do not infer player appearances from team fixtures or bench selection. Name lineup data for what
   it confirms, and reserve appearances for verified participation.
 - Refresh fixture pages through the fixture-by-ID endpoint. When fixture lists update shared cache
