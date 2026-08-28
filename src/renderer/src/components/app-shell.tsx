@@ -4,6 +4,7 @@ import { CalendarDays, Circle, Settings, Trophy } from 'lucide-react'
 import { TokenSetup } from '@/features/credentials/token-setup'
 import { useConnectionState } from '@/features/credentials/use-connection-state'
 import { Button } from '@/components/ui/button'
+import { HalfspaceLogo } from '@/components/halfspace-logo'
 import { CompetitionLogo } from '@/features/competitions/competition-logo'
 import { sidebarCompetitions } from '@/features/competitions/sidebar-competitions'
 import { useCompetitions, usePinnedCompetitionIds } from '@/features/competitions/use-competitions'
@@ -20,6 +21,7 @@ export function AppShell(): React.JSX.Element {
     return (
       <main className="grid h-full place-items-center bg-background p-8">
         <div className="w-full max-w-sm">
+          <HalfspaceLogo className="mb-8 size-10 rounded-xl" />
           <h1 className="text-3xl font-semibold tracking-tight">Couldn’t open Halfspace</h1>
           <p className="mt-3 text-sm text-muted-foreground">{error}</p>
           <Button className="mt-6" onClick={() => void reload()}>
@@ -33,9 +35,7 @@ export function AppShell(): React.JSX.Element {
   if (connection === null) {
     return (
       <main aria-label="Loading Halfspace" className="grid h-full place-items-center bg-background">
-        <div className="grid size-10 place-items-center rounded-xl bg-primary font-semibold text-primary-foreground">
-          H
-        </div>
+        <HalfspaceLogo className="size-10 rounded-xl" />
       </main>
     )
   }
@@ -80,9 +80,7 @@ function Workspace(): React.JSX.Element {
       <aside className="flex min-h-0 flex-col border-r bg-card px-3 py-4">
         <div className="px-3 py-2">
           <div className="flex items-center gap-2.5">
-            <div className="grid size-8 place-items-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground">
-              H
-            </div>
+            <HalfspaceLogo alt="" className="size-8 rounded-lg" />
             <div>
               <p className="font-semibold tracking-tight">Halfspace</p>
             </div>

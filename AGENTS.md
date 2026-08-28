@@ -12,6 +12,10 @@ abstractions.
 
 ## Product Design
 
+- Keep the brand identity vibrant and energetic. Avoid restrained heritage-sports palettes that
+  can make the product feel like an American football brand.
+- Use `resources/halfspace-logo.svg` as the canonical brand mark. Preserve its flat yellow, blue,
+  navy, and white geometry and its legibility down to 16px.
 - Required setup states use a focused fullscreen flow before the main app appears.
 - Use direct, singular page headings. Do not add eyebrow labels or pretitles above them.
 - Avoid prototype copy, implementation explanations, and redundant guidance. Text should name the
