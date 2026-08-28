@@ -7,11 +7,13 @@ import {
   fetchStandingsBySeason,
   fetchTeamById,
   fetchTeamFixtures,
+  fetchVenueById,
   validateCompetitionFixturesInput,
   validateRefreshInput,
   validateStandingsInput,
   validateTeamFixturesInput,
   validateTeamInput,
+  validateVenueInput,
   validateToken
 } from './sportmonks'
 
@@ -248,6 +250,42 @@ describe('Sportmonks client', () => {
     expect(url.searchParams.has('filters')).toBe(false)
   })
 
+  it('fetches a venue entity with country context', async () => {
+    const fetcher = vi.fn<typeof fetch>(async () =>
+      Response.json({
+        data: {
+          id: 206,
+          country_id: 462,
+          city_id: 28146,
+          name: 'Etihad Stadium',
+          address: 'Rowsley Street',
+          zipcode: 'M11 3FF',
+          latitude: '53.483111',
+          longitude: '-2.200397',
+          capacity: 55097,
+          image_path: 'https://cdn.sportmonks.com/images/soccer/venues/14/206.png',
+          city_name: 'Manchester',
+          surface: 'grass',
+          national_team: false,
+          country: { id: 462, name: 'England', iso2: 'GB' }
+        },
+        rate_limit: { remaining: 2_994, resets_in_seconds: 3_600 }
+      })
+    )
+
+    const refresh = await fetchVenueById({ venueId: 206 }, 'private-token', fetcher)
+
+    expect(refresh.venue.name).toBe('Etihad Stadium')
+    expect(refresh.venue.country?.name).toBe('England')
+
+    const [input, init] = fetcher.mock.calls[0]
+    const url = new URL(input.toString())
+    expect(url.pathname).toBe('/v3/football/venues/206')
+    expect(url.searchParams.get('include')).toBe('country')
+    expect(url.searchParams.has('api_token')).toBe(false)
+    expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')
+  })
+
   it('maps authentication failures without leaking the token', async () => {
     const fetcher = vi.fn<typeof fetch>(async () => new Response(null, { status: 401 }))
 
@@ -273,6 +311,7 @@ describe('Sportmonks client', () => {
     expect(() => validateToken('token with spaces')).toThrow('Enter a valid Sportmonks token.')
     expect(() => validateStandingsInput({ seasonId: -1 })).toThrow('Choose a valid current season.')
     expect(() => validateTeamInput({ teamId: 0 })).toThrow('Choose a valid team.')
+    expect(() => validateVenueInput({ venueId: 0 })).toThrow('Choose a valid venue.')
     expect(() =>
       validateTeamFixturesInput({
         teamId: 9,

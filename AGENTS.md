@@ -18,6 +18,8 @@ abstractions.
   current thing, communicate a meaningful state, or enable an action.
 - Build the product outward through dedicated football entity pages and natural links between
   them. Prioritize entity depth before secondary tools or dashboards.
+- Keep low-resolution provider imagery in compact supporting cards. Do not stretch it into hero
+  treatment that exposes its limitations.
 - Show every active subscribed competition in the sidebar when there are 10 or fewer. Above 10,
   show only locally pinned competitions.
 

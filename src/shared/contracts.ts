@@ -7,7 +7,8 @@ export const ipcChannels = {
   refreshStandings: 'sportmonks:refresh-standings',
   refreshCompetitionFixtures: 'sportmonks:refresh-competition-fixtures',
   refreshTeam: 'sportmonks:refresh-team',
-  refreshTeamFixtures: 'sportmonks:refresh-team-fixtures'
+  refreshTeamFixtures: 'sportmonks:refresh-team-fixtures',
+  refreshVenue: 'sportmonks:refresh-venue'
 } as const
 
 export type ApiErrorCode =
@@ -59,6 +60,10 @@ export interface RefreshTeamFixturesInput {
   timeZone: string
 }
 
+export interface RefreshVenueInput {
+  venueId: number
+}
+
 export interface SportmonksCountry {
   id: number
   name: string
@@ -103,9 +108,18 @@ export interface SportmonksParticipant {
 export interface SportmonksVenue {
   id: number
   name: string
+  country_id?: number
+  city_id?: number | null
+  address?: string | null
+  zipcode?: string | null
+  latitude?: string | null
+  longitude?: string | null
   capacity?: number | null
   city_name?: string | null
   image_path?: string | null
+  surface?: string | null
+  national_team?: boolean
+  country?: SportmonksCountry | null
 }
 
 export interface SportmonksTeam {
@@ -230,6 +244,16 @@ export interface TeamRefresh {
   message?: string
 }
 
+export interface VenueRefresh {
+  venue: SportmonksVenue
+  fetchedAt: number
+  rateLimit?: {
+    remaining: number
+    resetsAt: number
+  }
+  message?: string
+}
+
 export interface HalfspaceApi {
   credentials: {
     getConnectionState(): Promise<ConnectionState>
@@ -245,5 +269,6 @@ export interface HalfspaceApi {
     ): Promise<Result<FixtureRefresh>>
     refreshTeam(input: RefreshTeamInput): Promise<Result<TeamRefresh>>
     refreshTeamFixtures(input: RefreshTeamFixturesInput): Promise<Result<FixtureRefresh>>
+    refreshVenue(input: RefreshVenueInput): Promise<Result<VenueRefresh>>
   }
 }

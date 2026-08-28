@@ -9,13 +9,15 @@ import {
   fetchStandingsBySeason,
   fetchTeamById,
   fetchTeamFixtures,
+  fetchVenueById,
   SportmonksError,
   validateCompetitionFixturesInput,
   validateRefreshInput,
   validateStandingsInput,
   validateTeamFixturesInput,
   validateTeamInput,
-  validateToken
+  validateToken,
+  validateVenueInput
 } from './sportmonks'
 import { clearStoredToken, hasStoredToken, readStoredToken, saveStoredToken } from './token-store'
 
@@ -170,6 +172,27 @@ export function registerIpcHandlers(): void {
       return success(await fetchTeamFixtures(input, token))
     } catch (error) {
       return failure(error, 'upstream', 'Could not refresh team fixtures.')
+    }
+  })
+
+  ipcMain.handle(ipcChannels.refreshVenue, async (event, rawInput: unknown) => {
+    assertTrustedSender(event)
+
+    try {
+      const input = validateVenueInput(rawInput)
+      const token = await readStoredToken()
+
+      if (!token) {
+        return failure(
+          new SportmonksError('missing_token', 'Add your Sportmonks token in Settings.'),
+          'missing_token',
+          'Add your Sportmonks token in Settings.'
+        )
+      }
+
+      return success(await fetchVenueById(input, token))
+    } catch (error) {
+      return failure(error, 'upstream', 'Could not refresh venue.')
     }
   })
 }

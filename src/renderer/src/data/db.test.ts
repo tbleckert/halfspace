@@ -5,7 +5,8 @@ import type {
   RefreshCompetitionFixturesInput,
   RefreshTeamFixturesInput,
   StandingsRefresh,
-  TeamRefresh
+  TeamRefresh,
+  VenueRefresh
 } from '@shared/contracts'
 import {
   db,
@@ -15,13 +16,16 @@ import {
   readStandingsQuery,
   readTeamFixtureQuery,
   readTeamIdentity,
+  readVenueIdentity,
+  readVenueTeams,
   setCompetitionPinned,
   writeCompetitionFixtureRefresh,
   writeCompetitionRefresh,
   writeFixtureRefresh,
   writeStandingsRefresh,
   writeTeamFixtureRefresh,
-  writeTeamRefresh
+  writeTeamRefresh,
+  writeVenueRefresh
 } from './db'
 
 beforeEach(async () => {
@@ -39,7 +43,8 @@ beforeEach(async () => {
       db.standingQueries,
       db.competitionFixtureQueries,
       db.teams,
-      db.teamFixtureQueries
+      db.teamFixtureQueries,
+      db.venues
     ],
     async () => {
       await db.fixtures.clear()
@@ -52,6 +57,7 @@ beforeEach(async () => {
       await db.competitionFixtureQueries.clear()
       await db.teams.clear()
       await db.teamFixtureQueries.clear()
+      await db.venues.clear()
     }
   )
 })
@@ -214,6 +220,7 @@ describe('team entity cache', () => {
 
     expect(identity.team?.name).toBe('Manchester City')
     expect(identity.team?.raw.venue?.name).toBe('Etihad Stadium')
+    expect((await readVenueIdentity(206)).summary?.name).toBe('Etihad Stadium')
   })
 
   it('reuses normalized fixtures for a team range', async () => {
@@ -238,6 +245,54 @@ describe('team entity cache', () => {
     const cached = await readTeamFixtureQuery(input)
     expect(cached.fixtures[0].name).toBe('Updated')
     expect(await db.fixtures.count()).toBe(1)
+  })
+})
+
+describe('venue entity cache', () => {
+  it('writes and reads a detailed venue entity', async () => {
+    const refresh: VenueRefresh = {
+      fetchedAt: Date.UTC(2026, 7, 28, 10),
+      venue: {
+        id: 206,
+        country_id: 462,
+        city_id: 28146,
+        name: 'Etihad Stadium',
+        address: 'Rowsley Street',
+        zipcode: 'M11 3FF',
+        latitude: '53.483111',
+        longitude: '-2.200397',
+        capacity: 55097,
+        image_path: 'https://cdn.sportmonks.com/images/soccer/venues/14/206.png',
+        city_name: 'Manchester',
+        surface: 'grass',
+        national_team: false,
+        country: { id: 462, name: 'England' }
+      }
+    }
+
+    await writeVenueRefresh(refresh)
+    const identity = await readVenueIdentity(206)
+
+    expect(identity.venue?.name).toBe('Etihad Stadium')
+    expect(identity.venue?.raw.country?.name).toBe('England')
+  })
+
+  it('finds cached teams that use the venue', async () => {
+    await writeTeamRefresh({
+      fetchedAt: Date.UTC(2026, 7, 28, 10),
+      team: {
+        id: 9,
+        sport_id: 1,
+        country_id: 462,
+        venue_id: 206,
+        gender: 'male',
+        name: 'Manchester City',
+        founded: 1880,
+        placeholder: false
+      }
+    })
+
+    expect((await readVenueTeams(206)).map(({ name }) => name)).toEqual(['Manchester City'])
   })
 })
 

@@ -7,12 +7,15 @@ import type {
   RefreshStandingsInput,
   RefreshTeamFixturesInput,
   RefreshTeamInput,
+  RefreshVenueInput,
   StandingsRefresh,
   SportmonksCompetition,
   SportmonksFixture,
   SportmonksStanding,
   SportmonksTeam,
-  TeamRefresh
+  SportmonksVenue,
+  TeamRefresh,
+  VenueRefresh
 } from '@shared/contracts'
 import { z } from 'zod'
 
@@ -80,9 +83,21 @@ const venueSchema = z
   .object({
     id: z.number().int(),
     name: z.string(),
+    country_id: z.number().int().optional(),
+    city_id: z.number().int().nullable().optional(),
+    address: z.string().nullable().optional(),
+    zipcode: z.string().nullable().optional(),
+    latitude: z.string().nullable().optional(),
+    longitude: z.string().nullable().optional(),
     capacity: z.number().int().nullable().optional(),
     city_name: z.string().nullable().optional(),
-    image_path: z.string().nullable().optional()
+    image_path: z.string().nullable().optional(),
+    surface: z.string().nullable().optional(),
+    national_team: z
+      .union([z.boolean(), z.literal(0), z.literal(1)])
+      .transform(Boolean)
+      .optional(),
+    country: countrySchema.nullable().optional()
   })
   .passthrough()
 
@@ -247,6 +262,20 @@ const teamResponseSchema = z
   })
   .passthrough()
 
+const venueResponseSchema = z
+  .object({
+    data: venueSchema,
+    rate_limit: z
+      .object({
+        remaining: z.number(),
+        resets_in_seconds: z.number()
+      })
+      .passthrough()
+      .optional(),
+    message: z.string().optional()
+  })
+  .passthrough()
+
 export class SportmonksError extends Error {
   constructor(
     readonly code: ApiErrorCode,
@@ -305,6 +334,16 @@ export function validateTeamInput(value: unknown): RefreshTeamInput {
   }
 
   return { teamId }
+}
+
+export function validateVenueInput(value: unknown): RefreshVenueInput {
+  const venueId = value && typeof value === 'object' ? (value as { venueId?: unknown }).venueId : 0
+
+  if (!isPositiveId(venueId)) {
+    throw new SportmonksError('invalid_input', 'Choose a valid venue.')
+  }
+
+  return { venueId }
 }
 
 export function validateCompetitionFixturesInput(value: unknown): RefreshCompetitionFixturesInput {
@@ -592,6 +631,54 @@ export async function fetchTeamById(
 
   return {
     team: parsed.data as SportmonksTeam,
+    fetchedAt,
+    rateLimit: parsed.rate_limit
+      ? {
+          remaining: parsed.rate_limit.remaining,
+          resetsAt: fetchedAt + parsed.rate_limit.resets_in_seconds * 1000
+        }
+      : undefined,
+    message: parsed.message
+  }
+}
+
+export async function fetchVenueById(
+  input: RefreshVenueInput,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<VenueRefresh> {
+  const fetchedAt = Date.now()
+  const url = new URL(`${apiBaseUrl}/venues/${input.venueId}`)
+  url.searchParams.set('include', 'country')
+
+  let response: Response
+
+  try {
+    response = await fetcher(url, {
+      headers: {
+        Accept: 'application/json',
+        Authorization: token
+      },
+      signal: AbortSignal.timeout(20_000)
+    })
+  } catch {
+    throw new SportmonksError('network', 'Could not reach Sportmonks.')
+  }
+
+  if (!response.ok) {
+    throw errorForStatus(response.status)
+  }
+
+  let parsed: z.infer<typeof venueResponseSchema>
+
+  try {
+    parsed = venueResponseSchema.parse(await response.json())
+  } catch {
+    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
+  }
+
+  return {
+    venue: parsed.data as SportmonksVenue,
     fetchedAt,
     rateLimit: parsed.rate_limit
       ? {

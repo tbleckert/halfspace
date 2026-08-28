@@ -2,15 +2,17 @@ import { useMemo, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { AlertCircle, ArrowLeft, RefreshCw, Trophy } from 'lucide-react'
+import type { SportmonksVenue } from '@shared/contracts'
 import { Button } from '@/components/ui/button'
 import { buttonVariants } from '@/components/ui/button-variants'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { CachedCompetition, CachedStanding } from '@/data/db'
-import { db, readTeamStandings } from '@/data/db'
+import { db, readTeamStandings, readVenueIdentity } from '@/data/db'
 import { CompetitionLogo } from '@/features/competitions/competition-logo'
 import { splitEntityFixtures } from '@/features/fixtures/entity-fixture-data'
 import { EntityFixturePanel } from '@/features/fixtures/entity-fixture-panel'
+import { VenueImage } from '@/features/venues/venue-image'
 import { addDaysToIsoDate, currentTimeZone, todayInTimeZone } from '@/lib/date'
 import { useOnline } from '@/lib/use-online'
 import { cn } from '@/lib/utils'
@@ -109,15 +111,28 @@ export function TeamPage({
             <div className="min-w-0">
               <h1 className="truncate text-3xl font-semibold tracking-tight">{identity.name}</h1>
               {detailedTeam && (
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {[
-                    detailedTeam.country?.name,
-                    detailedTeam.founded ? `Founded ${detailedTeam.founded}` : null,
-                    detailedTeam.venue?.name
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </p>
+                <div className="mt-1 flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground">
+                  {detailedTeam.country?.name && <span>{detailedTeam.country.name}</span>}
+                  {detailedTeam.founded && (
+                    <>
+                      <span>·</span>
+                      <span>Founded {detailedTeam.founded}</span>
+                    </>
+                  )}
+                  {detailedTeam.venue && detailedTeam.venue_id && (
+                    <>
+                      <span>·</span>
+                      <Link
+                        to="/venues/$venueId"
+                        params={{ venueId: String(detailedTeam.venue_id) }}
+                        search={{ competition: competitionId, team: parsedTeamId }}
+                        className="rounded-sm outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        {detailedTeam.venue.name}
+                      </Link>
+                    </>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -142,7 +157,19 @@ export function TeamPage({
       )}
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(16rem,0.65fr)_minmax(24rem,1.35fr)]">
-        <TeamCompetitions contexts={competitionContexts} online={online} />
+        <div className="flex flex-col gap-5">
+          <TeamCompetitions contexts={competitionContexts} online={online} />
+          {detailedTeam?.venue && detailedTeam.venue_id && (
+            <TeamVenueCard
+              competitionId={competitionId}
+              countryName={detailedTeam.country?.name}
+              online={online}
+              teamId={parsedTeamId}
+              venueId={detailedTeam.venue_id}
+              venueSummary={detailedTeam.venue}
+            />
+          )}
+        </div>
 
         <div className="flex flex-col gap-5">
           {fixtures.cached === undefined ? (
@@ -170,6 +197,55 @@ export function TeamPage({
         </div>
       </div>
     </div>
+  )
+}
+
+function TeamVenueCard({
+  competitionId,
+  countryName,
+  online,
+  teamId,
+  venueId,
+  venueSummary
+}: {
+  competitionId?: number
+  countryName?: string
+  online: boolean
+  teamId: number
+  venueId: number
+  venueSummary: SportmonksVenue
+}): React.JSX.Element {
+  const cached = useLiveQuery(() => readVenueIdentity(venueId), [venueId])
+  const venue = cached?.venue?.raw ?? cached?.summary ?? venueSummary
+  const location = [venue.city_name, venue.country?.name ?? countryName].filter(Boolean).join(', ')
+  const capacity = venue.capacity ? new Intl.NumberFormat().format(venue.capacity) : null
+
+  return (
+    <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
+      <div className="border-b px-4 py-3">
+        <h2 className="text-sm font-semibold">Venue</h2>
+      </div>
+      <Link
+        to="/venues/$venueId"
+        params={{ venueId: String(venueId) }}
+        search={{ competition: competitionId, team: teamId }}
+        className="group block outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+      >
+        <VenueImage
+          className="aspect-[4/3] w-full rounded-none border-b bg-background"
+          imagePath={venue.image_path ?? null}
+          online={online}
+        />
+        <div className="px-4 py-3.5">
+          <p className="truncate text-sm font-semibold group-hover:text-primary">{venue.name}</p>
+          {(location || capacity) && (
+            <p className="mt-1 truncate text-xs text-muted-foreground">
+              {[location, capacity ? `${capacity} seats` : null].filter(Boolean).join(' · ')}
+            </p>
+          )}
+        </div>
+      </Link>
+    </section>
   )
 }
 

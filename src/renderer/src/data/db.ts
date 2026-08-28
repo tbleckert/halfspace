@@ -10,7 +10,9 @@ import type {
   SportmonksParticipant,
   SportmonksStanding,
   SportmonksTeam,
-  TeamRefresh
+  SportmonksVenue,
+  TeamRefresh,
+  VenueRefresh
 } from '@shared/contracts'
 import { fixtureCacheExpiry } from '@/lib/date'
 
@@ -20,6 +22,7 @@ const standingsCacheDuration = 60 * 60 * 1000
 const competitionFixturesCacheDuration = 15 * 60 * 1000
 const teamCacheDuration = 24 * 60 * 60 * 1000
 const teamFixturesCacheDuration = 15 * 60 * 1000
+const venueCacheDuration = 24 * 60 * 60 * 1000
 
 export interface CachedFixture {
   id: number
@@ -129,6 +132,19 @@ export interface TeamFixtureQuery {
   message?: string
 }
 
+export interface CachedVenue {
+  id: number
+  countryId: number | null
+  name: string
+  imagePath: string | null
+  raw: SportmonksVenue
+  fetchedAt: number
+  staleAt: number
+  rateLimitRemaining?: number
+  rateLimitResetsAt?: number
+  message?: string
+}
+
 export interface CompetitionCatalog {
   key: string
   competitionIds: number[]
@@ -156,6 +172,7 @@ class HalfspaceDatabase extends Dexie {
   competitionFixtureQueries!: Table<CompetitionFixtureQuery, string>
   teams!: Table<CachedTeam, number>
   teamFixtureQueries!: Table<TeamFixtureQuery, string>
+  venues!: Table<CachedVenue, number>
 
   constructor() {
     super('halfspace')
@@ -201,6 +218,21 @@ class HalfspaceDatabase extends Dexie {
       competitionFixtureQueries: '&key, competitionId, staleAt',
       teams: 'id, name, countryId, staleAt',
       teamFixtureQueries: '&key, teamId, staleAt'
+    })
+
+    this.version(5).stores({
+      fixtures:
+        'id, leagueId, startingAt, [leagueId+startingAt], stateId, homeTeamId, awayTeamId, staleAt',
+      fixtureQueries: '&key, date, staleAt',
+      competitions: 'id, active, name, countryId',
+      competitionCatalogs: '&key, staleAt',
+      competitionPins: '&competitionId, pinnedAt',
+      standings: 'id, participantId, seasonId, [seasonId+position], leagueId, stageId, groupId',
+      standingQueries: '&seasonId, staleAt',
+      competitionFixtureQueries: '&key, competitionId, staleAt',
+      teams: 'id, name, countryId, venueId, staleAt',
+      teamFixtureQueries: '&key, teamId, staleAt',
+      venues: 'id, name, countryId, staleAt'
     })
   }
 }
@@ -492,6 +524,40 @@ export async function writeTeamFixtureRefresh(
   })
 }
 
+export async function readVenueIdentity(venueId: number): Promise<{
+  venue: CachedVenue | null
+  summary: SportmonksVenue | null
+}> {
+  const venue = await db.venues.get(venueId)
+  if (venue) return { venue, summary: venue.raw }
+
+  const team = await db.teams.where('venueId').equals(venueId).first()
+  const summary = team?.raw.venue?.id === venueId ? team.raw.venue : null
+
+  return { venue: null, summary }
+}
+
+export async function readVenueTeams(venueId: number): Promise<CachedTeam[]> {
+  return db.teams.where('venueId').equals(venueId).sortBy('name')
+}
+
+export async function writeVenueRefresh(refresh: VenueRefresh): Promise<void> {
+  const venue: CachedVenue = {
+    id: refresh.venue.id,
+    countryId: refresh.venue.country_id ?? null,
+    name: refresh.venue.name,
+    imagePath: refresh.venue.image_path ?? null,
+    raw: refresh.venue,
+    fetchedAt: refresh.fetchedAt,
+    staleAt: refresh.fetchedAt + venueCacheDuration,
+    rateLimitRemaining: refresh.rateLimit?.remaining,
+    rateLimitResetsAt: refresh.rateLimit?.resetsAt,
+    message: refresh.message
+  }
+
+  await db.venues.put(venue)
+}
+
 export async function setCompetitionPinned(competitionId: number, pinned: boolean): Promise<void> {
   if (!pinned) {
     await db.competitionPins.delete(competitionId)
@@ -513,7 +579,8 @@ export async function clearSportmonksCache(): Promise<void> {
       db.standingQueries,
       db.competitionFixtureQueries,
       db.teams,
-      db.teamFixtureQueries
+      db.teamFixtureQueries,
+      db.venues
     ],
     async () => {
       await db.fixtures.clear()
@@ -525,6 +592,7 @@ export async function clearSportmonksCache(): Promise<void> {
       await db.competitionFixtureQueries.clear()
       await db.teams.clear()
       await db.teamFixtureQueries.clear()
+      await db.venues.clear()
     }
   )
 }

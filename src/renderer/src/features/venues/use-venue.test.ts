@@ -1,23 +1,23 @@
 // @vitest-environment jsdom
 
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Result, TeamRefresh } from '@shared/contracts'
-import { db, readTeamIdentity } from '@/data/db'
-import { invalidateTeamRefreshes, refreshTeamEntity } from './use-team'
+import type { Result, VenueRefresh } from '@shared/contracts'
+import { db, readVenueIdentity } from '@/data/db'
+import { invalidateVenueRefreshes, refreshVenueEntity } from './use-venue'
 
 beforeEach(async () => {
-  invalidateTeamRefreshes()
+  invalidateVenueRefreshes()
   if (!db.isOpen()) await db.open()
-  await db.teams.clear()
+  await db.venues.clear()
 })
 
 afterAll(() => db.close())
 
-describe('team refresh', () => {
-  it('does not restore an old team after the credential changes', async () => {
-    const oldRequest = deferred<Result<TeamRefresh>>()
-    const newRequest = deferred<Result<TeamRefresh>>()
-    const refreshTeam = vi
+describe('venue refresh', () => {
+  it('does not restore an old venue after the credential changes', async () => {
+    const oldRequest = deferred<Result<VenueRefresh>>()
+    const newRequest = deferred<Result<VenueRefresh>>()
+    const refreshVenue = vi
       .fn()
       .mockReturnValueOnce(oldRequest.promise)
       .mockReturnValueOnce(newRequest.promise)
@@ -33,38 +33,34 @@ describe('team refresh', () => {
         refreshCompetitions: vi.fn(),
         refreshStandings: vi.fn(),
         refreshCompetitionFixtures: vi.fn(),
-        refreshTeam,
+        refreshTeam: vi.fn(),
         refreshTeamFixtures: vi.fn(),
-        refreshVenue: vi.fn()
+        refreshVenue
       }
     }
 
-    const oldRefresh = refreshTeamEntity(9)
-    invalidateTeamRefreshes()
-    const newRefresh = refreshTeamEntity(9)
+    const oldRefresh = refreshVenueEntity(206)
+    invalidateVenueRefreshes()
+    const newRefresh = refreshVenueEntity(206)
 
-    newRequest.resolve({ ok: true, data: teamRefresh('Manchester City') })
+    newRequest.resolve({ ok: true, data: venueRefresh('Etihad Stadium') })
     await newRefresh
 
-    oldRequest.resolve({ ok: true, data: teamRefresh('Old Manchester City') })
+    oldRequest.resolve({ ok: true, data: venueRefresh('Old Etihad Stadium') })
     await oldRefresh
 
-    expect((await readTeamIdentity(9)).team?.name).toBe('Manchester City')
+    expect((await readVenueIdentity(206)).venue?.name).toBe('Etihad Stadium')
   })
 })
 
-function teamRefresh(name: string): TeamRefresh {
+function venueRefresh(name: string): VenueRefresh {
   return {
     fetchedAt: Date.UTC(2026, 7, 28, 10),
-    team: {
-      id: 9,
-      sport_id: 1,
+    venue: {
+      id: 206,
       country_id: 462,
-      venue_id: 206,
-      gender: 'male',
       name,
-      founded: 1880,
-      placeholder: false
+      capacity: 55097
     }
   }
 }

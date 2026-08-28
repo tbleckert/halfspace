@@ -15,7 +15,8 @@ const halfspaceApi: HalfspaceApi = {
     refreshCompetitionFixtures: (input) =>
       ipcRenderer.invoke(ipcChannels.refreshCompetitionFixtures, input),
     refreshTeam: (input) => ipcRenderer.invoke(ipcChannels.refreshTeam, input),
-    refreshTeamFixtures: (input) => ipcRenderer.invoke(ipcChannels.refreshTeamFixtures, input)
+    refreshTeamFixtures: (input) => ipcRenderer.invoke(ipcChannels.refreshTeamFixtures, input),
+    refreshVenue: (input) => ipcRenderer.invoke(ipcChannels.refreshVenue, input)
   }
 }
 
