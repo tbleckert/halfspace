@@ -2,8 +2,12 @@ import { describe, expect, it, vi } from 'vitest'
 import type { SportmonksCompetition, SportmonksFixture } from '@shared/contracts'
 import {
   fetchCompetitions,
+  fetchCompetitionFixtures,
   fetchFixturesByDate,
+  fetchStandingsBySeason,
+  validateCompetitionFixturesInput,
   validateRefreshInput,
+  validateStandingsInput,
   validateToken
 } from './sportmonks'
 
@@ -53,7 +57,14 @@ describe('Sportmonks client', () => {
       return Response.json({
         data:
           page === 1
-            ? [{ ...competition, active: 0 }]
+            ? [
+                {
+                  ...competition,
+                  currentseason: undefined,
+                  currentSeason: competition.currentseason,
+                  active: 0
+                }
+              ]
             : [{ ...competition, id: 9, name: 'Championship', active: 1 }],
         pagination: {
           current_page: page,
@@ -70,6 +81,7 @@ describe('Sportmonks client', () => {
 
     expect(refresh.competitions.map(({ id }) => id)).toEqual([8, 9])
     expect(refresh.competitions.map(({ active }) => active)).toEqual([false, true])
+    expect(refresh.competitions[0].currentseason?.id).toBe(23614)
     expect(refresh.pageCount).toBe(2)
     expect(refresh.rateLimit?.remaining).toBe(2_997)
     expect(fetcher).toHaveBeenCalledTimes(2)
@@ -77,7 +89,7 @@ describe('Sportmonks client', () => {
     const [firstInput, firstInit] = fetcher.mock.calls[0]
     const firstUrl = new URL(firstInput.toString())
     expect(firstUrl.pathname).toBe('/v3/football/leagues')
-    expect(firstUrl.searchParams.get('include')).toBe('country')
+    expect(firstUrl.searchParams.get('include')).toBe('country;currentSeason')
     expect(firstUrl.searchParams.get('per_page')).toBe('50')
     expect(firstUrl.searchParams.get('page')).toBe('1')
     expect(firstUrl.searchParams.has('api_token')).toBe(false)
@@ -96,6 +108,77 @@ describe('Sportmonks client', () => {
       code: 'invalid_response',
       message: 'Sportmonks returned an unexpected response.'
     })
+  })
+
+  it('fetches the current standings with participants and grouping context', async () => {
+    const fetcher = vi.fn<typeof fetch>(async () =>
+      Response.json({
+        data: [
+          {
+            id: 1,
+            participant_id: 10,
+            league_id: 8,
+            season_id: 23614,
+            stage_id: 77471288,
+            group_id: null,
+            round_id: 339273,
+            standing_rule_id: null,
+            position: 1,
+            result: null,
+            points: 84,
+            participant: { id: 10, name: 'Home' },
+            stage: { id: 77471288, name: 'Regular Season' }
+          }
+        ],
+        rate_limit: { remaining: 2_996, resets_in_seconds: 3_600 }
+      })
+    )
+
+    const refresh = await fetchStandingsBySeason({ seasonId: 23614 }, 'private-token', fetcher)
+
+    expect(refresh.standings).toHaveLength(1)
+    expect(refresh.standings[0].participant?.name).toBe('Home')
+
+    const [input, init] = fetcher.mock.calls[0]
+    const url = new URL(input.toString())
+    expect(url.pathname).toBe('/v3/football/standings/seasons/23614')
+    expect(url.searchParams.get('include')).toBe('participant;stage;group')
+    expect(url.searchParams.has('api_token')).toBe(false)
+    expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')
+  })
+
+  it('paginates a league-filtered fixture window', async () => {
+    const fixture = makeFixture()
+    const fetcher = vi.fn<typeof fetch>(async (input) => {
+      const url = new URL(input.toString())
+      const page = Number(url.searchParams.get('page'))
+
+      return Response.json({
+        data: page === 1 ? [fixture] : [{ ...fixture, id: 2 }],
+        pagination: { current_page: page, has_more: page === 1 },
+        timezone: 'Europe/Stockholm'
+      })
+    })
+
+    const refresh = await fetchCompetitionFixtures(
+      {
+        competitionId: 8,
+        startDate: '2026-08-14',
+        endDate: '2026-09-11',
+        timeZone: 'Europe/Stockholm'
+      },
+      'private-token',
+      fetcher
+    )
+
+    expect(refresh.fixtures).toHaveLength(2)
+    expect(refresh.pageCount).toBe(2)
+
+    const firstUrl = new URL(fetcher.mock.calls[0][0].toString())
+    expect(firstUrl.pathname).toBe('/v3/football/fixtures/between/2026-08-14/2026-09-11')
+    expect(firstUrl.searchParams.get('filters')).toBe('fixtureLeagues:8')
+    expect(firstUrl.searchParams.get('include')).toBe('participants;league;state;scores')
+    expect(firstUrl.searchParams.get('timezone')).toBe('Europe/Stockholm')
   })
 
   it('maps authentication failures without leaking the token', async () => {
@@ -121,6 +204,23 @@ describe('Sportmonks client', () => {
       'The selected time zone is not valid.'
     )
     expect(() => validateToken('token with spaces')).toThrow('Enter a valid Sportmonks token.')
+    expect(() => validateStandingsInput({ seasonId: -1 })).toThrow('Choose a valid current season.')
+    expect(() =>
+      validateCompetitionFixturesInput({
+        competitionId: 8,
+        startDate: '2026-09-01',
+        endDate: '2026-08-01',
+        timeZone: 'UTC'
+      })
+    ).toThrow('Choose a valid fixture range.')
+    expect(() =>
+      validateCompetitionFixturesInput({
+        competitionId: 8,
+        startDate: '2026-01-01',
+        endDate: '2026-05-01',
+        timeZone: 'UTC'
+      })
+    ).toThrow('Fixture ranges cannot exceed 100 days.')
   })
 })
 
@@ -138,6 +238,14 @@ function makeCompetition(): SportmonksCompetition {
       id: 462,
       name: 'England',
       iso2: 'GB'
+    },
+    currentseason: {
+      id: 23614,
+      league_id: 8,
+      name: '2026/2027',
+      is_current: true,
+      starting_at: '2026-08-01',
+      ending_at: '2027-05-31'
     }
   }
 }

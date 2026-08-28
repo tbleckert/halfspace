@@ -2,13 +2,18 @@ import Dexie, { type Table } from 'dexie'
 import type {
   CompetitionRefresh,
   FixtureRefresh,
+  RefreshCompetitionFixturesInput,
+  StandingsRefresh,
   SportmonksCompetition,
-  SportmonksFixture
+  SportmonksFixture,
+  SportmonksStanding
 } from '@shared/contracts'
 import { fixtureCacheExpiry } from '@/lib/date'
 
 const subscribedCompetitionCatalog = 'subscribed'
 const competitionCacheDuration = 24 * 60 * 60 * 1000
+const standingsCacheDuration = 60 * 60 * 1000
+const competitionFixturesCacheDuration = 15 * 60 * 1000
 
 export interface CachedFixture {
   id: number
@@ -46,8 +51,47 @@ export interface CachedCompetition {
   name: string
   active: boolean
   imagePath: string | null
+  currentSeasonId: number | null
+  currentSeasonName: string | null
   raw: SportmonksCompetition
   fetchedAt: number
+}
+
+export interface CachedStanding {
+  id: number
+  participantId: number
+  leagueId: number
+  seasonId: number
+  stageId: number
+  groupId: number | null
+  position: number
+  raw: SportmonksStanding
+  fetchedAt: number
+}
+
+export interface StandingQuery {
+  seasonId: number
+  standingIds: number[]
+  fetchedAt: number
+  staleAt: number
+  rateLimitRemaining?: number
+  rateLimitResetsAt?: number
+  message?: string
+}
+
+export interface CompetitionFixtureQuery {
+  key: string
+  competitionId: number
+  startDate: string
+  endDate: string
+  timeZone: string
+  fixtureIds: number[]
+  fetchedAt: number
+  staleAt: number
+  pageCount: number
+  rateLimitRemaining?: number
+  rateLimitResetsAt?: number
+  message?: string
 }
 
 export interface CompetitionCatalog {
@@ -72,6 +116,9 @@ class HalfspaceDatabase extends Dexie {
   competitions!: Table<CachedCompetition, number>
   competitionCatalogs!: Table<CompetitionCatalog, string>
   competitionPins!: Table<CompetitionPin, number>
+  standings!: Table<CachedStanding, number>
+  standingQueries!: Table<StandingQuery, number>
+  competitionFixtureQueries!: Table<CompetitionFixtureQuery, string>
 
   constructor() {
     super('halfspace')
@@ -88,6 +135,22 @@ class HalfspaceDatabase extends Dexie {
       competitionCatalogs: '&key, staleAt',
       competitionPins: '&competitionId, pinnedAt'
     })
+
+    this.version(3)
+      .stores({
+        fixtures: 'id, leagueId, startingAt, [leagueId+startingAt], stateId, staleAt',
+        fixtureQueries: '&key, date, staleAt',
+        competitions: 'id, active, name, countryId',
+        competitionCatalogs: '&key, staleAt',
+        competitionPins: '&competitionId, pinnedAt',
+        standings: 'id, seasonId, [seasonId+position], leagueId, stageId, groupId',
+        standingQueries: '&seasonId, staleAt',
+        competitionFixtureQueries: '&key, competitionId, staleAt'
+      })
+      .upgrade(async (transaction) => {
+        await transaction.table('competitions').clear()
+        await transaction.table('competitionCatalogs').clear()
+      })
   }
 }
 
@@ -160,6 +223,8 @@ export async function writeCompetitionRefresh(refresh: CompetitionRefresh): Prom
     name: competition.name,
     active: competition.active,
     imagePath: competition.image_path ?? null,
+    currentSeasonId: competition.currentseason?.id ?? null,
+    currentSeasonName: competition.currentseason?.name ?? null,
     raw: competition,
     fetchedAt: refresh.fetchedAt
   }))
@@ -181,6 +246,102 @@ export async function writeCompetitionRefresh(refresh: CompetitionRefresh): Prom
   })
 }
 
+export async function readStandingsQuery(seasonId: number): Promise<{
+  query: StandingQuery | null
+  standings: CachedStanding[]
+}> {
+  const query = await db.standingQueries.get(seasonId)
+  if (!query) return { query: null, standings: [] }
+
+  const standings = (await db.standings.bulkGet(query.standingIds)).filter(
+    (standing): standing is CachedStanding => standing !== undefined
+  )
+
+  return { query, standings }
+}
+
+export async function writeStandingsRefresh(
+  seasonId: number,
+  refresh: StandingsRefresh
+): Promise<void> {
+  const previousQuery = await db.standingQueries.get(seasonId)
+  const standings = refresh.standings.map((standing) => ({
+    id: standing.id,
+    participantId: standing.participant_id,
+    leagueId: standing.league_id,
+    seasonId: standing.season_id,
+    stageId: standing.stage_id,
+    groupId: standing.group_id,
+    position: standing.position,
+    raw: standing,
+    fetchedAt: refresh.fetchedAt
+  }))
+  const query: StandingQuery = {
+    seasonId,
+    standingIds: standings.map(({ id }) => id),
+    fetchedAt: refresh.fetchedAt,
+    staleAt: refresh.fetchedAt + standingsCacheDuration,
+    rateLimitRemaining: refresh.rateLimit?.remaining,
+    rateLimitResetsAt: refresh.rateLimit?.resetsAt,
+    message: refresh.message
+  }
+  const removedStandingIds = (previousQuery?.standingIds ?? []).filter(
+    (standingId) => !query.standingIds.includes(standingId)
+  )
+
+  await db.transaction('rw', db.standings, db.standingQueries, async () => {
+    await db.standings.bulkDelete(removedStandingIds)
+    await db.standings.bulkPut(standings)
+    await db.standingQueries.put(query)
+  })
+}
+
+export function competitionFixtureQueryKey(input: RefreshCompetitionFixturesInput): string {
+  return `${input.competitionId}|${input.startDate}|${input.endDate}|${input.timeZone}`
+}
+
+export async function readCompetitionFixtureQuery(
+  input: RefreshCompetitionFixturesInput
+): Promise<{ query: CompetitionFixtureQuery | null; fixtures: CachedFixture[] }> {
+  const query = await db.competitionFixtureQueries.get(competitionFixtureQueryKey(input))
+  if (!query) return { query: null, fixtures: [] }
+
+  const fixtures = (await db.fixtures.bulkGet(query.fixtureIds)).filter(
+    (fixture): fixture is CachedFixture => fixture !== undefined
+  )
+
+  return { query, fixtures }
+}
+
+export async function writeCompetitionFixtureRefresh(
+  input: RefreshCompetitionFixturesInput,
+  refresh: FixtureRefresh
+): Promise<void> {
+  const staleAt = refresh.fetchedAt + competitionFixturesCacheDuration
+  const fixtures = refresh.fixtures.map((fixture) =>
+    toCachedFixture(fixture, refresh.fetchedAt, staleAt)
+  )
+  const query: CompetitionFixtureQuery = {
+    key: competitionFixtureQueryKey(input),
+    competitionId: input.competitionId,
+    startDate: input.startDate,
+    endDate: input.endDate,
+    timeZone: input.timeZone,
+    fixtureIds: fixtures.map(({ id }) => id),
+    fetchedAt: refresh.fetchedAt,
+    staleAt,
+    pageCount: refresh.pageCount,
+    rateLimitRemaining: refresh.rateLimit?.remaining,
+    rateLimitResetsAt: refresh.rateLimit?.resetsAt,
+    message: refresh.message
+  }
+
+  await db.transaction('rw', db.fixtures, db.competitionFixtureQueries, async () => {
+    await db.fixtures.bulkPut(fixtures)
+    await db.competitionFixtureQueries.put(query)
+  })
+}
+
 export async function setCompetitionPinned(competitionId: number, pinned: boolean): Promise<void> {
   if (!pinned) {
     await db.competitionPins.delete(competitionId)
@@ -193,13 +354,23 @@ export async function setCompetitionPinned(competitionId: number, pinned: boolea
 export async function clearSportmonksCache(): Promise<void> {
   await db.transaction(
     'rw',
-    db.fixtureQueries,
-    db.competitions,
-    db.competitionCatalogs,
+    [
+      db.fixtures,
+      db.fixtureQueries,
+      db.competitions,
+      db.competitionCatalogs,
+      db.standings,
+      db.standingQueries,
+      db.competitionFixtureQueries
+    ],
     async () => {
+      await db.fixtures.clear()
       await db.fixtureQueries.clear()
       await db.competitions.clear()
       await db.competitionCatalogs.clear()
+      await db.standings.clear()
+      await db.standingQueries.clear()
+      await db.competitionFixtureQueries.clear()
     }
   )
 }

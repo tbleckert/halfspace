@@ -2,9 +2,13 @@ import type {
   ApiErrorCode,
   CompetitionRefresh,
   FixtureRefresh,
+  RefreshCompetitionFixturesInput,
   RefreshFixturesInput,
+  RefreshStandingsInput,
+  StandingsRefresh,
   SportmonksCompetition,
-  SportmonksFixture
+  SportmonksFixture,
+  SportmonksStanding
 } from '@shared/contracts'
 import { z } from 'zod'
 
@@ -20,6 +24,17 @@ const countrySchema = z
   })
   .passthrough()
 
+const seasonSchema = z
+  .object({
+    id: z.number().int(),
+    league_id: z.number().int(),
+    name: z.string(),
+    is_current: z.union([z.boolean(), z.literal(0), z.literal(1)]).transform(Boolean),
+    starting_at: z.string().nullable().optional(),
+    ending_at: z.string().nullable().optional()
+  })
+  .passthrough()
+
 const competitionSchema = z
   .object({
     id: z.number().int(),
@@ -30,9 +45,15 @@ const competitionSchema = z
     image_path: z.string().nullable().optional(),
     type: z.string().nullable().optional(),
     sub_type: z.string().nullable().optional(),
-    country: countrySchema.nullable().optional()
+    country: countrySchema.nullable().optional(),
+    currentseason: seasonSchema.nullable().optional(),
+    currentSeason: seasonSchema.nullable().optional()
   })
   .passthrough()
+  .transform(({ currentSeason, ...competition }) => ({
+    ...competition,
+    currentseason: competition.currentseason ?? currentSeason
+  }))
 
 const participantSchema = z
   .object({
@@ -121,6 +142,46 @@ const fixtureResponseSchema = z
   })
   .passthrough()
 
+const standingContextSchema = z
+  .object({
+    id: z.number().int(),
+    name: z.string()
+  })
+  .passthrough()
+
+const standingSchema = z
+  .object({
+    id: z.number().int(),
+    participant_id: z.number().int(),
+    league_id: z.number().int(),
+    season_id: z.number().int(),
+    stage_id: z.number().int(),
+    group_id: z.number().int().nullable(),
+    round_id: z.number().int().nullable(),
+    standing_rule_id: z.number().int().nullable(),
+    position: z.number().int(),
+    result: z.string().nullable(),
+    points: z.number(),
+    participant: participantSchema.nullable().optional(),
+    stage: standingContextSchema.nullable().optional(),
+    group: standingContextSchema.nullable().optional()
+  })
+  .passthrough()
+
+const standingsResponseSchema = z
+  .object({
+    data: z.array(standingSchema),
+    rate_limit: z
+      .object({
+        remaining: z.number(),
+        resets_in_seconds: z.number()
+      })
+      .passthrough()
+      .optional(),
+    message: z.string().optional()
+  })
+  .passthrough()
+
 const competitionResponseSchema = z
   .object({
     data: z.array(competitionSchema),
@@ -178,10 +239,83 @@ export function validateRefreshInput(value: unknown): RefreshFixturesInput {
   return { date: input.date, timeZone: input.timeZone }
 }
 
+export function validateStandingsInput(value: unknown): RefreshStandingsInput {
+  const seasonId =
+    value && typeof value === 'object' ? (value as { seasonId?: unknown }).seasonId : 0
+
+  if (!isPositiveId(seasonId)) {
+    throw new SportmonksError('invalid_input', 'Choose a valid current season.')
+  }
+
+  return { seasonId }
+}
+
+export function validateCompetitionFixturesInput(value: unknown): RefreshCompetitionFixturesInput {
+  if (!value || typeof value !== 'object') {
+    throw new SportmonksError('invalid_input', 'Choose a valid fixture range.')
+  }
+
+  const input = value as Record<string, unknown>
+
+  if (
+    !isPositiveId(input.competitionId) ||
+    typeof input.startDate !== 'string' ||
+    typeof input.endDate !== 'string' ||
+    !isValidIsoDate(input.startDate) ||
+    !isValidIsoDate(input.endDate) ||
+    input.startDate > input.endDate
+  ) {
+    throw new SportmonksError('invalid_input', 'Choose a valid fixture range.')
+  }
+
+  const dayCount =
+    (Date.parse(`${input.endDate}T00:00:00Z`) - Date.parse(`${input.startDate}T00:00:00Z`)) /
+    86_400_000
+
+  if (dayCount > 100) {
+    throw new SportmonksError('invalid_input', 'Fixture ranges cannot exceed 100 days.')
+  }
+
+  if (typeof input.timeZone !== 'string' || !isValidTimeZone(input.timeZone)) {
+    throw new SportmonksError('invalid_input', 'The selected time zone is not valid.')
+  }
+
+  return {
+    competitionId: input.competitionId,
+    startDate: input.startDate,
+    endDate: input.endDate,
+    timeZone: input.timeZone
+  }
+}
+
 export async function fetchFixturesByDate(
   input: RefreshFixturesInput,
   token: string,
   fetcher: typeof fetch = fetch
+): Promise<FixtureRefresh> {
+  return fetchFixturePages(`fixtures/date/${input.date}`, input.timeZone, token, fetcher)
+}
+
+export async function fetchCompetitionFixtures(
+  input: RefreshCompetitionFixturesInput,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<FixtureRefresh> {
+  return fetchFixturePages(
+    `fixtures/between/${input.startDate}/${input.endDate}`,
+    input.timeZone,
+    token,
+    fetcher,
+    `fixtureLeagues:${input.competitionId}`
+  )
+}
+
+async function fetchFixturePages(
+  path: string,
+  timeZone: string,
+  token: string,
+  fetcher: typeof fetch,
+  filters?: string
 ): Promise<FixtureRefresh> {
   const fixtures: SportmonksFixture[] = []
   const fetchedAt = Date.now()
@@ -190,12 +324,13 @@ export async function fetchFixturesByDate(
   let message: string | undefined
 
   while (page <= maximumPages) {
-    const url = new URL(`${apiBaseUrl}/fixtures/date/${input.date}`)
+    const url = new URL(`${apiBaseUrl}/${path}`)
     url.searchParams.set('include', 'participants;league;state;scores')
-    url.searchParams.set('timezone', input.timeZone)
+    url.searchParams.set('timezone', timeZone)
     url.searchParams.set('order', 'asc')
     url.searchParams.set('per_page', '50')
     url.searchParams.set('page', String(page))
+    if (filters) url.searchParams.set('filters', filters)
 
     let response: Response
 
@@ -238,7 +373,7 @@ export async function fetchFixturesByDate(
         fixtures,
         fetchedAt,
         pageCount: page,
-        timeZone: parsed.timezone ?? input.timeZone,
+        timeZone: parsed.timezone ?? timeZone,
         rateLimit,
         message
       }
@@ -262,7 +397,7 @@ export async function fetchCompetitions(
 
   while (page <= maximumPages) {
     const url = new URL(`${apiBaseUrl}/leagues`)
-    url.searchParams.set('include', 'country')
+    url.searchParams.set('include', 'country;currentSeason')
     url.searchParams.set('per_page', '50')
     url.searchParams.set('page', String(page))
 
@@ -318,6 +453,54 @@ export async function fetchCompetitions(
   throw new SportmonksError('invalid_response', 'Sportmonks returned too many result pages.')
 }
 
+export async function fetchStandingsBySeason(
+  input: RefreshStandingsInput,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<StandingsRefresh> {
+  const fetchedAt = Date.now()
+  const url = new URL(`${apiBaseUrl}/standings/seasons/${input.seasonId}`)
+  url.searchParams.set('include', 'participant;stage;group')
+
+  let response: Response
+
+  try {
+    response = await fetcher(url, {
+      headers: {
+        Accept: 'application/json',
+        Authorization: token
+      },
+      signal: AbortSignal.timeout(20_000)
+    })
+  } catch {
+    throw new SportmonksError('network', 'Could not reach Sportmonks.')
+  }
+
+  if (!response.ok) {
+    throw errorForStatus(response.status)
+  }
+
+  let parsed: z.infer<typeof standingsResponseSchema>
+
+  try {
+    parsed = standingsResponseSchema.parse(await response.json())
+  } catch {
+    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
+  }
+
+  return {
+    standings: parsed.data as SportmonksStanding[],
+    fetchedAt,
+    rateLimit: parsed.rate_limit
+      ? {
+          remaining: parsed.rate_limit.remaining,
+          resetsAt: fetchedAt + parsed.rate_limit.resets_in_seconds * 1000
+        }
+      : undefined,
+    message: parsed.message
+  }
+}
+
 function isValidIsoDate(value: string): boolean {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
   if (!match) return false
@@ -330,6 +513,10 @@ function isValidIsoDate(value: string): boolean {
     date.getUTCMonth() === Number(month) - 1 &&
     date.getUTCDate() === Number(day)
   )
+}
+
+function isPositiveId(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0
 }
 
 function isValidTimeZone(value: string): boolean {

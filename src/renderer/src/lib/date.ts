@@ -30,6 +30,13 @@ export function isIsoDate(value: unknown): value is string {
   )
 }
 
+export function addDaysToIsoDate(value: string, days: number): string {
+  const [year, month, day] = value.split('-').map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day + days))
+
+  return date.toISOString().slice(0, 10)
+}
+
 export function fixtureCacheExpiry(date: string, timeZone: string, fetchedAt: number): number {
   const today = todayInTimeZone(timeZone)
 

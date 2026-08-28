@@ -2,7 +2,13 @@ import { useCallback, useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { readFixtureQuery, writeFixtureRefresh } from '@/data/db'
 
-const refreshes = new Map<string, Promise<void>>()
+interface FixtureRefreshRequest {
+  generation: number
+  promise: Promise<void>
+}
+
+let refreshGeneration = 0
+const refreshes = new Map<string, FixtureRefreshRequest>()
 
 type FixtureCache = Awaited<ReturnType<typeof readFixtureQuery>>
 
@@ -51,10 +57,14 @@ export function useFixtures(date: string, timeZone: string, enabled: boolean): U
 async function refreshFixtureQuery(date: string, timeZone: string): Promise<void> {
   const key = `${date}|${timeZone}`
   const existing = refreshes.get(key)
-  if (existing) return existing
+  if (existing?.generation === refreshGeneration) return existing.promise
+
+  const generation = refreshGeneration
 
   const refresh = (async () => {
     const result = await window.halfspace.sportmonks.refreshFixtures({ date, timeZone })
+
+    if (generation !== refreshGeneration) return
 
     if (!result.ok) {
       throw new Error(result.error.message)
@@ -63,11 +73,16 @@ async function refreshFixtureQuery(date: string, timeZone: string): Promise<void
     await writeFixtureRefresh(date, timeZone, result.data)
   })()
 
-  refreshes.set(key, refresh)
+  refreshes.set(key, { generation, promise: refresh })
 
   try {
     await refresh
   } finally {
-    refreshes.delete(key)
+    if (refreshes.get(key)?.promise === refresh) refreshes.delete(key)
   }
+}
+
+export function invalidateFixtureRefreshes(): void {
+  refreshGeneration += 1
+  refreshes.clear()
 }

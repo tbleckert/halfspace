@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import type { ConnectionState } from '@shared/contracts'
 import { clearSportmonksCache } from '@/data/db'
 import { invalidateCompetitionRefresh } from '@/features/competitions/use-competitions'
+import { invalidateCompetitionWorkspaceRefreshes } from '@/features/competitions/use-competition-workspace'
+import { invalidateFixtureRefreshes } from '@/features/fixtures/use-fixtures'
 import { ConnectionStateContext } from './connection-state-context'
 
 export function ConnectionStateProvider({ children }: { children: ReactNode }): React.JSX.Element {
@@ -24,6 +26,8 @@ export function ConnectionStateProvider({ children }: { children: ReactNode }): 
 
       if (result.ok) {
         invalidateCompetitionRefresh()
+        invalidateCompetitionWorkspaceRefreshes()
+        invalidateFixtureRefreshes()
         await clearSportmonksCache().catch(() => undefined)
         setConnection(result.data)
         setError(null)
@@ -44,6 +48,8 @@ export function ConnectionStateProvider({ children }: { children: ReactNode }): 
 
       if (result.ok) {
         invalidateCompetitionRefresh()
+        invalidateCompetitionWorkspaceRefreshes()
+        invalidateFixtureRefreshes()
         await clearSportmonksCache().catch(() => undefined)
         setConnection({ configured: false })
         setError(null)

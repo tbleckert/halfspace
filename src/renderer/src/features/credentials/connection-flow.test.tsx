@@ -30,7 +30,9 @@ beforeEach(() => {
     },
     sportmonks: {
       refreshFixtures: vi.fn(),
-      refreshCompetitions: vi.fn()
+      refreshCompetitions: vi.fn(),
+      refreshStandings: vi.fn(),
+      refreshCompetitionFixtures: vi.fn()
     }
   }
 })

@@ -57,11 +57,15 @@ function Workspace(): React.JSX.Element {
   )
   const sidebarLocation = useRouterState({
     select: ({ location }) => {
-      const competition = (location.search as { competition?: unknown }).competition
+      const competitionContext = (location.search as { competition?: unknown }).competition
       const date = (location.search as { date?: unknown }).date
+      const competitionRoute = /^\/competitions\/(\d+)$/.exec(location.pathname)
+      const routeCompetitionId = competitionRoute ? Number(competitionRoute[1]) : null
 
       return {
-        competitionId: typeof competition === 'number' ? competition : null,
+        competitionId:
+          routeCompetitionId ??
+          (typeof competitionContext === 'number' ? competitionContext : null),
         date: typeof date === 'string' ? date : null,
         pathname: location.pathname
       }
@@ -69,7 +73,7 @@ function Workspace(): React.JSX.Element {
   })
   const currentDate = useMemo(() => todayInTimeZone(currentTimeZone()), [])
   const sidebarDate = sidebarLocation.date ?? currentDate
-  const matchdayActive = sidebarLocation.pathname === '/' && !sidebarLocation.competitionId
+  const matchdayActive = sidebarLocation.pathname === '/'
 
   return (
     <div className="grid h-full grid-cols-[14rem_1fr] bg-background">
@@ -114,9 +118,13 @@ function Workspace(): React.JSX.Element {
                 return (
                   <Link
                     key={competition.id}
-                    to="/"
-                    search={{ competition: competition.id, date: sidebarDate }}
-                    aria-current={active && sidebarLocation.pathname === '/' ? 'page' : undefined}
+                    to="/competitions/$competitionId"
+                    params={{ competitionId: String(competition.id) }}
+                    aria-current={
+                      active && sidebarLocation.pathname.startsWith('/competitions/')
+                        ? 'page'
+                        : undefined
+                    }
                     className={cn(
                       'flex items-center gap-2.5 rounded-md px-3 py-1.5 text-[13px] font-medium text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring',
                       active && 'bg-accent text-accent-foreground'

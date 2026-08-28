@@ -8,7 +8,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { formatFixtureTime } from '@/lib/date'
 
-export function FixtureDetailPage({ fixtureId }: { fixtureId: string }): React.JSX.Element {
+interface FixtureDetailPageProps {
+  competitionId?: number
+  date?: string
+  fixtureId: string
+}
+
+export function FixtureDetailPage({
+  competitionId,
+  date,
+  fixtureId
+}: FixtureDetailPageProps): React.JSX.Element {
   const parsedFixtureId = Number(fixtureId)
   const isValidFixtureId = Number.isSafeInteger(parsedFixtureId) && parsedFixtureId > 0
   const fixture = useLiveQuery(
@@ -17,7 +27,7 @@ export function FixtureDetailPage({ fixtureId }: { fixtureId: string }): React.J
   )
 
   if (!isValidFixtureId) {
-    return <MissingFixture />
+    return <MissingFixture competitionId={competitionId} date={date} />
   }
 
   if (fixture === undefined) {
@@ -25,7 +35,7 @@ export function FixtureDetailPage({ fixtureId }: { fixtureId: string }): React.J
   }
 
   if (!fixture) {
-    return <MissingFixture />
+    return <MissingFixture competitionId={competitionId} date={date} />
   }
 
   const home = fixture.raw.participants.find((participant) => participant.meta?.location === 'home')
@@ -33,14 +43,25 @@ export function FixtureDetailPage({ fixtureId }: { fixtureId: string }): React.J
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-7 lg:p-10">
-      <Link
-        to="/"
-        search={true}
-        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" />
-        Matchday
-      </Link>
+      {competitionId ? (
+        <Link
+          to="/competitions/$competitionId"
+          params={{ competitionId: String(competitionId) }}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="size-4" />
+          {fixture.raw.league?.name ?? 'Competition'}
+        </Link>
+      ) : (
+        <Link
+          to="/"
+          search={{ date }}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="size-4" />
+          Matchday
+        </Link>
+      )}
 
       <header>
         <div className="mb-3 flex items-center gap-2">
@@ -75,16 +96,37 @@ export function FixtureDetailPage({ fixtureId }: { fixtureId: string }): React.J
   )
 }
 
-function MissingFixture(): React.JSX.Element {
+function MissingFixture({
+  competitionId,
+  date
+}: {
+  competitionId?: number
+  date?: string
+}): React.JSX.Element {
   return (
     <div className="mx-auto max-w-3xl p-10">
       <Card>
         <CardContent className="p-6">
           <p className="font-medium">Fixture not found.</p>
-          <Link to="/" search={true} className={cn(buttonVariants({ variant: 'outline' }), 'mt-4')}>
-            <ArrowLeft className="size-4" />
-            Back to Matchday
-          </Link>
+          {competitionId ? (
+            <Link
+              to="/competitions/$competitionId"
+              params={{ competitionId: String(competitionId) }}
+              className={cn(buttonVariants({ variant: 'outline' }), 'mt-4')}
+            >
+              <ArrowLeft className="size-4" />
+              Back to competition
+            </Link>
+          ) : (
+            <Link
+              to="/"
+              search={{ date }}
+              className={cn(buttonVariants({ variant: 'outline' }), 'mt-4')}
+            >
+              <ArrowLeft className="size-4" />
+              Back to Matchday
+            </Link>
+          )}
         </CardContent>
       </Card>
     </div>

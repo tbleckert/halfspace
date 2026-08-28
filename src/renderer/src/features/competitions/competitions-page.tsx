@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { currentTimeZone, todayInTimeZone } from '@/lib/date'
 import { cn } from '@/lib/utils'
 import { useOnline } from '@/lib/use-online'
 import { CompetitionLogo } from './competition-logo'
@@ -19,7 +18,6 @@ export function CompetitionsPage(): React.JSX.Element {
   const online = useOnline()
   const [query, setQuery] = useState('')
   const [pinError, setPinError] = useState<string | null>(null)
-  const currentDate = useMemo(() => todayInTimeZone(currentTimeZone()), [])
   const pinned = useMemo(() => new Set(pinnedCompetitionIds), [pinnedCompetitionIds])
   const competitions = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase()
@@ -99,8 +97,8 @@ export function CompetitionsPage(): React.JSX.Element {
               return (
                 <div key={competition.id} className="flex items-center pr-2">
                   <Link
-                    to="/"
-                    search={{ competition: competition.id, date: currentDate }}
+                    to="/competitions/$competitionId"
+                    params={{ competitionId: String(competition.id) }}
                     className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3.5 outline-none transition-colors hover:bg-muted/45 focus-visible:bg-muted/45"
                   >
                     <CompetitionLogo

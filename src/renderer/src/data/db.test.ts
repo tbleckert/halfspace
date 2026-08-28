@@ -1,12 +1,21 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
-import type { CompetitionRefresh, FixtureRefresh } from '@shared/contracts'
+import type {
+  CompetitionRefresh,
+  FixtureRefresh,
+  RefreshCompetitionFixturesInput,
+  StandingsRefresh
+} from '@shared/contracts'
 import {
   db,
   readCompetitionCatalog,
+  readCompetitionFixtureQuery,
   readFixtureQuery,
+  readStandingsQuery,
   setCompetitionPinned,
+  writeCompetitionFixtureRefresh,
   writeCompetitionRefresh,
-  writeFixtureRefresh
+  writeFixtureRefresh,
+  writeStandingsRefresh
 } from './db'
 
 beforeEach(async () => {
@@ -14,17 +23,25 @@ beforeEach(async () => {
 
   await db.transaction(
     'rw',
-    db.fixtures,
-    db.fixtureQueries,
-    db.competitions,
-    db.competitionCatalogs,
-    db.competitionPins,
+    [
+      db.fixtures,
+      db.fixtureQueries,
+      db.competitions,
+      db.competitionCatalogs,
+      db.competitionPins,
+      db.standings,
+      db.standingQueries,
+      db.competitionFixtureQueries
+    ],
     async () => {
       await db.fixtures.clear()
       await db.fixtureQueries.clear()
       await db.competitions.clear()
       await db.competitionCatalogs.clear()
       await db.competitionPins.clear()
+      await db.standings.clear()
+      await db.standingQueries.clear()
+      await db.competitionFixtureQueries.clear()
     }
   )
 })
@@ -95,6 +112,70 @@ describe('competition cache', () => {
     expect(cached.competitions.map(({ id }) => id)).toEqual([384])
     expect(await db.competitionPins.get(384)).toMatchObject({ competitionId: 384 })
   })
+
+  it('keeps the current season on the cached competition', async () => {
+    const refresh = competitionRefresh([{ id: 8, name: 'Premier League' }])
+    refresh.competitions[0].currentseason = {
+      id: 23614,
+      league_id: 8,
+      name: '2026/2027',
+      is_current: true
+    }
+
+    await writeCompetitionRefresh(refresh)
+
+    expect((await db.competitions.get(8))?.currentSeasonId).toBe(23614)
+  })
+})
+
+describe('competition workspace cache', () => {
+  it('writes and reads a season standings snapshot', async () => {
+    const refresh: StandingsRefresh = {
+      fetchedAt: Date.UTC(2026, 7, 28, 10),
+      standings: [
+        {
+          id: 1,
+          participant_id: 10,
+          league_id: 8,
+          season_id: 23614,
+          stage_id: 1,
+          group_id: null,
+          round_id: null,
+          standing_rule_id: 1,
+          position: 1,
+          result: 'overall',
+          points: 84,
+          participant: { id: 10, name: 'Home' }
+        }
+      ]
+    }
+
+    await writeStandingsRefresh(23614, refresh)
+    const cached = await readStandingsQuery(23614)
+
+    expect(cached.query?.standingIds).toEqual([1])
+    expect(cached.standings[0].raw.participant?.name).toBe('Home')
+  })
+
+  it('reuses normalized fixtures for a competition range', async () => {
+    const input: RefreshCompetitionFixturesInput = {
+      competitionId: 8,
+      startDate: '2026-08-14',
+      endDate: '2026-09-11',
+      timeZone: 'Europe/Stockholm'
+    }
+    const refresh = fixtureRefresh(19425456, 'Original')
+
+    await writeFixtureRefresh('2026-08-28', 'Europe/Stockholm', refresh)
+    await writeCompetitionFixtureRefresh(input, {
+      ...refresh,
+      fixtures: [{ ...refresh.fixtures[0], name: 'Updated' }]
+    })
+
+    const cached = await readCompetitionFixtureQuery(input)
+    expect(cached.fixtures[0].name).toBe('Updated')
+    expect(await db.fixtures.count()).toBe(1)
+  })
 })
 
 function competitionRefresh(competitions: Array<{ id: number; name: string }>): CompetitionRefresh {
@@ -108,5 +189,27 @@ function competitionRefresh(competitions: Array<{ id: number; name: string }>): 
       active: true,
       image_path: `https://cdn.sportmonks.com/images/soccer/leagues/${id}.png`
     }))
+  }
+}
+
+function fixtureRefresh(id: number, name: string): FixtureRefresh {
+  return {
+    fetchedAt: Date.UTC(2026, 7, 28, 10),
+    pageCount: 1,
+    timeZone: 'Europe/Stockholm',
+    fixtures: [
+      {
+        id,
+        league_id: 8,
+        season_id: 23614,
+        state_id: 1,
+        name,
+        starting_at_timestamp: 1_787_848_400,
+        placeholder: false,
+        has_odds: false,
+        participants: [],
+        scores: []
+      }
+    ]
   }
 }

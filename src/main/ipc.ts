@@ -4,9 +4,13 @@ import type { ApiErrorCode, Result } from '@shared/contracts'
 import { ipcChannels } from '@shared/contracts'
 import {
   fetchCompetitions,
+  fetchCompetitionFixtures,
   fetchFixturesByDate,
+  fetchStandingsBySeason,
   SportmonksError,
+  validateCompetitionFixturesInput,
   validateRefreshInput,
+  validateStandingsInput,
   validateToken
 } from './sportmonks'
 import { clearStoredToken, hasStoredToken, readStoredToken, saveStoredToken } from './token-store'
@@ -78,6 +82,48 @@ export function registerIpcHandlers(): void {
       return success(await fetchCompetitions(token))
     } catch (error) {
       return failure(error, 'upstream', 'Could not refresh competitions.')
+    }
+  })
+
+  ipcMain.handle(ipcChannels.refreshStandings, async (event, rawInput: unknown) => {
+    assertTrustedSender(event)
+
+    try {
+      const input = validateStandingsInput(rawInput)
+      const token = await readStoredToken()
+
+      if (!token) {
+        return failure(
+          new SportmonksError('missing_token', 'Add your Sportmonks token in Settings.'),
+          'missing_token',
+          'Add your Sportmonks token in Settings.'
+        )
+      }
+
+      return success(await fetchStandingsBySeason(input, token))
+    } catch (error) {
+      return failure(error, 'upstream', 'Could not refresh standings.')
+    }
+  })
+
+  ipcMain.handle(ipcChannels.refreshCompetitionFixtures, async (event, rawInput: unknown) => {
+    assertTrustedSender(event)
+
+    try {
+      const input = validateCompetitionFixturesInput(rawInput)
+      const token = await readStoredToken()
+
+      if (!token) {
+        return failure(
+          new SportmonksError('missing_token', 'Add your Sportmonks token in Settings.'),
+          'missing_token',
+          'Add your Sportmonks token in Settings.'
+        )
+      }
+
+      return success(await fetchCompetitionFixtures(input, token))
+    } catch (error) {
+      return failure(error, 'upstream', 'Could not refresh competition fixtures.')
     }
   })
 }

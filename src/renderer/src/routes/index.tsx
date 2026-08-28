@@ -5,11 +5,7 @@ import { currentTimeZone, isIsoDate, todayInTimeZone } from '@/lib/date'
 
 const defaultDate = todayInTimeZone(currentTimeZone())
 const fixtureSearchSchema = z.object({
-  date: z.string().refine(isIsoDate).catch(defaultDate).default(defaultDate),
-  competition: z.preprocess((value) => {
-    const parsed = typeof value === 'number' || typeof value === 'string' ? Number(value) : NaN
-    return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined
-  }, z.number().int().positive().optional())
+  date: z.string().refine(isIsoDate).catch(defaultDate).default(defaultDate)
 })
 
 export const Route = createFileRoute('/')({
@@ -18,6 +14,6 @@ export const Route = createFileRoute('/')({
 })
 
 function FixtureRoute(): React.JSX.Element {
-  const { competition, date } = Route.useSearch()
-  return <FixturesPage competitionId={competition} date={date} />
+  const { date } = Route.useSearch()
+  return <FixturesPage date={date} />
 }

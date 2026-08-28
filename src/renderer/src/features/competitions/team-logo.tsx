@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { Trophy } from 'lucide-react'
+import { Shield } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { sportmonksImageUrl } from './sportmonks-image-url'
 
-export function CompetitionLogo({
+export function TeamLogo({
   imagePath,
   className,
   online
@@ -27,12 +27,12 @@ export function CompetitionLogo({
       {source && !failed ? (
         <img
           alt=""
-          className="size-full object-contain p-1"
+          className="size-full object-contain p-0.5"
           src={source}
           onError={() => setFailure({ source, online })}
         />
       ) : (
-        <Trophy className="size-3.5" />
+        <Shield className="size-3.5" />
       )}
     </span>
   )
