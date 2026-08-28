@@ -4,9 +4,11 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import {
   readTeamFixtureQuery,
   readTeamIdentity,
+  readTeamSquad,
   teamFixtureQueryKey,
   writeTeamFixtureRefresh,
-  writeTeamRefresh
+  writeTeamRefresh,
+  writeTeamSquadRefresh
 } from '@/data/db'
 
 interface RefreshRequest {
@@ -16,6 +18,7 @@ interface RefreshRequest {
 
 type TeamIdentityCache = Awaited<ReturnType<typeof readTeamIdentity>>
 type TeamFixturesCache = Awaited<ReturnType<typeof readTeamFixtureQuery>>
+type TeamSquadCache = Awaited<ReturnType<typeof readTeamSquad>>
 
 interface TeamQueryResult<T> {
   cached: T | undefined
@@ -27,6 +30,7 @@ interface TeamQueryResult<T> {
 let refreshGeneration = 0
 const teamRefreshes = new Map<number, RefreshRequest>()
 const teamFixtureRefreshes = new Map<string, RefreshRequest>()
+const teamSquadRefreshes = new Map<number, RefreshRequest>()
 
 export function useTeamEntity(
   teamId: number | null,
@@ -107,10 +111,68 @@ export function useTeamFixtures(
   return { cached, refreshing, error, refresh }
 }
 
+export function useTeamSquad(
+  teamId: number | null,
+  enabled: boolean
+): TeamQueryResult<TeamSquadCache> {
+  const cached = useLiveQuery(
+    () => (teamId === null ? Promise.resolve({ query: null, members: [] }) : readTeamSquad(teamId)),
+    [teamId]
+  )
+  const [refreshing, setRefreshing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const refresh = useCallback(async () => {
+    if (!enabled || teamId === null) return
+
+    setRefreshing(true)
+    setError(null)
+
+    try {
+      await refreshTeamSquad(teamId)
+    } catch (refreshError) {
+      setError(refreshError instanceof Error ? refreshError.message : 'Could not refresh squad.')
+    } finally {
+      setRefreshing(false)
+    }
+  }, [enabled, teamId])
+
+  useAutomaticRefresh(
+    enabled && teamId !== null,
+    cached !== undefined,
+    cached?.query?.staleAt,
+    refresh
+  )
+
+  return { cached, refreshing, error, refresh }
+}
+
 export function invalidateTeamRefreshes(): void {
   refreshGeneration += 1
   teamRefreshes.clear()
   teamFixtureRefreshes.clear()
+  teamSquadRefreshes.clear()
+}
+
+export async function refreshTeamSquad(teamId: number): Promise<void> {
+  const active = teamSquadRefreshes.get(teamId)
+  if (active?.generation === refreshGeneration) return active.promise
+
+  const generation = refreshGeneration
+  const promise = (async () => {
+    const result = await window.halfspace.sportmonks.refreshTeamSquad({ teamId })
+    if (generation !== refreshGeneration) return
+    if (!result.ok) throw new Error(result.error.message)
+    await writeTeamSquadRefresh(teamId, result.data)
+  })()
+
+  teamSquadRefreshes.set(teamId, { generation, promise })
+
+  try {
+    await promise
+  } finally {
+    if (teamSquadRefreshes.get(teamId)?.promise === promise) teamSquadRefreshes.delete(teamId)
+  }
 }
 
 export async function refreshTeamEntity(teamId: number): Promise<void> {

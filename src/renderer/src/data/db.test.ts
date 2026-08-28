@@ -2,10 +2,15 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type {
   CompetitionRefresh,
   FixtureRefresh,
+  PlayerAppearancesRefresh,
+  PlayerRefresh,
+  RefreshPlayerAppearancesInput,
   RefreshCompetitionFixturesInput,
   RefreshTeamFixturesInput,
   StandingsRefresh,
+  SportmonksPlayer,
   TeamRefresh,
+  TeamSquadRefresh,
   VenueRefresh
 } from '@shared/contracts'
 import {
@@ -13,18 +18,24 @@ import {
   readCompetitionCatalog,
   readCompetitionFixtureQuery,
   readFixtureQuery,
+  readPlayerAppearanceQuery,
+  readPlayerIdentity,
   readStandingsQuery,
   readTeamFixtureQuery,
   readTeamIdentity,
+  readTeamSquad,
   readVenueIdentity,
   readVenueTeams,
   setCompetitionPinned,
   writeCompetitionFixtureRefresh,
   writeCompetitionRefresh,
   writeFixtureRefresh,
+  writePlayerAppearancesRefresh,
+  writePlayerRefresh,
   writeStandingsRefresh,
   writeTeamFixtureRefresh,
   writeTeamRefresh,
+  writeTeamSquadRefresh,
   writeVenueRefresh
 } from './db'
 
@@ -44,7 +55,12 @@ beforeEach(async () => {
       db.competitionFixtureQueries,
       db.teams,
       db.teamFixtureQueries,
-      db.venues
+      db.venues,
+      db.players,
+      db.squadEntries,
+      db.teamSquadQueries,
+      db.playerAppearances,
+      db.playerAppearanceQueries
     ],
     async () => {
       await db.fixtures.clear()
@@ -58,6 +74,11 @@ beforeEach(async () => {
       await db.teams.clear()
       await db.teamFixtureQueries.clear()
       await db.venues.clear()
+      await db.players.clear()
+      await db.squadEntries.clear()
+      await db.teamSquadQueries.clear()
+      await db.playerAppearances.clear()
+      await db.playerAppearanceQueries.clear()
     }
   )
 })
@@ -248,6 +269,71 @@ describe('team entity cache', () => {
   })
 })
 
+describe('squad and player cache', () => {
+  it('normalizes the current squad into player and team membership records', async () => {
+    await writeTeamRefresh(teamRefresh())
+    await writeTeamSquadRefresh(9, teamSquadRefresh())
+
+    const squad = await readTeamSquad(9)
+    const player = await readPlayerIdentity(6306068)
+
+    expect(squad.members[0].entry).toMatchObject({
+      jerseyNumber: 8,
+      positionName: 'Midfielder'
+    })
+    expect(squad.members[0].player.displayName).toBe('Quinten Timber')
+    expect(player.teams.map(({ name }) => name)).toEqual(['Manchester City'])
+  })
+
+  it('keeps detailed player relations when the squad refreshes basic identity', async () => {
+    await writePlayerRefresh(playerRefresh())
+    await writeTeamSquadRefresh(9, teamSquadRefresh())
+
+    const player = (await readPlayerIdentity(6306068)).player
+
+    expect(player?.detailed).toBe(true)
+    expect(player?.raw.nationality?.name).toBe('Netherlands')
+  })
+
+  it('stores lineup-backed appearances against normalized fixtures', async () => {
+    const input: RefreshPlayerAppearancesInput = {
+      playerId: 6306068,
+      teamId: 9,
+      startDate: '2026-05-30',
+      endDate: '2026-08-28',
+      timeZone: 'Europe/Stockholm'
+    }
+    const fixture = fixtureRefresh(19425456, 'Manchester City vs Arsenal').fixtures[0]
+    const refresh: PlayerAppearancesRefresh = {
+      fetchedAt: Date.UTC(2026, 7, 28, 10),
+      pageCount: 1,
+      timeZone: 'Europe/Stockholm',
+      appearances: [
+        {
+          fixture,
+          lineup: {
+            id: 91,
+            fixture_id: fixture.id,
+            player_id: 6306068,
+            team_id: 9,
+            position_id: 26,
+            type_id: 11,
+            player_name: 'Quinten Timber',
+            jersey_number: 8
+          }
+        }
+      ]
+    }
+
+    await writePlayerAppearancesRefresh(input, refresh)
+    const cached = await readPlayerAppearanceQuery(input)
+
+    expect(cached.query?.appearanceKeys).toEqual(['6306068|19425456'])
+    expect(cached.appearances[0].appearance.lineup.type_id).toBe(11)
+    expect(cached.appearances[0].fixture.name).toBe('Manchester City vs Arsenal')
+  })
+})
+
 describe('venue entity cache', () => {
   it('writes and reads a detailed venue entity', async () => {
     const refresh: VenueRefresh = {
@@ -329,5 +415,75 @@ function fixtureRefresh(id: number, name: string): FixtureRefresh {
         scores: []
       }
     ]
+  }
+}
+
+function teamRefresh(): TeamRefresh {
+  return {
+    fetchedAt: Date.UTC(2026, 7, 28, 10),
+    team: {
+      id: 9,
+      sport_id: 1,
+      country_id: 462,
+      venue_id: 206,
+      gender: 'male',
+      name: 'Manchester City',
+      founded: 1880,
+      placeholder: false
+    }
+  }
+}
+
+function teamSquadRefresh(): TeamSquadRefresh {
+  return {
+    fetchedAt: Date.UTC(2026, 7, 28, 10),
+    squad: [
+      {
+        id: 635741,
+        transfer_id: 184008,
+        player_id: 6306068,
+        team_id: 9,
+        position_id: 26,
+        detailed_position_id: 153,
+        jersey_number: 8,
+        start: '2025-07-01',
+        end: null,
+        position: { id: 26, name: 'Midfielder' },
+        detailedPosition: { id: 153, name: 'Central Midfield' },
+        player: basePlayer()
+      }
+    ]
+  }
+}
+
+function playerRefresh(): PlayerRefresh {
+  return {
+    fetchedAt: Date.UTC(2026, 7, 28, 9),
+    player: {
+      ...basePlayer(),
+      nationality: { id: 38, name: 'Netherlands', iso2: 'NL' },
+      position: { id: 26, name: 'Midfielder' },
+      detailedPosition: { id: 153, name: 'Central Midfield' }
+    }
+  }
+}
+
+function basePlayer(): SportmonksPlayer {
+  return {
+    id: 6306068,
+    sport_id: 1,
+    country_id: 38,
+    nationality_id: 38,
+    city_id: 93391,
+    position_id: 26,
+    detailed_position_id: 153,
+    type_id: 26,
+    name: 'Quinten Maduro',
+    display_name: 'Quinten Timber',
+    image_path: 'https://cdn.sportmonks.com/images/soccer/players/20/6306068.png',
+    height: 177,
+    weight: null,
+    date_of_birth: '2001-06-17',
+    gender: 'male'
   }
 }

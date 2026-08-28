@@ -8,7 +8,10 @@ export const ipcChannels = {
   refreshCompetitionFixtures: 'sportmonks:refresh-competition-fixtures',
   refreshTeam: 'sportmonks:refresh-team',
   refreshTeamFixtures: 'sportmonks:refresh-team-fixtures',
-  refreshVenue: 'sportmonks:refresh-venue'
+  refreshTeamSquad: 'sportmonks:refresh-team-squad',
+  refreshVenue: 'sportmonks:refresh-venue',
+  refreshPlayer: 'sportmonks:refresh-player',
+  refreshPlayerAppearances: 'sportmonks:refresh-player-appearances'
 } as const
 
 export type ApiErrorCode =
@@ -62,6 +65,22 @@ export interface RefreshTeamFixturesInput {
 
 export interface RefreshVenueInput {
   venueId: number
+}
+
+export interface RefreshTeamSquadInput {
+  teamId: number
+}
+
+export interface RefreshPlayerInput {
+  playerId: number
+}
+
+export interface RefreshPlayerAppearancesInput {
+  playerId: number
+  teamId: number
+  startDate: string
+  endDate: string
+  timeZone: string
 }
 
 export interface SportmonksCountry {
@@ -139,6 +158,53 @@ export interface SportmonksTeam {
   venue?: SportmonksVenue | null
 }
 
+export interface SportmonksPosition {
+  id: number
+  name: string
+  code?: string | null
+  developer_name?: string | null
+}
+
+export interface SportmonksPlayer {
+  id: number
+  sport_id: number
+  country_id: number | null
+  nationality_id: number | null
+  city_id: number | null
+  position_id: number | null
+  detailed_position_id: number | null
+  type_id: number | null
+  common_name?: string | null
+  firstname?: string | null
+  lastname?: string | null
+  name: string
+  display_name: string
+  image_path?: string | null
+  height: number | null
+  weight: number | null
+  date_of_birth: string | null
+  gender: string | null
+  country?: SportmonksCountry | null
+  nationality?: SportmonksCountry | null
+  position?: SportmonksPosition | null
+  detailedPosition?: SportmonksPosition | null
+}
+
+export interface SportmonksSquadEntry {
+  id: number
+  transfer_id: number | null
+  player_id: number
+  team_id: number
+  position_id: number | null
+  detailed_position_id: number | null
+  jersey_number: number | null
+  start: string | null
+  end: string | null
+  player?: SportmonksPlayer | null
+  position?: SportmonksPosition | null
+  detailedPosition?: SportmonksPosition | null
+}
+
 export interface SportmonksLeague {
   id: number
   name: string
@@ -177,6 +243,21 @@ export interface SportmonksFixture {
   league?: SportmonksLeague | null
   state?: SportmonksState | null
   scores: SportmonksScore[]
+  lineups?: SportmonksLineup[]
+}
+
+export interface SportmonksLineup {
+  id: number
+  fixture_id: number
+  player_id: number
+  team_id: number
+  position_id: number | null
+  detailed_position_id?: number | null
+  type_id: number
+  formation_field?: string | null
+  formation_position?: number | null
+  player_name: string
+  jersey_number: number | null
 }
 
 export interface SportmonksStandingContext {
@@ -254,6 +335,43 @@ export interface VenueRefresh {
   message?: string
 }
 
+export interface TeamSquadRefresh {
+  squad: SportmonksSquadEntry[]
+  fetchedAt: number
+  rateLimit?: {
+    remaining: number
+    resetsAt: number
+  }
+  message?: string
+}
+
+export interface PlayerRefresh {
+  player: SportmonksPlayer
+  fetchedAt: number
+  rateLimit?: {
+    remaining: number
+    resetsAt: number
+  }
+  message?: string
+}
+
+export interface SportmonksPlayerAppearance {
+  fixture: SportmonksFixture
+  lineup: SportmonksLineup
+}
+
+export interface PlayerAppearancesRefresh {
+  appearances: SportmonksPlayerAppearance[]
+  fetchedAt: number
+  pageCount: number
+  timeZone: string
+  rateLimit?: {
+    remaining: number
+    resetsAt: number
+  }
+  message?: string
+}
+
 export interface HalfspaceApi {
   credentials: {
     getConnectionState(): Promise<ConnectionState>
@@ -269,6 +387,11 @@ export interface HalfspaceApi {
     ): Promise<Result<FixtureRefresh>>
     refreshTeam(input: RefreshTeamInput): Promise<Result<TeamRefresh>>
     refreshTeamFixtures(input: RefreshTeamFixturesInput): Promise<Result<FixtureRefresh>>
+    refreshTeamSquad(input: RefreshTeamSquadInput): Promise<Result<TeamSquadRefresh>>
     refreshVenue(input: RefreshVenueInput): Promise<Result<VenueRefresh>>
+    refreshPlayer(input: RefreshPlayerInput): Promise<Result<PlayerRefresh>>
+    refreshPlayerAppearances(
+      input: RefreshPlayerAppearancesInput
+    ): Promise<Result<PlayerAppearancesRefresh>>
   }
 }

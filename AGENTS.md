@@ -18,8 +18,16 @@ abstractions.
   current thing, communicate a meaningful state, or enable an action.
 - Build the product outward through dedicated football entity pages and natural links between
   them. Prioritize entity depth before secondary tools or dashboards.
+- Team pages use horizontal local navigation beneath the team header and above their competition
+  context. Keep Overview and Squad there, and extend that menu when more team views are added. Make
+  the active item prominent with a dark underline layered over the shared navigation rule.
+- Keep competition and venue context cards on the team Overview. Squad uses the full content width.
+- Present squads as position-grouped player profile cards with rounded portraits and only essential
+  identity and football data rather than a dense table or list.
 - Keep low-resolution provider imagery in compact supporting cards. Do not stretch it into hero
   treatment that exposes its limitations.
+- Do not infer player appearances from team fixtures or bench selection. Name lineup data for what
+  it confirms, and reserve appearances for verified participation.
 - Show every active subscribed competition in the sidebar when there are 10 or fewer. Above 10,
   show only locally pinned competitions.
 

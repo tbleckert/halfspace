@@ -2,19 +2,27 @@ import type {
   ApiErrorCode,
   CompetitionRefresh,
   FixtureRefresh,
+  PlayerAppearancesRefresh,
+  PlayerRefresh,
   RefreshCompetitionFixturesInput,
   RefreshFixturesInput,
+  RefreshPlayerAppearancesInput,
+  RefreshPlayerInput,
   RefreshStandingsInput,
   RefreshTeamFixturesInput,
   RefreshTeamInput,
+  RefreshTeamSquadInput,
   RefreshVenueInput,
   StandingsRefresh,
   SportmonksCompetition,
   SportmonksFixture,
+  SportmonksPlayer,
+  SportmonksSquadEntry,
   SportmonksStanding,
   SportmonksTeam,
   SportmonksVenue,
   TeamRefresh,
+  TeamSquadRefresh,
   VenueRefresh
 } from '@shared/contracts'
 import { z } from 'zod'
@@ -120,6 +128,75 @@ const teamSchema = z
   })
   .passthrough()
 
+const positionSchema = z
+  .object({
+    id: z.number().int(),
+    name: z.string(),
+    code: z.string().nullable().optional(),
+    developer_name: z.string().nullable().optional()
+  })
+  .passthrough()
+
+const playerSchema = z
+  .object({
+    id: z.number().int(),
+    sport_id: z.number().int(),
+    country_id: z.number().int().nullable(),
+    nationality_id: z.number().int().nullable(),
+    city_id: z.number().int().nullable(),
+    position_id: z.number().int().nullable(),
+    detailed_position_id: z.number().int().nullable(),
+    type_id: z.number().int().nullable(),
+    common_name: z.string().nullable().optional(),
+    firstname: z.string().nullable().optional(),
+    lastname: z.string().nullable().optional(),
+    name: z.string(),
+    display_name: z.string(),
+    image_path: z.string().nullable().optional(),
+    height: z.number().int().nullable(),
+    weight: z.number().int().nullable(),
+    date_of_birth: z.string().nullable(),
+    gender: z.string().nullable(),
+    country: countrySchema.nullable().optional(),
+    nationality: countrySchema.nullable().optional(),
+    position: positionSchema.nullable().optional(),
+    detailedPosition: positionSchema.nullable().optional()
+  })
+  .passthrough()
+
+const squadEntrySchema = z
+  .object({
+    id: z.number().int(),
+    transfer_id: z.number().int().nullable(),
+    player_id: z.number().int(),
+    team_id: z.number().int(),
+    position_id: z.number().int().nullable(),
+    detailed_position_id: z.number().int().nullable(),
+    jersey_number: z.number().int().nullable(),
+    start: z.string().nullable(),
+    end: z.string().nullable(),
+    player: playerSchema.nullable().optional(),
+    position: positionSchema.nullable().optional(),
+    detailedPosition: positionSchema.nullable().optional()
+  })
+  .passthrough()
+
+const lineupSchema = z
+  .object({
+    id: z.number().int(),
+    fixture_id: z.number().int(),
+    player_id: z.number().int(),
+    team_id: z.number().int(),
+    position_id: z.number().int().nullable(),
+    detailed_position_id: z.number().int().nullable().optional(),
+    type_id: z.number().int(),
+    formation_field: z.string().nullable().optional(),
+    formation_position: z.number().int().nullable().optional(),
+    player_name: z.string(),
+    jersey_number: z.number().int().nullable()
+  })
+  .passthrough()
+
 const fixtureSchema = z
   .object({
     id: z.number().int(),
@@ -167,7 +244,8 @@ const fixtureSchema = z
           .passthrough()
       )
       .optional()
-      .default([])
+      .default([]),
+    lineups: z.array(lineupSchema).optional()
   })
   .passthrough()
 
@@ -276,6 +354,34 @@ const venueResponseSchema = z
   })
   .passthrough()
 
+const teamSquadResponseSchema = z
+  .object({
+    data: z.array(squadEntrySchema),
+    rate_limit: z
+      .object({
+        remaining: z.number(),
+        resets_in_seconds: z.number()
+      })
+      .passthrough()
+      .optional(),
+    message: z.string().optional()
+  })
+  .passthrough()
+
+const playerResponseSchema = z
+  .object({
+    data: playerSchema,
+    rate_limit: z
+      .object({
+        remaining: z.number(),
+        resets_in_seconds: z.number()
+      })
+      .passthrough()
+      .optional(),
+    message: z.string().optional()
+  })
+  .passthrough()
+
 export class SportmonksError extends Error {
   constructor(
     readonly code: ApiErrorCode,
@@ -346,6 +452,35 @@ export function validateVenueInput(value: unknown): RefreshVenueInput {
   return { venueId }
 }
 
+export function validatePlayerInput(value: unknown): RefreshPlayerInput {
+  const playerId =
+    value && typeof value === 'object' ? (value as { playerId?: unknown }).playerId : 0
+
+  if (!isPositiveId(playerId)) {
+    throw new SportmonksError('invalid_input', 'Choose a valid player.')
+  }
+
+  return { playerId }
+}
+
+export function validatePlayerAppearancesInput(value: unknown): RefreshPlayerAppearancesInput {
+  const input = validateFixtureRange(value, 'teamId')
+  const playerId =
+    value && typeof value === 'object' ? (value as { playerId?: unknown }).playerId : 0
+
+  if (!isPositiveId(playerId)) {
+    throw new SportmonksError('invalid_input', 'Choose a valid player.')
+  }
+
+  return {
+    playerId,
+    teamId: input.entityId,
+    startDate: input.startDate,
+    endDate: input.endDate,
+    timeZone: input.timeZone
+  }
+}
+
 export function validateCompetitionFixturesInput(value: unknown): RefreshCompetitionFixturesInput {
   const input = validateFixtureRange(value, 'competitionId')
 
@@ -403,12 +538,44 @@ export async function fetchTeamFixtures(
   )
 }
 
+export async function fetchPlayerAppearances(
+  input: RefreshPlayerAppearancesInput,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<PlayerAppearancesRefresh> {
+  const refresh = await fetchFixturePages(
+    `fixtures/between/${input.startDate}/${input.endDate}/${input.teamId}`,
+    input.timeZone,
+    token,
+    fetcher,
+    undefined,
+    'participants;league;state;scores;lineups'
+  )
+  const appearances = refresh.fixtures.flatMap((fixture) => {
+    const lineup = fixture.lineups?.find(
+      (entry) => entry.player_id === input.playerId && entry.team_id === input.teamId
+    )
+    if (!lineup) return []
+
+    return [{ fixture: { ...fixture, lineups: undefined }, lineup }]
+  })
+  return {
+    appearances,
+    fetchedAt: refresh.fetchedAt,
+    pageCount: refresh.pageCount,
+    timeZone: refresh.timeZone,
+    rateLimit: refresh.rateLimit,
+    message: refresh.message
+  }
+}
+
 async function fetchFixturePages(
   path: string,
   timeZone: string,
   token: string,
   fetcher: typeof fetch,
-  filters?: string
+  filters?: string,
+  includes = 'participants;league;state;scores'
 ): Promise<FixtureRefresh> {
   const fixtures: SportmonksFixture[] = []
   const fetchedAt = Date.now()
@@ -418,7 +585,7 @@ async function fetchFixturePages(
 
   while (page <= maximumPages) {
     const url = new URL(`${apiBaseUrl}/${path}`)
-    url.searchParams.set('include', 'participants;league;state;scores')
+    url.searchParams.set('include', includes)
     url.searchParams.set('timezone', timeZone)
     url.searchParams.set('order', 'asc')
     url.searchParams.set('per_page', '50')
@@ -631,6 +798,98 @@ export async function fetchTeamById(
 
   return {
     team: parsed.data as SportmonksTeam,
+    fetchedAt,
+    rateLimit: parsed.rate_limit
+      ? {
+          remaining: parsed.rate_limit.remaining,
+          resetsAt: fetchedAt + parsed.rate_limit.resets_in_seconds * 1000
+        }
+      : undefined,
+    message: parsed.message
+  }
+}
+
+export async function fetchTeamSquad(
+  input: RefreshTeamSquadInput,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<TeamSquadRefresh> {
+  const fetchedAt = Date.now()
+  const url = new URL(`${apiBaseUrl}/squads/teams/${input.teamId}`)
+  url.searchParams.set('include', 'player.nationality;position;detailedPosition')
+
+  let response: Response
+
+  try {
+    response = await fetcher(url, {
+      headers: {
+        Accept: 'application/json',
+        Authorization: token
+      },
+      signal: AbortSignal.timeout(20_000)
+    })
+  } catch {
+    throw new SportmonksError('network', 'Could not reach Sportmonks.')
+  }
+
+  if (!response.ok) throw errorForStatus(response.status)
+
+  let parsed: z.infer<typeof teamSquadResponseSchema>
+
+  try {
+    parsed = teamSquadResponseSchema.parse(await response.json())
+  } catch {
+    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
+  }
+
+  return {
+    squad: parsed.data as SportmonksSquadEntry[],
+    fetchedAt,
+    rateLimit: parsed.rate_limit
+      ? {
+          remaining: parsed.rate_limit.remaining,
+          resetsAt: fetchedAt + parsed.rate_limit.resets_in_seconds * 1000
+        }
+      : undefined,
+    message: parsed.message
+  }
+}
+
+export async function fetchPlayerById(
+  input: RefreshPlayerInput,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<PlayerRefresh> {
+  const fetchedAt = Date.now()
+  const url = new URL(`${apiBaseUrl}/players/${input.playerId}`)
+  url.searchParams.set('include', 'nationality;position;detailedPosition')
+
+  let response: Response
+
+  try {
+    response = await fetcher(url, {
+      headers: {
+        Accept: 'application/json',
+        Authorization: token
+      },
+      signal: AbortSignal.timeout(20_000)
+    })
+  } catch {
+    throw new SportmonksError('network', 'Could not reach Sportmonks.')
+  }
+
+  if (!response.ok) throw errorForStatus(response.status)
+
+  let parsed: z.infer<typeof playerResponseSchema>
+
+  try {
+    parsed = playerResponseSchema.parse(await response.json())
+  } catch {
+    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
+  }
+
+  return {
+    player: parsed.data as SportmonksPlayer,
     fetchedAt,
     rateLimit: parsed.rate_limit
       ? {

@@ -6,12 +6,17 @@ import {
   fetchCompetitions,
   fetchCompetitionFixtures,
   fetchFixturesByDate,
+  fetchPlayerAppearances,
+  fetchPlayerById,
   fetchStandingsBySeason,
   fetchTeamById,
   fetchTeamFixtures,
+  fetchTeamSquad,
   fetchVenueById,
   SportmonksError,
   validateCompetitionFixturesInput,
+  validatePlayerAppearancesInput,
+  validatePlayerInput,
   validateRefreshInput,
   validateStandingsInput,
   validateTeamFixturesInput,
@@ -175,6 +180,27 @@ export function registerIpcHandlers(): void {
     }
   })
 
+  ipcMain.handle(ipcChannels.refreshTeamSquad, async (event, rawInput: unknown) => {
+    assertTrustedSender(event)
+
+    try {
+      const input = validateTeamInput(rawInput)
+      const token = await readStoredToken()
+
+      if (!token) {
+        return failure(
+          new SportmonksError('missing_token', 'Add your Sportmonks token in Settings.'),
+          'missing_token',
+          'Add your Sportmonks token in Settings.'
+        )
+      }
+
+      return success(await fetchTeamSquad(input, token))
+    } catch (error) {
+      return failure(error, 'upstream', 'Could not refresh team squad.')
+    }
+  })
+
   ipcMain.handle(ipcChannels.refreshVenue, async (event, rawInput: unknown) => {
     assertTrustedSender(event)
 
@@ -193,6 +219,48 @@ export function registerIpcHandlers(): void {
       return success(await fetchVenueById(input, token))
     } catch (error) {
       return failure(error, 'upstream', 'Could not refresh venue.')
+    }
+  })
+
+  ipcMain.handle(ipcChannels.refreshPlayer, async (event, rawInput: unknown) => {
+    assertTrustedSender(event)
+
+    try {
+      const input = validatePlayerInput(rawInput)
+      const token = await readStoredToken()
+
+      if (!token) {
+        return failure(
+          new SportmonksError('missing_token', 'Add your Sportmonks token in Settings.'),
+          'missing_token',
+          'Add your Sportmonks token in Settings.'
+        )
+      }
+
+      return success(await fetchPlayerById(input, token))
+    } catch (error) {
+      return failure(error, 'upstream', 'Could not refresh player.')
+    }
+  })
+
+  ipcMain.handle(ipcChannels.refreshPlayerAppearances, async (event, rawInput: unknown) => {
+    assertTrustedSender(event)
+
+    try {
+      const input = validatePlayerAppearancesInput(rawInput)
+      const token = await readStoredToken()
+
+      if (!token) {
+        return failure(
+          new SportmonksError('missing_token', 'Add your Sportmonks token in Settings.'),
+          'missing_token',
+          'Add your Sportmonks token in Settings.'
+        )
+      }
+
+      return success(await fetchPlayerAppearances(input, token))
+    } catch (error) {
+      return failure(error, 'upstream', 'Could not refresh player appearances.')
     }
   })
 }

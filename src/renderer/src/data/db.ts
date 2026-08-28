@@ -2,16 +2,21 @@ import Dexie, { type Table } from 'dexie'
 import type {
   CompetitionRefresh,
   FixtureRefresh,
+  PlayerAppearancesRefresh,
+  PlayerRefresh,
   RefreshCompetitionFixturesInput,
+  RefreshPlayerAppearancesInput,
   RefreshTeamFixturesInput,
   StandingsRefresh,
   SportmonksCompetition,
   SportmonksFixture,
   SportmonksParticipant,
+  SportmonksPlayer,
   SportmonksStanding,
   SportmonksTeam,
   SportmonksVenue,
   TeamRefresh,
+  TeamSquadRefresh,
   VenueRefresh
 } from '@shared/contracts'
 import { fixtureCacheExpiry } from '@/lib/date'
@@ -23,6 +28,9 @@ const competitionFixturesCacheDuration = 15 * 60 * 1000
 const teamCacheDuration = 24 * 60 * 60 * 1000
 const teamFixturesCacheDuration = 15 * 60 * 1000
 const venueCacheDuration = 24 * 60 * 60 * 1000
+const teamSquadCacheDuration = 60 * 60 * 1000
+const playerCacheDuration = 24 * 60 * 60 * 1000
+const playerAppearancesCacheDuration = 15 * 60 * 1000
 
 export interface CachedFixture {
   id: number
@@ -145,6 +153,81 @@ export interface CachedVenue {
   message?: string
 }
 
+export interface CachedPlayer {
+  id: number
+  name: string
+  displayName: string
+  imagePath: string | null
+  positionId: number | null
+  nationalityId: number | null
+  raw: SportmonksPlayer
+  detailed: boolean
+  fetchedAt: number
+  staleAt: number
+  rateLimitRemaining?: number
+  rateLimitResetsAt?: number
+  message?: string
+}
+
+export interface CachedSquadEntry {
+  id: number
+  teamId: number
+  playerId: number
+  positionId: number | null
+  detailedPositionId: number | null
+  positionName: string | null
+  detailedPositionName: string | null
+  jerseyNumber: number | null
+  start: string | null
+  end: string | null
+  fetchedAt: number
+}
+
+export interface TeamSquadQuery {
+  teamId: number
+  entryIds: number[]
+  fetchedAt: number
+  staleAt: number
+  rateLimitRemaining?: number
+  rateLimitResetsAt?: number
+  message?: string
+}
+
+export interface SquadMember {
+  entry: CachedSquadEntry
+  player: CachedPlayer
+}
+
+export interface CachedPlayerAppearance {
+  key: string
+  playerId: number
+  teamId: number
+  fixtureId: number
+  lineup: PlayerAppearancesRefresh['appearances'][number]['lineup']
+  fetchedAt: number
+}
+
+export interface PlayerAppearanceQuery {
+  key: string
+  playerId: number
+  teamId: number
+  startDate: string
+  endDate: string
+  timeZone: string
+  appearanceKeys: string[]
+  fetchedAt: number
+  staleAt: number
+  pageCount: number
+  rateLimitRemaining?: number
+  rateLimitResetsAt?: number
+  message?: string
+}
+
+export interface PlayerAppearanceRecord {
+  appearance: CachedPlayerAppearance
+  fixture: CachedFixture
+}
+
 export interface CompetitionCatalog {
   key: string
   competitionIds: number[]
@@ -173,6 +256,11 @@ class HalfspaceDatabase extends Dexie {
   teams!: Table<CachedTeam, number>
   teamFixtureQueries!: Table<TeamFixtureQuery, string>
   venues!: Table<CachedVenue, number>
+  players!: Table<CachedPlayer, number>
+  squadEntries!: Table<CachedSquadEntry, number>
+  teamSquadQueries!: Table<TeamSquadQuery, number>
+  playerAppearances!: Table<CachedPlayerAppearance, string>
+  playerAppearanceQueries!: Table<PlayerAppearanceQuery, string>
 
   constructor() {
     super('halfspace')
@@ -233,6 +321,26 @@ class HalfspaceDatabase extends Dexie {
       teams: 'id, name, countryId, venueId, staleAt',
       teamFixtureQueries: '&key, teamId, staleAt',
       venues: 'id, name, countryId, staleAt'
+    })
+
+    this.version(6).stores({
+      fixtures:
+        'id, leagueId, startingAt, [leagueId+startingAt], stateId, homeTeamId, awayTeamId, staleAt',
+      fixtureQueries: '&key, date, staleAt',
+      competitions: 'id, active, name, countryId',
+      competitionCatalogs: '&key, staleAt',
+      competitionPins: '&competitionId, pinnedAt',
+      standings: 'id, participantId, seasonId, [seasonId+position], leagueId, stageId, groupId',
+      standingQueries: '&seasonId, staleAt',
+      competitionFixtureQueries: '&key, competitionId, staleAt',
+      teams: 'id, name, countryId, venueId, staleAt',
+      teamFixtureQueries: '&key, teamId, staleAt',
+      venues: 'id, name, countryId, staleAt',
+      players: 'id, name, displayName, positionId, nationalityId, staleAt',
+      squadEntries: 'id, teamId, playerId, positionId, [teamId+positionId]',
+      teamSquadQueries: '&teamId, staleAt',
+      playerAppearances: '&key, playerId, teamId, fixtureId, [playerId+fixtureId]',
+      playerAppearanceQueries: '&key, playerId, teamId, staleAt'
     })
   }
 }
@@ -478,6 +586,175 @@ export async function writeTeamRefresh(refresh: TeamRefresh): Promise<void> {
   await db.teams.put(team)
 }
 
+export async function readTeamSquad(teamId: number): Promise<{
+  query: TeamSquadQuery | null
+  members: SquadMember[]
+}> {
+  const query = await db.teamSquadQueries.get(teamId)
+  if (!query) return { query: null, members: [] }
+
+  const entries = (await db.squadEntries.bulkGet(query.entryIds)).filter(
+    (entry): entry is CachedSquadEntry => entry !== undefined
+  )
+  const players = await db.players.bulkGet(entries.map(({ playerId }) => playerId))
+  const members = entries.flatMap((entry, index) => {
+    const player = players[index]
+    return player ? [{ entry, player }] : []
+  })
+
+  return { query, members }
+}
+
+export async function writeTeamSquadRefresh(
+  teamId: number,
+  refresh: TeamSquadRefresh
+): Promise<void> {
+  const previousQuery = await db.teamSquadQueries.get(teamId)
+  const squad = refresh.squad.filter(
+    (entry): entry is typeof entry & { player: SportmonksPlayer } => Boolean(entry.player)
+  )
+  const existingPlayers = await db.players.bulkGet(squad.map(({ player_id }) => player_id))
+  const players = squad.map(({ player }, index) =>
+    toCachedSquadPlayer(player, existingPlayers[index], refresh.fetchedAt)
+  )
+  const entries: CachedSquadEntry[] = squad.map((entry) => ({
+    id: entry.id,
+    teamId: entry.team_id,
+    playerId: entry.player_id,
+    positionId: entry.position_id,
+    detailedPositionId: entry.detailed_position_id,
+    positionName: entry.position?.name ?? entry.player.position?.name ?? null,
+    detailedPositionName:
+      entry.detailedPosition?.name ?? entry.player.detailedPosition?.name ?? null,
+    jerseyNumber: entry.jersey_number,
+    start: entry.start,
+    end: entry.end,
+    fetchedAt: refresh.fetchedAt
+  }))
+  const query: TeamSquadQuery = {
+    teamId,
+    entryIds: entries.map(({ id }) => id),
+    fetchedAt: refresh.fetchedAt,
+    staleAt: refresh.fetchedAt + teamSquadCacheDuration,
+    rateLimitRemaining: refresh.rateLimit?.remaining,
+    rateLimitResetsAt: refresh.rateLimit?.resetsAt,
+    message: refresh.message
+  }
+  const removedEntryIds = (previousQuery?.entryIds ?? []).filter(
+    (entryId) => !query.entryIds.includes(entryId)
+  )
+
+  await db.transaction('rw', db.players, db.squadEntries, db.teamSquadQueries, async () => {
+    await db.squadEntries.bulkDelete(removedEntryIds)
+    await db.players.bulkPut(players)
+    await db.squadEntries.bulkPut(entries)
+    await db.teamSquadQueries.put(query)
+  })
+}
+
+export async function readPlayerIdentity(playerId: number): Promise<{
+  player: CachedPlayer | null
+  teams: CachedTeam[]
+}> {
+  const [player, squadEntries] = await Promise.all([
+    db.players.get(playerId),
+    db.squadEntries.where('playerId').equals(playerId).toArray()
+  ])
+  const teams = (await db.teams.bulkGet(squadEntries.map(({ teamId }) => teamId))).filter(
+    (team): team is CachedTeam => team !== undefined
+  )
+
+  return { player: player ?? null, teams: teams.toSorted((a, b) => a.name.localeCompare(b.name)) }
+}
+
+export async function writePlayerRefresh(refresh: PlayerRefresh): Promise<void> {
+  const player: CachedPlayer = {
+    id: refresh.player.id,
+    name: refresh.player.name,
+    displayName: refresh.player.display_name,
+    imagePath: refresh.player.image_path ?? null,
+    positionId: refresh.player.position_id,
+    nationalityId: refresh.player.nationality_id,
+    raw: refresh.player,
+    detailed: true,
+    fetchedAt: refresh.fetchedAt,
+    staleAt: refresh.fetchedAt + playerCacheDuration,
+    rateLimitRemaining: refresh.rateLimit?.remaining,
+    rateLimitResetsAt: refresh.rateLimit?.resetsAt,
+    message: refresh.message
+  }
+
+  await db.players.put(player)
+}
+
+export function playerAppearanceQueryKey(input: RefreshPlayerAppearancesInput): string {
+  return `${input.playerId}|${input.teamId}|${input.startDate}|${input.endDate}|${input.timeZone}`
+}
+
+export async function readPlayerAppearanceQuery(input: RefreshPlayerAppearancesInput): Promise<{
+  query: PlayerAppearanceQuery | null
+  appearances: PlayerAppearanceRecord[]
+}> {
+  const query = await db.playerAppearanceQueries.get(playerAppearanceQueryKey(input))
+  if (!query) return { query: null, appearances: [] }
+
+  const cachedAppearances = (await db.playerAppearances.bulkGet(query.appearanceKeys)).filter(
+    (appearance): appearance is CachedPlayerAppearance => appearance !== undefined
+  )
+  const fixtures = await db.fixtures.bulkGet(cachedAppearances.map(({ fixtureId }) => fixtureId))
+  const appearances = cachedAppearances.flatMap((appearance, index) => {
+    const fixture = fixtures[index]
+    return fixture ? [{ appearance, fixture }] : []
+  })
+
+  return { query, appearances }
+}
+
+export async function writePlayerAppearancesRefresh(
+  input: RefreshPlayerAppearancesInput,
+  refresh: PlayerAppearancesRefresh
+): Promise<void> {
+  const key = playerAppearanceQueryKey(input)
+  const staleAt = refresh.fetchedAt + playerAppearancesCacheDuration
+  const fixtures = refresh.appearances.map(({ fixture }) =>
+    toCachedFixture(fixture, refresh.fetchedAt, staleAt)
+  )
+  const appearances: CachedPlayerAppearance[] = refresh.appearances.map(({ fixture, lineup }) => ({
+    key: `${input.playerId}|${fixture.id}`,
+    playerId: input.playerId,
+    teamId: input.teamId,
+    fixtureId: fixture.id,
+    lineup,
+    fetchedAt: refresh.fetchedAt
+  }))
+  const query: PlayerAppearanceQuery = {
+    key,
+    playerId: input.playerId,
+    teamId: input.teamId,
+    startDate: input.startDate,
+    endDate: input.endDate,
+    timeZone: input.timeZone,
+    appearanceKeys: appearances.map(({ key: appearanceKey }) => appearanceKey),
+    fetchedAt: refresh.fetchedAt,
+    staleAt,
+    pageCount: refresh.pageCount,
+    rateLimitRemaining: refresh.rateLimit?.remaining,
+    rateLimitResetsAt: refresh.rateLimit?.resetsAt,
+    message: refresh.message
+  }
+  await db.transaction(
+    'rw',
+    db.fixtures,
+    db.playerAppearances,
+    db.playerAppearanceQueries,
+    async () => {
+      await db.fixtures.bulkPut(fixtures)
+      await db.playerAppearances.bulkPut(appearances)
+      await db.playerAppearanceQueries.put(query)
+    }
+  )
+}
+
 export function teamFixtureQueryKey(input: RefreshTeamFixturesInput): string {
   return `${input.teamId}|${input.startDate}|${input.endDate}|${input.timeZone}`
 }
@@ -580,7 +857,12 @@ export async function clearSportmonksCache(): Promise<void> {
       db.competitionFixtureQueries,
       db.teams,
       db.teamFixtureQueries,
-      db.venues
+      db.venues,
+      db.players,
+      db.squadEntries,
+      db.teamSquadQueries,
+      db.playerAppearances,
+      db.playerAppearanceQueries
     ],
     async () => {
       await db.fixtures.clear()
@@ -593,8 +875,46 @@ export async function clearSportmonksCache(): Promise<void> {
       await db.teams.clear()
       await db.teamFixtureQueries.clear()
       await db.venues.clear()
+      await db.players.clear()
+      await db.squadEntries.clear()
+      await db.teamSquadQueries.clear()
+      await db.playerAppearances.clear()
+      await db.playerAppearanceQueries.clear()
     }
   )
+}
+
+function toCachedSquadPlayer(
+  player: SportmonksPlayer,
+  existing: CachedPlayer | undefined,
+  fetchedAt: number
+): CachedPlayer {
+  const raw = existing?.detailed
+    ? {
+        ...existing.raw,
+        ...player,
+        country: player.country ?? existing.raw.country,
+        nationality: player.nationality ?? existing.raw.nationality,
+        position: player.position ?? existing.raw.position,
+        detailedPosition: player.detailedPosition ?? existing.raw.detailedPosition
+      }
+    : player
+
+  return {
+    id: player.id,
+    name: player.name,
+    displayName: player.display_name,
+    imagePath: player.image_path ?? null,
+    positionId: player.position_id,
+    nationalityId: player.nationality_id,
+    raw,
+    detailed: existing?.detailed ?? false,
+    fetchedAt,
+    staleAt: existing?.detailed ? existing.staleAt : fetchedAt,
+    rateLimitRemaining: existing?.rateLimitRemaining,
+    rateLimitResetsAt: existing?.rateLimitResetsAt,
+    message: existing?.message
+  }
 }
 
 function toCachedFixture(

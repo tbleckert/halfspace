@@ -1,35 +1,40 @@
 import { useMemo, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { AlertCircle, ArrowLeft, RefreshCw, Trophy } from 'lucide-react'
+import { AlertCircle, ArrowLeft, RefreshCw, Trophy, UsersRound } from 'lucide-react'
 import type { SportmonksVenue } from '@shared/contracts'
 import { Button } from '@/components/ui/button'
 import { buttonVariants } from '@/components/ui/button-variants'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { CachedCompetition, CachedStanding } from '@/data/db'
+import type { CachedCompetition, CachedStanding, SquadMember } from '@/data/db'
 import { db, readTeamStandings, readVenueIdentity } from '@/data/db'
 import { CompetitionLogo } from '@/features/competitions/competition-logo'
 import { splitEntityFixtures } from '@/features/fixtures/entity-fixture-data'
 import { EntityFixturePanel } from '@/features/fixtures/entity-fixture-panel'
+import { PlayerPhoto } from '@/features/players/player-photo'
 import { VenueImage } from '@/features/venues/venue-image'
 import { addDaysToIsoDate, currentTimeZone, todayInTimeZone } from '@/lib/date'
 import { useOnline } from '@/lib/use-online'
 import { cn } from '@/lib/utils'
 import { TeamLogo } from './team-logo'
-import { useTeamEntity, useTeamFixtures } from './use-team'
+import { useTeamEntity, useTeamFixtures, useTeamSquad } from './use-team'
 
 interface TeamCompetitionContext {
   competition: CachedCompetition
   standing: CachedStanding | null
 }
 
+type TeamView = 'overview' | 'squad'
+
 export function TeamPage({
   competitionId,
-  teamId
+  teamId,
+  view = 'overview'
 }: {
   competitionId?: number
   teamId: string
+  view?: TeamView
 }): React.JSX.Element {
   const parsedTeamId = Number(teamId)
   const validTeamId = Number.isSafeInteger(parsedTeamId) && parsedTeamId > 0
@@ -50,7 +55,8 @@ export function TeamPage({
   )
   const [pageOpenedAt] = useState(() => Date.now())
   const team = useTeamEntity(validTeamId ? parsedTeamId : null, online)
-  const fixtures = useTeamFixtures(fixtureInput, online)
+  const fixtures = useTeamFixtures(fixtureInput, online && view === 'overview')
+  const squad = useTeamSquad(validTeamId ? parsedTeamId : null, online && view === 'squad')
   const competitionContexts = useLiveQuery(
     () =>
       validTeamId ? readTeamCompetitionContexts(parsedTeamId, competitionId) : Promise.resolve([]),
@@ -60,8 +66,11 @@ export function TeamPage({
     () => splitEntityFixtures(fixtures.cached?.fixtures ?? [], pageOpenedAt),
     [fixtures.cached?.fixtures, pageOpenedAt]
   )
-  const refreshing = team.refreshing || fixtures.refreshing
-  const errors = [team.error, fixtures.error].filter((error): error is string => Boolean(error))
+  const refreshing =
+    team.refreshing || (view === 'overview' ? fixtures.refreshing : squad.refreshing)
+  const errors = [team.error, view === 'overview' ? fixtures.error : squad.error].filter(
+    (error): error is string => Boolean(error)
+  )
   const identity = team.cached?.team?.raw ?? team.cached?.participant
 
   if (!validTeamId) return <MissingTeam />
@@ -83,7 +92,7 @@ export function TeamPage({
   const detailedTeam = team.cached.team?.raw
 
   async function refresh(): Promise<void> {
-    await Promise.all([team.refresh(), fixtures.refresh()])
+    await Promise.all([team.refresh(), view === 'overview' ? fixtures.refresh() : squad.refresh()])
   }
 
   return (
@@ -147,6 +156,8 @@ export function TeamPage({
             <RefreshCw className={cn('size-4', refreshing && 'animate-spin')} />
           </Button>
         </header>
+
+        <TeamNavigation competitionId={competitionId} teamId={parsedTeamId} view={view} />
       </div>
 
       {errors.length > 0 && (
@@ -156,48 +167,229 @@ export function TeamPage({
         </div>
       )}
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(16rem,0.65fr)_minmax(24rem,1.35fr)]">
-        <div className="flex flex-col gap-5">
-          <TeamCompetitions contexts={competitionContexts} online={online} />
-          {detailedTeam?.venue && detailedTeam.venue_id && (
-            <TeamVenueCard
-              competitionId={competitionId}
-              countryName={detailedTeam.country?.name}
-              online={online}
-              teamId={parsedTeamId}
-              venueId={detailedTeam.venue_id}
-              venueSummary={detailedTeam.venue}
-            />
-          )}
-        </div>
+      {view === 'overview' ? (
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(16rem,0.65fr)_minmax(24rem,1.35fr)]">
+          <div className="flex flex-col gap-5">
+            <TeamCompetitions contexts={competitionContexts} online={online} />
+            {detailedTeam?.venue && detailedTeam.venue_id && (
+              <TeamVenueCard
+                competitionId={competitionId}
+                countryName={detailedTeam.country?.name}
+                online={online}
+                teamId={parsedTeamId}
+                venueId={detailedTeam.venue_id}
+                venueSummary={detailedTeam.venue}
+              />
+            )}
+          </div>
 
-        <div className="flex flex-col gap-5">
-          {fixtures.cached === undefined ? (
-            <FixturesSkeleton />
-          ) : (
-            <>
-              <EntityFixturePanel
-                context={{ competition: competitionId, team: parsedTeamId }}
-                fixtures={fixtureSections.upcoming}
-                label="Upcoming"
-                loading={fixtures.refreshing}
-                online={online}
-                showCompetition
-              />
-              <EntityFixturePanel
-                context={{ competition: competitionId, team: parsedTeamId }}
-                fixtures={fixtureSections.recent}
-                label="Recent"
-                loading={fixtures.refreshing}
-                online={online}
-                showCompetition
-              />
-            </>
-          )}
+          <div className="flex flex-col gap-5">
+            {fixtures.cached === undefined ? (
+              <FixturesSkeleton />
+            ) : (
+              <>
+                <EntityFixturePanel
+                  context={{ competition: competitionId, team: parsedTeamId }}
+                  fixtures={fixtureSections.upcoming}
+                  label="Upcoming"
+                  loading={fixtures.refreshing}
+                  online={online}
+                  showCompetition
+                />
+                <EntityFixturePanel
+                  context={{ competition: competitionId, team: parsedTeamId }}
+                  fixtures={fixtureSections.recent}
+                  label="Recent"
+                  loading={fixtures.refreshing}
+                  online={online}
+                  showCompetition
+                />
+              </>
+            )}
+          </div>
         </div>
-      </div>
+      ) : (
+        <TeamSquad
+          competitionId={competitionId}
+          loading={squad.refreshing}
+          members={squad.cached?.members}
+          online={online}
+          teamId={parsedTeamId}
+        />
+      )}
     </div>
   )
+}
+
+function TeamNavigation({
+  competitionId,
+  teamId,
+  view
+}: {
+  competitionId?: number
+  teamId: number
+  view: TeamView
+}): React.JSX.Element {
+  const itemClassName =
+    'relative -mb-px border-b-2 px-0.5 pb-3 text-sm font-medium outline-none transition-colors focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring'
+
+  return (
+    <nav aria-label="Team" className="mt-6 flex gap-6 border-b">
+      <Link
+        aria-current={view === 'overview' ? 'page' : undefined}
+        to="/teams/$teamId"
+        params={{ teamId: String(teamId) }}
+        search={{ competition: competitionId }}
+        className={cn(
+          itemClassName,
+          view === 'overview'
+            ? 'z-10 border-black font-semibold text-foreground dark:border-white'
+            : 'border-transparent text-muted-foreground hover:text-foreground'
+        )}
+      >
+        Overview
+      </Link>
+      <Link
+        aria-current={view === 'squad' ? 'page' : undefined}
+        to="/teams/$teamId/squad"
+        params={{ teamId: String(teamId) }}
+        search={{ competition: competitionId }}
+        className={cn(
+          itemClassName,
+          view === 'squad'
+            ? 'z-10 border-black font-semibold text-foreground dark:border-white'
+            : 'border-transparent text-muted-foreground hover:text-foreground'
+        )}
+      >
+        Squad
+      </Link>
+    </nav>
+  )
+}
+
+function TeamSquad({
+  competitionId,
+  loading,
+  members,
+  online,
+  teamId
+}: {
+  competitionId?: number
+  loading: boolean
+  members: SquadMember[] | undefined
+  online: boolean
+  teamId: number
+}): React.JSX.Element {
+  if (members === undefined) return <SquadSkeleton />
+
+  const groups = groupSquad(members)
+
+  if (groups.length === 0) {
+    return (
+      <section className="flex min-h-48 flex-col items-center justify-center gap-3 rounded-xl border bg-card px-4 text-center text-muted-foreground shadow-xs">
+        <UsersRound className="size-6" />
+        <p className="text-sm font-medium text-foreground">
+          {loading ? 'Loading squad…' : online ? 'No squad' : 'Squad not available offline'}
+        </p>
+      </section>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-8">
+      {groups.map(({ label, members: groupMembers }) => (
+        <section key={label}>
+          <div className="mb-3 flex items-center gap-3">
+            <h2 className="text-sm font-semibold">{label}</h2>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {groupMembers.map((member) => (
+              <SquadPlayerCard
+                key={member.entry.id}
+                competitionId={competitionId}
+                member={member}
+                online={online}
+                teamId={teamId}
+              />
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  )
+}
+
+function SquadPlayerCard({
+  competitionId,
+  member: { entry, player },
+  online,
+  teamId
+}: {
+  competitionId?: number
+  member: SquadMember
+  online: boolean
+  teamId: number
+}): React.JSX.Element {
+  const position =
+    entry.detailedPositionName ?? entry.positionName ?? player.raw.position?.name ?? null
+  const nationality = player.raw.nationality?.name
+  const metadata = [position, nationality].filter(Boolean).join(' · ')
+
+  return (
+    <Link
+      to="/players/$playerId"
+      params={{ playerId: String(player.id) }}
+      search={{ competition: competitionId, team: teamId }}
+      className="group flex min-w-0 flex-col items-center rounded-xl border bg-card px-4 py-5 text-center shadow-xs outline-none transition-[border-color,transform] duration-150 hover:border-foreground/20 focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98]"
+    >
+      <div className="relative">
+        <PlayerPhoto
+          className="size-20 rounded-full border bg-muted"
+          imagePath={player.imagePath}
+          online={online}
+        />
+        <span className="absolute -right-1 -bottom-1 grid size-7 place-items-center rounded-full border bg-card text-xs font-semibold tabular-nums shadow-xs">
+          {entry.jerseyNumber ?? '–'}
+        </span>
+      </div>
+      <div className="mt-4 w-full min-w-0">
+        <p className="truncate text-sm font-semibold" title={player.displayName}>
+          {player.displayName}
+        </p>
+        {metadata && <p className="mt-1 truncate text-xs text-muted-foreground">{metadata}</p>}
+      </div>
+    </Link>
+  )
+}
+
+function groupSquad(members: SquadMember[]): Array<{ label: string; members: SquadMember[] }> {
+  const positions = [
+    { id: 24, label: 'Goalkeepers' },
+    { id: 25, label: 'Defenders' },
+    { id: 26, label: 'Midfielders' },
+    { id: 27, label: 'Attackers' }
+  ]
+  const groups = positions.flatMap(({ id, label }) => {
+    const groupMembers = members
+      .filter(({ entry }) => entry.positionId === id)
+      .toSorted(compareSquadMembers)
+    return groupMembers.length > 0 ? [{ label, members: groupMembers }] : []
+  })
+  const otherMembers = members
+    .filter(({ entry }) => !positions.some(({ id }) => id === entry.positionId))
+    .toSorted(compareSquadMembers)
+
+  return otherMembers.length > 0 ? [...groups, { label: 'Other', members: otherMembers }] : groups
+}
+
+function compareSquadMembers(left: SquadMember, right: SquadMember): number {
+  if (left.entry.jerseyNumber !== null && right.entry.jerseyNumber !== null) {
+    return left.entry.jerseyNumber - right.entry.jerseyNumber
+  }
+  if (left.entry.jerseyNumber !== null) return -1
+  if (right.entry.jerseyNumber !== null) return 1
+  return left.player.displayName.localeCompare(right.player.displayName)
 }
 
 function TeamVenueCard({
@@ -397,6 +589,33 @@ function FixturesSkeleton(): React.JSX.Element {
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+function SquadSkeleton(): React.JSX.Element {
+  return (
+    <div className="flex flex-col gap-8">
+      {[0, 1].map((group) => (
+        <section key={group}>
+          <div className="mb-3 flex items-center gap-3">
+            <Skeleton className="h-4 w-20" />
+            <div className="h-px flex-1 bg-border" />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {[0, 1, 2].map((card) => (
+              <div
+                key={card}
+                className="flex flex-col items-center rounded-xl border bg-card px-4 py-5"
+              >
+                <Skeleton className="size-20 rounded-full" />
+                <Skeleton className="mt-4 h-4 w-24" />
+                <Skeleton className="mt-2 h-3 w-20" />
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
     </div>
   )
 }

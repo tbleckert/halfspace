@@ -1,15 +1,20 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { SportmonksCompetition, SportmonksFixture } from '@shared/contracts'
+import type { SportmonksCompetition, SportmonksFixture, SportmonksPlayer } from '@shared/contracts'
 import {
   fetchCompetitions,
   fetchCompetitionFixtures,
   fetchFixturesByDate,
+  fetchPlayerAppearances,
+  fetchPlayerById,
   fetchStandingsBySeason,
   fetchTeamById,
   fetchTeamFixtures,
+  fetchTeamSquad,
   fetchVenueById,
   validateCompetitionFixturesInput,
   validateRefreshInput,
+  validatePlayerAppearancesInput,
+  validatePlayerInput,
   validateStandingsInput,
   validateTeamFixturesInput,
   validateTeamInput,
@@ -250,6 +255,117 @@ describe('Sportmonks client', () => {
     expect(url.searchParams.has('filters')).toBe(false)
   })
 
+  it('fetches the current team squad with players and positions', async () => {
+    const fetcher = vi.fn<typeof fetch>(async () =>
+      Response.json({
+        data: [
+          {
+            id: 635741,
+            transfer_id: 184008,
+            player_id: 581086,
+            team_id: 62,
+            position_id: 26,
+            detailed_position_id: 157,
+            jersey_number: 13,
+            start: '2023-01-23',
+            end: null,
+            player: makePlayer(),
+            position: { id: 26, name: 'Midfielder', code: 'midfielder' },
+            detailedPosition: { id: 157, name: 'Right Midfield', code: 'right-midfield' }
+          }
+        ],
+        rate_limit: { remaining: 2_993, resets_in_seconds: 3_600 }
+      })
+    )
+
+    const refresh = await fetchTeamSquad({ teamId: 62 }, 'private-token', fetcher)
+
+    expect(refresh.squad[0].player?.display_name).toBe('Quinten Timber')
+    expect(refresh.squad[0].jersey_number).toBe(13)
+
+    const [input, init] = fetcher.mock.calls[0]
+    const url = new URL(input.toString())
+    expect(url.pathname).toBe('/v3/football/squads/teams/62')
+    expect(url.searchParams.get('include')).toBe('player.nationality;position;detailedPosition')
+    expect(url.searchParams.has('api_token')).toBe(false)
+    expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')
+  })
+
+  it('fetches a player profile with nationality and positions', async () => {
+    const fetcher = vi.fn<typeof fetch>(async () =>
+      Response.json({
+        data: {
+          ...makePlayer(),
+          nationality: { id: 38, name: 'Netherlands', iso2: 'NL' },
+          position: { id: 26, name: 'Midfielder', code: 'midfielder' },
+          detailedPosition: { id: 153, name: 'Central Midfield', code: 'central-midfield' }
+        },
+        rate_limit: { remaining: 2_992, resets_in_seconds: 3_600 }
+      })
+    )
+
+    const refresh = await fetchPlayerById({ playerId: 6306068 }, 'private-token', fetcher)
+
+    expect(refresh.player.nationality?.name).toBe('Netherlands')
+    expect(refresh.player.detailedPosition?.name).toBe('Central Midfield')
+
+    const [input, init] = fetcher.mock.calls[0]
+    const url = new URL(input.toString())
+    expect(url.pathname).toBe('/v3/football/players/6306068')
+    expect(url.searchParams.get('include')).toBe('nationality;position;detailedPosition')
+    expect(url.searchParams.has('api_token')).toBe(false)
+    expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')
+  })
+
+  it('returns recent appearances only when the player is in a confirmed lineup', async () => {
+    const fixture = makeFixture()
+    const fetcher = vi.fn<typeof fetch>(async () =>
+      Response.json({
+        data: [
+          {
+            ...fixture,
+            lineups: [
+              {
+                id: 91,
+                fixture_id: fixture.id,
+                player_id: 6306068,
+                team_id: 62,
+                position_id: 26,
+                type_id: 11,
+                player_name: 'Quinten Timber',
+                jersey_number: 8
+              }
+            ]
+          },
+          { ...fixture, id: 2, lineups: [] }
+        ],
+        pagination: { current_page: 1, has_more: false },
+        timezone: 'Europe/Stockholm'
+      })
+    )
+
+    const refresh = await fetchPlayerAppearances(
+      {
+        playerId: 6306068,
+        teamId: 62,
+        startDate: '2026-05-30',
+        endDate: '2026-08-28',
+        timeZone: 'Europe/Stockholm'
+      },
+      'private-token',
+      fetcher
+    )
+
+    expect(refresh.appearances).toHaveLength(1)
+    expect(refresh.appearances[0].fixture.id).toBe(fixture.id)
+    expect(refresh.appearances[0].fixture.lineups).toBeUndefined()
+    expect(refresh.appearances[0].lineup.type_id).toBe(11)
+
+    const url = new URL(fetcher.mock.calls[0][0].toString())
+    expect(url.pathname).toBe('/v3/football/fixtures/between/2026-05-30/2026-08-28/62')
+    expect(url.searchParams.get('include')).toBe('participants;league;state;scores;lineups')
+  })
+
   it('fetches a venue entity with country context', async () => {
     const fetcher = vi.fn<typeof fetch>(async () =>
       Response.json({
@@ -312,6 +428,16 @@ describe('Sportmonks client', () => {
     expect(() => validateStandingsInput({ seasonId: -1 })).toThrow('Choose a valid current season.')
     expect(() => validateTeamInput({ teamId: 0 })).toThrow('Choose a valid team.')
     expect(() => validateVenueInput({ venueId: 0 })).toThrow('Choose a valid venue.')
+    expect(() => validatePlayerInput({ playerId: 0 })).toThrow('Choose a valid player.')
+    expect(() =>
+      validatePlayerAppearancesInput({
+        playerId: 1,
+        teamId: 0,
+        startDate: '2026-08-01',
+        endDate: '2026-08-28',
+        timeZone: 'UTC'
+      })
+    ).toThrow('Choose a valid fixture range.')
     expect(() =>
       validateTeamFixturesInput({
         teamId: 9,
@@ -380,5 +506,28 @@ function makeFixture(): SportmonksFixture {
       { id: 10, name: 'Home', meta: { location: 'home' } }
     ],
     scores: []
+  }
+}
+
+function makePlayer(): SportmonksPlayer {
+  return {
+    id: 6306068,
+    sport_id: 1,
+    country_id: 38,
+    nationality_id: 38,
+    city_id: 93391,
+    position_id: 26,
+    detailed_position_id: 153,
+    type_id: 26,
+    common_name: 'Q. Timber',
+    firstname: 'Quinten',
+    lastname: 'Timber',
+    name: 'Quinten Maduro',
+    display_name: 'Quinten Timber',
+    image_path: 'https://cdn.sportmonks.com/images/soccer/players/20/6306068.png',
+    height: 177,
+    weight: null,
+    date_of_birth: '2001-06-17',
+    gender: 'male'
   }
 }

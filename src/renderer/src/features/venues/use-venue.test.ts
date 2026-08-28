@@ -35,7 +35,10 @@ describe('venue refresh', () => {
         refreshCompetitionFixtures: vi.fn(),
         refreshTeam: vi.fn(),
         refreshTeamFixtures: vi.fn(),
-        refreshVenue
+        refreshTeamSquad: vi.fn(),
+        refreshVenue,
+        refreshPlayer: vi.fn(),
+        refreshPlayerAppearances: vi.fn()
       }
     }
 
