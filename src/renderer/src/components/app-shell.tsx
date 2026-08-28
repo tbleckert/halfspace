@@ -1,10 +1,17 @@
-import { useEffect, useState } from 'react'
-import { Link, Outlet } from '@tanstack/react-router'
-import { CalendarDays, Circle, Settings } from 'lucide-react'
+import { useMemo } from 'react'
+import { Link, Outlet, useRouterState } from '@tanstack/react-router'
+import { CalendarDays, Circle, Settings, Trophy } from 'lucide-react'
 import { TokenSetup } from '@/features/credentials/token-setup'
 import { useConnectionState } from '@/features/credentials/use-connection-state'
 import { Button } from '@/components/ui/button'
+import { CompetitionLogo } from '@/features/competitions/competition-logo'
+import { sidebarCompetitions } from '@/features/competitions/sidebar-competitions'
+import { useCompetitions, usePinnedCompetitionIds } from '@/features/competitions/use-competitions'
+import { currentTimeZone, todayInTimeZone } from '@/lib/date'
 import { cn } from '@/lib/utils'
+import { useOnline } from '@/lib/use-online'
+
+const noPinnedCompetitionIds: number[] = []
 
 export function AppShell(): React.JSX.Element {
   const { connection, error, reload } = useConnectionState()
@@ -41,18 +48,28 @@ export function AppShell(): React.JSX.Element {
 }
 
 function Workspace(): React.JSX.Element {
-  const [online, setOnline] = useState(navigator.onLine)
+  const online = useOnline()
+  const { cached } = useCompetitions()
+  const pinnedCompetitionIds = usePinnedCompetitionIds() ?? noPinnedCompetitionIds
+  const quickCompetitions = useMemo(
+    () => sidebarCompetitions(cached?.competitions ?? [], pinnedCompetitionIds),
+    [cached?.competitions, pinnedCompetitionIds]
+  )
+  const sidebarLocation = useRouterState({
+    select: ({ location }) => {
+      const competition = (location.search as { competition?: unknown }).competition
+      const date = (location.search as { date?: unknown }).date
 
-  useEffect(() => {
-    const update = (): void => setOnline(navigator.onLine)
-    window.addEventListener('online', update)
-    window.addEventListener('offline', update)
-
-    return () => {
-      window.removeEventListener('online', update)
-      window.removeEventListener('offline', update)
+      return {
+        competitionId: typeof competition === 'number' ? competition : null,
+        date: typeof date === 'string' ? date : null,
+        pathname: location.pathname
+      }
     }
-  }, [])
+  })
+  const currentDate = useMemo(() => todayInTimeZone(currentTimeZone()), [])
+  const sidebarDate = sidebarLocation.date ?? currentDate
+  const matchdayActive = sidebarLocation.pathname === '/' && !sidebarLocation.competitionId
 
   return (
     <div className="grid h-full grid-cols-[14rem_1fr] bg-background">
@@ -68,12 +85,61 @@ function Workspace(): React.JSX.Element {
           </div>
         </div>
 
-        <nav className="mt-5 flex flex-col gap-1">
-          <SidebarLink exact icon={<CalendarDays className="size-4" />} label="Fixtures" to="/" />
-          <SidebarLink icon={<Settings className="size-4" />} label="Settings" to="/settings" />
+        <nav aria-label="Workspace" className="mt-5 flex min-h-0 flex-1 flex-col">
+          <div className="flex flex-col gap-1">
+            <Link
+              to="/"
+              search={{ date: sidebarDate }}
+              aria-current={matchdayActive ? 'page' : undefined}
+              className={cn(
+                'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
+                matchdayActive && 'bg-accent text-accent-foreground'
+              )}
+            >
+              <CalendarDays className="size-4" />
+              Matchday
+            </Link>
+            <SidebarLink
+              icon={<Trophy className="size-4" />}
+              label="Competitions"
+              to="/competitions"
+            />
+          </div>
+
+          {quickCompetitions.length > 0 && (
+            <div className="mt-1 flex min-h-0 flex-col gap-0.5 overflow-y-auto pl-3">
+              {quickCompetitions.map((competition) => {
+                const active = competition.id === sidebarLocation.competitionId
+
+                return (
+                  <Link
+                    key={competition.id}
+                    to="/"
+                    search={{ competition: competition.id, date: sidebarDate }}
+                    aria-current={active && sidebarLocation.pathname === '/' ? 'page' : undefined}
+                    className={cn(
+                      'flex items-center gap-2.5 rounded-md px-3 py-1.5 text-[13px] font-medium text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring',
+                      active && 'bg-accent text-accent-foreground'
+                    )}
+                  >
+                    <CompetitionLogo
+                      className="size-6 bg-background"
+                      imagePath={competition.imagePath}
+                      online={online}
+                    />
+                    <span className="truncate">{competition.name}</span>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+
+          <div className="mt-auto pt-4">
+            <SidebarLink icon={<Settings className="size-4" />} label="Settings" to="/settings" />
+          </div>
         </nav>
 
-        <div className="mt-auto flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
           <Circle
             className={cn('size-2 fill-current', online ? 'text-emerald-600' : 'text-amber-600')}
           />
@@ -97,7 +163,7 @@ function SidebarLink({
   exact?: boolean
   icon: React.ReactNode
   label: string
-  to: '/' | '/settings'
+  to: '/competitions' | '/settings'
 }): React.JSX.Element {
   return (
     <Link

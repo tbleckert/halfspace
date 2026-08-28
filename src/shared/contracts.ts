@@ -2,7 +2,8 @@ export const ipcChannels = {
   connectionState: 'credentials:connection-state',
   saveToken: 'credentials:save-token',
   clearToken: 'credentials:clear-token',
-  refreshFixtures: 'sportmonks:refresh-fixtures'
+  refreshFixtures: 'sportmonks:refresh-fixtures',
+  refreshCompetitions: 'sportmonks:refresh-competitions'
 } as const
 
 export type ApiErrorCode =
@@ -30,6 +31,25 @@ export interface SaveTokenInput {
 export interface RefreshFixturesInput {
   date: string
   timeZone: string
+}
+
+export interface SportmonksCountry {
+  id: number
+  name: string
+  iso2?: string | null
+  image_path?: string | null
+}
+
+export interface SportmonksCompetition {
+  id: number
+  country_id: number
+  name: string
+  active: boolean
+  short_code?: string | null
+  image_path?: string | null
+  type?: string | null
+  sub_type?: string | null
+  country?: SportmonksCountry | null
 }
 
 export interface SportmonksParticipant {
@@ -96,6 +116,17 @@ export interface FixtureRefresh {
   message?: string
 }
 
+export interface CompetitionRefresh {
+  competitions: SportmonksCompetition[]
+  fetchedAt: number
+  pageCount: number
+  rateLimit?: {
+    remaining: number
+    resetsAt: number
+  }
+  message?: string
+}
+
 export interface HalfspaceApi {
   credentials: {
     getConnectionState(): Promise<ConnectionState>
@@ -104,5 +135,6 @@ export interface HalfspaceApi {
   }
   sportmonks: {
     refreshFixtures(input: RefreshFixturesInput): Promise<Result<FixtureRefresh>>
+    refreshCompetitions(): Promise<Result<CompetitionRefresh>>
   }
 }

@@ -1,6 +1,14 @@
 import Dexie, { type Table } from 'dexie'
-import type { FixtureRefresh, SportmonksFixture } from '@shared/contracts'
+import type {
+  CompetitionRefresh,
+  FixtureRefresh,
+  SportmonksCompetition,
+  SportmonksFixture
+} from '@shared/contracts'
 import { fixtureCacheExpiry } from '@/lib/date'
+
+const subscribedCompetitionCatalog = 'subscribed'
+const competitionCacheDuration = 24 * 60 * 60 * 1000
 
 export interface CachedFixture {
   id: number
@@ -32,9 +40,38 @@ export interface FixtureQuery {
   message?: string
 }
 
+export interface CachedCompetition {
+  id: number
+  countryId: number
+  name: string
+  active: boolean
+  imagePath: string | null
+  raw: SportmonksCompetition
+  fetchedAt: number
+}
+
+export interface CompetitionCatalog {
+  key: string
+  competitionIds: number[]
+  fetchedAt: number
+  staleAt: number
+  pageCount: number
+  rateLimitRemaining?: number
+  rateLimitResetsAt?: number
+  message?: string
+}
+
+export interface CompetitionPin {
+  competitionId: number
+  pinnedAt: number
+}
+
 class HalfspaceDatabase extends Dexie {
   fixtures!: Table<CachedFixture, number>
   fixtureQueries!: Table<FixtureQuery, string>
+  competitions!: Table<CachedCompetition, number>
+  competitionCatalogs!: Table<CompetitionCatalog, string>
+  competitionPins!: Table<CompetitionPin, number>
 
   constructor() {
     super('halfspace')
@@ -42,6 +79,14 @@ class HalfspaceDatabase extends Dexie {
     this.version(1).stores({
       fixtures: 'id, leagueId, startingAt, [leagueId+startingAt], stateId, staleAt',
       fixtureQueries: '&key, date, staleAt'
+    })
+
+    this.version(2).stores({
+      fixtures: 'id, leagueId, startingAt, [leagueId+startingAt], stateId, staleAt',
+      fixtureQueries: '&key, date, staleAt',
+      competitions: 'id, active, name, countryId',
+      competitionCatalogs: '&key, staleAt',
+      competitionPins: '&competitionId, pinnedAt'
     })
   }
 }
@@ -94,8 +139,69 @@ export async function writeFixtureRefresh(
   })
 }
 
-export async function clearFixtureQueries(): Promise<void> {
-  await db.fixtureQueries.clear()
+export async function readCompetitionCatalog(): Promise<{
+  catalog: CompetitionCatalog | null
+  competitions: CachedCompetition[]
+}> {
+  const catalog = await db.competitionCatalogs.get(subscribedCompetitionCatalog)
+  if (!catalog) return { catalog: null, competitions: [] }
+
+  const competitions = (await db.competitions.bulkGet(catalog.competitionIds)).filter(
+    (competition): competition is CachedCompetition => competition !== undefined
+  )
+
+  return { catalog, competitions }
+}
+
+export async function writeCompetitionRefresh(refresh: CompetitionRefresh): Promise<void> {
+  const competitions = refresh.competitions.map((competition) => ({
+    id: competition.id,
+    countryId: competition.country_id,
+    name: competition.name,
+    active: competition.active,
+    imagePath: competition.image_path ?? null,
+    raw: competition,
+    fetchedAt: refresh.fetchedAt
+  }))
+  const catalog: CompetitionCatalog = {
+    key: subscribedCompetitionCatalog,
+    competitionIds: competitions.map(({ id }) => id),
+    fetchedAt: refresh.fetchedAt,
+    staleAt: refresh.fetchedAt + competitionCacheDuration,
+    pageCount: refresh.pageCount,
+    rateLimitRemaining: refresh.rateLimit?.remaining,
+    rateLimitResetsAt: refresh.rateLimit?.resetsAt,
+    message: refresh.message
+  }
+
+  await db.transaction('rw', db.competitions, db.competitionCatalogs, async () => {
+    await db.competitions.clear()
+    await db.competitions.bulkPut(competitions)
+    await db.competitionCatalogs.put(catalog)
+  })
+}
+
+export async function setCompetitionPinned(competitionId: number, pinned: boolean): Promise<void> {
+  if (!pinned) {
+    await db.competitionPins.delete(competitionId)
+    return
+  }
+
+  await db.competitionPins.put({ competitionId, pinnedAt: Date.now() })
+}
+
+export async function clearSportmonksCache(): Promise<void> {
+  await db.transaction(
+    'rw',
+    db.fixtureQueries,
+    db.competitions,
+    db.competitionCatalogs,
+    async () => {
+      await db.fixtureQueries.clear()
+      await db.competitions.clear()
+      await db.competitionCatalogs.clear()
+    }
+  )
 }
 
 function toCachedFixture(

@@ -1,7 +1,8 @@
 import { useMemo } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { AlertCircle, CalendarDays, RefreshCw } from 'lucide-react'
-import type { CachedFixture } from '@/data/db'
+import { db, type CachedFixture } from '@/data/db'
 import { useFixtures } from './use-fixtures'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -13,20 +14,36 @@ import { currentTimeZone, formatFixtureTime, todayInTimeZone } from '@/lib/date'
 
 interface FixturesPageProps {
   date: string
+  competitionId?: number
 }
 
-export function FixturesPage({ date }: FixturesPageProps): React.JSX.Element {
+export function FixturesPage({ date, competitionId }: FixturesPageProps): React.JSX.Element {
   const navigate = useNavigate({ from: '/' })
   const timeZone = useMemo(() => currentTimeZone(), [])
   const { cached, refreshing, error, refresh } = useFixtures(date, timeZone, true)
+  const competition = useLiveQuery(
+    async () => (competitionId ? ((await db.competitions.get(competitionId)) ?? null) : null),
+    [competitionId],
+    null
+  )
+  const fixtures = useMemo(
+    () =>
+      competitionId
+        ? (cached?.fixtures ?? []).filter(({ leagueId }) => leagueId === competitionId)
+        : (cached?.fixtures ?? []),
+    [cached?.fixtures, competitionId]
+  )
+  const heading = competitionId
+    ? (competition?.name ?? fixtures[0]?.raw.league?.name ?? 'Matchday')
+    : 'Matchday'
 
-  const groupedFixtures = useMemo(() => groupFixtures(cached?.fixtures ?? []), [cached?.fixtures])
+  const groupedFixtures = useMemo(() => groupFixtures(fixtures), [fixtures])
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-7 lg:p-10">
       <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Matchday</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">{heading}</h1>
         </div>
 
         <div className="flex items-center gap-2">
@@ -36,7 +53,10 @@ export function FixturesPage({ date }: FixturesPageProps): React.JSX.Element {
             type="date"
             value={date}
             onChange={(event) => {
-              void navigate({ search: { date: event.target.value }, replace: true })
+              void navigate({
+                search: (previous) => ({ ...previous, date: event.target.value }),
+                replace: true
+              })
             }}
           />
           <Button
@@ -71,9 +91,11 @@ export function FixturesPage({ date }: FixturesPageProps): React.JSX.Element {
         <div className="flex flex-col gap-5">
           {groupedFixtures.map(([league, fixtures]) => (
             <section key={league} className="overflow-hidden rounded-xl border bg-card shadow-xs">
-              <div className="border-b bg-muted/45 px-4 py-3">
-                <h2 className="text-sm font-semibold">{league}</h2>
-              </div>
+              {!competitionId && (
+                <div className="border-b bg-muted/45 px-4 py-3">
+                  <h2 className="text-sm font-semibold">{league}</h2>
+                </div>
+              )}
               <div className="divide-y">
                 {fixtures.map((fixture) => (
                   <FixtureRow key={fixture.id} fixture={fixture} />
@@ -87,7 +109,11 @@ export function FixturesPage({ date }: FixturesPageProps): React.JSX.Element {
       {date !== todayInTimeZone(timeZone) && (
         <button
           className="self-start text-sm font-medium text-primary hover:underline"
-          onClick={() => void navigate({ search: { date: todayInTimeZone(timeZone) } })}
+          onClick={() =>
+            void navigate({
+              search: (previous) => ({ ...previous, date: todayInTimeZone(timeZone) })
+            })
+          }
         >
           Return to today
         </button>

@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CompetitionsRouteImport } from './routes/competitions'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as FixturesFixtureIdRouteImport } from './routes/fixtures.$fixtureId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompetitionsRoute = CompetitionsRouteImport.update({
+  id: '/competitions',
+  path: '/competitions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -31,30 +37,34 @@ const FixturesFixtureIdRoute = FixturesFixtureIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/competitions': typeof CompetitionsRoute
   '/settings': typeof SettingsRoute
   '/fixtures/$fixtureId': typeof FixturesFixtureIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/competitions': typeof CompetitionsRoute
   '/settings': typeof SettingsRoute
   '/fixtures/$fixtureId': typeof FixturesFixtureIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/competitions': typeof CompetitionsRoute
   '/settings': typeof SettingsRoute
   '/fixtures/$fixtureId': typeof FixturesFixtureIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/settings' | '/fixtures/$fixtureId'
+  fullPaths: '/' | '/competitions' | '/settings' | '/fixtures/$fixtureId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/settings' | '/fixtures/$fixtureId'
-  id: '__root__' | '/' | '/settings' | '/fixtures/$fixtureId'
+  to: '/' | '/competitions' | '/settings' | '/fixtures/$fixtureId'
+  id: '__root__' | '/' | '/competitions' | '/settings' | '/fixtures/$fixtureId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CompetitionsRoute: typeof CompetitionsRoute
   SettingsRoute: typeof SettingsRoute
   FixturesFixtureIdRoute: typeof FixturesFixtureIdRoute
 }
@@ -66,6 +76,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/competitions': {
+      id: '/competitions'
+      path: '/competitions'
+      fullPath: '/competitions'
+      preLoaderRoute: typeof CompetitionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -87,6 +104,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CompetitionsRoute: CompetitionsRoute,
   SettingsRoute: SettingsRoute,
   FixturesFixtureIdRoute: FixturesFixtureIdRoute,
 }

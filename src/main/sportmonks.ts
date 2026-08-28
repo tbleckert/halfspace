@@ -1,13 +1,38 @@
 import type {
   ApiErrorCode,
+  CompetitionRefresh,
   FixtureRefresh,
   RefreshFixturesInput,
+  SportmonksCompetition,
   SportmonksFixture
 } from '@shared/contracts'
 import { z } from 'zod'
 
 const apiBaseUrl = 'https://api.sportmonks.com/v3/football'
 const maximumPages = 100
+
+const countrySchema = z
+  .object({
+    id: z.number().int(),
+    name: z.string(),
+    iso2: z.string().nullable().optional(),
+    image_path: z.string().nullable().optional()
+  })
+  .passthrough()
+
+const competitionSchema = z
+  .object({
+    id: z.number().int(),
+    country_id: z.number().int(),
+    name: z.string(),
+    active: z.union([z.boolean(), z.literal(0), z.literal(1)]).transform(Boolean),
+    short_code: z.string().nullable().optional(),
+    image_path: z.string().nullable().optional(),
+    type: z.string().nullable().optional(),
+    sub_type: z.string().nullable().optional(),
+    country: countrySchema.nullable().optional()
+  })
+  .passthrough()
 
 const participantSchema = z
   .object({
@@ -77,7 +102,7 @@ const fixtureSchema = z
   })
   .passthrough()
 
-const responseSchema = z
+const fixtureResponseSchema = z
   .object({
     data: z.array(fixtureSchema),
     pagination: z.object({
@@ -92,6 +117,24 @@ const responseSchema = z
       .passthrough()
       .optional(),
     timezone: z.string().optional(),
+    message: z.string().optional()
+  })
+  .passthrough()
+
+const competitionResponseSchema = z
+  .object({
+    data: z.array(competitionSchema),
+    pagination: z.object({
+      current_page: z.number().int().positive(),
+      has_more: z.boolean()
+    }),
+    rate_limit: z
+      .object({
+        remaining: z.number(),
+        resets_in_seconds: z.number()
+      })
+      .passthrough()
+      .optional(),
     message: z.string().optional()
   })
   .passthrough()
@@ -172,10 +215,10 @@ export async function fetchFixturesByDate(
       throw errorForStatus(response.status)
     }
 
-    let parsed: z.infer<typeof responseSchema>
+    let parsed: z.infer<typeof fixtureResponseSchema>
 
     try {
-      parsed = responseSchema.parse(await response.json())
+      parsed = fixtureResponseSchema.parse(await response.json())
     } catch {
       throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
     }
@@ -196,6 +239,74 @@ export async function fetchFixturesByDate(
         fetchedAt,
         pageCount: page,
         timeZone: parsed.timezone ?? input.timeZone,
+        rateLimit,
+        message
+      }
+    }
+
+    page += 1
+  }
+
+  throw new SportmonksError('invalid_response', 'Sportmonks returned too many result pages.')
+}
+
+export async function fetchCompetitions(
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<CompetitionRefresh> {
+  const competitions: SportmonksCompetition[] = []
+  const fetchedAt = Date.now()
+  let page = 1
+  let rateLimit: CompetitionRefresh['rateLimit']
+  let message: string | undefined
+
+  while (page <= maximumPages) {
+    const url = new URL(`${apiBaseUrl}/leagues`)
+    url.searchParams.set('include', 'country')
+    url.searchParams.set('per_page', '50')
+    url.searchParams.set('page', String(page))
+
+    let response: Response
+
+    try {
+      response = await fetcher(url, {
+        headers: {
+          Accept: 'application/json',
+          Authorization: token
+        },
+        signal: AbortSignal.timeout(20_000)
+      })
+    } catch {
+      throw new SportmonksError('network', 'Could not reach Sportmonks.')
+    }
+
+    if (!response.ok) {
+      throw errorForStatus(response.status)
+    }
+
+    let parsed: z.infer<typeof competitionResponseSchema>
+
+    try {
+      parsed = competitionResponseSchema.parse(await response.json())
+    } catch {
+      throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
+    }
+
+    competitions.push(...(parsed.data as SportmonksCompetition[]))
+    message = parsed.message ?? message
+
+    if (parsed.rate_limit) {
+      rateLimit = {
+        remaining: parsed.rate_limit.remaining,
+        resetsAt: fetchedAt + parsed.rate_limit.resets_in_seconds * 1000
+      }
+    }
+
+    if (!parsed.pagination.has_more) {
+      return {
+        competitions,
+        fetchedAt,
+        pageCount: page,
         rateLimit,
         message
       }

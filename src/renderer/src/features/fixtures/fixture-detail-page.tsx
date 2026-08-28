@@ -39,7 +39,7 @@ export function FixtureDetailPage({ fixtureId }: { fixtureId: string }): React.J
         className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="size-4" />
-        Fixtures
+        Matchday
       </Link>
 
       <header>
@@ -83,7 +83,7 @@ function MissingFixture(): React.JSX.Element {
           <p className="font-medium">Fixture not found.</p>
           <Link to="/" search={true} className={cn(buttonVariants({ variant: 'outline' }), 'mt-4')}>
             <ArrowLeft className="size-4" />
-            Back to fixtures
+            Back to Matchday
           </Link>
         </CardContent>
       </Card>

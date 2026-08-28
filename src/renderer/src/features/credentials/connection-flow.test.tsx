@@ -29,7 +29,8 @@ beforeEach(() => {
       clearToken
     },
     sportmonks: {
-      refreshFixtures: vi.fn()
+      refreshFixtures: vi.fn(),
+      refreshCompetitions: vi.fn()
     }
   }
 })
