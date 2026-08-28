@@ -59,6 +59,7 @@ describe('Sportmonks client', () => {
     const [firstInput, firstInit] = fetcher.mock.calls[0]
     const firstUrl = new URL(firstInput.toString())
     expect(firstUrl.searchParams.has('api_token')).toBe(false)
+    expect(firstUrl.searchParams.get('include')).toBe('participants;league;state;scores;periods')
     expect(new Headers(firstInit?.headers).get('Authorization')).toBe('private-token')
   })
 
@@ -134,7 +135,7 @@ describe('Sportmonks client', () => {
     const url = new URL(input.toString())
     expect(url.pathname).toBe(`/v3/football/fixtures/${fixture.id}`)
     expect(url.searchParams.get('include')).toBe(
-      'participants;league;state;scores;venue;stage;round;lineups;events.type;events.player;events.relatedPlayer;statistics.type'
+      'participants;league;state;scores;periods;venue;stage;round;lineups;events.type;events.player;events.relatedPlayer;statistics.type'
     )
     expect(url.searchParams.has('api_token')).toBe(false)
     expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')
@@ -300,7 +301,7 @@ describe('Sportmonks client', () => {
     const firstUrl = new URL(fetcher.mock.calls[0][0].toString())
     expect(firstUrl.pathname).toBe('/v3/football/fixtures/between/2026-08-14/2026-09-11')
     expect(firstUrl.searchParams.get('filters')).toBe('fixtureLeagues:8')
-    expect(firstUrl.searchParams.get('include')).toBe('participants;league;state;scores')
+    expect(firstUrl.searchParams.get('include')).toBe('participants;league;state;scores;periods')
     expect(firstUrl.searchParams.get('timezone')).toBe('Europe/Stockholm')
   })
 
@@ -475,7 +476,7 @@ describe('Sportmonks client', () => {
 
     const url = new URL(fetcher.mock.calls[0][0].toString())
     expect(url.pathname).toBe('/v3/football/fixtures/between/2026-05-30/2026-08-28/62')
-    expect(url.searchParams.get('include')).toBe('participants;league;state;scores;lineups')
+    expect(url.searchParams.get('include')).toBe('participants;league;state;scores;periods;lineups')
   })
 
   it('fetches a venue entity with country context', async () => {

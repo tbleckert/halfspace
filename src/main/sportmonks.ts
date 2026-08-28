@@ -288,6 +288,25 @@ const oddSchema = z
   })
   .passthrough()
 
+const periodSchema = z
+  .object({
+    id: z.number().int(),
+    fixture_id: z.number().int(),
+    type_id: z.number().int(),
+    started: z.number().int(),
+    ended: z.number().int().nullable(),
+    counts_from: z.number().int(),
+    ticking: z.boolean(),
+    sort_order: z.number().int(),
+    description: z.string(),
+    time_added: z.number().int().nullable(),
+    period_length: z.number().int(),
+    minutes: z.number().int(),
+    seconds: z.number().int(),
+    has_timer: z.boolean()
+  })
+  .passthrough()
+
 const fixtureContextSchema = z
   .object({
     id: z.number().int(),
@@ -349,6 +368,7 @@ const fixtureSchema = z
       )
       .optional()
       .default([]),
+    periods: z.array(periodSchema).optional(),
     lineups: z.array(lineupSchema).optional(),
     events: z.array(eventSchema).optional(),
     statistics: z.array(fixtureStatisticSchema).optional()
@@ -665,7 +685,7 @@ export async function fetchFixtureById(
   const url = new URL(`${apiBaseUrl}/fixtures/${input.fixtureId}`)
   url.searchParams.set(
     'include',
-    'participants;league;state;scores;venue;stage;round;lineups;events.type;events.player;events.relatedPlayer;statistics.type'
+    'participants;league;state;scores;periods;venue;stage;round;lineups;events.type;events.player;events.relatedPlayer;statistics.type'
   )
 
   let response: Response
@@ -789,7 +809,7 @@ export async function fetchPlayerAppearances(
     token,
     fetcher,
     undefined,
-    'participants;league;state;scores;lineups'
+    'participants;league;state;scores;periods;lineups'
   )
   const appearances = refresh.fixtures.flatMap((fixture) => {
     const lineup = fixture.lineups?.find(
@@ -815,7 +835,7 @@ async function fetchFixturePages(
   token: string,
   fetcher: typeof fetch,
   filters?: string,
-  includes = 'participants;league;state;scores'
+  includes = 'participants;league;state;scores;periods'
 ): Promise<FixtureRefresh> {
   const fixtures: SportmonksFixture[] = []
   const fetchedAt = Date.now()

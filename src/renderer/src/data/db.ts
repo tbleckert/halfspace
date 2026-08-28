@@ -23,7 +23,7 @@ import type {
   VenueRefresh
 } from '@shared/contracts'
 import { fixtureCacheExpiry } from '@/lib/date'
-import { isFixtureLive } from '@/lib/fixture-state'
+import { isFixtureOngoing } from '@/lib/fixture-state'
 
 const subscribedCompetitionCatalog = 'subscribed'
 const competitionCacheDuration = 24 * 60 * 60 * 1000
@@ -471,7 +471,7 @@ export async function writeFixtureDetailRefresh(refresh: FixtureDetailRefresh): 
     )
     fixture.detailStaleAt =
       refresh.fetchedAt +
-      (isFixtureLive(refresh.fixture.state_id)
+      (isFixtureOngoing(refresh.fixture.state_id)
         ? liveFixtureCacheDuration
         : fixtureDetailCacheDuration)
     await db.fixtures.put(fixture)
@@ -1118,6 +1118,7 @@ function mergeFixtureDetail(
     stage: fixture.stage ?? existing.stage,
     round: fixture.round ?? existing.round,
     venue: fixture.venue ?? existing.venue,
+    periods: fixture.periods ?? existing.periods,
     lineups: fixture.lineups ?? existing.lineups,
     events: fixture.events ?? existing.events,
     statistics: fixture.statistics ?? existing.statistics
@@ -1129,7 +1130,7 @@ function fixtureRefreshExpiry(
   fetchedAt: number,
   defaultStaleAt: number
 ): number {
-  return fixtures.some(({ state_id }) => isFixtureLive(state_id))
+  return fixtures.some(({ state_id }) => isFixtureOngoing(state_id))
     ? fetchedAt + liveFixtureCacheDuration
     : defaultStaleAt
 }

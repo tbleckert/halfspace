@@ -224,6 +224,23 @@ export interface SportmonksState {
   developer_name?: string
 }
 
+export interface SportmonksPeriod {
+  id: number
+  fixture_id: number
+  type_id: number
+  started: number
+  ended: number | null
+  counts_from: number
+  ticking: boolean
+  sort_order: number
+  description: string
+  time_added: number | null
+  period_length: number
+  minutes: number
+  seconds: number
+  has_timer: boolean
+}
+
 export interface SportmonksScore {
   id: number
   participant_id: number
@@ -333,6 +350,7 @@ export interface SportmonksFixture {
   round?: SportmonksFixtureContext | null
   venue?: SportmonksVenue | null
   scores: SportmonksScore[]
+  periods?: SportmonksPeriod[]
   lineups?: SportmonksLineup[]
   events?: SportmonksEvent[]
   statistics?: SportmonksFixtureStatistic[]
