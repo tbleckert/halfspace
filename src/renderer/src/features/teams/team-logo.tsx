@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Shield } from 'lucide-react'
+import { sportmonksImageUrl } from '@/lib/sportmonks-image-url'
 import { cn } from '@/lib/utils'
-import { sportmonksImageUrl } from './sportmonks-image-url'
 
 export function TeamLogo({
   imagePath,

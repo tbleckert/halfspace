@@ -16,6 +16,8 @@ abstractions.
 - Use direct, singular page headings. Do not add eyebrow labels or pretitles above them.
 - Avoid prototype copy, implementation explanations, and redundant guidance. Text should name the
   current thing, communicate a meaningful state, or enable an action.
+- Build the product outward through dedicated football entity pages and natural links between
+  them. Prioritize entity depth before secondary tools or dashboards.
 - Show every active subscribed competition in the sidebar when there are 10 or fewer. Above 10,
   show only locally pinned competitions.
 

@@ -4,6 +4,7 @@ import { clearSportmonksCache } from '@/data/db'
 import { invalidateCompetitionRefresh } from '@/features/competitions/use-competitions'
 import { invalidateCompetitionWorkspaceRefreshes } from '@/features/competitions/use-competition-workspace'
 import { invalidateFixtureRefreshes } from '@/features/fixtures/use-fixtures'
+import { invalidateTeamRefreshes } from '@/features/teams/use-team'
 import { ConnectionStateContext } from './connection-state-context'
 
 export function ConnectionStateProvider({ children }: { children: ReactNode }): React.JSX.Element {
@@ -28,6 +29,7 @@ export function ConnectionStateProvider({ children }: { children: ReactNode }): 
         invalidateCompetitionRefresh()
         invalidateCompetitionWorkspaceRefreshes()
         invalidateFixtureRefreshes()
+        invalidateTeamRefreshes()
         await clearSportmonksCache().catch(() => undefined)
         setConnection(result.data)
         setError(null)
@@ -50,6 +52,7 @@ export function ConnectionStateProvider({ children }: { children: ReactNode }): 
         invalidateCompetitionRefresh()
         invalidateCompetitionWorkspaceRefreshes()
         invalidateFixtureRefreshes()
+        invalidateTeamRefreshes()
         await clearSportmonksCache().catch(() => undefined)
         setConnection({ configured: false })
         setError(null)

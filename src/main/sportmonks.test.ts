@@ -5,9 +5,13 @@ import {
   fetchCompetitionFixtures,
   fetchFixturesByDate,
   fetchStandingsBySeason,
+  fetchTeamById,
+  fetchTeamFixtures,
   validateCompetitionFixturesInput,
   validateRefreshInput,
   validateStandingsInput,
+  validateTeamFixturesInput,
+  validateTeamInput,
   validateToken
 } from './sportmonks'
 
@@ -181,6 +185,69 @@ describe('Sportmonks client', () => {
     expect(firstUrl.searchParams.get('timezone')).toBe('Europe/Stockholm')
   })
 
+  it('fetches a team entity with country and venue context', async () => {
+    const fetcher = vi.fn<typeof fetch>(async () =>
+      Response.json({
+        data: {
+          id: 9,
+          sport_id: 1,
+          country_id: 462,
+          venue_id: 206,
+          gender: 'male',
+          name: 'Manchester City',
+          short_code: 'MCI',
+          image_path: 'https://cdn.sportmonks.com/images/soccer/teams/9/9.png',
+          founded: 1880,
+          type: 'domestic',
+          placeholder: false,
+          last_played_at: '2026-08-23 15:00:00',
+          country: { id: 462, name: 'England', iso2: 'GB' },
+          venue: { id: 206, name: 'Etihad Stadium', capacity: 55097 }
+        },
+        rate_limit: { remaining: 2_995, resets_in_seconds: 3_600 }
+      })
+    )
+
+    const refresh = await fetchTeamById({ teamId: 9 }, 'private-token', fetcher)
+
+    expect(refresh.team.name).toBe('Manchester City')
+    expect(refresh.team.venue?.name).toBe('Etihad Stadium')
+
+    const [input, init] = fetcher.mock.calls[0]
+    const url = new URL(input.toString())
+    expect(url.pathname).toBe('/v3/football/teams/9')
+    expect(url.searchParams.get('include')).toBe('country;venue')
+    expect(url.searchParams.has('api_token')).toBe(false)
+    expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')
+  })
+
+  it('fetches a team fixture window across competitions', async () => {
+    const fixture = makeFixture()
+    const fetcher = vi.fn<typeof fetch>(async () =>
+      Response.json({
+        data: [fixture],
+        pagination: { current_page: 1, has_more: false },
+        timezone: 'Europe/Stockholm'
+      })
+    )
+
+    const refresh = await fetchTeamFixtures(
+      {
+        teamId: 9,
+        startDate: '2026-08-14',
+        endDate: '2026-09-11',
+        timeZone: 'Europe/Stockholm'
+      },
+      'private-token',
+      fetcher
+    )
+
+    expect(refresh.fixtures).toEqual([fixture])
+    const url = new URL(fetcher.mock.calls[0][0].toString())
+    expect(url.pathname).toBe('/v3/football/fixtures/between/2026-08-14/2026-09-11/9')
+    expect(url.searchParams.has('filters')).toBe(false)
+  })
+
   it('maps authentication failures without leaking the token', async () => {
     const fetcher = vi.fn<typeof fetch>(async () => new Response(null, { status: 401 }))
 
@@ -205,6 +272,15 @@ describe('Sportmonks client', () => {
     )
     expect(() => validateToken('token with spaces')).toThrow('Enter a valid Sportmonks token.')
     expect(() => validateStandingsInput({ seasonId: -1 })).toThrow('Choose a valid current season.')
+    expect(() => validateTeamInput({ teamId: 0 })).toThrow('Choose a valid team.')
+    expect(() =>
+      validateTeamFixturesInput({
+        teamId: 9,
+        startDate: '2026-02-30',
+        endDate: '2026-03-01',
+        timeZone: 'UTC'
+      })
+    ).toThrow('Choose a valid fixture range.')
     expect(() =>
       validateCompetitionFixturesInput({
         competitionId: 8,

@@ -8,6 +8,10 @@ const fixtureDetailSearchSchema = z.object({
   competition: z.preprocess((value) => {
     const parsed = typeof value === 'number' || typeof value === 'string' ? Number(value) : NaN
     return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined
+  }, z.number().int().positive().optional()),
+  team: z.preprocess((value) => {
+    const parsed = typeof value === 'number' || typeof value === 'string' ? Number(value) : NaN
+    return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined
   }, z.number().int().positive().optional())
 })
 
@@ -18,6 +22,13 @@ export const Route = createFileRoute('/fixtures/$fixtureId')({
 
 function FixtureDetailRoute(): React.JSX.Element {
   const { fixtureId } = Route.useParams()
-  const { competition, date } = Route.useSearch()
-  return <FixtureDetailPage competitionId={competition} date={date} fixtureId={fixtureId} />
+  const { competition, date, team } = Route.useSearch()
+  return (
+    <FixtureDetailPage
+      competitionId={competition}
+      date={date}
+      fixtureId={fixtureId}
+      teamId={team}
+    />
+  )
 }

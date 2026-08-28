@@ -1,49 +1,77 @@
 import { Link } from '@tanstack/react-router'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ArrowLeft, Braces } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
+import type { SportmonksParticipant } from '@shared/contracts'
 import { db } from '@/data/db'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button-variants'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
+import { TeamLogo } from '@/features/teams/team-logo'
+import { useOnline } from '@/lib/use-online'
 import { cn } from '@/lib/utils'
-import { formatFixtureTime } from '@/lib/date'
 
 interface FixtureDetailPageProps {
   competitionId?: number
   date?: string
   fixtureId: string
+  teamId?: number
 }
 
 export function FixtureDetailPage({
   competitionId,
   date,
-  fixtureId
+  fixtureId,
+  teamId
 }: FixtureDetailPageProps): React.JSX.Element {
   const parsedFixtureId = Number(fixtureId)
   const isValidFixtureId = Number.isSafeInteger(parsedFixtureId) && parsedFixtureId > 0
-  const fixture = useLiveQuery(
-    () => (isValidFixtureId ? db.fixtures.get(parsedFixtureId) : undefined),
-    [isValidFixtureId, parsedFixtureId]
-  )
+  const online = useOnline()
+  const cached = useLiveQuery(async () => {
+    if (!isValidFixtureId) return null
+
+    const fixture = await db.fixtures.get(parsedFixtureId)
+    if (!fixture) return { fixture: null, competition: null }
+
+    return {
+      fixture,
+      competition: (await db.competitions.get(fixture.leagueId)) ?? null
+    }
+  }, [isValidFixtureId, parsedFixtureId])
 
   if (!isValidFixtureId) {
-    return <MissingFixture competitionId={competitionId} date={date} />
+    return <MissingFixture competitionId={competitionId} date={date} teamId={teamId} />
   }
 
-  if (fixture === undefined) {
+  if (cached === undefined) {
     return <div className="p-10 text-sm text-muted-foreground">Loading…</div>
   }
 
-  if (!fixture) {
-    return <MissingFixture competitionId={competitionId} date={date} />
+  if (!cached?.fixture) {
+    return <MissingFixture competitionId={competitionId} date={date} teamId={teamId} />
   }
 
+  const { competition, fixture } = cached
   const home = fixture.raw.participants.find((participant) => participant.meta?.location === 'home')
   const away = fixture.raw.participants.find((participant) => participant.meta?.location === 'away')
+  const scores = fixture.raw.scores.filter(({ description }) => description === 'CURRENT')
+  const homeScore = scores.find(({ score }) => score.participant === 'home')?.score.goals
+  const awayScore = scores.find(({ score }) => score.participant === 'away')?.score.goals
+  const hasScore = homeScore !== undefined || awayScore !== undefined
+  const teamParticipant = fixture.raw.participants.find(({ id }) => id === teamId)
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-7 lg:p-10">
-      {competitionId ? (
+      {teamId ? (
+        <Link
+          to="/teams/$teamId"
+          params={{ teamId: String(teamId) }}
+          search={{ competition: competitionId }}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="size-4" />
+          {teamParticipant?.name ?? 'Team'}
+        </Link>
+      ) : competitionId ? (
         <Link
           to="/competitions/$competitionId"
           params={{ competitionId: String(competitionId) }}
@@ -64,51 +92,125 @@ export function FixtureDetailPage({
       )}
 
       <header>
-        <div className="mb-3 flex items-center gap-2">
-          <Badge variant="secondary">
-            {fixture.raw.league?.name ?? `League ${fixture.leagueId}`}
-          </Badge>
-          <span className="text-xs text-muted-foreground">
-            {formatFixtureTime(fixture.startingAt)}
-          </span>
-        </div>
         <h1 className="text-3xl font-semibold tracking-tight">
           {home?.name ?? 'Home'} <span className="text-muted-foreground">vs</span>{' '}
           {away?.name ?? 'Away'}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          {fixture.resultInfo ?? fixture.raw.state?.name ?? 'Fixture details'}
+          {[fixture.raw.league?.name ?? competition?.name, formatFixtureDate(fixture.startingAt)]
+            .filter(Boolean)
+            .join(' · ')}
         </p>
       </header>
 
-      <Card>
-        <CardHeader className="flex-row items-center gap-2">
-          <Braces className="size-4 text-primary" />
-          <CardTitle className="text-base">Raw Sportmonks response</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <pre className="max-h-[32rem] overflow-auto rounded-lg bg-stone-950 p-4 text-xs leading-5 text-stone-200">
-            {JSON.stringify(fixture.raw, null, 2)}
-          </pre>
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
+          <div className="grid items-center gap-7 px-6 py-9 sm:grid-cols-[1fr_auto_1fr] sm:px-10">
+            <FixtureTeam
+              competitionId={competitionId ?? fixture.leagueId}
+              online={online}
+              participant={home}
+            />
+
+            <div className="flex flex-col items-center gap-2 text-center">
+              {hasScore ? (
+                <p className="text-4xl font-semibold tracking-tight tabular-nums">
+                  {homeScore ?? '–'} <span className="text-muted-foreground">–</span>{' '}
+                  {awayScore ?? '–'}
+                </p>
+              ) : (
+                <p className="text-2xl font-semibold tracking-tight tabular-nums">
+                  {formatFixtureTime(fixture.startingAt)}
+                </p>
+              )}
+              <Badge variant="secondary">
+                {fixture.resultInfo ?? fixture.raw.state?.name ?? 'Scheduled'}
+              </Badge>
+            </div>
+
+            <FixtureTeam
+              align="right"
+              competitionId={competitionId ?? fixture.leagueId}
+              online={online}
+              participant={away}
+            />
+          </div>
+
+          <div className="flex items-center justify-center border-t bg-muted/30 px-4 py-3">
+            <Link
+              to="/competitions/$competitionId"
+              params={{ competitionId: String(competitionId ?? fixture.leagueId) }}
+              className="text-sm font-medium text-muted-foreground hover:text-foreground"
+            >
+              {fixture.raw.league?.name ?? competition?.name ?? `League ${fixture.leagueId}`}
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>
   )
 }
 
+function FixtureTeam({
+  align = 'left',
+  competitionId,
+  online,
+  participant
+}: {
+  align?: 'left' | 'right'
+  competitionId: number
+  online: boolean
+  participant?: SportmonksParticipant
+}): React.JSX.Element {
+  if (!participant) {
+    return <p className="text-center font-medium text-muted-foreground">Team unavailable</p>
+  }
+
+  return (
+    <Link
+      to="/teams/$teamId"
+      params={{ teamId: String(participant.id) }}
+      search={{ competition: competitionId }}
+      className={cn(
+        'flex min-w-0 items-center gap-4 rounded-lg outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-ring sm:flex-col sm:text-center',
+        align === 'right' && 'flex-row-reverse text-right sm:flex-col sm:text-center'
+      )}
+    >
+      <TeamLogo
+        className="size-16 rounded-xl bg-background sm:size-20"
+        imagePath={participant.image_path ?? null}
+        online={online}
+      />
+      <span className="truncate text-lg font-semibold sm:max-w-48">{participant.name}</span>
+    </Link>
+  )
+}
+
 function MissingFixture({
   competitionId,
-  date
+  date,
+  teamId
 }: {
   competitionId?: number
   date?: string
+  teamId?: number
 }): React.JSX.Element {
   return (
     <div className="mx-auto max-w-3xl p-10">
       <Card>
         <CardContent className="p-6">
           <p className="font-medium">Fixture not found.</p>
-          {competitionId ? (
+          {teamId ? (
+            <Link
+              to="/teams/$teamId"
+              params={{ teamId: String(teamId) }}
+              search={{ competition: competitionId }}
+              className={cn(buttonVariants({ variant: 'outline' }), 'mt-4')}
+            >
+              <ArrowLeft className="size-4" />
+              Back to team
+            </Link>
+          ) : competitionId ? (
             <Link
               to="/competitions/$competitionId"
               params={{ competitionId: String(competitionId) }}
@@ -131,4 +233,26 @@ function MissingFixture({
       </Card>
     </div>
   )
+}
+
+function formatFixtureDate(timestamp: number | null): string | null {
+  if (timestamp === null) return null
+
+  return new Intl.DateTimeFormat(undefined, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(timestamp)
+}
+
+function formatFixtureTime(timestamp: number | null): string {
+  if (timestamp === null) return 'Time unavailable'
+
+  return new Intl.DateTimeFormat(undefined, {
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(timestamp)
 }

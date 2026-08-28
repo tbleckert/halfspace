@@ -14,6 +14,7 @@ import { Route as CompetitionsRouteImport } from './routes/competitions'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as CompetitionsCompetitionIdRouteImport } from './routes/competitions_.$competitionId'
 import { Route as FixturesFixtureIdRouteImport } from './routes/fixtures.$fixtureId'
+import { Route as TeamsTeamIdRouteImport } from './routes/teams_.$teamId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -41,6 +42,11 @@ const FixturesFixtureIdRoute = FixturesFixtureIdRouteImport.update({
   path: '/fixtures/$fixtureId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TeamsTeamIdRoute = TeamsTeamIdRouteImport.update({
+  id: '/teams_/$teamId',
+  path: '/teams/$teamId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -48,6 +54,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/competitions/$competitionId': typeof CompetitionsCompetitionIdRoute
   '/fixtures/$fixtureId': typeof FixturesFixtureIdRoute
+  '/teams/$teamId': typeof TeamsTeamIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -55,6 +62,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/competitions/$competitionId': typeof CompetitionsCompetitionIdRoute
   '/fixtures/$fixtureId': typeof FixturesFixtureIdRoute
+  '/teams/$teamId': typeof TeamsTeamIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -63,6 +71,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/competitions_/$competitionId': typeof CompetitionsCompetitionIdRoute
   '/fixtures/$fixtureId': typeof FixturesFixtureIdRoute
+  '/teams_/$teamId': typeof TeamsTeamIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -72,6 +81,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/competitions/$competitionId'
     | '/fixtures/$fixtureId'
+    | '/teams/$teamId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -79,6 +89,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/competitions/$competitionId'
     | '/fixtures/$fixtureId'
+    | '/teams/$teamId'
   id:
     | '__root__'
     | '/'
@@ -86,6 +97,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/competitions_/$competitionId'
     | '/fixtures/$fixtureId'
+    | '/teams_/$teamId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -94,6 +106,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   CompetitionsCompetitionIdRoute: typeof CompetitionsCompetitionIdRoute
   FixturesFixtureIdRoute: typeof FixturesFixtureIdRoute
+  TeamsTeamIdRoute: typeof TeamsTeamIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -133,6 +146,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FixturesFixtureIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/teams_/$teamId': {
+      id: '/teams_/$teamId'
+      path: '/teams/$teamId'
+      fullPath: '/teams/$teamId'
+      preLoaderRoute: typeof TeamsTeamIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -142,6 +162,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   CompetitionsCompetitionIdRoute: CompetitionsCompetitionIdRoute,
   FixturesFixtureIdRoute: FixturesFixtureIdRoute,
+  TeamsTeamIdRoute: TeamsTeamIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

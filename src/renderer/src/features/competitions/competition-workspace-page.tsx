@@ -2,23 +2,20 @@ import { useMemo, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { AlertCircle, RefreshCw, Trophy } from 'lucide-react'
-import type { CachedFixture, CachedStanding } from '@/data/db'
+import type { CachedStanding } from '@/data/db'
 import { db } from '@/data/db'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { buttonVariants } from '@/components/ui/button-variants'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { EntityFixturePanel } from '@/features/fixtures/entity-fixture-panel'
+import { splitEntityFixtures } from '@/features/fixtures/entity-fixture-data'
 import { addDaysToIsoDate, currentTimeZone, todayInTimeZone } from '@/lib/date'
 import { cn } from '@/lib/utils'
 import { useOnline } from '@/lib/use-online'
 import { CompetitionLogo } from './competition-logo'
-import {
-  groupStandings,
-  nearestFixtureSeasonId,
-  splitCompetitionFixtures
-} from './competition-workspace-data'
-import { TeamLogo } from './team-logo'
+import { groupStandings, nearestFixtureSeasonId } from './competition-workspace-data'
+import { TeamLogo } from '@/features/teams/team-logo'
 import { useCompetitionFixtures, useStandings } from './use-competition-workspace'
 
 export function CompetitionWorkspacePage({
@@ -61,7 +58,7 @@ export function CompetitionWorkspacePage({
     [standings.cached?.standings]
   )
   const fixtureSections = useMemo(
-    () => splitCompetitionFixtures(fixtures.cached?.fixtures ?? [], workspaceOpenedAt),
+    () => splitEntityFixtures(fixtures.cached?.fixtures ?? [], workspaceOpenedAt),
     [fixtures.cached?.fixtures, workspaceOpenedAt]
   )
   const refreshing = standings.refreshing || fixtures.refreshing
@@ -128,6 +125,7 @@ export function CompetitionWorkspacePage({
             standingGroups.map((group) => (
               <StandingsTable
                 key={group.key}
+                competitionId={competition.id}
                 name={standingGroups.length === 1 ? 'Table' : group.name}
                 online={online}
                 standings={group.standings}
@@ -141,15 +139,15 @@ export function CompetitionWorkspacePage({
             <FixturesSkeleton />
           ) : (
             <>
-              <FixturePanel
-                competitionId={competition.id}
+              <EntityFixturePanel
+                context={{ competition: competition.id }}
                 fixtures={fixtureSections.upcoming}
                 label="Upcoming"
                 loading={fixtures.refreshing}
                 online={online}
               />
-              <FixturePanel
-                competitionId={competition.id}
+              <EntityFixturePanel
+                context={{ competition: competition.id }}
                 fixtures={fixtureSections.recent}
                 label="Recent"
                 loading={fixtures.refreshing}
@@ -164,10 +162,12 @@ export function CompetitionWorkspacePage({
 }
 
 function StandingsTable({
+  competitionId,
   name,
   online,
   standings
 }: {
+  competitionId: number
   name: string
   online: boolean
   standings: CachedStanding[]
@@ -192,7 +192,12 @@ function StandingsTable({
                 {standing.position}
               </td>
               <td className="px-2 py-2.5">
-                <div className="flex min-w-0 items-center gap-2.5">
+                <Link
+                  to="/teams/$teamId"
+                  params={{ teamId: String(standing.participantId) }}
+                  search={{ competition: competitionId }}
+                  className="flex min-w-0 items-center gap-2.5 rounded-sm outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
+                >
                   <TeamLogo
                     className="size-7 bg-background"
                     imagePath={standing.raw.participant?.image_path ?? null}
@@ -201,7 +206,7 @@ function StandingsTable({
                   <span className="truncate font-medium">
                     {standing.raw.participant?.name ?? `Team ${standing.participantId}`}
                   </span>
-                </div>
+                </Link>
               </td>
               <td className="px-4 py-2.5 text-right font-semibold tabular-nums">
                 {standing.raw.points}
@@ -211,97 +216,6 @@ function StandingsTable({
         </tbody>
       </table>
     </section>
-  )
-}
-
-function FixturePanel({
-  competitionId,
-  fixtures,
-  label,
-  loading,
-  online
-}: {
-  competitionId: number
-  fixtures: CachedFixture[]
-  label: string
-  loading: boolean
-  online: boolean
-}): React.JSX.Element {
-  return (
-    <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
-      <div className="border-b px-4 py-3">
-        <h2 className="text-sm font-semibold">{label}</h2>
-      </div>
-      {fixtures.length === 0 ? (
-        <div className="flex min-h-28 items-center justify-center px-4 text-sm text-muted-foreground">
-          {loading ? 'Loading fixtures…' : 'No fixtures'}
-        </div>
-      ) : (
-        <div className="divide-y">
-          {fixtures.map((fixture) => (
-            <CompetitionFixtureRow
-              key={fixture.id}
-              competitionId={competitionId}
-              fixture={fixture}
-              online={online}
-            />
-          ))}
-        </div>
-      )}
-    </section>
-  )
-}
-
-function CompetitionFixtureRow({
-  competitionId,
-  fixture,
-  online
-}: {
-  competitionId: number
-  fixture: CachedFixture
-  online: boolean
-}): React.JSX.Element {
-  const home = fixture.raw.participants.find(({ meta }) => meta?.location === 'home')
-  const away = fixture.raw.participants.find(({ meta }) => meta?.location === 'away')
-  const scores = fixture.raw.scores.filter(({ description }) => description === 'CURRENT')
-  const homeScore = scores.find(({ score }) => score.participant === 'home')?.score.goals
-  const awayScore = scores.find(({ score }) => score.participant === 'away')?.score.goals
-  const hasScore = homeScore !== undefined || awayScore !== undefined
-
-  return (
-    <Link
-      to="/fixtures/$fixtureId"
-      params={{ fixtureId: String(fixture.id) }}
-      search={{ competition: competitionId }}
-      className="block px-4 py-3.5 transition-colors hover:bg-muted/45"
-    >
-      <div className="mb-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
-        <time>{formatFixtureDate(fixture.startingAt)}</time>
-        {!hasScore && (
-          <Badge variant="outline">{fixture.raw.state?.short_name ?? 'Scheduled'}</Badge>
-        )}
-      </div>
-      <div className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-sm">
-        <span className="flex min-w-0 items-center gap-2.5 font-medium">
-          <TeamLogo
-            className="size-6 bg-background"
-            imagePath={home?.image_path ?? null}
-            online={online}
-          />
-          <span className="truncate">{home?.name ?? fixture.name ?? 'Home team'}</span>
-        </span>
-        <span className="font-semibold tabular-nums">{hasScore ? (homeScore ?? '–') : ''}</span>
-        <span className="flex min-w-0 items-center gap-2.5 text-muted-foreground">
-          <TeamLogo
-            className="size-6 bg-background"
-            imagePath={away?.image_path ?? null}
-            online={online}
-          />
-          <span className="truncate">{away?.name ?? 'Away team'}</span>
-        </span>
-        <span className="font-semibold tabular-nums">{hasScore ? (awayScore ?? '–') : ''}</span>
-      </div>
-    </Link>
   )
 }
 
@@ -386,16 +300,4 @@ function FixturesSkeleton(): React.JSX.Element {
       </div>
     </div>
   )
-}
-
-function formatFixtureDate(timestamp: number | null): string {
-  if (timestamp === null) return 'Date unavailable'
-
-  return new Intl.DateTimeFormat(undefined, {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(timestamp)
 }

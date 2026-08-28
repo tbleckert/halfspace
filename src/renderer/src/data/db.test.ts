@@ -3,7 +3,9 @@ import type {
   CompetitionRefresh,
   FixtureRefresh,
   RefreshCompetitionFixturesInput,
-  StandingsRefresh
+  RefreshTeamFixturesInput,
+  StandingsRefresh,
+  TeamRefresh
 } from '@shared/contracts'
 import {
   db,
@@ -11,11 +13,15 @@ import {
   readCompetitionFixtureQuery,
   readFixtureQuery,
   readStandingsQuery,
+  readTeamFixtureQuery,
+  readTeamIdentity,
   setCompetitionPinned,
   writeCompetitionFixtureRefresh,
   writeCompetitionRefresh,
   writeFixtureRefresh,
-  writeStandingsRefresh
+  writeStandingsRefresh,
+  writeTeamFixtureRefresh,
+  writeTeamRefresh
 } from './db'
 
 beforeEach(async () => {
@@ -31,7 +37,9 @@ beforeEach(async () => {
       db.competitionPins,
       db.standings,
       db.standingQueries,
-      db.competitionFixtureQueries
+      db.competitionFixtureQueries,
+      db.teams,
+      db.teamFixtureQueries
     ],
     async () => {
       await db.fixtures.clear()
@@ -42,6 +50,8 @@ beforeEach(async () => {
       await db.standings.clear()
       await db.standingQueries.clear()
       await db.competitionFixtureQueries.clear()
+      await db.teams.clear()
+      await db.teamFixtureQueries.clear()
     }
   )
 })
@@ -155,6 +165,7 @@ describe('competition workspace cache', () => {
 
     expect(cached.query?.standingIds).toEqual([1])
     expect(cached.standings[0].raw.participant?.name).toBe('Home')
+    expect((await readTeamIdentity(10)).participant?.name).toBe('Home')
   })
 
   it('reuses normalized fixtures for a competition range', async () => {
@@ -173,6 +184,58 @@ describe('competition workspace cache', () => {
     })
 
     const cached = await readCompetitionFixtureQuery(input)
+    expect(cached.fixtures[0].name).toBe('Updated')
+    expect(await db.fixtures.count()).toBe(1)
+  })
+})
+
+describe('team entity cache', () => {
+  it('writes and reads a detailed team entity', async () => {
+    const refresh: TeamRefresh = {
+      fetchedAt: Date.UTC(2026, 7, 28, 10),
+      team: {
+        id: 9,
+        sport_id: 1,
+        country_id: 462,
+        venue_id: 206,
+        gender: 'male',
+        name: 'Manchester City',
+        short_code: 'MCI',
+        image_path: 'https://cdn.sportmonks.com/images/soccer/teams/9/9.png',
+        founded: 1880,
+        placeholder: false,
+        country: { id: 462, name: 'England' },
+        venue: { id: 206, name: 'Etihad Stadium', capacity: 55097 }
+      }
+    }
+
+    await writeTeamRefresh(refresh)
+    const identity = await readTeamIdentity(9)
+
+    expect(identity.team?.name).toBe('Manchester City')
+    expect(identity.team?.raw.venue?.name).toBe('Etihad Stadium')
+  })
+
+  it('reuses normalized fixtures for a team range', async () => {
+    const input: RefreshTeamFixturesInput = {
+      teamId: 9,
+      startDate: '2026-08-14',
+      endDate: '2026-09-11',
+      timeZone: 'Europe/Stockholm'
+    }
+    const refresh = fixtureRefresh(19425456, 'Original')
+    refresh.fixtures[0].participants = [
+      { id: 9, name: 'Manchester City', meta: { location: 'home' } },
+      { id: 10, name: 'Away', meta: { location: 'away' } }
+    ]
+
+    await writeFixtureRefresh('2026-08-28', 'Europe/Stockholm', refresh)
+    await writeTeamFixtureRefresh(input, {
+      ...refresh,
+      fixtures: [{ ...refresh.fixtures[0], name: 'Updated' }]
+    })
+
+    const cached = await readTeamFixtureQuery(input)
     expect(cached.fixtures[0].name).toBe('Updated')
     expect(await db.fixtures.count()).toBe(1)
   })

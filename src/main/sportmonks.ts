@@ -5,10 +5,14 @@ import type {
   RefreshCompetitionFixturesInput,
   RefreshFixturesInput,
   RefreshStandingsInput,
+  RefreshTeamFixturesInput,
+  RefreshTeamInput,
   StandingsRefresh,
   SportmonksCompetition,
   SportmonksFixture,
-  SportmonksStanding
+  SportmonksStanding,
+  SportmonksTeam,
+  TeamRefresh
 } from '@shared/contracts'
 import { z } from 'zod'
 
@@ -69,6 +73,35 @@ const participantSchema = z
       })
       .passthrough()
       .optional()
+  })
+  .passthrough()
+
+const venueSchema = z
+  .object({
+    id: z.number().int(),
+    name: z.string(),
+    capacity: z.number().int().nullable().optional(),
+    city_name: z.string().nullable().optional(),
+    image_path: z.string().nullable().optional()
+  })
+  .passthrough()
+
+const teamSchema = z
+  .object({
+    id: z.number().int(),
+    sport_id: z.number().int(),
+    country_id: z.number().int(),
+    venue_id: z.number().int().nullable(),
+    gender: z.string().nullable(),
+    name: z.string(),
+    short_code: z.string().nullable().optional(),
+    image_path: z.string().nullable().optional(),
+    founded: z.number().int().nullable(),
+    type: z.string().nullable().optional(),
+    placeholder: z.union([z.boolean(), z.literal(0), z.literal(1)]).transform(Boolean),
+    last_played_at: z.string().nullable().optional(),
+    country: countrySchema.nullable().optional(),
+    venue: venueSchema.nullable().optional()
   })
   .passthrough()
 
@@ -200,6 +233,20 @@ const competitionResponseSchema = z
   })
   .passthrough()
 
+const teamResponseSchema = z
+  .object({
+    data: teamSchema,
+    rate_limit: z
+      .object({
+        remaining: z.number(),
+        resets_in_seconds: z.number()
+      })
+      .passthrough()
+      .optional(),
+    message: z.string().optional()
+  })
+  .passthrough()
+
 export class SportmonksError extends Error {
   constructor(
     readonly code: ApiErrorCode,
@@ -250,38 +297,32 @@ export function validateStandingsInput(value: unknown): RefreshStandingsInput {
   return { seasonId }
 }
 
+export function validateTeamInput(value: unknown): RefreshTeamInput {
+  const teamId = value && typeof value === 'object' ? (value as { teamId?: unknown }).teamId : 0
+
+  if (!isPositiveId(teamId)) {
+    throw new SportmonksError('invalid_input', 'Choose a valid team.')
+  }
+
+  return { teamId }
+}
+
 export function validateCompetitionFixturesInput(value: unknown): RefreshCompetitionFixturesInput {
-  if (!value || typeof value !== 'object') {
-    throw new SportmonksError('invalid_input', 'Choose a valid fixture range.')
-  }
-
-  const input = value as Record<string, unknown>
-
-  if (
-    !isPositiveId(input.competitionId) ||
-    typeof input.startDate !== 'string' ||
-    typeof input.endDate !== 'string' ||
-    !isValidIsoDate(input.startDate) ||
-    !isValidIsoDate(input.endDate) ||
-    input.startDate > input.endDate
-  ) {
-    throw new SportmonksError('invalid_input', 'Choose a valid fixture range.')
-  }
-
-  const dayCount =
-    (Date.parse(`${input.endDate}T00:00:00Z`) - Date.parse(`${input.startDate}T00:00:00Z`)) /
-    86_400_000
-
-  if (dayCount > 100) {
-    throw new SportmonksError('invalid_input', 'Fixture ranges cannot exceed 100 days.')
-  }
-
-  if (typeof input.timeZone !== 'string' || !isValidTimeZone(input.timeZone)) {
-    throw new SportmonksError('invalid_input', 'The selected time zone is not valid.')
-  }
+  const input = validateFixtureRange(value, 'competitionId')
 
   return {
-    competitionId: input.competitionId,
+    competitionId: input.entityId,
+    startDate: input.startDate,
+    endDate: input.endDate,
+    timeZone: input.timeZone
+  }
+}
+
+export function validateTeamFixturesInput(value: unknown): RefreshTeamFixturesInput {
+  const input = validateFixtureRange(value, 'teamId')
+
+  return {
+    teamId: input.entityId,
     startDate: input.startDate,
     endDate: input.endDate,
     timeZone: input.timeZone
@@ -307,6 +348,19 @@ export async function fetchCompetitionFixtures(
     token,
     fetcher,
     `fixtureLeagues:${input.competitionId}`
+  )
+}
+
+export async function fetchTeamFixtures(
+  input: RefreshTeamFixturesInput,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<FixtureRefresh> {
+  return fetchFixturePages(
+    `fixtures/between/${input.startDate}/${input.endDate}/${input.teamId}`,
+    input.timeZone,
+    token,
+    fetcher
   )
 }
 
@@ -501,6 +555,54 @@ export async function fetchStandingsBySeason(
   }
 }
 
+export async function fetchTeamById(
+  input: RefreshTeamInput,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<TeamRefresh> {
+  const fetchedAt = Date.now()
+  const url = new URL(`${apiBaseUrl}/teams/${input.teamId}`)
+  url.searchParams.set('include', 'country;venue')
+
+  let response: Response
+
+  try {
+    response = await fetcher(url, {
+      headers: {
+        Accept: 'application/json',
+        Authorization: token
+      },
+      signal: AbortSignal.timeout(20_000)
+    })
+  } catch {
+    throw new SportmonksError('network', 'Could not reach Sportmonks.')
+  }
+
+  if (!response.ok) {
+    throw errorForStatus(response.status)
+  }
+
+  let parsed: z.infer<typeof teamResponseSchema>
+
+  try {
+    parsed = teamResponseSchema.parse(await response.json())
+  } catch {
+    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
+  }
+
+  return {
+    team: parsed.data as SportmonksTeam,
+    fetchedAt,
+    rateLimit: parsed.rate_limit
+      ? {
+          remaining: parsed.rate_limit.remaining,
+          resetsAt: fetchedAt + parsed.rate_limit.resets_in_seconds * 1000
+        }
+      : undefined,
+    message: parsed.message
+  }
+}
+
 function isValidIsoDate(value: string): boolean {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
   if (!match) return false
@@ -517,6 +619,48 @@ function isValidIsoDate(value: string): boolean {
 
 function isPositiveId(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value > 0
+}
+
+function validateFixtureRange(
+  value: unknown,
+  entityIdKey: 'competitionId' | 'teamId'
+): { entityId: number; startDate: string; endDate: string; timeZone: string } {
+  if (!value || typeof value !== 'object') {
+    throw new SportmonksError('invalid_input', 'Choose a valid fixture range.')
+  }
+
+  const input = value as Record<string, unknown>
+  const entityId = input[entityIdKey]
+
+  if (
+    !isPositiveId(entityId) ||
+    typeof input.startDate !== 'string' ||
+    typeof input.endDate !== 'string' ||
+    !isValidIsoDate(input.startDate) ||
+    !isValidIsoDate(input.endDate) ||
+    input.startDate > input.endDate
+  ) {
+    throw new SportmonksError('invalid_input', 'Choose a valid fixture range.')
+  }
+
+  const dayCount =
+    (Date.parse(`${input.endDate}T00:00:00Z`) - Date.parse(`${input.startDate}T00:00:00Z`)) /
+    86_400_000
+
+  if (dayCount > 100) {
+    throw new SportmonksError('invalid_input', 'Fixture ranges cannot exceed 100 days.')
+  }
+
+  if (typeof input.timeZone !== 'string' || !isValidTimeZone(input.timeZone)) {
+    throw new SportmonksError('invalid_input', 'The selected time zone is not valid.')
+  }
+
+  return {
+    entityId,
+    startDate: input.startDate,
+    endDate: input.endDate,
+    timeZone: input.timeZone
+  }
 }
 
 function isValidTimeZone(value: string): boolean {

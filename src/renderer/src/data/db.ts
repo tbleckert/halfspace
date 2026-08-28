@@ -3,10 +3,14 @@ import type {
   CompetitionRefresh,
   FixtureRefresh,
   RefreshCompetitionFixturesInput,
+  RefreshTeamFixturesInput,
   StandingsRefresh,
   SportmonksCompetition,
   SportmonksFixture,
-  SportmonksStanding
+  SportmonksParticipant,
+  SportmonksStanding,
+  SportmonksTeam,
+  TeamRefresh
 } from '@shared/contracts'
 import { fixtureCacheExpiry } from '@/lib/date'
 
@@ -14,6 +18,8 @@ const subscribedCompetitionCatalog = 'subscribed'
 const competitionCacheDuration = 24 * 60 * 60 * 1000
 const standingsCacheDuration = 60 * 60 * 1000
 const competitionFixturesCacheDuration = 15 * 60 * 1000
+const teamCacheDuration = 24 * 60 * 60 * 1000
+const teamFixturesCacheDuration = 15 * 60 * 1000
 
 export interface CachedFixture {
   id: number
@@ -94,6 +100,35 @@ export interface CompetitionFixtureQuery {
   message?: string
 }
 
+export interface CachedTeam {
+  id: number
+  countryId: number
+  venueId: number | null
+  name: string
+  imagePath: string | null
+  raw: SportmonksTeam
+  fetchedAt: number
+  staleAt: number
+  rateLimitRemaining?: number
+  rateLimitResetsAt?: number
+  message?: string
+}
+
+export interface TeamFixtureQuery {
+  key: string
+  teamId: number
+  startDate: string
+  endDate: string
+  timeZone: string
+  fixtureIds: number[]
+  fetchedAt: number
+  staleAt: number
+  pageCount: number
+  rateLimitRemaining?: number
+  rateLimitResetsAt?: number
+  message?: string
+}
+
 export interface CompetitionCatalog {
   key: string
   competitionIds: number[]
@@ -119,6 +154,8 @@ class HalfspaceDatabase extends Dexie {
   standings!: Table<CachedStanding, number>
   standingQueries!: Table<StandingQuery, number>
   competitionFixtureQueries!: Table<CompetitionFixtureQuery, string>
+  teams!: Table<CachedTeam, number>
+  teamFixtureQueries!: Table<TeamFixtureQuery, string>
 
   constructor() {
     super('halfspace')
@@ -151,6 +188,20 @@ class HalfspaceDatabase extends Dexie {
         await transaction.table('competitions').clear()
         await transaction.table('competitionCatalogs').clear()
       })
+
+    this.version(4).stores({
+      fixtures:
+        'id, leagueId, startingAt, [leagueId+startingAt], stateId, homeTeamId, awayTeamId, staleAt',
+      fixtureQueries: '&key, date, staleAt',
+      competitions: 'id, active, name, countryId',
+      competitionCatalogs: '&key, staleAt',
+      competitionPins: '&competitionId, pinnedAt',
+      standings: 'id, participantId, seasonId, [seasonId+position], leagueId, stageId, groupId',
+      standingQueries: '&seasonId, staleAt',
+      competitionFixtureQueries: '&key, competitionId, staleAt',
+      teams: 'id, name, countryId, staleAt',
+      teamFixtureQueries: '&key, teamId, staleAt'
+    })
   }
 }
 
@@ -342,6 +393,105 @@ export async function writeCompetitionFixtureRefresh(
   })
 }
 
+export async function readTeamIdentity(teamId: number): Promise<{
+  team: CachedTeam | null
+  participant: SportmonksParticipant | null
+}> {
+  const team = await db.teams.get(teamId)
+  if (team) {
+    return {
+      team,
+      participant: {
+        id: team.id,
+        name: team.name,
+        short_code: team.raw.short_code,
+        image_path: team.imagePath ?? undefined
+      }
+    }
+  }
+
+  const standing = await db.standings.where('participantId').equals(teamId).first()
+  if (standing?.raw.participant) {
+    return { team: null, participant: standing.raw.participant }
+  }
+
+  const homeFixture = await db.fixtures.where('homeTeamId').equals(teamId).first()
+  const awayFixture = homeFixture
+    ? undefined
+    : await db.fixtures.where('awayTeamId').equals(teamId).first()
+  const participant = (homeFixture ?? awayFixture)?.raw.participants.find(({ id }) => id === teamId)
+
+  return { team: null, participant: participant ?? null }
+}
+
+export async function readTeamStandings(teamId: number): Promise<CachedStanding[]> {
+  return db.standings.where('participantId').equals(teamId).sortBy('position')
+}
+
+export async function writeTeamRefresh(refresh: TeamRefresh): Promise<void> {
+  const team: CachedTeam = {
+    id: refresh.team.id,
+    countryId: refresh.team.country_id,
+    venueId: refresh.team.venue_id ?? null,
+    name: refresh.team.name,
+    imagePath: refresh.team.image_path ?? null,
+    raw: refresh.team,
+    fetchedAt: refresh.fetchedAt,
+    staleAt: refresh.fetchedAt + teamCacheDuration,
+    rateLimitRemaining: refresh.rateLimit?.remaining,
+    rateLimitResetsAt: refresh.rateLimit?.resetsAt,
+    message: refresh.message
+  }
+
+  await db.teams.put(team)
+}
+
+export function teamFixtureQueryKey(input: RefreshTeamFixturesInput): string {
+  return `${input.teamId}|${input.startDate}|${input.endDate}|${input.timeZone}`
+}
+
+export async function readTeamFixtureQuery(
+  input: RefreshTeamFixturesInput
+): Promise<{ query: TeamFixtureQuery | null; fixtures: CachedFixture[] }> {
+  const query = await db.teamFixtureQueries.get(teamFixtureQueryKey(input))
+  if (!query) return { query: null, fixtures: [] }
+
+  const fixtures = (await db.fixtures.bulkGet(query.fixtureIds)).filter(
+    (fixture): fixture is CachedFixture => fixture !== undefined
+  )
+
+  return { query, fixtures }
+}
+
+export async function writeTeamFixtureRefresh(
+  input: RefreshTeamFixturesInput,
+  refresh: FixtureRefresh
+): Promise<void> {
+  const staleAt = refresh.fetchedAt + teamFixturesCacheDuration
+  const fixtures = refresh.fixtures.map((fixture) =>
+    toCachedFixture(fixture, refresh.fetchedAt, staleAt)
+  )
+  const query: TeamFixtureQuery = {
+    key: teamFixtureQueryKey(input),
+    teamId: input.teamId,
+    startDate: input.startDate,
+    endDate: input.endDate,
+    timeZone: input.timeZone,
+    fixtureIds: fixtures.map(({ id }) => id),
+    fetchedAt: refresh.fetchedAt,
+    staleAt,
+    pageCount: refresh.pageCount,
+    rateLimitRemaining: refresh.rateLimit?.remaining,
+    rateLimitResetsAt: refresh.rateLimit?.resetsAt,
+    message: refresh.message
+  }
+
+  await db.transaction('rw', db.fixtures, db.teamFixtureQueries, async () => {
+    await db.fixtures.bulkPut(fixtures)
+    await db.teamFixtureQueries.put(query)
+  })
+}
+
 export async function setCompetitionPinned(competitionId: number, pinned: boolean): Promise<void> {
   if (!pinned) {
     await db.competitionPins.delete(competitionId)
@@ -361,7 +511,9 @@ export async function clearSportmonksCache(): Promise<void> {
       db.competitionCatalogs,
       db.standings,
       db.standingQueries,
-      db.competitionFixtureQueries
+      db.competitionFixtureQueries,
+      db.teams,
+      db.teamFixtureQueries
     ],
     async () => {
       await db.fixtures.clear()
@@ -371,6 +523,8 @@ export async function clearSportmonksCache(): Promise<void> {
       await db.standings.clear()
       await db.standingQueries.clear()
       await db.competitionFixtureQueries.clear()
+      await db.teams.clear()
+      await db.teamFixtureQueries.clear()
     }
   )
 }

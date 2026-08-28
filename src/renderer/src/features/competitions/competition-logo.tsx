@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Trophy } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { sportmonksImageUrl } from './sportmonks-image-url'
+import { sportmonksImageUrl } from '@/lib/sportmonks-image-url'
 
 export function CompetitionLogo({
   imagePath,

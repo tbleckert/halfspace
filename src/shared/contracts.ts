@@ -5,7 +5,9 @@ export const ipcChannels = {
   refreshFixtures: 'sportmonks:refresh-fixtures',
   refreshCompetitions: 'sportmonks:refresh-competitions',
   refreshStandings: 'sportmonks:refresh-standings',
-  refreshCompetitionFixtures: 'sportmonks:refresh-competition-fixtures'
+  refreshCompetitionFixtures: 'sportmonks:refresh-competition-fixtures',
+  refreshTeam: 'sportmonks:refresh-team',
+  refreshTeamFixtures: 'sportmonks:refresh-team-fixtures'
 } as const
 
 export type ApiErrorCode =
@@ -41,6 +43,17 @@ export interface RefreshStandingsInput {
 
 export interface RefreshCompetitionFixturesInput {
   competitionId: number
+  startDate: string
+  endDate: string
+  timeZone: string
+}
+
+export interface RefreshTeamInput {
+  teamId: number
+}
+
+export interface RefreshTeamFixturesInput {
+  teamId: number
   startDate: string
   endDate: string
   timeZone: string
@@ -85,6 +98,31 @@ export interface SportmonksParticipant {
     winner?: boolean | null
     position?: number | null
   }
+}
+
+export interface SportmonksVenue {
+  id: number
+  name: string
+  capacity?: number | null
+  city_name?: string | null
+  image_path?: string | null
+}
+
+export interface SportmonksTeam {
+  id: number
+  sport_id: number
+  country_id: number
+  venue_id: number | null
+  gender: string | null
+  name: string
+  short_code?: string | null
+  image_path?: string | null
+  founded: number | null
+  type?: string | null
+  placeholder: boolean
+  last_played_at?: string | null
+  country?: SportmonksCountry | null
+  venue?: SportmonksVenue | null
 }
 
 export interface SportmonksLeague {
@@ -182,6 +220,16 @@ export interface StandingsRefresh {
   message?: string
 }
 
+export interface TeamRefresh {
+  team: SportmonksTeam
+  fetchedAt: number
+  rateLimit?: {
+    remaining: number
+    resetsAt: number
+  }
+  message?: string
+}
+
 export interface HalfspaceApi {
   credentials: {
     getConnectionState(): Promise<ConnectionState>
@@ -195,5 +243,7 @@ export interface HalfspaceApi {
     refreshCompetitionFixtures(
       input: RefreshCompetitionFixturesInput
     ): Promise<Result<FixtureRefresh>>
+    refreshTeam(input: RefreshTeamInput): Promise<Result<TeamRefresh>>
+    refreshTeamFixtures(input: RefreshTeamFixturesInput): Promise<Result<FixtureRefresh>>
   }
 }

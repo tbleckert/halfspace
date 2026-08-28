@@ -1,10 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { CachedFixture, CachedStanding } from '@/data/db'
-import {
-  groupStandings,
-  nearestFixtureSeasonId,
-  splitCompetitionFixtures
-} from './competition-workspace-data'
+import { groupStandings, nearestFixtureSeasonId } from './competition-workspace-data'
+import { splitEntityFixtures } from '@/features/fixtures/entity-fixture-data'
 
 describe('competition workspace data', () => {
   it('groups overall standings by stage and sorts them by position', () => {
@@ -25,7 +22,7 @@ describe('competition workspace data', () => {
       fixture(index + 1, now + (index - 6) * 60_000)
     )
 
-    const split = splitCompetitionFixtures(fixtures, now)
+    const split = splitEntityFixtures(fixtures, now)
 
     expect(split.recent.map(({ id }) => id)).toEqual([6, 5, 4, 3, 2])
     expect(split.upcoming.map(({ id }) => id)).toEqual([7, 8, 9, 10, 11])
