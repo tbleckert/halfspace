@@ -1,6 +1,8 @@
 import type {
   ApiErrorCode,
   CompetitionRefresh,
+  EntitySearchInput,
+  EntitySearchRefresh,
   FixtureDetailRefresh,
   FixtureOddsRefresh,
   FixtureRefresh,
@@ -536,6 +538,11 @@ const playerResponseSchema = z
   })
   .passthrough()
 
+const competitionSearchResponseSchema = z.object({ data: z.array(competitionSchema) }).passthrough()
+const teamSearchResponseSchema = z.object({ data: z.array(teamSchema) }).passthrough()
+const playerSearchResponseSchema = z.object({ data: z.array(playerSchema) }).passthrough()
+const venueSearchResponseSchema = z.object({ data: z.array(venueSchema) }).passthrough()
+
 export class SportmonksError extends Error {
   constructor(
     readonly code: ApiErrorCode,
@@ -626,6 +633,22 @@ export function validatePlayerInput(value: unknown): RefreshPlayerInput {
   }
 
   return { playerId }
+}
+
+export function validateEntitySearchInput(value: unknown): EntitySearchInput {
+  const query =
+    value && typeof value === 'object' ? (value as { query?: unknown }).query : undefined
+
+  if (typeof query !== 'string' || query.trim().length < 2) {
+    throw new SportmonksError('invalid_input', 'Enter at least two characters.')
+  }
+
+  const trimmedQuery = query.trim()
+  if (trimmedQuery.length > 80) {
+    throw new SportmonksError('invalid_input', 'Search terms cannot exceed 80 characters.')
+  }
+
+  return { query: trimmedQuery }
 }
 
 export function validatePlayerAppearancesInput(value: unknown): RefreshPlayerAppearancesInput {
@@ -1206,6 +1229,74 @@ export async function fetchVenueById(
         }
       : undefined,
     message: parsed.message
+  }
+}
+
+export async function fetchEntitySearch(
+  input: EntitySearchInput,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<EntitySearchRefresh> {
+  const fetchedAt = Date.now()
+  const query = encodeURIComponent(input.query)
+  const [competitionResponse, teamResponse, playerResponse, venueResponse] = await Promise.all([
+    fetchEntitySearchPage('leagues', query, 'country;currentSeason', token, fetcher),
+    fetchEntitySearchPage('teams', query, 'country;venue', token, fetcher),
+    fetchEntitySearchPage(
+      'players',
+      query,
+      'nationality;position;detailedPosition',
+      token,
+      fetcher
+    ),
+    fetchEntitySearchPage('venues', query, 'country', token, fetcher)
+  ])
+
+  try {
+    return {
+      competitions: competitionSearchResponseSchema.parse(competitionResponse)
+        .data as SportmonksCompetition[],
+      teams: teamSearchResponseSchema.parse(teamResponse).data as SportmonksTeam[],
+      players: playerSearchResponseSchema.parse(playerResponse).data as SportmonksPlayer[],
+      venues: venueSearchResponseSchema.parse(venueResponse).data as SportmonksVenue[],
+      fetchedAt
+    }
+  } catch {
+    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
+  }
+}
+
+async function fetchEntitySearchPage(
+  entity: 'leagues' | 'teams' | 'players' | 'venues',
+  query: string,
+  include: string,
+  token: string,
+  fetcher: typeof fetch
+): Promise<unknown> {
+  const url = new URL(`${apiBaseUrl}/${entity}/search/${query}`)
+  url.searchParams.set('include', include)
+  url.searchParams.set('per_page', '8')
+
+  let response: Response
+
+  try {
+    response = await fetcher(url, {
+      headers: {
+        Accept: 'application/json',
+        Authorization: token
+      },
+      signal: AbortSignal.timeout(20_000)
+    })
+  } catch {
+    throw new SportmonksError('network', 'Could not reach Sportmonks.')
+  }
+
+  if (!response.ok) throw errorForStatus(response.status)
+
+  try {
+    return await response.json()
+  } catch {
+    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
   }
 }
 

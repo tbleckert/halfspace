@@ -1,6 +1,7 @@
 import Dexie, { type Table } from 'dexie'
 import type {
   CompetitionRefresh,
+  EntitySearchRefresh,
   FixtureDetailRefresh,
   FixtureOddsRefresh,
   FixtureRefresh,
@@ -38,6 +39,12 @@ const playerAppearancesCacheDuration = 15 * 60 * 1000
 const fixtureDetailCacheDuration = 5 * 60 * 1000
 const fixtureOddsCacheDuration = 5 * 60 * 1000
 const liveFixtureCacheDuration = 30 * 1000
+const entityTypeOrder: Record<EntitySearchResultType, number> = {
+  competition: 0,
+  team: 1,
+  player: 2,
+  venue: 3
+}
 
 export interface CachedFixture {
   id: number
@@ -194,6 +201,16 @@ export interface CachedPlayer {
   rateLimitRemaining?: number
   rateLimitResetsAt?: number
   message?: string
+}
+
+export type EntitySearchResultType = 'competition' | 'team' | 'player' | 'venue'
+
+export interface EntitySearchResult {
+  id: number
+  type: EntitySearchResultType
+  name: string
+  subtitle: string | null
+  imagePath: string | null
 }
 
 export interface CachedSquadEntry {
@@ -566,6 +583,139 @@ export async function writeCompetitionRefresh(refresh: CompetitionRefresh): Prom
     await db.competitions.clear()
     await db.competitions.bulkPut(competitions)
     await db.competitionCatalogs.put(catalog)
+  })
+}
+
+export async function readEntitySearch(query: string): Promise<EntitySearchResult[]> {
+  const normalizedQuery = normalizeSearchText(query.trim())
+  if (!normalizedQuery) return []
+
+  const [competitions, teams, players, venues] = await Promise.all([
+    db.competitions.toArray(),
+    db.teams.toArray(),
+    db.players.toArray(),
+    db.venues.toArray()
+  ])
+  const rankedResults = [
+    ...competitions.map((competition) => ({
+      result: {
+        id: competition.id,
+        type: 'competition' as const,
+        name: competition.name,
+        subtitle: competition.raw.country?.name ?? null,
+        imagePath: competition.imagePath
+      },
+      score: searchScore(normalizedQuery, [competition.name, competition.raw.country?.name ?? ''])
+    })),
+    ...teams.map((team) => ({
+      result: {
+        id: team.id,
+        type: 'team' as const,
+        name: team.name,
+        subtitle: team.raw.country?.name ?? null,
+        imagePath: team.imagePath
+      },
+      score: searchScore(normalizedQuery, [team.name, team.raw.country?.name ?? ''])
+    })),
+    ...players.map((player) => ({
+      result: {
+        id: player.id,
+        type: 'player' as const,
+        name: player.displayName,
+        subtitle:
+          [player.raw.position?.name, player.raw.nationality?.name].filter(Boolean).join(' · ') ||
+          null,
+        imagePath: player.imagePath
+      },
+      score: searchScore(normalizedQuery, [
+        player.displayName,
+        player.name,
+        player.raw.common_name ?? '',
+        player.raw.nationality?.name ?? ''
+      ])
+    })),
+    ...venues.map((venue) => ({
+      result: {
+        id: venue.id,
+        type: 'venue' as const,
+        name: venue.name,
+        subtitle:
+          [venue.raw.city_name, venue.raw.country?.name].filter(Boolean).join(' · ') || null,
+        imagePath: venue.imagePath
+      },
+      score: searchScore(normalizedQuery, [
+        venue.name,
+        venue.raw.city_name ?? '',
+        venue.raw.country?.name ?? ''
+      ])
+    }))
+  ]
+    .filter(({ score }) => Number.isFinite(score))
+    .toSorted((a, b) => {
+      if (a.score !== b.score) return a.score - b.score
+      const typeDifference = entityTypeOrder[a.result.type] - entityTypeOrder[b.result.type]
+      return typeDifference || a.result.name.localeCompare(b.result.name)
+    })
+
+  const resultCounts = new Map<EntitySearchResultType, number>()
+  return rankedResults.flatMap(({ result }) => {
+    const count = resultCounts.get(result.type) ?? 0
+    if (count >= 5) return []
+    resultCounts.set(result.type, count + 1)
+    return [result]
+  })
+}
+
+export async function writeEntitySearchRefresh(refresh: EntitySearchRefresh): Promise<void> {
+  const staleAt = refresh.fetchedAt + teamCacheDuration
+  const competitions: CachedCompetition[] = refresh.competitions.map((competition) => ({
+    id: competition.id,
+    countryId: competition.country_id,
+    name: competition.name,
+    active: competition.active,
+    imagePath: competition.image_path ?? null,
+    currentSeasonId: competition.currentseason?.id ?? null,
+    currentSeasonName: competition.currentseason?.name ?? null,
+    raw: competition,
+    fetchedAt: refresh.fetchedAt
+  }))
+  const teams: CachedTeam[] = refresh.teams.map((team) => ({
+    id: team.id,
+    countryId: team.country_id,
+    venueId: team.venue_id ?? null,
+    name: team.name,
+    imagePath: team.image_path ?? null,
+    raw: team,
+    fetchedAt: refresh.fetchedAt,
+    staleAt
+  }))
+  const players: CachedPlayer[] = refresh.players.map((player) => ({
+    id: player.id,
+    name: player.name,
+    displayName: player.display_name,
+    imagePath: player.image_path ?? null,
+    positionId: player.position_id,
+    nationalityId: player.nationality_id,
+    raw: player,
+    detailed: true,
+    fetchedAt: refresh.fetchedAt,
+    staleAt
+  }))
+  const venues: CachedVenue[] = refresh.venues.map((venue) => ({
+    id: venue.id,
+    countryId: venue.country_id ?? null,
+    name: venue.name,
+    imagePath: venue.image_path ?? null,
+    raw: venue,
+    fetchedAt: refresh.fetchedAt,
+    staleAt
+  }))
+
+  await db.transaction('rw', db.competitions, db.teams, db.players, db.venues, async () => {
+    await db.competitions.bulkPut(competitions)
+    await db.teams.bulkPut(teams)
+    await db.players.bulkPut(players)
+    await db.venues.bulkPut(venues)
   })
 }
 
@@ -1027,6 +1177,28 @@ export async function clearSportmonksCache(): Promise<void> {
       await db.playerAppearanceQueries.clear()
     }
   )
+}
+
+function searchScore(query: string, values: string[]): number {
+  return values.reduce((bestScore, value, valueIndex) => {
+    const normalizedValue = normalizeSearchText(value)
+    if (!normalizedValue) return bestScore
+
+    let score = Number.POSITIVE_INFINITY
+    if (normalizedValue === query) score = 0
+    else if (normalizedValue.startsWith(query)) score = 1
+    else if (normalizedValue.split(/\s+/).some((word) => word.startsWith(query))) score = 2
+    else if (normalizedValue.includes(query)) score = 3
+
+    return Math.min(bestScore, score + valueIndex * 4)
+  }, Number.POSITIVE_INFINITY)
+}
+
+function normalizeSearchText(value: string): string {
+  return value
+    .normalize('NFKD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLocaleLowerCase()
 }
 
 function toCachedSquadPlayer(

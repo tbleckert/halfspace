@@ -3,6 +3,7 @@ import type { SportmonksCompetition, SportmonksFixture, SportmonksPlayer } from 
 import {
   fetchCompetitions,
   fetchCompetitionFixtures,
+  fetchEntitySearch,
   fetchFixtureById,
   fetchFixtureOdds,
   fetchFixturesByDate,
@@ -14,6 +15,7 @@ import {
   fetchTeamSquad,
   fetchVenueById,
   validateCompetitionFixturesInput,
+  validateEntitySearchInput,
   validateFixtureInput,
   validateRefreshInput,
   validatePlayerAppearancesInput,
@@ -218,6 +220,79 @@ describe('Sportmonks client', () => {
     expect(firstUrl.searchParams.get('page')).toBe('1')
     expect(firstUrl.searchParams.has('api_token')).toBe(false)
     expect(new Headers(firstInit?.headers).get('Authorization')).toBe('private-token')
+  })
+
+  it('searches every routable entity with the same private token boundary', async () => {
+    const fetcher = vi.fn<typeof fetch>(async (input) => {
+      const url = new URL(input.toString())
+
+      if (url.pathname.startsWith('/v3/football/leagues/search/')) {
+        return Response.json({ data: [makeCompetition()] })
+      }
+
+      if (url.pathname.startsWith('/v3/football/teams/search/')) {
+        return Response.json({
+          data: [
+            {
+              id: 9,
+              sport_id: 1,
+              country_id: 462,
+              venue_id: 206,
+              gender: 'male',
+              name: 'Manchester City',
+              image_path: 'https://cdn.sportmonks.com/images/soccer/teams/9/9.png',
+              founded: 1880,
+              placeholder: false
+            }
+          ]
+        })
+      }
+
+      if (url.pathname.startsWith('/v3/football/players/search/')) {
+        return Response.json({ data: [makePlayer()] })
+      }
+
+      return Response.json({
+        data: [
+          {
+            id: 206,
+            country_id: 462,
+            name: 'Etihad Stadium',
+            city_name: 'Manchester',
+            image_path: 'https://cdn.sportmonks.com/images/soccer/venues/14/206.png'
+          }
+        ]
+      })
+    })
+
+    const refresh = await fetchEntitySearch({ query: 'manchester' }, 'private-token', fetcher)
+
+    expect(refresh.competitions[0].name).toBe('Premier League')
+    expect(refresh.teams[0].name).toBe('Manchester City')
+    expect(refresh.players[0].display_name).toBe('Quinten Timber')
+    expect(refresh.venues[0].name).toBe('Etihad Stadium')
+    expect(fetcher).toHaveBeenCalledTimes(4)
+
+    const requests = fetcher.mock.calls.map(([input, init]) => ({
+      headers: new Headers(init?.headers),
+      url: new URL(input.toString())
+    }))
+    expect(requests.map(({ url }) => url.pathname)).toEqual([
+      '/v3/football/leagues/search/manchester',
+      '/v3/football/teams/search/manchester',
+      '/v3/football/players/search/manchester',
+      '/v3/football/venues/search/manchester'
+    ])
+    expect(requests.map(({ url }) => url.searchParams.get('include'))).toEqual([
+      'country;currentSeason',
+      'country;venue',
+      'nationality;position;detailedPosition',
+      'country'
+    ])
+    expect(requests.every(({ url }) => url.searchParams.get('per_page') === '8')).toBe(true)
+    expect(requests.every(({ headers }) => headers.get('Authorization') === 'private-token')).toBe(
+      true
+    )
   })
 
   it('rejects an unexpected competition response', async () => {
@@ -543,6 +618,9 @@ describe('Sportmonks client', () => {
     expect(() => validateTeamInput({ teamId: 0 })).toThrow('Choose a valid team.')
     expect(() => validateVenueInput({ venueId: 0 })).toThrow('Choose a valid venue.')
     expect(() => validatePlayerInput({ playerId: 0 })).toThrow('Choose a valid player.')
+    expect(() => validateEntitySearchInput({ query: 'a' })).toThrow(
+      'Enter at least two characters.'
+    )
     expect(() =>
       validatePlayerAppearancesInput({
         playerId: 1,

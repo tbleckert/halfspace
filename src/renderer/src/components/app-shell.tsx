@@ -8,6 +8,7 @@ import { HalfspaceLogo } from '@/components/halfspace-logo'
 import { CompetitionLogo } from '@/features/competitions/competition-logo'
 import { sidebarCompetitions } from '@/features/competitions/sidebar-competitions'
 import { useCompetitions, usePinnedCompetitionIds } from '@/features/competitions/use-competitions'
+import { EntitySearchPalette } from '@/features/search/entity-search-palette'
 import { currentTimeZone, todayInTimeZone } from '@/lib/date'
 import { cn } from '@/lib/utils'
 import { useOnline } from '@/lib/use-online'
@@ -140,7 +141,8 @@ function Workspace(): React.JSX.Element {
             </div>
           )}
 
-          <div className="mt-auto pt-4">
+          <div className="mt-auto flex flex-col gap-1 pt-4">
+            <EntitySearchPalette online={online} />
             <SidebarLink icon={<Settings className="size-4" />} label="Settings" to="/settings" />
           </div>
         </nav>

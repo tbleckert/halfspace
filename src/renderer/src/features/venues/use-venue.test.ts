@@ -40,7 +40,8 @@ describe('venue refresh', () => {
         refreshTeamSquad: vi.fn(),
         refreshVenue,
         refreshPlayer: vi.fn(),
-        refreshPlayerAppearances: vi.fn()
+        refreshPlayerAppearances: vi.fn(),
+        searchEntities: vi.fn()
       }
     }
 

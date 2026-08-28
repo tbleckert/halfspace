@@ -5,6 +5,7 @@ import { ipcChannels } from '@shared/contracts'
 import {
   fetchCompetitions,
   fetchCompetitionFixtures,
+  fetchEntitySearch,
   fetchFixtureById,
   fetchFixtureOdds,
   fetchFixturesByDate,
@@ -17,6 +18,7 @@ import {
   fetchVenueById,
   SportmonksError,
   validateCompetitionFixturesInput,
+  validateEntitySearchInput,
   validateFixtureInput,
   validatePlayerAppearancesInput,
   validatePlayerInput,
@@ -306,6 +308,27 @@ export function registerIpcHandlers(): void {
       return success(await fetchPlayerAppearances(input, token))
     } catch (error) {
       return failure(error, 'upstream', 'Could not refresh player appearances.')
+    }
+  })
+
+  ipcMain.handle(ipcChannels.searchEntities, async (event, rawInput: unknown) => {
+    assertTrustedSender(event)
+
+    try {
+      const input = validateEntitySearchInput(rawInput)
+      const token = await readStoredToken()
+
+      if (!token) {
+        return failure(
+          new SportmonksError('missing_token', 'Add your Sportmonks token in Settings.'),
+          'missing_token',
+          'Add your Sportmonks token in Settings.'
+        )
+      }
+
+      return success(await fetchEntitySearch(input, token))
+    } catch (error) {
+      return failure(error, 'upstream', 'Could not search Sportmonks.')
     }
   })
 }

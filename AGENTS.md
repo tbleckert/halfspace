@@ -50,6 +50,11 @@ abstractions.
   records, preserve richer match context already fetched for the entity page.
 - Show every active subscribed competition in the sidebar when there are 10 or fewer. Above 10,
   show only locally pinned competitions.
+- Global entity search opens from a standard navigation row immediately above Settings or with
+  Command-K. Do not style the trigger like an input. Show cached Dexie results immediately, then
+  search Sportmonks through main and hydrate the existing entity tables. Keep the palette opaque
+  and free of open and close animation. Until a query is entered, show only the search row without
+  a divider or reserved results area.
 
 ## Mindset & Process
 

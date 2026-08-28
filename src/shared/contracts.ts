@@ -13,7 +13,8 @@ export const ipcChannels = {
   refreshTeamSquad: 'sportmonks:refresh-team-squad',
   refreshVenue: 'sportmonks:refresh-venue',
   refreshPlayer: 'sportmonks:refresh-player',
-  refreshPlayerAppearances: 'sportmonks:refresh-player-appearances'
+  refreshPlayerAppearances: 'sportmonks:refresh-player-appearances',
+  searchEntities: 'sportmonks:search-entities'
 } as const
 
 export type ApiErrorCode =
@@ -87,6 +88,10 @@ export interface RefreshPlayerAppearancesInput {
   startDate: string
   endDate: string
   timeZone: string
+}
+
+export interface EntitySearchInput {
+  query: string
 }
 
 export interface SportmonksCountry {
@@ -490,6 +495,14 @@ export interface PlayerRefresh {
   message?: string
 }
 
+export interface EntitySearchRefresh {
+  competitions: SportmonksCompetition[]
+  teams: SportmonksTeam[]
+  players: SportmonksPlayer[]
+  venues: SportmonksVenue[]
+  fetchedAt: number
+}
+
 export interface SportmonksPlayerAppearance {
   fixture: SportmonksFixture
   lineup: SportmonksLineup
@@ -530,5 +543,6 @@ export interface HalfspaceApi {
     refreshPlayerAppearances(
       input: RefreshPlayerAppearancesInput
     ): Promise<Result<PlayerAppearancesRefresh>>
+    searchEntities(input: EntitySearchInput): Promise<Result<EntitySearchRefresh>>
   }
 }

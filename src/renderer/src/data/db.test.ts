@@ -1,6 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type {
   CompetitionRefresh,
+  EntitySearchRefresh,
   FixtureDetailRefresh,
   FixtureOddsRefresh,
   FixtureRefresh,
@@ -19,6 +20,7 @@ import {
   db,
   readCompetitionCatalog,
   readCompetitionFixtureQuery,
+  readEntitySearch,
   readFixtureQuery,
   readFixtureOdds,
   readPlayerAppearanceQuery,
@@ -32,6 +34,7 @@ import {
   setCompetitionPinned,
   writeCompetitionFixtureRefresh,
   writeCompetitionRefresh,
+  writeEntitySearchRefresh,
   writeFixtureDetailRefresh,
   writeFixtureOddsRefresh,
   writeFixtureRefresh,
@@ -93,6 +96,94 @@ beforeEach(async () => {
 })
 
 afterAll(() => db.close())
+
+describe('entity search cache', () => {
+  it('ranks cached entities and hydrates remote results without replacing the subscription catalog', async () => {
+    const fetchedAt = Date.UTC(2026, 7, 29, 10)
+    const subscribedCompetition: CompetitionRefresh = {
+      fetchedAt,
+      pageCount: 1,
+      competitions: [
+        {
+          id: 8,
+          country_id: 462,
+          name: 'Premier League',
+          active: true,
+          country: { id: 462, name: 'England' }
+        }
+      ]
+    }
+    const searchRefresh: EntitySearchRefresh = {
+      fetchedAt: fetchedAt + 1,
+      competitions: [
+        {
+          id: 301,
+          country_id: 462,
+          name: 'Manchester Premier Cup',
+          active: true,
+          country: { id: 462, name: 'England' }
+        }
+      ],
+      teams: [
+        {
+          id: 9,
+          sport_id: 1,
+          country_id: 462,
+          venue_id: 206,
+          gender: 'male',
+          name: 'Manchester City',
+          founded: 1880,
+          placeholder: false,
+          country: { id: 462, name: 'England' }
+        }
+      ],
+      players: [
+        {
+          id: 101,
+          sport_id: 1,
+          country_id: 462,
+          nationality_id: 462,
+          city_id: null,
+          position_id: 26,
+          detailed_position_id: null,
+          type_id: 26,
+          name: 'Manchester Player',
+          display_name: 'Manchester Player',
+          height: null,
+          weight: null,
+          date_of_birth: null,
+          gender: 'male',
+          nationality: { id: 462, name: 'England' },
+          position: { id: 26, name: 'Midfielder' }
+        }
+      ],
+      venues: [
+        {
+          id: 206,
+          country_id: 462,
+          name: 'Etihad Stadium',
+          city_name: 'Manchester',
+          country: { id: 462, name: 'England' }
+        }
+      ]
+    }
+
+    await writeCompetitionRefresh(subscribedCompetition)
+    await writeEntitySearchRefresh(searchRefresh)
+
+    const results = await readEntitySearch('manchester')
+    const catalog = await readCompetitionCatalog()
+
+    expect(results.map(({ type, name }) => `${type}:${name}`)).toEqual([
+      'competition:Manchester Premier Cup',
+      'team:Manchester City',
+      'player:Manchester Player',
+      'venue:Etihad Stadium'
+    ])
+    expect(catalog.catalog?.competitionIds).toEqual([8])
+    expect(catalog.competitions.map(({ name }) => name)).toEqual(['Premier League'])
+  })
+})
 
 describe('fixture cache', () => {
   it('writes the query and fixtures together while respecting participant locations', async () => {
