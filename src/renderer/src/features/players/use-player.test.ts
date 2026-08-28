@@ -31,6 +31,7 @@ describe('player refresh', () => {
       sportmonks: {
         refreshFixtures: vi.fn(),
         refreshFixture: vi.fn(),
+        refreshFixtureOdds: vi.fn(),
         refreshCompetitions: vi.fn(),
         refreshStandings: vi.fn(),
         refreshCompetitionFixtures: vi.fn(),

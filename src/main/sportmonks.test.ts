@@ -4,6 +4,7 @@ import {
   fetchCompetitions,
   fetchCompetitionFixtures,
   fetchFixtureById,
+  fetchFixtureOdds,
   fetchFixturesByDate,
   fetchPlayerAppearances,
   fetchPlayerById,
@@ -61,7 +62,7 @@ describe('Sportmonks client', () => {
     expect(new Headers(firstInit?.headers).get('Authorization')).toBe('private-token')
   })
 
-  it('fetches a fixture entity with match context and lineups', async () => {
+  it('fetches a fixture entity with match context and workspace data', async () => {
     const baseFixture = makeFixture()
     const fixture = {
       ...baseFixture,
@@ -82,6 +83,29 @@ describe('Sportmonks client', () => {
           player_name: 'Quinten Timber',
           jersey_number: 8
         }
+      ],
+      events: [
+        {
+          id: 501,
+          fixture_id: baseFixture.id,
+          period_id: 1,
+          participant_id: 11,
+          type_id: 14,
+          player_name: 'Quinten Timber',
+          minute: 18,
+          type: { id: 14, name: 'Goal' }
+        }
+      ],
+      statistics: [
+        {
+          id: 601,
+          fixture_id: baseFixture.id,
+          type_id: 42,
+          participant_id: 11,
+          data: { value: 12 },
+          location: 'home',
+          type: { id: 42, name: 'Shots' }
+        }
       ]
     }
     const fetcher = vi.fn<typeof fetch>(async () =>
@@ -95,15 +119,46 @@ describe('Sportmonks client', () => {
 
     expect(refresh.fixture.venue?.name).toBe('Etihad Stadium')
     expect(refresh.fixture.lineups?.[0].player_name).toBe('Quinten Timber')
+    expect(refresh.fixture.events?.[0].type?.name).toBe('Goal')
+    expect(refresh.fixture.statistics?.[0].data.value).toBe(12)
 
     const [input, init] = fetcher.mock.calls[0]
     const url = new URL(input.toString())
     expect(url.pathname).toBe(`/v3/football/fixtures/${fixture.id}`)
     expect(url.searchParams.get('include')).toBe(
-      'participants;league;state;scores;venue;stage;round;lineups'
+      'participants;league;state;scores;venue;stage;round;lineups;events.type;statistics.type'
     )
     expect(url.searchParams.has('api_token')).toBe(false)
     expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')
+  })
+
+  it('paginates fixture odds with bookmaker and market context', async () => {
+    const odd = {
+      id: 701,
+      fixture_id: 19425456,
+      market_id: 1,
+      bookmaker_id: 2,
+      label: 'Home',
+      value: '1.80',
+      market: { id: 1, name: 'Fulltime Result' },
+      bookmaker: { id: 2, name: 'Nordic Bet' }
+    }
+    const fetcher = vi.fn<typeof fetch>(async (input) => {
+      const page = Number(new URL(input.toString()).searchParams.get('page'))
+      return Response.json({
+        data: page === 1 ? [odd] : [{ ...odd, id: 702, label: 'Away' }],
+        pagination: { current_page: page, has_more: page === 1 }
+      })
+    })
+
+    const refresh = await fetchFixtureOdds({ fixtureId: odd.fixture_id }, 'private-token', fetcher)
+
+    expect(refresh.odds).toHaveLength(2)
+    expect(refresh.pageCount).toBe(2)
+    const url = new URL(fetcher.mock.calls[0][0].toString())
+    expect(url.pathname).toBe('/v3/football/odds/pre-match/fixtures/19425456')
+    expect(url.searchParams.get('include')).toBe('bookmaker;market')
+    expect(url.searchParams.get('per_page')).toBe('50')
   })
 
   it('fetches every competition available to the subscription', async () => {

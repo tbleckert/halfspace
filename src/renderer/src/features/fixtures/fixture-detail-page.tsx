@@ -1,6 +1,12 @@
 import { Link } from '@tanstack/react-router'
 import { AlertCircle, ArrowLeft, RefreshCw } from 'lucide-react'
-import type { SportmonksFixture, SportmonksLineup, SportmonksParticipant } from '@shared/contracts'
+import type {
+  SportmonksEvent,
+  SportmonksFixture,
+  SportmonksLineup,
+  SportmonksOdd,
+  SportmonksParticipant
+} from '@shared/contracts'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { buttonVariants } from '@/components/ui/button-variants'
@@ -9,27 +15,40 @@ import { Skeleton } from '@/components/ui/skeleton'
 import type { CachedCompetition } from '@/data/db'
 import { CompetitionLogo } from '@/features/competitions/competition-logo'
 import { TeamLogo } from '@/features/teams/team-logo'
+import { VenueCard } from '@/features/venues/venue-card'
+import { isFixtureLive } from '@/lib/fixture-state'
 import { useOnline } from '@/lib/use-online'
 import { cn } from '@/lib/utils'
-import { useFixtureEntity } from './use-fixtures'
+import { fixtureOddsGroups, fixtureStatisticRows, sortedFixtureEvents } from './fixture-detail-data'
+import { FixtureLiveIndicator } from './fixture-live-indicator'
+import type { FixtureDetailSearch } from './fixture-route'
+import { useFixtureEntity, useFixtureOdds } from './use-fixtures'
+
+export type FixtureView = 'preview' | 'timeline' | 'lineups' | 'stats' | 'odds'
 
 interface FixtureDetailPageProps {
   competitionId?: number
   date?: string
   fixtureId: string
   teamId?: number
+  view: FixtureView
 }
 
 export function FixtureDetailPage({
   competitionId,
   date,
   fixtureId,
-  teamId
+  teamId,
+  view
 }: FixtureDetailPageProps): React.JSX.Element {
   const parsedFixtureId = Number(fixtureId)
   const validFixtureId = Number.isSafeInteger(parsedFixtureId) && parsedFixtureId > 0
   const online = useOnline()
   const fixture = useFixtureEntity(validFixtureId ? parsedFixtureId : null, online)
+  const odds = useFixtureOdds(
+    validFixtureId && view === 'odds' ? parsedFixtureId : null,
+    online && view === 'odds'
+  )
 
   if (!validFixtureId) {
     return <MissingFixture competitionId={competitionId} date={date} teamId={teamId} />
@@ -58,6 +77,11 @@ export function FixtureDetailPage({
   const away = participantAt(match, 'away')
   const heading = `${home?.name ?? 'Home'} vs ${away?.name ?? 'Away'}`
   const teamParticipant = match.participants.find(({ id }) => id === teamId)
+  const refreshing = fixture.refreshing || odds.refreshing
+
+  async function refresh(): Promise<void> {
+    await Promise.all([fixture.refresh(), view === 'odds' ? odds.refresh() : Promise.resolve()])
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-7 p-7 lg:p-10">
@@ -85,12 +109,12 @@ export function FixtureDetailPage({
 
           <Button
             aria-label={`Refresh ${heading}`}
-            disabled={!online || fixture.refreshing}
+            disabled={!online || refreshing}
             size="icon"
             variant="outline"
-            onClick={() => void fixture.refresh()}
+            onClick={() => void refresh()}
           >
-            <RefreshCw className={cn('size-4', fixture.refreshing && 'animate-spin')} />
+            <RefreshCw className={cn('size-4', refreshing && 'animate-spin')} />
           </Button>
         </header>
       </div>
@@ -101,15 +125,37 @@ export function FixtureDetailPage({
           <span>{fixture.error}</span>
         </div>
       )}
+      {odds.error && (
+        <div className="flex items-start gap-3 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          <AlertCircle className="mt-0.5 size-4 shrink-0" />
+          <span>{odds.error}</span>
+        </div>
+      )}
 
       <MatchScore
         competitionId={competitionId ?? cachedFixture.leagueId}
+        context={{ competition: competitionId, date, team: teamId }}
         fixture={match}
+        fixtureId={parsedFixtureId}
         online={online}
         startingAt={cachedFixture.startingAt}
+        view={view}
       />
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+      {view === 'preview' && (
+        <FixturePreview
+          competition={fixture.cached.competition}
+          competitionId={competitionId ?? cachedFixture.leagueId}
+          fixture={match}
+          online={online}
+          startingAt={cachedFixture.startingAt}
+          teamId={teamId}
+        />
+      )}
+      {view === 'timeline' && (
+        <FixtureTimeline away={away} events={match.events ?? []} home={home} online={online} />
+      )}
+      {view === 'lineups' && (
         <FixtureLineups
           away={away}
           competitionId={competitionId ?? cachedFixture.leagueId}
@@ -117,28 +163,38 @@ export function FixtureDetailPage({
           lineups={match.lineups ?? []}
           online={online}
         />
-        <FixtureDetails
-          competition={fixture.cached.competition}
-          competitionId={competitionId ?? cachedFixture.leagueId}
-          fixture={match}
-          online={online}
-          startingAt={cachedFixture.startingAt}
+      )}
+      {view === 'stats' && (
+        <FixtureStats away={away} home={home} online={online} statistics={match.statistics ?? []} />
+      )}
+      {view === 'odds' && (
+        <FixtureOdds
+          hasOdds={cachedFixture.hasOdds}
+          loading={odds.cached === undefined || (odds.refreshing && odds.cached.odds.length === 0)}
+          odds={(odds.cached?.odds ?? []).map(({ raw }) => raw)}
+          offline={!online && odds.cached?.query === null}
         />
-      </div>
+      )}
     </div>
   )
 }
 
 function MatchScore({
   competitionId,
+  context,
   fixture,
+  fixtureId,
   online,
-  startingAt
+  startingAt,
+  view
 }: {
   competitionId: number
+  context: FixtureDetailSearch
   fixture: SportmonksFixture
+  fixtureId: number
   online: boolean
   startingAt: number | null
+  view: FixtureView
 }): React.JSX.Element {
   const home = participantAt(fixture, 'home')
   const away = participantAt(fixture, 'away')
@@ -146,6 +202,7 @@ function MatchScore({
   const homeScore = scores.find(({ score }) => score.participant === 'home')?.score.goals
   const awayScore = scores.find(({ score }) => score.participant === 'away')?.score.goals
   const hasScore = homeScore !== undefined || awayScore !== undefined
+  const live = isFixtureLive(fixture.state_id)
 
   return (
     <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
@@ -162,11 +219,16 @@ function MatchScore({
               {formatFixtureTime(startingAt)}
             </p>
           )}
-          <Badge variant="secondary">{fixture.state?.name ?? 'Scheduled'}</Badge>
+          {live ? (
+            <FixtureLiveIndicator className="rounded-full bg-red-50 px-2.5 py-1 dark:bg-red-950/30" />
+          ) : (
+            <Badge variant="secondary">{fixture.state?.name ?? 'Scheduled'}</Badge>
+          )}
         </div>
 
         <FixtureTeam competitionId={competitionId} online={online} participant={away} />
       </div>
+      <FixtureNavigation context={context} fixtureId={fixtureId} view={view} />
     </section>
   )
 }
@@ -200,6 +262,170 @@ function FixtureTeam({
         {participant.name}
       </span>
     </Link>
+  )
+}
+
+function FixtureNavigation({
+  context,
+  fixtureId,
+  view
+}: {
+  context: FixtureDetailSearch
+  fixtureId: number
+  view: FixtureView
+}): React.JSX.Element {
+  const items: Array<{ label: string; to: string; view: FixtureView }> = [
+    { label: 'Preview', to: '/fixtures/$fixtureId', view: 'preview' },
+    { label: 'Timeline', to: '/fixtures/$fixtureId/timeline', view: 'timeline' },
+    { label: 'Lineups', to: '/fixtures/$fixtureId/lineups', view: 'lineups' },
+    { label: 'Stats', to: '/fixtures/$fixtureId/stats', view: 'stats' },
+    { label: 'Odds', to: '/fixtures/$fixtureId/odds', view: 'odds' }
+  ]
+  const itemClassName =
+    'relative -mt-px border-t-2 px-0.5 pb-4 pt-3 text-sm font-medium outline-none focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring'
+
+  return (
+    <nav
+      aria-label="Fixture"
+      className="flex gap-6 overflow-x-auto border-t px-4 sm:justify-center"
+    >
+      {items.map((item) => (
+        <Link
+          key={item.view}
+          aria-current={view === item.view ? 'page' : undefined}
+          to={item.to}
+          params={{ fixtureId: String(fixtureId) }}
+          search={context}
+          className={cn(
+            itemClassName,
+            view === item.view
+              ? 'z-10 border-black font-semibold text-foreground dark:border-white'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          )}
+        >
+          {item.label}
+        </Link>
+      ))}
+    </nav>
+  )
+}
+
+function FixturePreview({
+  competition,
+  competitionId,
+  fixture,
+  online,
+  startingAt,
+  teamId
+}: {
+  competition: CachedCompetition | null
+  competitionId: number
+  fixture: SportmonksFixture
+  online: boolean
+  startingAt: number | null
+  teamId?: number
+}): React.JSX.Element {
+  return (
+    <div className="mx-auto flex w-full max-w-sm flex-col gap-5">
+      <FixtureDetails
+        competition={competition}
+        competitionId={competitionId}
+        fixture={fixture}
+        online={online}
+        startingAt={startingAt}
+      />
+      {fixture.venue && fixture.venue_id && (
+        <VenueCard
+          competitionId={competitionId}
+          countryName={fixture.venue.country?.name}
+          online={online}
+          teamId={teamId}
+          venueId={fixture.venue_id}
+          venueSummary={fixture.venue}
+        />
+      )}
+    </div>
+  )
+}
+
+function FixtureTimeline({
+  away,
+  events,
+  home,
+  online
+}: {
+  away?: SportmonksParticipant
+  events: SportmonksEvent[]
+  home?: SportmonksParticipant
+  online: boolean
+}): React.JSX.Element {
+  const sortedEvents = sortedFixtureEvents(events)
+
+  return (
+    <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
+      <div className="grid grid-cols-[1fr_4rem_1fr] items-center border-b bg-muted/25 px-4 py-3 text-sm font-semibold">
+        <FixtureTimelineTeam participant={home} online={online} align="right" />
+        <span />
+        <FixtureTimelineTeam participant={away} online={online} align="left" />
+      </div>
+      {sortedEvents.length === 0 ? (
+        <FixtureEmptyState>Timeline not available</FixtureEmptyState>
+      ) : (
+        <div className="divide-y">
+          {sortedEvents.map((event) => {
+            const homeEvent = event.participant_id === home?.id
+            const content = <FixtureEventContent event={event} />
+
+            return (
+              <div
+                key={event.id}
+                className="grid min-h-16 grid-cols-[1fr_4rem_1fr] items-center gap-3 px-4 py-3"
+              >
+                <div className="min-w-0 text-right">{homeEvent && content}</div>
+                <span className="text-center text-sm font-semibold tabular-nums">
+                  {formatEventMinute(event)}
+                </span>
+                <div className="min-w-0">{!homeEvent && content}</div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function FixtureTimelineTeam({
+  align,
+  online,
+  participant
+}: {
+  align: 'left' | 'right'
+  online: boolean
+  participant?: SportmonksParticipant
+}): React.JSX.Element {
+  return (
+    <div className={cn('flex min-w-0 items-center gap-2', align === 'right' && 'flex-row-reverse')}>
+      <TeamLogo
+        className="size-7 bg-background"
+        imagePath={participant?.image_path ?? null}
+        online={online}
+      />
+      <span className="truncate">{participant?.name ?? 'Team'}</span>
+    </div>
+  )
+}
+
+function FixtureEventContent({ event }: { event: SportmonksEvent }): React.JSX.Element {
+  return (
+    <div>
+      <p className="truncate text-sm font-medium">
+        {event.player_name ?? event.type?.name ?? 'Event'}
+      </p>
+      <p className="truncate text-xs text-muted-foreground">
+        {[event.type?.name, event.result, event.info].filter(Boolean).join(' · ')}
+      </p>
+    </div>
   )
 }
 
@@ -329,6 +555,136 @@ function LineupGroup({
   )
 }
 
+function FixtureStats({
+  away,
+  home,
+  online,
+  statistics
+}: {
+  away?: SportmonksParticipant
+  home?: SportmonksParticipant
+  online: boolean
+  statistics: NonNullable<SportmonksFixture['statistics']>
+}): React.JSX.Element {
+  const rows = fixtureStatisticRows(statistics)
+
+  return (
+    <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
+      <div className="grid grid-cols-[1fr_minmax(8rem,1.5fr)_1fr] items-center border-b bg-muted/25 px-4 py-3">
+        <FixtureStatTeam participant={home} online={online} align="left" />
+        <span />
+        <FixtureStatTeam participant={away} online={online} align="right" />
+      </div>
+      {rows.length === 0 ? (
+        <FixtureEmptyState>Stats not available</FixtureEmptyState>
+      ) : (
+        <div className="divide-y">
+          {rows.map((row) => (
+            <div
+              key={row.id}
+              className="grid grid-cols-[1fr_minmax(8rem,1.5fr)_1fr] items-center gap-4 px-4 py-3 text-sm"
+            >
+              <span className="font-semibold tabular-nums">{formatStatisticValue(row.home)}</span>
+              <span className="text-center text-muted-foreground">{row.label}</span>
+              <span className="text-right font-semibold tabular-nums">
+                {formatStatisticValue(row.away)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function FixtureStatTeam({
+  align,
+  online,
+  participant
+}: {
+  align: 'left' | 'right'
+  online: boolean
+  participant?: SportmonksParticipant
+}): React.JSX.Element {
+  return (
+    <div
+      className={cn(
+        'flex min-w-0 items-center gap-2 text-sm font-semibold',
+        align === 'right' && 'flex-row-reverse text-right'
+      )}
+    >
+      <TeamLogo
+        className="size-7 bg-background"
+        imagePath={participant?.image_path ?? null}
+        online={online}
+      />
+      <span className="truncate">{participant?.name ?? 'Team'}</span>
+    </div>
+  )
+}
+
+function FixtureOdds({
+  hasOdds,
+  loading,
+  odds,
+  offline
+}: {
+  hasOdds: boolean
+  loading: boolean
+  odds: SportmonksOdd[]
+  offline: boolean
+}): React.JSX.Element {
+  const groups = fixtureOddsGroups(odds)
+
+  if (groups.length === 0) {
+    return (
+      <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
+        <FixtureEmptyState>
+          {loading
+            ? 'Loading odds…'
+            : offline
+              ? 'Odds not available offline'
+              : hasOdds
+                ? 'Odds not available'
+                : 'No odds for this fixture'}
+        </FixtureEmptyState>
+      </section>
+    )
+  }
+
+  return (
+    <div className="grid items-start gap-5 md:grid-cols-2">
+      {groups.map((group) => (
+        <section key={group.key} className="overflow-hidden rounded-xl border bg-card shadow-xs">
+          <div className="border-b px-4 py-3">
+            <h2 className="text-sm font-semibold">{group.market}</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">{group.bookmaker}</p>
+          </div>
+          <div className="divide-y">
+            {group.odds.map((odd) => (
+              <div
+                key={odd.id}
+                className="flex items-center justify-between gap-4 px-4 py-3 text-sm"
+              >
+                <span className="truncate">{formatOddLabel(odd)}</span>
+                <span className="font-semibold tabular-nums">{odd.value}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  )
+}
+
+function FixtureEmptyState({ children }: { children: React.ReactNode }): React.JSX.Element {
+  return (
+    <div className="flex min-h-36 items-center justify-center px-4 text-sm text-muted-foreground">
+      {children}
+    </div>
+  )
+}
+
 function FixtureDetails({
   competition,
   competitionId,
@@ -345,7 +701,7 @@ function FixtureDetails({
   const competitionName = fixture.league?.name ?? competition?.name ?? `League ${competitionId}`
 
   return (
-    <section className="order-first overflow-hidden rounded-xl border bg-card shadow-xs lg:order-last">
+    <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
       <div className="border-b px-4 py-3">
         <h2 className="text-sm font-semibold">Details</h2>
       </div>
@@ -372,26 +728,6 @@ function FixtureDetails({
         )}
         {fixture.stage?.name && <Detail label="Stage" value={fixture.stage.name} />}
         {fixture.round?.name && <Detail label="Round" value={fixture.round.name} />}
-        {fixture.venue && fixture.venue_id && (
-          <div className="px-4 py-3.5">
-            <dt className="mb-1 text-xs text-muted-foreground">Venue</dt>
-            <dd>
-              <Link
-                to="/venues/$venueId"
-                params={{ venueId: String(fixture.venue_id) }}
-                search={{ competition: competitionId, team: undefined }}
-                className="font-medium hover:text-primary"
-              >
-                {fixture.venue.name}
-              </Link>
-              {fixture.venue.city_name && (
-                <span className="mt-0.5 block text-xs text-muted-foreground">
-                  {fixture.venue.city_name}
-                </span>
-              )}
-            </dd>
-          </div>
-        )}
       </dl>
     </section>
   )
@@ -563,4 +899,18 @@ function formatFixtureTime(timestamp: number | null): string {
     hour: '2-digit',
     minute: '2-digit'
   }).format(timestamp)
+}
+
+function formatEventMinute(event: SportmonksEvent): string {
+  return event.extra_minute ? `${event.minute}+${event.extra_minute}′` : `${event.minute}′`
+}
+
+function formatStatisticValue(value: number | string | null): string {
+  return value === null ? '–' : String(value)
+}
+
+function formatOddLabel(odd: SportmonksOdd): string {
+  return [
+    ...new Set([odd.name, odd.label].filter((value): value is string => Boolean(value)))
+  ].join(' · ')
 }

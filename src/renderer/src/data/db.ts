@@ -2,6 +2,7 @@ import Dexie, { type Table } from 'dexie'
 import type {
   CompetitionRefresh,
   FixtureDetailRefresh,
+  FixtureOddsRefresh,
   FixtureRefresh,
   PlayerAppearancesRefresh,
   PlayerRefresh,
@@ -11,6 +12,7 @@ import type {
   StandingsRefresh,
   SportmonksCompetition,
   SportmonksFixture,
+  SportmonksOdd,
   SportmonksParticipant,
   SportmonksPlayer,
   SportmonksStanding,
@@ -21,6 +23,7 @@ import type {
   VenueRefresh
 } from '@shared/contracts'
 import { fixtureCacheExpiry } from '@/lib/date'
+import { isFixtureLive } from '@/lib/fixture-state'
 
 const subscribedCompetitionCatalog = 'subscribed'
 const competitionCacheDuration = 24 * 60 * 60 * 1000
@@ -33,6 +36,8 @@ const teamSquadCacheDuration = 60 * 60 * 1000
 const playerCacheDuration = 24 * 60 * 60 * 1000
 const playerAppearancesCacheDuration = 15 * 60 * 1000
 const fixtureDetailCacheDuration = 5 * 60 * 1000
+const fixtureOddsCacheDuration = 5 * 60 * 1000
+const liveFixtureCacheDuration = 30 * 1000
 
 export interface CachedFixture {
   id: number
@@ -57,6 +62,26 @@ export interface FixtureQuery {
   date: string
   timeZone: string
   fixtureIds: number[]
+  fetchedAt: number
+  staleAt: number
+  pageCount: number
+  rateLimitRemaining?: number
+  rateLimitResetsAt?: number
+  message?: string
+}
+
+export interface CachedFixtureOdd {
+  id: number
+  fixtureId: number
+  marketId: number
+  bookmakerId: number
+  raw: SportmonksOdd
+  fetchedAt: number
+}
+
+export interface FixtureOddsQuery {
+  fixtureId: number
+  oddIds: number[]
   fetchedAt: number
   staleAt: number
   pageCount: number
@@ -250,6 +275,8 @@ export interface CompetitionPin {
 class HalfspaceDatabase extends Dexie {
   fixtures!: Table<CachedFixture, number>
   fixtureQueries!: Table<FixtureQuery, string>
+  fixtureOdds!: Table<CachedFixtureOdd, number>
+  fixtureOddsQueries!: Table<FixtureOddsQuery, number>
   competitions!: Table<CachedCompetition, number>
   competitionCatalogs!: Table<CompetitionCatalog, string>
   competitionPins!: Table<CompetitionPin, number>
@@ -345,6 +372,28 @@ class HalfspaceDatabase extends Dexie {
       playerAppearances: '&key, playerId, teamId, fixtureId, [playerId+fixtureId]',
       playerAppearanceQueries: '&key, playerId, teamId, staleAt'
     })
+
+    this.version(7).stores({
+      fixtures:
+        'id, leagueId, startingAt, [leagueId+startingAt], stateId, homeTeamId, awayTeamId, staleAt',
+      fixtureQueries: '&key, date, staleAt',
+      fixtureOdds: 'id, fixtureId, marketId, bookmakerId, [fixtureId+marketId]',
+      fixtureOddsQueries: '&fixtureId, staleAt',
+      competitions: 'id, active, name, countryId',
+      competitionCatalogs: '&key, staleAt',
+      competitionPins: '&competitionId, pinnedAt',
+      standings: 'id, participantId, seasonId, [seasonId+position], leagueId, stageId, groupId',
+      standingQueries: '&seasonId, staleAt',
+      competitionFixtureQueries: '&key, competitionId, staleAt',
+      teams: 'id, name, countryId, venueId, staleAt',
+      teamFixtureQueries: '&key, teamId, staleAt',
+      venues: 'id, name, countryId, staleAt',
+      players: 'id, name, displayName, positionId, nationalityId, staleAt',
+      squadEntries: 'id, teamId, playerId, positionId, [teamId+positionId]',
+      teamSquadQueries: '&teamId, staleAt',
+      playerAppearances: '&key, playerId, teamId, fixtureId, [playerId+fixtureId]',
+      playerAppearanceQueries: '&key, playerId, teamId, staleAt'
+    })
   }
 }
 
@@ -386,7 +435,11 @@ export async function writeFixtureRefresh(
   timeZone: string,
   refresh: FixtureRefresh
 ): Promise<void> {
-  const staleAt = fixtureCacheExpiry(date, timeZone, refresh.fetchedAt)
+  const staleAt = fixtureRefreshExpiry(
+    refresh.fixtures,
+    refresh.fetchedAt,
+    fixtureCacheExpiry(date, timeZone, refresh.fetchedAt)
+  )
   const query: FixtureQuery = {
     key: fixtureQueryKey(date, timeZone),
     date,
@@ -417,8 +470,60 @@ export async function writeFixtureDetailRefresh(refresh: FixtureDetailRefresh): 
       existing,
       false
     )
-    fixture.detailStaleAt = refresh.fetchedAt + fixtureDetailCacheDuration
+    fixture.detailStaleAt =
+      refresh.fetchedAt +
+      (isFixtureLive(refresh.fixture.state_id)
+        ? liveFixtureCacheDuration
+        : fixtureDetailCacheDuration)
     await db.fixtures.put(fixture)
+  })
+}
+
+export async function readFixtureOdds(fixtureId: number): Promise<{
+  query: FixtureOddsQuery | null
+  odds: CachedFixtureOdd[]
+}> {
+  const query = await db.fixtureOddsQueries.get(fixtureId)
+  if (!query) return { query: null, odds: [] }
+
+  const odds = (await db.fixtureOdds.bulkGet(query.oddIds)).filter(
+    (odd): odd is CachedFixtureOdd => odd !== undefined
+  )
+
+  return { query, odds }
+}
+
+export async function writeFixtureOddsRefresh(
+  fixtureId: number,
+  refresh: FixtureOddsRefresh
+): Promise<void> {
+  const previousQuery = await db.fixtureOddsQueries.get(fixtureId)
+  const odds: CachedFixtureOdd[] = refresh.odds.map((odd) => ({
+    id: odd.id,
+    fixtureId: odd.fixture_id,
+    marketId: odd.market_id,
+    bookmakerId: odd.bookmaker_id,
+    raw: odd,
+    fetchedAt: refresh.fetchedAt
+  }))
+  const query: FixtureOddsQuery = {
+    fixtureId,
+    oddIds: odds.map(({ id }) => id),
+    fetchedAt: refresh.fetchedAt,
+    staleAt: refresh.fetchedAt + fixtureOddsCacheDuration,
+    pageCount: refresh.pageCount,
+    rateLimitRemaining: refresh.rateLimit?.remaining,
+    rateLimitResetsAt: refresh.rateLimit?.resetsAt,
+    message: refresh.message
+  }
+  const removedOddIds = (previousQuery?.oddIds ?? []).filter(
+    (oddId) => !query.oddIds.includes(oddId)
+  )
+
+  await db.transaction('rw', db.fixtureOdds, db.fixtureOddsQueries, async () => {
+    await db.fixtureOdds.bulkDelete(removedOddIds)
+    await db.fixtureOdds.bulkPut(odds)
+    await db.fixtureOddsQueries.put(query)
   })
 }
 
@@ -537,7 +642,11 @@ export async function writeCompetitionFixtureRefresh(
   input: RefreshCompetitionFixturesInput,
   refresh: FixtureRefresh
 ): Promise<void> {
-  const staleAt = refresh.fetchedAt + competitionFixturesCacheDuration
+  const staleAt = fixtureRefreshExpiry(
+    refresh.fixtures,
+    refresh.fetchedAt,
+    refresh.fetchedAt + competitionFixturesCacheDuration
+  )
   const query: CompetitionFixtureQuery = {
     key: competitionFixtureQueryKey(input),
     competitionId: input.competitionId,
@@ -805,7 +914,11 @@ export async function writeTeamFixtureRefresh(
   input: RefreshTeamFixturesInput,
   refresh: FixtureRefresh
 ): Promise<void> {
-  const staleAt = refresh.fetchedAt + teamFixturesCacheDuration
+  const staleAt = fixtureRefreshExpiry(
+    refresh.fixtures,
+    refresh.fetchedAt,
+    refresh.fetchedAt + teamFixturesCacheDuration
+  )
   const query: TeamFixtureQuery = {
     key: teamFixtureQueryKey(input),
     teamId: input.teamId,
@@ -880,6 +993,8 @@ export async function clearSportmonksCache(): Promise<void> {
     [
       db.fixtures,
       db.fixtureQueries,
+      db.fixtureOdds,
+      db.fixtureOddsQueries,
       db.competitions,
       db.competitionCatalogs,
       db.standings,
@@ -897,6 +1012,8 @@ export async function clearSportmonksCache(): Promise<void> {
     async () => {
       await db.fixtures.clear()
       await db.fixtureQueries.clear()
+      await db.fixtureOdds.clear()
+      await db.fixtureOddsQueries.clear()
       await db.competitions.clear()
       await db.competitionCatalogs.clear()
       await db.standings.clear()
@@ -1003,6 +1120,18 @@ function mergeFixtureDetail(
     stage: fixture.stage ?? existing.stage,
     round: fixture.round ?? existing.round,
     venue: fixture.venue ?? existing.venue,
-    lineups: fixture.lineups ?? existing.lineups
+    lineups: fixture.lineups ?? existing.lineups,
+    events: fixture.events ?? existing.events,
+    statistics: fixture.statistics ?? existing.statistics
   }
+}
+
+function fixtureRefreshExpiry(
+  fixtures: SportmonksFixture[],
+  fetchedAt: number,
+  defaultStaleAt: number
+): number {
+  return fixtures.some(({ state_id }) => isFixtureLive(state_id))
+    ? fetchedAt + liveFixtureCacheDuration
+    : defaultStaleAt
 }

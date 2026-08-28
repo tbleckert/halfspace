@@ -4,6 +4,7 @@ export const ipcChannels = {
   clearToken: 'credentials:clear-token',
   refreshFixtures: 'sportmonks:refresh-fixtures',
   refreshFixture: 'sportmonks:refresh-fixture',
+  refreshFixtureOdds: 'sportmonks:refresh-fixture-odds',
   refreshCompetitions: 'sportmonks:refresh-competitions',
   refreshStandings: 'sportmonks:refresh-standings',
   refreshCompetitionFixtures: 'sportmonks:refresh-competition-fixtures',
@@ -233,6 +234,75 @@ export interface SportmonksScore {
   }
 }
 
+export interface SportmonksType {
+  id: number
+  name: string
+  code?: string | null
+  developer_name?: string | null
+  stat_group?: string | null
+}
+
+export interface SportmonksEvent {
+  id: number
+  fixture_id: number
+  period_id: number
+  participant_id: number
+  type_id: number
+  player_id?: number | null
+  related_player_id?: number | null
+  player_name?: string | null
+  related_player_name?: string | null
+  result?: string | null
+  info?: string | null
+  addition?: string | null
+  minute: number
+  extra_minute?: number | null
+  injured?: boolean | null
+  rescinded?: boolean | null
+  type?: SportmonksType | null
+}
+
+export interface SportmonksFixtureStatistic {
+  id: number
+  fixture_id: number
+  type_id: number
+  participant_id: number
+  data: {
+    value?: number | string | null
+  }
+  location: 'home' | 'away'
+  type?: SportmonksType | null
+}
+
+export interface SportmonksBookmaker {
+  id: number
+  name: string
+}
+
+export interface SportmonksMarket {
+  id: number
+  name: string
+  developer_name?: string | null
+}
+
+export interface SportmonksOdd {
+  id: number
+  fixture_id: number
+  market_id: number
+  bookmaker_id: number
+  label: string
+  value: string
+  name?: string | null
+  market_description?: string | null
+  probability?: string | null
+  winning?: boolean | null
+  stopped?: boolean | null
+  total?: string | null
+  handicap?: string | null
+  bookmaker?: SportmonksBookmaker | null
+  market?: SportmonksMarket | null
+}
+
 export interface SportmonksFixture {
   id: number
   league_id: number
@@ -255,6 +325,8 @@ export interface SportmonksFixture {
   venue?: SportmonksVenue | null
   scores: SportmonksScore[]
   lineups?: SportmonksLineup[]
+  events?: SportmonksEvent[]
+  statistics?: SportmonksFixtureStatistic[]
 }
 
 export interface SportmonksFixtureContext {
@@ -313,6 +385,17 @@ export interface FixtureRefresh {
 export interface FixtureDetailRefresh {
   fixture: SportmonksFixture
   fetchedAt: number
+  rateLimit?: {
+    remaining: number
+    resetsAt: number
+  }
+  message?: string
+}
+
+export interface FixtureOddsRefresh {
+  odds: SportmonksOdd[]
+  fetchedAt: number
+  pageCount: number
   rateLimit?: {
     remaining: number
     resetsAt: number
@@ -407,6 +490,7 @@ export interface HalfspaceApi {
   sportmonks: {
     refreshFixtures(input: RefreshFixturesInput): Promise<Result<FixtureRefresh>>
     refreshFixture(input: RefreshFixtureInput): Promise<Result<FixtureDetailRefresh>>
+    refreshFixtureOdds(input: RefreshFixtureInput): Promise<Result<FixtureOddsRefresh>>
     refreshCompetitions(): Promise<Result<CompetitionRefresh>>
     refreshStandings(input: RefreshStandingsInput): Promise<Result<StandingsRefresh>>
     refreshCompetitionFixtures(

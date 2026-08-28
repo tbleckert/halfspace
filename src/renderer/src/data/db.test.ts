@@ -2,6 +2,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type {
   CompetitionRefresh,
   FixtureDetailRefresh,
+  FixtureOddsRefresh,
   FixtureRefresh,
   PlayerAppearancesRefresh,
   PlayerRefresh,
@@ -19,6 +20,7 @@ import {
   readCompetitionCatalog,
   readCompetitionFixtureQuery,
   readFixtureQuery,
+  readFixtureOdds,
   readPlayerAppearanceQuery,
   readPlayerIdentity,
   readStandingsQuery,
@@ -31,6 +33,7 @@ import {
   writeCompetitionFixtureRefresh,
   writeCompetitionRefresh,
   writeFixtureDetailRefresh,
+  writeFixtureOddsRefresh,
   writeFixtureRefresh,
   writePlayerAppearancesRefresh,
   writePlayerRefresh,
@@ -49,6 +52,8 @@ beforeEach(async () => {
     [
       db.fixtures,
       db.fixtureQueries,
+      db.fixtureOdds,
+      db.fixtureOddsQueries,
       db.competitions,
       db.competitionCatalogs,
       db.competitionPins,
@@ -67,6 +72,8 @@ beforeEach(async () => {
     async () => {
       await db.fixtures.clear()
       await db.fixtureQueries.clear()
+      await db.fixtureOdds.clear()
+      await db.fixtureOddsQueries.clear()
       await db.competitions.clear()
       await db.competitionCatalogs.clear()
       await db.competitionPins.clear()
@@ -153,6 +160,28 @@ describe('fixture cache', () => {
             player_name: 'Quinten Timber',
             jersey_number: 8
           }
+        ],
+        events: [
+          {
+            id: 501,
+            fixture_id: 19425456,
+            period_id: 1,
+            participant_id: 9,
+            type_id: 14,
+            minute: 18,
+            type: { id: 14, name: 'Goal' }
+          }
+        ],
+        statistics: [
+          {
+            id: 601,
+            fixture_id: 19425456,
+            participant_id: 9,
+            type_id: 42,
+            data: { value: 12 },
+            location: 'home',
+            type: { id: 42, name: 'Shots' }
+          }
         ]
       }
     }
@@ -167,7 +196,46 @@ describe('fixture cache', () => {
     expect(fixture?.name).toBe('Updated score')
     expect(fixture?.raw.venue?.name).toBe('Etihad Stadium')
     expect(fixture?.raw.lineups?.[0].player_name).toBe('Quinten Timber')
+    expect(fixture?.raw.events?.[0].type?.name).toBe('Goal')
+    expect(fixture?.raw.statistics?.[0].data.value).toBe(12)
     expect(fixture?.detailStaleAt).toBeGreaterThan(detail.fetchedAt)
+  })
+
+  it('stores fixture odds as an on-demand cache', async () => {
+    const refresh: FixtureOddsRefresh = {
+      fetchedAt: Date.UTC(2026, 7, 28, 10),
+      pageCount: 1,
+      odds: [
+        {
+          id: 701,
+          fixture_id: 19425456,
+          market_id: 1,
+          bookmaker_id: 2,
+          label: 'Home',
+          value: '1.80',
+          market: { id: 1, name: 'Fulltime Result' },
+          bookmaker: { id: 2, name: 'Nordic Bet' }
+        }
+      ]
+    }
+
+    await writeFixtureOddsRefresh(19425456, refresh)
+
+    const cached = await readFixtureOdds(19425456)
+    expect(cached.query?.oddIds).toEqual([701])
+    expect(cached.odds[0].raw.market?.name).toBe('Fulltime Result')
+  })
+
+  it('refreshes live fixture details after thirty seconds', async () => {
+    const fetchedAt = Date.UTC(2026, 7, 28, 10)
+    const fixture = fixtureRefresh(19425456, 'Manchester City vs Arsenal').fixtures[0]
+
+    await writeFixtureDetailRefresh({
+      fetchedAt,
+      fixture: { ...fixture, state_id: 2 }
+    })
+
+    expect((await db.fixtures.get(fixture.id))?.detailStaleAt).toBe(fetchedAt + 30_000)
   })
 
   it('replaces stale match context when the fixture entity refreshes', async () => {

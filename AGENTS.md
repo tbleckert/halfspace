@@ -26,6 +26,13 @@ abstractions.
   context. Keep Overview and Squad there, and extend that menu when more team views are added. Make
   the active item prominent with a dark underline layered over the shared navigation rule.
 - Keep competition and venue context cards on the team Overview. Squad uses the full content width.
+- Fixture pages keep Preview, Timeline, Lineups, Stats, and Odds in horizontal navigation inside
+  the score hero. Preview stacks the compact venue card directly below Details.
+- Sportmonks fixture detail owns events, statistics, and lineups; fixture list refreshes must
+  preserve that richer cached detail. Fetch and cache the much larger odds payload only when the
+  Odds view opens.
+- Treat Sportmonks states 2, 6, 9, and 22 as live. Show a reduced-motion-safe live indicator and
+  refresh live fixture data every 30 seconds.
 - Present squads as position-grouped player profile cards with rounded portraits and only essential
   identity and football data rather than a dense table or list.
 - Keep low-resolution provider imagery in compact supporting cards. Do not stretch it into hero

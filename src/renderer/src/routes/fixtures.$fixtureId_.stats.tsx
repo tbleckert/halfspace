@@ -2,12 +2,12 @@ import { createFileRoute } from '@tanstack/react-router'
 import { FixtureDetailPage } from '@/features/fixtures/fixture-detail-page'
 import { fixtureDetailSearchSchema } from '@/features/fixtures/fixture-route'
 
-export const Route = createFileRoute('/fixtures/$fixtureId')({
+export const Route = createFileRoute('/fixtures/$fixtureId_/stats')({
   validateSearch: fixtureDetailSearchSchema,
-  component: FixtureDetailRoute
+  component: FixtureStatsRoute
 })
 
-function FixtureDetailRoute(): React.JSX.Element {
+function FixtureStatsRoute(): React.JSX.Element {
   const { fixtureId } = Route.useParams()
   const { competition, date, team } = Route.useSearch()
   return (
@@ -16,7 +16,7 @@ function FixtureDetailRoute(): React.JSX.Element {
       date={date}
       fixtureId={fixtureId}
       teamId={team}
-      view="preview"
+      view="stats"
     />
   )
 }

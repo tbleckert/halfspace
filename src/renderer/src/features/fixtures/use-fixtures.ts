@@ -2,8 +2,10 @@ import { useCallback, useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   readFixtureIdentity,
+  readFixtureOdds,
   readFixtureQuery,
   writeFixtureDetailRefresh,
+  writeFixtureOddsRefresh,
   writeFixtureRefresh
 } from '@/data/db'
 
@@ -15,6 +17,7 @@ interface FixtureRefreshRequest {
 let refreshGeneration = 0
 const refreshes = new Map<string, FixtureRefreshRequest>()
 const entityRefreshes = new Map<number, FixtureRefreshRequest>()
+const oddsRefreshes = new Map<number, FixtureRefreshRequest>()
 
 type FixtureCache = Awaited<ReturnType<typeof readFixtureQuery>>
 
@@ -29,6 +32,15 @@ type FixtureIdentityCache = Awaited<ReturnType<typeof readFixtureIdentity>>
 
 interface UseFixtureResult {
   cached: FixtureIdentityCache | undefined
+  refreshing: boolean
+  error: string | null
+  refresh: () => Promise<void>
+}
+
+type FixtureOddsCache = Awaited<ReturnType<typeof readFixtureOdds>>
+
+interface UseFixtureOddsResult {
+  cached: FixtureOddsCache | undefined
   refreshing: boolean
   error: string | null
   refresh: () => Promise<void>
@@ -110,6 +122,47 @@ export function useFixtureEntity(fixtureId: number | null, enabled: boolean): Us
   return { cached, refreshing, error, refresh }
 }
 
+export function useFixtureOdds(fixtureId: number | null, enabled: boolean): UseFixtureOddsResult {
+  const cached = useLiveQuery(
+    () =>
+      fixtureId === null ? Promise.resolve({ query: null, odds: [] }) : readFixtureOdds(fixtureId),
+    [fixtureId]
+  )
+  const [refreshing, setRefreshing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const refresh = useCallback(async () => {
+    if (!enabled || fixtureId === null) return
+
+    setRefreshing(true)
+    setError(null)
+
+    try {
+      await refreshFixtureOdds(fixtureId)
+    } catch (refreshError) {
+      setError(
+        refreshError instanceof Error ? refreshError.message : 'Could not refresh fixture odds.'
+      )
+    } finally {
+      setRefreshing(false)
+    }
+  }, [enabled, fixtureId])
+
+  const cacheLoaded = cached !== undefined
+  const staleAt = cached?.query?.staleAt
+
+  useEffect(() => {
+    if (!enabled || !cacheLoaded) return
+
+    const delay = staleAt ? Math.max(0, staleAt - Date.now()) : 0
+    const timeout = window.setTimeout(() => void refresh(), delay)
+
+    return () => window.clearTimeout(timeout)
+  }, [cacheLoaded, enabled, refresh, staleAt])
+
+  return { cached, refreshing, error, refresh }
+}
+
 async function refreshFixtureQuery(date: string, timeZone: string): Promise<void> {
   const key = `${date}|${timeZone}`
   const existing = refreshes.get(key)
@@ -159,8 +212,30 @@ export async function refreshFixtureEntity(fixtureId: number): Promise<void> {
   }
 }
 
+async function refreshFixtureOdds(fixtureId: number): Promise<void> {
+  const existing = oddsRefreshes.get(fixtureId)
+  if (existing?.generation === refreshGeneration) return existing.promise
+
+  const generation = refreshGeneration
+  const promise = (async () => {
+    const result = await window.halfspace.sportmonks.refreshFixtureOdds({ fixtureId })
+    if (generation !== refreshGeneration) return
+    if (!result.ok) throw new Error(result.error.message)
+    await writeFixtureOddsRefresh(fixtureId, result.data)
+  })()
+
+  oddsRefreshes.set(fixtureId, { generation, promise })
+
+  try {
+    await promise
+  } finally {
+    if (oddsRefreshes.get(fixtureId)?.promise === promise) oddsRefreshes.delete(fixtureId)
+  }
+}
+
 export function invalidateFixtureRefreshes(): void {
   refreshGeneration += 1
   refreshes.clear()
   entityRefreshes.clear()
+  oddsRefreshes.clear()
 }

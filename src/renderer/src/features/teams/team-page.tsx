@@ -2,18 +2,17 @@ import { useMemo, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { AlertCircle, ArrowLeft, RefreshCw, Trophy, UsersRound } from 'lucide-react'
-import type { SportmonksVenue } from '@shared/contracts'
 import { Button } from '@/components/ui/button'
 import { buttonVariants } from '@/components/ui/button-variants'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { CachedCompetition, CachedStanding, SquadMember } from '@/data/db'
-import { db, readTeamStandings, readVenueIdentity } from '@/data/db'
+import { db, readTeamStandings } from '@/data/db'
 import { CompetitionLogo } from '@/features/competitions/competition-logo'
 import { splitEntityFixtures } from '@/features/fixtures/entity-fixture-data'
 import { EntityFixturePanel } from '@/features/fixtures/entity-fixture-panel'
 import { PlayerPhoto } from '@/features/players/player-photo'
-import { VenueImage } from '@/features/venues/venue-image'
+import { VenueCard } from '@/features/venues/venue-card'
 import { addDaysToIsoDate, currentTimeZone, todayInTimeZone } from '@/lib/date'
 import { useOnline } from '@/lib/use-online'
 import { cn } from '@/lib/utils'
@@ -172,7 +171,7 @@ export function TeamPage({
           <div className="flex flex-col gap-5">
             <TeamCompetitions contexts={competitionContexts} online={online} />
             {detailedTeam?.venue && detailedTeam.venue_id && (
-              <TeamVenueCard
+              <VenueCard
                 competitionId={competitionId}
                 countryName={detailedTeam.country?.name}
                 online={online}
@@ -390,55 +389,6 @@ function compareSquadMembers(left: SquadMember, right: SquadMember): number {
   if (left.entry.jerseyNumber !== null) return -1
   if (right.entry.jerseyNumber !== null) return 1
   return left.player.displayName.localeCompare(right.player.displayName)
-}
-
-function TeamVenueCard({
-  competitionId,
-  countryName,
-  online,
-  teamId,
-  venueId,
-  venueSummary
-}: {
-  competitionId?: number
-  countryName?: string
-  online: boolean
-  teamId: number
-  venueId: number
-  venueSummary: SportmonksVenue
-}): React.JSX.Element {
-  const cached = useLiveQuery(() => readVenueIdentity(venueId), [venueId])
-  const venue = cached?.venue?.raw ?? cached?.summary ?? venueSummary
-  const location = [venue.city_name, venue.country?.name ?? countryName].filter(Boolean).join(', ')
-  const capacity = venue.capacity ? new Intl.NumberFormat().format(venue.capacity) : null
-
-  return (
-    <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
-      <div className="border-b px-4 py-3">
-        <h2 className="text-sm font-semibold">Venue</h2>
-      </div>
-      <Link
-        to="/venues/$venueId"
-        params={{ venueId: String(venueId) }}
-        search={{ competition: competitionId, team: teamId }}
-        className="group block outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-      >
-        <VenueImage
-          className="aspect-[4/3] w-full rounded-none border-b bg-background"
-          imagePath={venue.image_path ?? null}
-          online={online}
-        />
-        <div className="px-4 py-3.5">
-          <p className="truncate text-sm font-semibold group-hover:text-primary">{venue.name}</p>
-          {(location || capacity) && (
-            <p className="mt-1 truncate text-xs text-muted-foreground">
-              {[location, capacity ? `${capacity} seats` : null].filter(Boolean).join(' · ')}
-            </p>
-          )}
-        </div>
-      </Link>
-    </section>
-  )
 }
 
 function TeamCompetitions({

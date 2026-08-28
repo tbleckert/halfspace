@@ -2,6 +2,8 @@ import { Link } from '@tanstack/react-router'
 import { Badge } from '@/components/ui/badge'
 import type { CachedFixture } from '@/data/db'
 import { TeamLogo } from '@/features/teams/team-logo'
+import { FixtureLiveIndicator } from './fixture-live-indicator'
+import { isFixtureLive } from '@/lib/fixture-state'
 
 interface FixtureContext {
   competition?: number
@@ -66,6 +68,7 @@ function EntityFixtureRow({
   const homeScore = scores.find(({ score }) => score.participant === 'home')?.score.goals
   const awayScore = scores.find(({ score }) => score.participant === 'away')?.score.goals
   const hasScore = homeScore !== undefined || awayScore !== undefined
+  const live = isFixtureLive(fixture.stateId)
 
   return (
     <Link
@@ -77,6 +80,7 @@ function EntityFixtureRow({
       <div className="mb-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
         <div className="flex min-w-0 items-center gap-2">
           <time className="shrink-0">{formatFixtureDate(fixture.startingAt)}</time>
+          {live && <FixtureLiveIndicator className="shrink-0" />}
           {showCompetition && (
             <>
               <span>·</span>

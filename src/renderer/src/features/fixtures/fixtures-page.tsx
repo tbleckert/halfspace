@@ -3,6 +3,8 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { AlertCircle, CalendarDays, RefreshCw } from 'lucide-react'
 import type { CachedFixture } from '@/data/db'
 import { useFixtures } from './use-fixtures'
+import { FixtureLiveIndicator } from './fixture-live-indicator'
+import { isFixtureLive } from '@/lib/fixture-state'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -118,6 +120,7 @@ function FixtureRow({
   const homeScore = currentScores.find((score) => score.score.participant === 'home')?.score.goals
   const awayScore = currentScores.find((score) => score.score.participant === 'away')?.score.goals
   const hasScore = homeScore !== undefined || awayScore !== undefined
+  const live = isFixtureLive(fixture.stateId)
 
   return (
     <Link
@@ -126,9 +129,12 @@ function FixtureRow({
       search={true}
       className="grid grid-cols-[5rem_1fr_auto] items-center gap-4 px-4 py-3.5 transition-colors hover:bg-muted/45"
     >
-      <time className="text-sm tabular-nums text-muted-foreground">
-        {formatFixtureTime(fixture.startingAt)}
-      </time>
+      <div className="flex flex-col items-start gap-1">
+        <time className="text-sm tabular-nums text-muted-foreground">
+          {formatFixtureTime(fixture.startingAt)}
+        </time>
+        {live && <FixtureLiveIndicator />}
+      </div>
       <div className="grid min-w-0 gap-1.5">
         <div className="flex min-w-0 items-center gap-2.5">
           <TeamLogo
