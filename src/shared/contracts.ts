@@ -3,6 +3,7 @@ export const ipcChannels = {
   saveToken: 'credentials:save-token',
   clearToken: 'credentials:clear-token',
   refreshFixtures: 'sportmonks:refresh-fixtures',
+  refreshFixture: 'sportmonks:refresh-fixture',
   refreshCompetitions: 'sportmonks:refresh-competitions',
   refreshStandings: 'sportmonks:refresh-standings',
   refreshCompetitionFixtures: 'sportmonks:refresh-competition-fixtures',
@@ -39,6 +40,10 @@ export interface SaveTokenInput {
 export interface RefreshFixturesInput {
   date: string
   timeZone: string
+}
+
+export interface RefreshFixtureInput {
+  fixtureId: number
 }
 
 export interface RefreshStandingsInput {
@@ -233,6 +238,9 @@ export interface SportmonksFixture {
   league_id: number
   season_id: number
   state_id: number
+  stage_id?: number | null
+  round_id?: number | null
+  venue_id?: number | null
   name?: string | null
   starting_at?: string | null
   starting_at_timestamp?: number | null
@@ -242,8 +250,16 @@ export interface SportmonksFixture {
   participants: SportmonksParticipant[]
   league?: SportmonksLeague | null
   state?: SportmonksState | null
+  stage?: SportmonksFixtureContext | null
+  round?: SportmonksFixtureContext | null
+  venue?: SportmonksVenue | null
   scores: SportmonksScore[]
   lineups?: SportmonksLineup[]
+}
+
+export interface SportmonksFixtureContext {
+  id: number
+  name: string
 }
 
 export interface SportmonksLineup {
@@ -287,6 +303,16 @@ export interface FixtureRefresh {
   fetchedAt: number
   pageCount: number
   timeZone: string
+  rateLimit?: {
+    remaining: number
+    resetsAt: number
+  }
+  message?: string
+}
+
+export interface FixtureDetailRefresh {
+  fixture: SportmonksFixture
+  fetchedAt: number
   rateLimit?: {
     remaining: number
     resetsAt: number
@@ -380,6 +406,7 @@ export interface HalfspaceApi {
   }
   sportmonks: {
     refreshFixtures(input: RefreshFixturesInput): Promise<Result<FixtureRefresh>>
+    refreshFixture(input: RefreshFixtureInput): Promise<Result<FixtureDetailRefresh>>
     refreshCompetitions(): Promise<Result<CompetitionRefresh>>
     refreshStandings(input: RefreshStandingsInput): Promise<Result<StandingsRefresh>>
     refreshCompetitionFixtures(

@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { readFixtureQuery, writeFixtureRefresh } from '@/data/db'
+import {
+  readFixtureIdentity,
+  readFixtureQuery,
+  writeFixtureDetailRefresh,
+  writeFixtureRefresh
+} from '@/data/db'
 
 interface FixtureRefreshRequest {
   generation: number
@@ -9,11 +14,21 @@ interface FixtureRefreshRequest {
 
 let refreshGeneration = 0
 const refreshes = new Map<string, FixtureRefreshRequest>()
+const entityRefreshes = new Map<number, FixtureRefreshRequest>()
 
 type FixtureCache = Awaited<ReturnType<typeof readFixtureQuery>>
 
 interface UseFixturesResult {
   cached: FixtureCache | undefined
+  refreshing: boolean
+  error: string | null
+  refresh: () => Promise<void>
+}
+
+type FixtureIdentityCache = Awaited<ReturnType<typeof readFixtureIdentity>>
+
+interface UseFixtureResult {
+  cached: FixtureIdentityCache | undefined
   refreshing: boolean
   error: string | null
   refresh: () => Promise<void>
@@ -54,6 +69,47 @@ export function useFixtures(date: string, timeZone: string, enabled: boolean): U
   return { cached, refreshing, error, refresh }
 }
 
+export function useFixtureEntity(fixtureId: number | null, enabled: boolean): UseFixtureResult {
+  const cached = useLiveQuery(
+    () =>
+      fixtureId === null
+        ? Promise.resolve({ fixture: null, competition: null })
+        : readFixtureIdentity(fixtureId),
+    [fixtureId]
+  )
+  const [refreshing, setRefreshing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const refresh = useCallback(async () => {
+    if (!enabled || fixtureId === null) return
+
+    setRefreshing(true)
+    setError(null)
+
+    try {
+      await refreshFixtureEntity(fixtureId)
+    } catch (refreshError) {
+      setError(refreshError instanceof Error ? refreshError.message : 'Could not refresh fixture.')
+    } finally {
+      setRefreshing(false)
+    }
+  }, [enabled, fixtureId])
+
+  const cacheLoaded = cached !== undefined
+  const staleAt = cached?.fixture?.detailStaleAt
+
+  useEffect(() => {
+    if (!enabled || !cacheLoaded) return
+
+    const delay = staleAt ? Math.max(0, staleAt - Date.now()) : 0
+    const timeout = window.setTimeout(() => void refresh(), delay)
+
+    return () => window.clearTimeout(timeout)
+  }, [cacheLoaded, enabled, refresh, staleAt])
+
+  return { cached, refreshing, error, refresh }
+}
+
 async function refreshFixtureQuery(date: string, timeZone: string): Promise<void> {
   const key = `${date}|${timeZone}`
   const existing = refreshes.get(key)
@@ -82,7 +138,29 @@ async function refreshFixtureQuery(date: string, timeZone: string): Promise<void
   }
 }
 
+export async function refreshFixtureEntity(fixtureId: number): Promise<void> {
+  const existing = entityRefreshes.get(fixtureId)
+  if (existing?.generation === refreshGeneration) return existing.promise
+
+  const generation = refreshGeneration
+  const promise = (async () => {
+    const result = await window.halfspace.sportmonks.refreshFixture({ fixtureId })
+    if (generation !== refreshGeneration) return
+    if (!result.ok) throw new Error(result.error.message)
+    await writeFixtureDetailRefresh(result.data)
+  })()
+
+  entityRefreshes.set(fixtureId, { generation, promise })
+
+  try {
+    await promise
+  } finally {
+    if (entityRefreshes.get(fixtureId)?.promise === promise) entityRefreshes.delete(fixtureId)
+  }
+}
+
 export function invalidateFixtureRefreshes(): void {
   refreshGeneration += 1
   refreshes.clear()
+  entityRefreshes.clear()
 }

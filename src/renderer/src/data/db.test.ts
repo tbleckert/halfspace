@@ -1,6 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type {
   CompetitionRefresh,
+  FixtureDetailRefresh,
   FixtureRefresh,
   PlayerAppearancesRefresh,
   PlayerRefresh,
@@ -29,6 +30,7 @@ import {
   setCompetitionPinned,
   writeCompetitionFixtureRefresh,
   writeCompetitionRefresh,
+  writeFixtureDetailRefresh,
   writeFixtureRefresh,
   writePlayerAppearancesRefresh,
   writePlayerRefresh,
@@ -131,6 +133,74 @@ describe('fixture cache', () => {
     const cached = await readFixtureQuery('2026-08-28', 'UTC')
     expect(cached.query).not.toBeNull()
     expect(cached.fixtures).toEqual([])
+  })
+
+  it('keeps detailed match context when a fixture list refreshes', async () => {
+    const detail: FixtureDetailRefresh = {
+      fetchedAt: Date.UTC(2026, 7, 28, 10),
+      fixture: {
+        ...fixtureRefresh(19425456, 'Manchester City vs Arsenal').fixtures[0],
+        venue_id: 206,
+        venue: { id: 206, name: 'Etihad Stadium' },
+        lineups: [
+          {
+            id: 91,
+            fixture_id: 19425456,
+            player_id: 6306068,
+            team_id: 9,
+            position_id: 26,
+            type_id: 11,
+            player_name: 'Quinten Timber',
+            jersey_number: 8
+          }
+        ]
+      }
+    }
+
+    await writeFixtureDetailRefresh(detail)
+    await writeFixtureRefresh('2026-08-28', 'Europe/Stockholm', {
+      ...fixtureRefresh(19425456, 'Updated score'),
+      fetchedAt: Date.UTC(2026, 7, 28, 10, 5)
+    })
+
+    const fixture = await db.fixtures.get(19425456)
+    expect(fixture?.name).toBe('Updated score')
+    expect(fixture?.raw.venue?.name).toBe('Etihad Stadium')
+    expect(fixture?.raw.lineups?.[0].player_name).toBe('Quinten Timber')
+    expect(fixture?.detailStaleAt).toBeGreaterThan(detail.fetchedAt)
+  })
+
+  it('replaces stale match context when the fixture entity refreshes', async () => {
+    const fixture = fixtureRefresh(19425456, 'Manchester City vs Arsenal').fixtures[0]
+
+    await writeFixtureDetailRefresh({
+      fetchedAt: Date.UTC(2026, 7, 28, 10),
+      fixture: {
+        ...fixture,
+        venue_id: 206,
+        venue: { id: 206, name: 'Etihad Stadium' },
+        lineups: [
+          {
+            id: 91,
+            fixture_id: fixture.id,
+            player_id: 6306068,
+            team_id: 9,
+            position_id: 26,
+            type_id: 11,
+            player_name: 'Quinten Timber',
+            jersey_number: 8
+          }
+        ]
+      }
+    })
+    await writeFixtureDetailRefresh({
+      fetchedAt: Date.UTC(2026, 7, 28, 10, 5),
+      fixture: { ...fixture, venue_id: null, venue: null, lineups: [] }
+    })
+
+    const refreshed = await db.fixtures.get(fixture.id)
+    expect(refreshed?.raw.venue).toBeNull()
+    expect(refreshed?.raw.lineups).toEqual([])
   })
 })
 

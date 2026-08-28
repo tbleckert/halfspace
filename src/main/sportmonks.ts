@@ -1,10 +1,12 @@
 import type {
   ApiErrorCode,
   CompetitionRefresh,
+  FixtureDetailRefresh,
   FixtureRefresh,
   PlayerAppearancesRefresh,
   PlayerRefresh,
   RefreshCompetitionFixturesInput,
+  RefreshFixtureInput,
   RefreshFixturesInput,
   RefreshPlayerAppearancesInput,
   RefreshPlayerInput,
@@ -197,12 +199,22 @@ const lineupSchema = z
   })
   .passthrough()
 
+const fixtureContextSchema = z
+  .object({
+    id: z.number().int(),
+    name: z.string()
+  })
+  .passthrough()
+
 const fixtureSchema = z
   .object({
     id: z.number().int(),
     league_id: z.number().int(),
     season_id: z.number().int(),
     state_id: z.number().int(),
+    stage_id: z.number().int().nullable().optional(),
+    round_id: z.number().int().nullable().optional(),
+    venue_id: z.number().int().nullable().optional(),
     name: z.string().nullable().optional(),
     starting_at: z.string().nullable().optional(),
     starting_at_timestamp: z.number().nullable().optional(),
@@ -229,6 +241,9 @@ const fixtureSchema = z
       .passthrough()
       .nullable()
       .optional(),
+    stage: fixtureContextSchema.nullable().optional(),
+    round: fixtureContextSchema.nullable().optional(),
+    venue: venueSchema.nullable().optional(),
     scores: z
       .array(
         z
@@ -246,6 +261,20 @@ const fixtureSchema = z
       .optional()
       .default([]),
     lineups: z.array(lineupSchema).optional()
+  })
+  .passthrough()
+
+const fixtureDetailResponseSchema = z
+  .object({
+    data: fixtureSchema,
+    rate_limit: z
+      .object({
+        remaining: z.number(),
+        resets_in_seconds: z.number()
+      })
+      .passthrough()
+      .optional(),
+    message: z.string().optional()
   })
   .passthrough()
 
@@ -421,6 +450,17 @@ export function validateRefreshInput(value: unknown): RefreshFixturesInput {
   return { date: input.date, timeZone: input.timeZone }
 }
 
+export function validateFixtureInput(value: unknown): RefreshFixtureInput {
+  const fixtureId =
+    value && typeof value === 'object' ? (value as { fixtureId?: unknown }).fixtureId : 0
+
+  if (!isPositiveId(fixtureId)) {
+    throw new SportmonksError('invalid_input', 'Choose a valid fixture.')
+  }
+
+  return { fixtureId }
+}
+
 export function validateStandingsInput(value: unknown): RefreshStandingsInput {
   const seasonId =
     value && typeof value === 'object' ? (value as { seasonId?: unknown }).seasonId : 0
@@ -509,6 +549,52 @@ export async function fetchFixturesByDate(
   fetcher: typeof fetch = fetch
 ): Promise<FixtureRefresh> {
   return fetchFixturePages(`fixtures/date/${input.date}`, input.timeZone, token, fetcher)
+}
+
+export async function fetchFixtureById(
+  input: RefreshFixtureInput,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<FixtureDetailRefresh> {
+  const fetchedAt = Date.now()
+  const url = new URL(`${apiBaseUrl}/fixtures/${input.fixtureId}`)
+  url.searchParams.set('include', 'participants;league;state;scores;venue;stage;round;lineups')
+
+  let response: Response
+
+  try {
+    response = await fetcher(url, {
+      headers: {
+        Accept: 'application/json',
+        Authorization: token
+      },
+      signal: AbortSignal.timeout(20_000)
+    })
+  } catch {
+    throw new SportmonksError('network', 'Could not reach Sportmonks.')
+  }
+
+  if (!response.ok) throw errorForStatus(response.status)
+
+  let parsed: z.infer<typeof fixtureDetailResponseSchema>
+
+  try {
+    parsed = fixtureDetailResponseSchema.parse(await response.json())
+  } catch {
+    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
+  }
+
+  return {
+    fixture: parsed.data as SportmonksFixture,
+    fetchedAt,
+    rateLimit: parsed.rate_limit
+      ? {
+          remaining: parsed.rate_limit.remaining,
+          resetsAt: fetchedAt + parsed.rate_limit.resets_in_seconds * 1000
+        }
+      : undefined,
+    message: parsed.message
+  }
 }
 
 export async function fetchCompetitionFixtures(

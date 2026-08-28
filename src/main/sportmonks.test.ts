@@ -3,6 +3,7 @@ import type { SportmonksCompetition, SportmonksFixture, SportmonksPlayer } from 
 import {
   fetchCompetitions,
   fetchCompetitionFixtures,
+  fetchFixtureById,
   fetchFixturesByDate,
   fetchPlayerAppearances,
   fetchPlayerById,
@@ -12,6 +13,7 @@ import {
   fetchTeamSquad,
   fetchVenueById,
   validateCompetitionFixturesInput,
+  validateFixtureInput,
   validateRefreshInput,
   validatePlayerAppearancesInput,
   validatePlayerInput,
@@ -57,6 +59,51 @@ describe('Sportmonks client', () => {
     const firstUrl = new URL(firstInput.toString())
     expect(firstUrl.searchParams.has('api_token')).toBe(false)
     expect(new Headers(firstInit?.headers).get('Authorization')).toBe('private-token')
+  })
+
+  it('fetches a fixture entity with match context and lineups', async () => {
+    const baseFixture = makeFixture()
+    const fixture = {
+      ...baseFixture,
+      stage_id: 77471288,
+      round_id: 339273,
+      venue_id: 206,
+      stage: { id: 77471288, name: 'Regular Season' },
+      round: { id: 339273, name: '3' },
+      venue: { id: 206, name: 'Etihad Stadium', city_name: 'Manchester' },
+      lineups: [
+        {
+          id: 91,
+          fixture_id: baseFixture.id,
+          player_id: 6306068,
+          team_id: 11,
+          position_id: 26,
+          type_id: 11,
+          player_name: 'Quinten Timber',
+          jersey_number: 8
+        }
+      ]
+    }
+    const fetcher = vi.fn<typeof fetch>(async () =>
+      Response.json({
+        data: fixture,
+        rate_limit: { remaining: 2_998, resets_in_seconds: 3_600 }
+      })
+    )
+
+    const refresh = await fetchFixtureById({ fixtureId: fixture.id }, 'private-token', fetcher)
+
+    expect(refresh.fixture.venue?.name).toBe('Etihad Stadium')
+    expect(refresh.fixture.lineups?.[0].player_name).toBe('Quinten Timber')
+
+    const [input, init] = fetcher.mock.calls[0]
+    const url = new URL(input.toString())
+    expect(url.pathname).toBe(`/v3/football/fixtures/${fixture.id}`)
+    expect(url.searchParams.get('include')).toBe(
+      'participants;league;state;scores;venue;stage;round;lineups'
+    )
+    expect(url.searchParams.has('api_token')).toBe(false)
+    expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')
   })
 
   it('fetches every competition available to the subscription', async () => {
@@ -421,6 +468,7 @@ describe('Sportmonks client', () => {
     expect(() => validateRefreshInput({ date: '2026-02-30', timeZone: 'UTC' })).toThrow(
       'Choose a valid date.'
     )
+    expect(() => validateFixtureInput({ fixtureId: 0 })).toThrow('Choose a valid fixture.')
     expect(() => validateRefreshInput({ date: '2026-08-27', timeZone: 'Not/AZone' })).toThrow(
       'The selected time zone is not valid.'
     )

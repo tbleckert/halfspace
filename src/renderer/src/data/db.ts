@@ -1,6 +1,7 @@
 import Dexie, { type Table } from 'dexie'
 import type {
   CompetitionRefresh,
+  FixtureDetailRefresh,
   FixtureRefresh,
   PlayerAppearancesRefresh,
   PlayerRefresh,
@@ -31,6 +32,7 @@ const venueCacheDuration = 24 * 60 * 60 * 1000
 const teamSquadCacheDuration = 60 * 60 * 1000
 const playerCacheDuration = 24 * 60 * 60 * 1000
 const playerAppearancesCacheDuration = 15 * 60 * 1000
+const fixtureDetailCacheDuration = 5 * 60 * 1000
 
 export interface CachedFixture {
   id: number
@@ -45,6 +47,7 @@ export interface CachedFixture {
   homeTeamId: number | null
   awayTeamId: number | null
   raw: SportmonksFixture
+  detailStaleAt?: number
   fetchedAt: number
   staleAt: number
 }
@@ -365,20 +368,30 @@ export async function readFixtureQuery(
   return { query, fixtures }
 }
 
+export async function readFixtureIdentity(fixtureId: number): Promise<{
+  fixture: CachedFixture | null
+  competition: CachedCompetition | null
+}> {
+  const fixture = await db.fixtures.get(fixtureId)
+  if (!fixture) return { fixture: null, competition: null }
+
+  return {
+    fixture,
+    competition: (await db.competitions.get(fixture.leagueId)) ?? null
+  }
+}
+
 export async function writeFixtureRefresh(
   date: string,
   timeZone: string,
   refresh: FixtureRefresh
 ): Promise<void> {
   const staleAt = fixtureCacheExpiry(date, timeZone, refresh.fetchedAt)
-  const fixtures = refresh.fixtures.map((fixture) =>
-    toCachedFixture(fixture, refresh.fetchedAt, staleAt)
-  )
   const query: FixtureQuery = {
     key: fixtureQueryKey(date, timeZone),
     date,
     timeZone,
-    fixtureIds: fixtures.map((fixture) => fixture.id),
+    fixtureIds: refresh.fixtures.map((fixture) => fixture.id),
     fetchedAt: refresh.fetchedAt,
     staleAt,
     pageCount: refresh.pageCount,
@@ -388,8 +401,24 @@ export async function writeFixtureRefresh(
   }
 
   await db.transaction('rw', db.fixtures, db.fixtureQueries, async () => {
+    const fixtures = await toCachedFixtures(refresh.fixtures, refresh.fetchedAt, staleAt)
     await db.fixtures.bulkPut(fixtures)
     await db.fixtureQueries.put(query)
+  })
+}
+
+export async function writeFixtureDetailRefresh(refresh: FixtureDetailRefresh): Promise<void> {
+  await db.transaction('rw', db.fixtures, async () => {
+    const existing = await db.fixtures.get(refresh.fixture.id)
+    const fixture = toCachedFixture(
+      refresh.fixture,
+      refresh.fetchedAt,
+      existing?.staleAt ?? refresh.fetchedAt,
+      existing,
+      false
+    )
+    fixture.detailStaleAt = refresh.fetchedAt + fixtureDetailCacheDuration
+    await db.fixtures.put(fixture)
   })
 }
 
@@ -509,16 +538,13 @@ export async function writeCompetitionFixtureRefresh(
   refresh: FixtureRefresh
 ): Promise<void> {
   const staleAt = refresh.fetchedAt + competitionFixturesCacheDuration
-  const fixtures = refresh.fixtures.map((fixture) =>
-    toCachedFixture(fixture, refresh.fetchedAt, staleAt)
-  )
   const query: CompetitionFixtureQuery = {
     key: competitionFixtureQueryKey(input),
     competitionId: input.competitionId,
     startDate: input.startDate,
     endDate: input.endDate,
     timeZone: input.timeZone,
-    fixtureIds: fixtures.map(({ id }) => id),
+    fixtureIds: refresh.fixtures.map(({ id }) => id),
     fetchedAt: refresh.fetchedAt,
     staleAt,
     pageCount: refresh.pageCount,
@@ -528,6 +554,7 @@ export async function writeCompetitionFixtureRefresh(
   }
 
   await db.transaction('rw', db.fixtures, db.competitionFixtureQueries, async () => {
+    const fixtures = await toCachedFixtures(refresh.fixtures, refresh.fetchedAt, staleAt)
     await db.fixtures.bulkPut(fixtures)
     await db.competitionFixtureQueries.put(query)
   })
@@ -716,9 +743,6 @@ export async function writePlayerAppearancesRefresh(
 ): Promise<void> {
   const key = playerAppearanceQueryKey(input)
   const staleAt = refresh.fetchedAt + playerAppearancesCacheDuration
-  const fixtures = refresh.appearances.map(({ fixture }) =>
-    toCachedFixture(fixture, refresh.fetchedAt, staleAt)
-  )
   const appearances: CachedPlayerAppearance[] = refresh.appearances.map(({ fixture, lineup }) => ({
     key: `${input.playerId}|${fixture.id}`,
     playerId: input.playerId,
@@ -748,6 +772,11 @@ export async function writePlayerAppearancesRefresh(
     db.playerAppearances,
     db.playerAppearanceQueries,
     async () => {
+      const fixtures = await toCachedFixtures(
+        refresh.appearances.map(({ fixture }) => fixture),
+        refresh.fetchedAt,
+        staleAt
+      )
       await db.fixtures.bulkPut(fixtures)
       await db.playerAppearances.bulkPut(appearances)
       await db.playerAppearanceQueries.put(query)
@@ -777,16 +806,13 @@ export async function writeTeamFixtureRefresh(
   refresh: FixtureRefresh
 ): Promise<void> {
   const staleAt = refresh.fetchedAt + teamFixturesCacheDuration
-  const fixtures = refresh.fixtures.map((fixture) =>
-    toCachedFixture(fixture, refresh.fetchedAt, staleAt)
-  )
   const query: TeamFixtureQuery = {
     key: teamFixtureQueryKey(input),
     teamId: input.teamId,
     startDate: input.startDate,
     endDate: input.endDate,
     timeZone: input.timeZone,
-    fixtureIds: fixtures.map(({ id }) => id),
+    fixtureIds: refresh.fixtures.map(({ id }) => id),
     fetchedAt: refresh.fetchedAt,
     staleAt,
     pageCount: refresh.pageCount,
@@ -796,6 +822,7 @@ export async function writeTeamFixtureRefresh(
   }
 
   await db.transaction('rw', db.fixtures, db.teamFixtureQueries, async () => {
+    const fixtures = await toCachedFixtures(refresh.fixtures, refresh.fetchedAt, staleAt)
     await db.fixtures.bulkPut(fixtures)
     await db.teamFixtureQueries.put(query)
   })
@@ -809,7 +836,10 @@ export async function readVenueIdentity(venueId: number): Promise<{
   if (venue) return { venue, summary: venue.raw }
 
   const team = await db.teams.where('venueId').equals(venueId).first()
-  const summary = team?.raw.venue?.id === venueId ? team.raw.venue : null
+  if (team?.raw.venue?.id === venueId) return { venue: null, summary: team.raw.venue }
+
+  const fixture = await db.fixtures.filter(({ raw }) => raw.venue?.id === venueId).first()
+  const summary = fixture?.raw.venue?.id === venueId ? fixture.raw.venue : null
 
   return { venue: null, summary }
 }
@@ -920,8 +950,12 @@ function toCachedSquadPlayer(
 function toCachedFixture(
   fixture: SportmonksFixture,
   fetchedAt: number,
-  staleAt: number
+  staleAt: number,
+  existing?: CachedFixture,
+  preserveDetail = true
 ): CachedFixture {
+  const raw = preserveDetail ? mergeFixtureDetail(existing?.raw, fixture) : fixture
+
   return {
     id: fixture.id,
     leagueId: fixture.league_id,
@@ -939,8 +973,36 @@ function toCachedFixture(
       fixture.participants.find((participant) => participant.meta?.location === 'home')?.id ?? null,
     awayTeamId:
       fixture.participants.find((participant) => participant.meta?.location === 'away')?.id ?? null,
-    raw: fixture,
+    raw,
+    detailStaleAt: existing?.detailStaleAt,
     fetchedAt,
     staleAt
+  }
+}
+
+async function toCachedFixtures(
+  fixtures: SportmonksFixture[],
+  fetchedAt: number,
+  staleAt: number
+): Promise<CachedFixture[]> {
+  const existing = await db.fixtures.bulkGet(fixtures.map(({ id }) => id))
+  return fixtures.map((fixture, index) =>
+    toCachedFixture(fixture, fetchedAt, staleAt, existing[index])
+  )
+}
+
+function mergeFixtureDetail(
+  existing: SportmonksFixture | undefined,
+  fixture: SportmonksFixture
+): SportmonksFixture {
+  if (!existing) return fixture
+
+  return {
+    ...existing,
+    ...fixture,
+    stage: fixture.stage ?? existing.stage,
+    round: fixture.round ?? existing.round,
+    venue: fixture.venue ?? existing.venue,
+    lineups: fixture.lineups ?? existing.lineups
   }
 }
