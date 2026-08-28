@@ -146,12 +146,14 @@ export function CompetitionWorkspacePage({
                 fixtures={fixtureSections.upcoming}
                 label="Upcoming"
                 loading={fixtures.refreshing}
+                online={online}
               />
               <FixturePanel
                 competitionId={competition.id}
                 fixtures={fixtureSections.recent}
                 label="Recent"
                 loading={fixtures.refreshing}
+                online={online}
               />
             </>
           )}
@@ -216,12 +218,14 @@ function FixturePanel({
   competitionId,
   fixtures,
   label,
-  loading
+  loading,
+  online
 }: {
   competitionId: number
   fixtures: CachedFixture[]
   label: string
   loading: boolean
+  online: boolean
 }): React.JSX.Element {
   return (
     <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
@@ -239,6 +243,7 @@ function FixturePanel({
               key={fixture.id}
               competitionId={competitionId}
               fixture={fixture}
+              online={online}
             />
           ))}
         </div>
@@ -249,10 +254,12 @@ function FixturePanel({
 
 function CompetitionFixtureRow({
   competitionId,
-  fixture
+  fixture,
+  online
 }: {
   competitionId: number
   fixture: CachedFixture
+  online: boolean
 }): React.JSX.Element {
   const home = fixture.raw.participants.find(({ meta }) => meta?.location === 'home')
   const away = fixture.raw.participants.find(({ meta }) => meta?.location === 'away')
@@ -275,9 +282,23 @@ function CompetitionFixtureRow({
         )}
       </div>
       <div className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-sm">
-        <span className="truncate font-medium">{home?.name ?? fixture.name ?? 'Home team'}</span>
+        <span className="flex min-w-0 items-center gap-2.5 font-medium">
+          <TeamLogo
+            className="size-6 bg-background"
+            imagePath={home?.image_path ?? null}
+            online={online}
+          />
+          <span className="truncate">{home?.name ?? fixture.name ?? 'Home team'}</span>
+        </span>
         <span className="font-semibold tabular-nums">{hasScore ? (homeScore ?? '–') : ''}</span>
-        <span className="truncate text-muted-foreground">{away?.name ?? 'Away team'}</span>
+        <span className="flex min-w-0 items-center gap-2.5 text-muted-foreground">
+          <TeamLogo
+            className="size-6 bg-background"
+            imagePath={away?.image_path ?? null}
+            online={online}
+          />
+          <span className="truncate">{away?.name ?? 'Away team'}</span>
+        </span>
         <span className="font-semibold tabular-nums">{hasScore ? (awayScore ?? '–') : ''}</span>
       </div>
     </Link>

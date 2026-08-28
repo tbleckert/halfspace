@@ -8,8 +8,10 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { TeamLogo } from '@/features/competitions/team-logo'
 import { cn } from '@/lib/utils'
 import { currentTimeZone, formatFixtureTime, todayInTimeZone } from '@/lib/date'
+import { useOnline } from '@/lib/use-online'
 
 interface FixturesPageProps {
   date: string
@@ -18,6 +20,7 @@ interface FixturesPageProps {
 export function FixturesPage({ date }: FixturesPageProps): React.JSX.Element {
   const navigate = useNavigate({ from: '/' })
   const timeZone = useMemo(() => currentTimeZone(), [])
+  const online = useOnline()
   const { cached, refreshing, error, refresh } = useFixtures(date, timeZone, true)
   const groupedFixtures = useMemo(() => groupFixtures(cached?.fixtures ?? []), [cached?.fixtures])
 
@@ -78,7 +81,7 @@ export function FixturesPage({ date }: FixturesPageProps): React.JSX.Element {
               </div>
               <div className="divide-y">
                 {fixtures.map((fixture) => (
-                  <FixtureRow key={fixture.id} fixture={fixture} />
+                  <FixtureRow key={fixture.id} fixture={fixture} online={online} />
                 ))}
               </div>
             </section>
@@ -102,7 +105,13 @@ export function FixturesPage({ date }: FixturesPageProps): React.JSX.Element {
   )
 }
 
-function FixtureRow({ fixture }: { fixture: CachedFixture }): React.JSX.Element {
+function FixtureRow({
+  fixture,
+  online
+}: {
+  fixture: CachedFixture
+  online: boolean
+}): React.JSX.Element {
   const home = fixture.raw.participants.find((participant) => participant.meta?.location === 'home')
   const away = fixture.raw.participants.find((participant) => participant.meta?.location === 'away')
   const currentScores = fixture.raw.scores.filter((score) => score.description === 'CURRENT')
@@ -120,9 +129,25 @@ function FixtureRow({ fixture }: { fixture: CachedFixture }): React.JSX.Element 
       <time className="text-sm tabular-nums text-muted-foreground">
         {formatFixtureTime(fixture.startingAt)}
       </time>
-      <div className="min-w-0">
-        <p className="truncate text-sm font-medium">{home?.name ?? fixture.name ?? 'Home team'}</p>
-        <p className="mt-0.5 truncate text-sm text-muted-foreground">{away?.name ?? 'Away team'}</p>
+      <div className="grid min-w-0 gap-1.5">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <TeamLogo
+            className="size-7 bg-background"
+            imagePath={home?.image_path ?? null}
+            online={online}
+          />
+          <p className="truncate text-sm font-medium">
+            {home?.name ?? fixture.name ?? 'Home team'}
+          </p>
+        </div>
+        <div className="flex min-w-0 items-center gap-2.5">
+          <TeamLogo
+            className="size-7 bg-background"
+            imagePath={away?.image_path ?? null}
+            online={online}
+          />
+          <p className="truncate text-sm text-muted-foreground">{away?.name ?? 'Away team'}</p>
+        </div>
       </div>
       <div className="text-right">
         {hasScore ? (
