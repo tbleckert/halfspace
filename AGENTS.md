@@ -24,6 +24,8 @@ abstractions.
   them. Prioritize entity depth before secondary tools or dashboards.
 - Horizontal local navigation uses one shared rule. Only the active item has its own indicator;
   inherit its color from the active text and layer it directly over the shared rule.
+- Keep entity subpages nested beneath one persistent entity route shell so changing a horizontal
+  navigation view does not remount shared data, headers, or context.
 - Competition pages use horizontal local navigation for Overview, Fixtures, and Teams. Overview is
   the current-season snapshot, Fixtures browses the complete cached date window without truncating
   it, and Teams combines standings with fixture participants when a table is unavailable. Add

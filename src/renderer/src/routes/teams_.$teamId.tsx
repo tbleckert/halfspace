@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Outlet, useMatchRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 import { TeamPage } from '@/features/teams/team-page'
 
@@ -17,5 +17,19 @@ export const Route = createFileRoute('/teams_/$teamId')({
 function TeamRoute(): React.JSX.Element {
   const { teamId } = Route.useParams()
   const { competition } = Route.useSearch()
-  return <TeamPage competitionId={competition} teamId={teamId} />
+  const matchRoute = useMatchRoute()
+  const view = matchRoute({
+    to: '/teams/$teamId/squad',
+    params: { teamId },
+    fuzzy: false
+  })
+    ? 'squad'
+    : 'overview'
+
+  return (
+    <>
+      <TeamPage competitionId={competition} teamId={teamId} view={view} />
+      <Outlet />
+    </>
+  )
 }
