@@ -209,7 +209,7 @@ function CompetitionNavigation({
   view: CompetitionView
 }): React.JSX.Element {
   const itemClassName =
-    'relative -mb-px border-b-2 px-0.5 pb-3 text-sm font-medium outline-none transition-colors focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring'
+    'relative px-0.5 pb-3 text-sm font-medium outline-none focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring'
   const prefetch = intentPrefetchProps(online, () => prefetchCompetitionWorkspace(competitionId))
 
   return (
@@ -250,8 +250,8 @@ function competitionNavigationClassName(itemClassName: string, active: boolean):
   return cn(
     itemClassName,
     active
-      ? 'z-10 border-black font-semibold text-foreground dark:border-white'
-      : 'border-transparent text-muted-foreground hover:text-foreground'
+      ? 'font-semibold text-foreground after:absolute after:inset-x-0 after:-bottom-px after:z-10 after:h-0.5 after:bg-current after:content-[""]'
+      : 'text-muted-foreground hover:text-foreground'
   )
 }
 

@@ -250,7 +250,7 @@ function TeamNavigation({
   view: TeamView
 }): React.JSX.Element {
   const itemClassName =
-    'relative -mb-px border-b-2 px-0.5 pb-3 text-sm font-medium outline-none transition-colors focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring'
+    'relative px-0.5 pb-3 text-sm font-medium outline-none focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring'
 
   return (
     <nav aria-label="Team" className="mt-6 flex gap-6 border-b">
@@ -262,8 +262,8 @@ function TeamNavigation({
         className={cn(
           itemClassName,
           view === 'overview'
-            ? 'z-10 border-black font-semibold text-foreground dark:border-white'
-            : 'border-transparent text-muted-foreground hover:text-foreground'
+            ? 'font-semibold text-foreground after:absolute after:inset-x-0 after:-bottom-px after:z-10 after:h-0.5 after:bg-current after:content-[""]'
+            : 'text-muted-foreground hover:text-foreground'
         )}
         {...intentPrefetchProps(online, () => prefetchTeamEntity(teamId))}
       >
@@ -277,8 +277,8 @@ function TeamNavigation({
         className={cn(
           itemClassName,
           view === 'squad'
-            ? 'z-10 border-black font-semibold text-foreground dark:border-white'
-            : 'border-transparent text-muted-foreground hover:text-foreground'
+            ? 'font-semibold text-foreground after:absolute after:inset-x-0 after:-bottom-px after:z-10 after:h-0.5 after:bg-current after:content-[""]'
+            : 'text-muted-foreground hover:text-foreground'
         )}
         {...intentPrefetchProps(online, () => prefetchTeamSquad(teamId))}
       >

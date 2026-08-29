@@ -293,7 +293,7 @@ function FixtureNavigation({
     { label: 'Odds', to: '/fixtures/$fixtureId/odds', view: 'odds' }
   ]
   const itemClassName =
-    'relative -mt-px border-t-2 px-0.5 pb-4 pt-3 text-sm font-medium outline-none focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring'
+    'relative px-0.5 pb-4 pt-3 text-sm font-medium outline-none focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring'
 
   return (
     <nav
@@ -310,8 +310,8 @@ function FixtureNavigation({
           className={cn(
             itemClassName,
             view === item.view
-              ? 'z-10 border-black font-semibold text-foreground dark:border-white'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
+              ? 'font-semibold text-foreground before:absolute before:inset-x-0 before:-top-px before:z-10 before:h-0.5 before:bg-current before:content-[""]'
+              : 'text-muted-foreground hover:text-foreground'
           )}
         >
           {item.label}

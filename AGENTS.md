@@ -22,13 +22,15 @@ abstractions.
   current thing, communicate a meaningful state, or enable an action.
 - Build the product outward through dedicated football entity pages and natural links between
   them. Prioritize entity depth before secondary tools or dashboards.
+- Horizontal local navigation uses one shared rule. Only the active item has its own indicator;
+  inherit its color from the active text and layer it directly over the shared rule.
 - Competition pages use horizontal local navigation for Overview, Fixtures, and Teams. Overview is
   the current-season snapshot, Fixtures browses the complete cached date window without truncating
   it, and Teams combines standings with fixture participants when a table is unavailable. Add
   historical season selection only when the current-season flow is established.
 - Team pages use horizontal local navigation beneath the team header and above their competition
   context. Keep Overview and Squad there, and extend that menu when more team views are added. Make
-  the active item prominent with a dark underline layered over the shared navigation rule.
+  the active item prominent with the shared active-indicator treatment.
 - Keep competition and venue context cards on the team Overview. Squad uses the full content width.
 - Fixture pages keep Preview, Timeline, Lineups, Stats, and Odds in horizontal navigation inside
   the score hero. Preview stacks the compact venue card directly below Details.
