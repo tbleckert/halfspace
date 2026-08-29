@@ -4,7 +4,10 @@ import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { FixtureRefresh, StandingsRefresh } from '@shared/contracts'
 import { db, readCompetitionFixtureQuery, readStandingsQuery } from '@/data/db'
 import { currentTimeZone } from '@/lib/date'
-import { prefetchCompetitionWorkspace } from './use-competition-workspace'
+import {
+  competitionWorkspaceFixtureInput,
+  prefetchCompetitionWorkspace
+} from './use-competition-workspace'
 
 beforeEach(async () => {
   if (!db.isOpen()) await db.open()
@@ -31,6 +34,15 @@ beforeEach(async () => {
 afterAll(() => db.close())
 
 describe('competition workspace prefetch', () => {
+  it('centers fixture browsing on the selected date', () => {
+    expect(competitionWorkspaceFixtureInput(271, '2026-08-29', 'UTC')).toEqual({
+      competitionId: 271,
+      startDate: '2026-08-15',
+      endDate: '2026-09-12',
+      timeZone: 'UTC'
+    })
+  })
+
   it('warms missing fixtures and standings without refetching fresh data', async () => {
     const refreshCompetitionFixtures = vi
       .fn()

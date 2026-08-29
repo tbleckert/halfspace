@@ -4,6 +4,7 @@ import type { CachedFixture } from '@/data/db'
 import { TeamLogo } from '@/features/teams/team-logo'
 import { FixtureLiveIndicator } from './fixture-live-indicator'
 import { fixtureProgressLabel } from '@/lib/fixture-state'
+import { formatFixtureTime } from '@/lib/date'
 import { intentPrefetchProps } from '@/lib/prefetch'
 import { prefetchFixtureEntity } from './use-fixtures'
 
@@ -18,9 +19,11 @@ export function EntityFixturePanel({
   label,
   loading,
   online,
+  dateDisplay = 'full',
   showCompetition = false
 }: {
   context: FixtureContext
+  dateDisplay?: 'full' | 'time'
   fixtures: CachedFixture[]
   label: string
   loading: boolean
@@ -42,6 +45,7 @@ export function EntityFixturePanel({
             <EntityFixtureRow
               key={fixture.id}
               context={context}
+              dateDisplay={dateDisplay}
               fixture={fixture}
               online={online}
               showCompetition={showCompetition}
@@ -55,11 +59,13 @@ export function EntityFixturePanel({
 
 function EntityFixtureRow({
   context,
+  dateDisplay,
   fixture,
   online,
   showCompetition
 }: {
   context: FixtureContext
+  dateDisplay: 'full' | 'time'
   fixture: CachedFixture
   online: boolean
   showCompetition: boolean
@@ -90,7 +96,11 @@ function EntityFixtureRow({
               <FixtureLiveIndicator showLabel={false} />
             </span>
           ) : (
-            <time className="shrink-0">{formatFixtureDate(fixture.startingAt)}</time>
+            <time className="shrink-0">
+              {dateDisplay === 'time'
+                ? formatFixtureTime(fixture.startingAt)
+                : formatFixtureDate(fixture.startingAt)}
+            </time>
           )}
           {showCompetition && (
             <>

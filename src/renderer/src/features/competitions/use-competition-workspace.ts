@@ -147,15 +147,16 @@ export async function prefetchCompetitionWorkspace(competitionId: number): Promi
 }
 
 export function competitionWorkspaceFixtureInput(
-  competitionId: number
+  competitionId: number,
+  centerDate?: string,
+  timeZone = currentTimeZone()
 ): RefreshCompetitionFixturesInput {
-  const timeZone = currentTimeZone()
-  const today = todayInTimeZone(timeZone)
+  const date = centerDate ?? todayInTimeZone(timeZone)
 
   return {
     competitionId,
-    startDate: addDaysToIsoDate(today, -14),
-    endDate: addDaysToIsoDate(today, 14),
+    startDate: addDaysToIsoDate(date, -14),
+    endDate: addDaysToIsoDate(date, 14),
     timeZone
   }
 }
