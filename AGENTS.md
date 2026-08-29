@@ -55,6 +55,10 @@ abstractions.
   search Sportmonks through main and hydrate the existing entity tables. Keep the palette opaque
   and free of open and close animation. Until a query is entered, show only the search row without
   a divider or reserved results area.
+- Keep navigation prefetch non-blocking and stale-aware. TanStack Router preloads routes on intent;
+  data intent should warm the existing Dexie queries without bypassing their TTLs. After startup,
+  warm today’s Matchday and each visible sidebar competition in the background, one competition at
+  a time, so likely destinations are ready without flooding Sportmonks.
 
 ## Mindset & Process
 

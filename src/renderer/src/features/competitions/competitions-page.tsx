@@ -7,7 +7,9 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { useOnline } from '@/lib/use-online'
+import { startPrefetch } from '@/lib/prefetch'
 import { CompetitionLogo } from './competition-logo'
+import { prefetchCompetitionWorkspace } from './use-competition-workspace'
 import { toggleCompetitionPin, useCompetitions, usePinnedCompetitionIds } from './use-competitions'
 
 const noPinnedCompetitionIds: number[] = []
@@ -43,6 +45,11 @@ export function CompetitionsPage(): React.JSX.Element {
     } catch {
       setPinError('Could not update this pin.')
     }
+  }
+
+  function prefetchCompetition(competitionId: number): void {
+    if (!online) return
+    startPrefetch(() => prefetchCompetitionWorkspace(competitionId))
   }
 
   return (
@@ -100,6 +107,8 @@ export function CompetitionsPage(): React.JSX.Element {
                     to="/competitions/$competitionId"
                     params={{ competitionId: String(competition.id) }}
                     className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3.5 outline-none transition-colors hover:bg-muted/45 focus-visible:bg-muted/45"
+                    onFocus={() => prefetchCompetition(competition.id)}
+                    onMouseEnter={() => prefetchCompetition(competition.id)}
                   >
                     <CompetitionLogo
                       imagePath={competition.imagePath}

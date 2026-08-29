@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { Link, Outlet, useRouterState } from '@tanstack/react-router'
 import { CalendarDays, Circle, Settings, Trophy } from 'lucide-react'
 import { TokenSetup } from '@/features/credentials/token-setup'
@@ -7,9 +7,12 @@ import { Button } from '@/components/ui/button'
 import { HalfspaceLogo } from '@/components/halfspace-logo'
 import { CompetitionLogo } from '@/features/competitions/competition-logo'
 import { sidebarCompetitions } from '@/features/competitions/sidebar-competitions'
+import { prefetchCompetitionWorkspace } from '@/features/competitions/use-competition-workspace'
 import { useCompetitions, usePinnedCompetitionIds } from '@/features/competitions/use-competitions'
+import { prefetchFixtureQuery } from '@/features/fixtures/use-fixtures'
 import { EntitySearchPalette } from '@/features/search/entity-search-palette'
 import { currentTimeZone, todayInTimeZone } from '@/lib/date'
+import { startPrefetch } from '@/lib/prefetch'
 import { cn } from '@/lib/utils'
 import { useOnline } from '@/lib/use-online'
 
@@ -50,6 +53,7 @@ export function AppShell(): React.JSX.Element {
 
 function Workspace(): React.JSX.Element {
   const online = useOnline()
+  const warmedCompetitionIds = useRef(new Set<number>())
   const { cached } = useCompetitions()
   const pinnedCompetitionIds = usePinnedCompetitionIds() ?? noPinnedCompetitionIds
   const quickCompetitions = useMemo(
@@ -72,9 +76,38 @@ function Workspace(): React.JSX.Element {
       }
     }
   })
-  const currentDate = useMemo(() => todayInTimeZone(currentTimeZone()), [])
+  const timeZone = useMemo(() => currentTimeZone(), [])
+  const currentDate = useMemo(() => todayInTimeZone(timeZone), [timeZone])
   const sidebarDate = sidebarLocation.date ?? currentDate
   const matchdayActive = sidebarLocation.pathname === '/'
+
+  useEffect(() => {
+    if (!online) return
+
+    startPrefetch(() => prefetchFixtureQuery(currentDate, timeZone))
+    startPrefetch(async () => {
+      for (const competition of quickCompetitions) {
+        if (warmedCompetitionIds.current.has(competition.id)) continue
+
+        try {
+          await prefetchCompetitionWorkspace(competition.id)
+          warmedCompetitionIds.current.add(competition.id)
+        } catch {
+          continue
+        }
+      }
+    })
+  }, [currentDate, online, quickCompetitions, timeZone])
+
+  function prefetchMatchday(): void {
+    if (!online) return
+    startPrefetch(() => prefetchFixtureQuery(sidebarDate, timeZone))
+  }
+
+  function prefetchCompetition(competitionId: number): void {
+    if (!online) return
+    startPrefetch(() => prefetchCompetitionWorkspace(competitionId))
+  }
 
   return (
     <div className="grid h-full grid-cols-[14rem_1fr] bg-background">
@@ -98,6 +131,8 @@ function Workspace(): React.JSX.Element {
                 'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
                 matchdayActive && 'bg-accent text-accent-foreground'
               )}
+              onFocus={prefetchMatchday}
+              onMouseEnter={prefetchMatchday}
             >
               <CalendarDays className="size-4" />
               Matchday
@@ -128,6 +163,8 @@ function Workspace(): React.JSX.Element {
                       'flex items-center gap-2.5 rounded-md px-3 py-1.5 text-[13px] font-medium text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring',
                       active && 'bg-accent text-accent-foreground'
                     )}
+                    onFocus={() => prefetchCompetition(competition.id)}
+                    onMouseEnter={() => prefetchCompetition(competition.id)}
                   >
                     <CompetitionLogo
                       className="size-6 bg-background"

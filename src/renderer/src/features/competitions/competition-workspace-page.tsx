@@ -10,13 +10,16 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EntityFixturePanel } from '@/features/fixtures/entity-fixture-panel'
 import { splitEntityFixtures } from '@/features/fixtures/entity-fixture-data'
-import { addDaysToIsoDate, currentTimeZone, todayInTimeZone } from '@/lib/date'
 import { cn } from '@/lib/utils'
 import { useOnline } from '@/lib/use-online'
 import { CompetitionLogo } from './competition-logo'
 import { groupStandings, nearestFixtureSeasonId } from './competition-workspace-data'
 import { TeamLogo } from '@/features/teams/team-logo'
-import { useCompetitionFixtures, useStandings } from './use-competition-workspace'
+import {
+  competitionWorkspaceFixtureInput,
+  useCompetitionFixtures,
+  useStandings
+} from './use-competition-workspace'
 
 export function CompetitionWorkspacePage({
   competitionId
@@ -31,19 +34,9 @@ export function CompetitionWorkspacePage({
     [parsedCompetitionId, validCompetitionId]
   )
   const online = useOnline()
-  const timeZone = useMemo(() => currentTimeZone(), [])
-  const today = useMemo(() => todayInTimeZone(timeZone), [timeZone])
   const fixtureInput = useMemo(
-    () =>
-      validCompetitionId
-        ? {
-            competitionId: parsedCompetitionId,
-            startDate: addDaysToIsoDate(today, -14),
-            endDate: addDaysToIsoDate(today, 14),
-            timeZone
-          }
-        : null,
-    [parsedCompetitionId, timeZone, today, validCompetitionId]
+    () => (validCompetitionId ? competitionWorkspaceFixtureInput(parsedCompetitionId) : null),
+    [parsedCompetitionId, validCompetitionId]
   )
   const [workspaceOpenedAt] = useState(() => Date.now())
   const fixtures = useCompetitionFixtures(fixtureInput, online)

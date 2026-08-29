@@ -3,11 +3,13 @@ import type { RefreshCompetitionFixturesInput } from '@shared/contracts'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   competitionFixtureQueryKey,
+  db,
   readCompetitionFixtureQuery,
   readStandingsQuery,
   writeCompetitionFixtureRefresh,
   writeStandingsRefresh
 } from '@/data/db'
+import { addDaysToIsoDate, currentTimeZone, todayInTimeZone } from '@/lib/date'
 
 interface RefreshRequest {
   generation: number
@@ -117,6 +119,45 @@ export function invalidateCompetitionWorkspaceRefreshes(): void {
   refreshGeneration += 1
   standingRefreshes.clear()
   fixtureRefreshes.clear()
+}
+
+export async function prefetchCompetitionWorkspace(competitionId: number): Promise<void> {
+  const input = competitionWorkspaceFixtureInput(competitionId)
+  const competition = await db.competitions.get(competitionId)
+  const [fixtures, standings] = await Promise.all([
+    readCompetitionFixtureQuery(input),
+    competition?.currentSeasonId
+      ? readStandingsQuery(competition.currentSeasonId)
+      : Promise.resolve(null)
+  ])
+  const refreshes: Promise<void>[] = []
+
+  if (!fixtures.query || fixtures.query.staleAt <= Date.now()) {
+    refreshes.push(refreshCompetitionFixtureQuery(input))
+  }
+
+  if (
+    competition?.currentSeasonId &&
+    (!standings?.query || standings.query.staleAt <= Date.now())
+  ) {
+    refreshes.push(refreshStandingsQuery(competition.currentSeasonId))
+  }
+
+  await Promise.all(refreshes)
+}
+
+export function competitionWorkspaceFixtureInput(
+  competitionId: number
+): RefreshCompetitionFixturesInput {
+  const timeZone = currentTimeZone()
+  const today = todayInTimeZone(timeZone)
+
+  return {
+    competitionId,
+    startDate: addDaysToIsoDate(today, -14),
+    endDate: addDaysToIsoDate(today, 14),
+    timeZone
+  }
 }
 
 function useAutomaticRefresh(

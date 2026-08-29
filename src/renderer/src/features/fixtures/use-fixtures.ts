@@ -163,6 +163,13 @@ export function useFixtureOdds(fixtureId: number | null, enabled: boolean): UseF
   return { cached, refreshing, error, refresh }
 }
 
+export async function prefetchFixtureQuery(date: string, timeZone: string): Promise<void> {
+  const cached = await readFixtureQuery(date, timeZone)
+  if (cached.query && cached.query.staleAt > Date.now()) return
+
+  await refreshFixtureQuery(date, timeZone)
+}
+
 async function refreshFixtureQuery(date: string, timeZone: string): Promise<void> {
   const key = `${date}|${timeZone}`
   const existing = refreshes.get(key)

@@ -1,19 +1,39 @@
 // @vitest-environment jsdom
 
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { FixtureDetailRefresh, Result } from '@shared/contracts'
-import { db, readFixtureIdentity } from '@/data/db'
-import { invalidateFixtureRefreshes, refreshFixtureEntity } from './use-fixtures'
+import type { FixtureDetailRefresh, FixtureRefresh, Result } from '@shared/contracts'
+import { db, readFixtureIdentity, readFixtureQuery } from '@/data/db'
+import { currentTimeZone, todayInTimeZone } from '@/lib/date'
+import {
+  invalidateFixtureRefreshes,
+  prefetchFixtureQuery,
+  refreshFixtureEntity
+} from './use-fixtures'
 
 beforeEach(async () => {
   invalidateFixtureRefreshes()
   if (!db.isOpen()) await db.open()
-  await db.fixtures.clear()
+  await db.transaction('rw', db.fixtures, db.fixtureQueries, async () => {
+    await db.fixtures.clear()
+    await db.fixtureQueries.clear()
+  })
 })
 
 afterAll(() => db.close())
 
 describe('fixture refresh', () => {
+  it('prefetches a missing matchday query without refetching fresh data', async () => {
+    const date = todayInTimeZone(currentTimeZone())
+    const refreshFixtures = vi.fn().mockResolvedValue({ ok: true, data: fixtureListRefresh() })
+    installHalfspace({ refreshFixtures })
+
+    await prefetchFixtureQuery(date, currentTimeZone())
+    await prefetchFixtureQuery(date, currentTimeZone())
+
+    expect(refreshFixtures).toHaveBeenCalledTimes(1)
+    expect((await readFixtureQuery(date, currentTimeZone())).fixtures).toHaveLength(1)
+  })
+
   it('does not restore an old fixture after the credential changes', async () => {
     const oldRequest = deferred<Result<FixtureDetailRefresh>>()
     const newRequest = deferred<Result<FixtureDetailRefresh>>()
@@ -22,28 +42,7 @@ describe('fixture refresh', () => {
       .mockReturnValueOnce(oldRequest.promise)
       .mockReturnValueOnce(newRequest.promise)
 
-    window.halfspace = {
-      credentials: {
-        getConnectionState: vi.fn(),
-        saveToken: vi.fn(),
-        clearToken: vi.fn()
-      },
-      sportmonks: {
-        refreshFixtures: vi.fn(),
-        refreshFixture,
-        refreshFixtureOdds: vi.fn(),
-        refreshCompetitions: vi.fn(),
-        refreshStandings: vi.fn(),
-        refreshCompetitionFixtures: vi.fn(),
-        refreshTeam: vi.fn(),
-        refreshTeamFixtures: vi.fn(),
-        refreshTeamSquad: vi.fn(),
-        refreshVenue: vi.fn(),
-        refreshPlayer: vi.fn(),
-        refreshPlayerAppearances: vi.fn(),
-        searchEntities: vi.fn()
-      }
-    }
+    installHalfspace({ refreshFixture })
 
     const oldRefresh = refreshFixtureEntity(19425456)
     invalidateFixtureRefreshes()
@@ -58,6 +57,15 @@ describe('fixture refresh', () => {
     expect((await readFixtureIdentity(19425456)).fixture?.name).toBe('Manchester City vs Arsenal')
   })
 })
+
+function fixtureListRefresh(): FixtureRefresh {
+  return {
+    fetchedAt: Date.now(),
+    pageCount: 1,
+    timeZone: currentTimeZone(),
+    fixtures: [fixtureRefresh('Manchester City vs Arsenal').fixture]
+  }
+}
 
 function fixtureRefresh(name: string): FixtureDetailRefresh {
   return {
@@ -87,4 +95,30 @@ function deferred<T>(): {
   })
 
   return { promise, resolve }
+}
+
+function installHalfspace(overrides: Partial<Window['halfspace']['sportmonks']>): void {
+  window.halfspace = {
+    credentials: {
+      getConnectionState: vi.fn(),
+      saveToken: vi.fn(),
+      clearToken: vi.fn()
+    },
+    sportmonks: {
+      refreshFixtures: vi.fn(),
+      refreshFixture: vi.fn(),
+      refreshFixtureOdds: vi.fn(),
+      refreshCompetitions: vi.fn(),
+      refreshStandings: vi.fn(),
+      refreshCompetitionFixtures: vi.fn(),
+      refreshTeam: vi.fn(),
+      refreshTeamFixtures: vi.fn(),
+      refreshTeamSquad: vi.fn(),
+      refreshVenue: vi.fn(),
+      refreshPlayer: vi.fn(),
+      refreshPlayerAppearances: vi.fn(),
+      searchEntities: vi.fn(),
+      ...overrides
+    }
+  }
 }
