@@ -25,6 +25,7 @@ import type {
   SportmonksFixture,
   SportmonksOdd,
   SportmonksPlayer,
+  SportmonksRateLimit,
   SportmonksSeason,
   SportmonksSquadEntry,
   SportmonksStanding,
@@ -564,10 +565,25 @@ const teamSearchResponseSchema = z.object({ data: z.array(teamSchema) }).passthr
 const playerSearchResponseSchema = z.object({ data: z.array(playerSchema) }).passthrough()
 const venueSearchResponseSchema = z.object({ data: z.array(venueSchema) }).passthrough()
 
+const rateLimitErrorResponseSchema = z
+  .object({
+    retry_after: z.number().nonnegative().optional(),
+    rate_limit: z
+      .object({
+        remaining: z.number().nonnegative().optional(),
+        requested_entity: z.string().min(1).optional(),
+        resets_in_seconds: z.number().nonnegative().optional()
+      })
+      .passthrough()
+      .optional()
+  })
+  .passthrough()
+
 export class SportmonksError extends Error {
   constructor(
     readonly code: ApiErrorCode,
-    message: string
+    message: string,
+    readonly rateLimit?: SportmonksRateLimit
   ) {
     super(message)
   }
@@ -757,7 +773,7 @@ export async function fetchFixtureById(
     throw new SportmonksError('network', 'Could not reach Sportmonks.')
   }
 
-  if (!response.ok) throw errorForStatus(response.status)
+  if (!response.ok) throw await errorForResponse(response)
 
   let parsed: z.infer<typeof fixtureDetailResponseSchema>
 
@@ -803,7 +819,7 @@ export async function fetchFixtureOdds(
     throw new SportmonksError('network', 'Could not reach Sportmonks.')
   }
 
-  if (!response.ok) throw errorForStatus(response.status)
+  if (!response.ok) throw await errorForResponse(response)
 
   let parsed: z.infer<typeof fixtureOddsResponseSchema>
 
@@ -922,7 +938,7 @@ async function fetchFixturePages(
     }
 
     if (!response.ok) {
-      throw errorForStatus(response.status)
+      throw await errorForResponse(response)
     }
 
     let parsed: z.infer<typeof fixtureResponseSchema>
@@ -991,7 +1007,7 @@ export async function fetchCompetitions(
     }
 
     if (!response.ok) {
-      throw errorForStatus(response.status)
+      throw await errorForResponse(response)
     }
 
     let parsed: z.infer<typeof competitionResponseSchema>
@@ -1052,7 +1068,7 @@ export async function fetchStandingsBySeason(
   }
 
   if (!response.ok) {
-    throw errorForStatus(response.status)
+    throw await errorForResponse(response)
   }
 
   let parsed: z.infer<typeof standingsResponseSchema>
@@ -1108,7 +1124,7 @@ export async function fetchCompetitionSeasons(
       throw new SportmonksError('network', 'Could not reach Sportmonks.')
     }
 
-    if (!response.ok) throw errorForStatus(response.status)
+    if (!response.ok) throw await errorForResponse(response)
 
     let parsed: z.infer<typeof seasonsResponseSchema>
 
@@ -1162,7 +1178,7 @@ export async function fetchTeamById(
   }
 
   if (!response.ok) {
-    throw errorForStatus(response.status)
+    throw await errorForResponse(response)
   }
 
   let parsed: z.infer<typeof teamResponseSchema>
@@ -1209,7 +1225,7 @@ export async function fetchTeamSquad(
     throw new SportmonksError('network', 'Could not reach Sportmonks.')
   }
 
-  if (!response.ok) throw errorForStatus(response.status)
+  if (!response.ok) throw await errorForResponse(response)
 
   let parsed: z.infer<typeof teamSquadResponseSchema>
 
@@ -1255,7 +1271,7 @@ export async function fetchPlayerById(
     throw new SportmonksError('network', 'Could not reach Sportmonks.')
   }
 
-  if (!response.ok) throw errorForStatus(response.status)
+  if (!response.ok) throw await errorForResponse(response)
 
   let parsed: z.infer<typeof playerResponseSchema>
 
@@ -1302,7 +1318,7 @@ export async function fetchVenueById(
   }
 
   if (!response.ok) {
-    throw errorForStatus(response.status)
+    throw await errorForResponse(response)
   }
 
   let parsed: z.infer<typeof venueResponseSchema>
@@ -1385,7 +1401,7 @@ async function fetchEntitySearchPage(
     throw new SportmonksError('network', 'Could not reach Sportmonks.')
   }
 
-  if (!response.ok) throw errorForStatus(response.status)
+  if (!response.ok) throw await errorForResponse(response)
 
   try {
     return await response.json()
@@ -1465,18 +1481,74 @@ function isValidTimeZone(value: string): boolean {
   }
 }
 
-function errorForStatus(status: number): SportmonksError {
-  if (status === 401) {
+async function errorForResponse(response: Response): Promise<SportmonksError> {
+  if (response.status === 401) {
     return new SportmonksError('unauthorized', 'Sportmonks rejected this token.')
   }
 
-  if (status === 403) {
+  if (response.status === 403) {
     return new SportmonksError('forbidden', 'Your Sportmonks plan does not include this data.')
   }
 
-  if (status === 429) {
-    return new SportmonksError('rate_limited', 'The Sportmonks rate limit has been reached.')
+  if (response.status === 429) {
+    const rateLimit = (await rateLimitFromErrorResponse(response)) ?? {
+      estimated: true,
+      remaining: 0,
+      resetsAt: Date.now() + 60 * 60 * 1_000
+    }
+
+    return new SportmonksError(
+      'rate_limited',
+      'The Sportmonks rate limit has been reached.',
+      rateLimit
+    )
   }
 
-  return new SportmonksError('upstream', `Sportmonks returned an error (${status}).`)
+  return new SportmonksError('upstream', `Sportmonks returned an error (${response.status}).`)
+}
+
+async function rateLimitFromErrorResponse(
+  response: Response
+): Promise<SportmonksRateLimit | undefined> {
+  const retryAfterSeconds = parseRetryAfter(response.headers.get('retry-after'))
+
+  try {
+    const body: unknown = await response.json()
+    const result = rateLimitErrorResponseSchema.safeParse(body)
+    if (!result.success && retryAfterSeconds === undefined) return undefined
+
+    const resetSeconds = result.success
+      ? (result.data.rate_limit?.resets_in_seconds ?? result.data.retry_after ?? retryAfterSeconds)
+      : retryAfterSeconds
+    if (resetSeconds === undefined) return undefined
+
+    const remainingHeader = Number(response.headers.get('x-ratelimit-remaining'))
+
+    return {
+      estimated: false,
+      remaining:
+        (result.success ? result.data.rate_limit?.remaining : undefined) ??
+        (Number.isFinite(remainingHeader) ? remainingHeader : 0),
+      requestedEntity: result.success ? result.data.rate_limit?.requested_entity : undefined,
+      resetsAt: Date.now() + resetSeconds * 1_000
+    }
+  } catch {
+    if (retryAfterSeconds === undefined) return undefined
+
+    return {
+      estimated: false,
+      remaining: 0,
+      resetsAt: Date.now() + retryAfterSeconds * 1_000
+    }
+  }
+}
+
+function parseRetryAfter(value: string | null): number | undefined {
+  if (!value) return undefined
+
+  const seconds = Number(value)
+  if (Number.isFinite(seconds) && seconds >= 0) return seconds
+
+  const resetAt = Date.parse(value)
+  return Number.isNaN(resetAt) ? undefined : Math.max(0, (resetAt - Date.now()) / 1_000)
 }

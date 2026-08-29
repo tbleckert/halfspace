@@ -145,6 +145,77 @@ describe('Sportmonks client', () => {
     expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')
   })
 
+  it('preserves the affected entity and reset time from a rate-limit response', async () => {
+    const fetcher = vi.fn<typeof fetch>(async () =>
+      Response.json(
+        {
+          error: 'Too Many Requests',
+          message: 'Rate limit of 3000 requests per hour exceeded.',
+          retry_after: 1_847,
+          rate_limit: {
+            remaining: 0,
+            total: 3_000,
+            resets_in_seconds: 1_847,
+            requested_entity: 'Fixture'
+          }
+        },
+        { status: 429 }
+      )
+    )
+
+    await expect(
+      fetchFixtureById({ fixtureId: 19_635_975 }, 'private-token', fetcher)
+    ).rejects.toMatchObject({
+      code: 'rate_limited',
+      rateLimit: {
+        estimated: false,
+        remaining: 0,
+        requestedEntity: 'Fixture',
+        resetsAt: expect.any(Number)
+      }
+    })
+  })
+
+  it('provides an honest hourly fallback when a rate-limit response omits reset metadata', async () => {
+    const fetcher = vi.fn<typeof fetch>(async () =>
+      Response.json({ message: 'Rate limit of 3000 requests per hour exceeded.' }, { status: 429 })
+    )
+
+    await expect(
+      fetchFixtureById({ fixtureId: 19_635_975 }, 'private-token', fetcher)
+    ).rejects.toMatchObject({
+      code: 'rate_limited',
+      rateLimit: {
+        estimated: true,
+        remaining: 0,
+        resetsAt: expect.any(Number)
+      }
+    })
+  })
+
+  it('uses the standard retry header when a rate-limit body omits reset metadata', async () => {
+    const fetcher = vi.fn<typeof fetch>(async () =>
+      Response.json(
+        { message: 'Rate limit of 3000 requests per hour exceeded.' },
+        {
+          headers: { 'Retry-After': '600', 'X-RateLimit-Remaining': '0' },
+          status: 429
+        }
+      )
+    )
+
+    await expect(
+      fetchFixtureById({ fixtureId: 19_635_975 }, 'private-token', fetcher)
+    ).rejects.toMatchObject({
+      code: 'rate_limited',
+      rateLimit: {
+        estimated: false,
+        remaining: 0,
+        resetsAt: expect.any(Number)
+      }
+    })
+  })
+
   it('accepts the non-paginated fixture odds response with bookmaker and market context', async () => {
     const odd = {
       id: 701,

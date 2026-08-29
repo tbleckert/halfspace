@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { Link, Outlet, useRouterState } from '@tanstack/react-router'
-import { CalendarDays, Circle, Settings, Trophy } from 'lucide-react'
+import { CalendarDays, Circle, Clock3, Settings, Trophy } from 'lucide-react'
+import type { SportmonksRateLimit } from '@shared/contracts'
 import { TokenSetup } from '@/features/credentials/token-setup'
 import { useConnectionState } from '@/features/credentials/use-connection-state'
 import { Button } from '@/components/ui/button'
@@ -19,7 +20,7 @@ import { useOnline } from '@/lib/use-online'
 const noPinnedCompetitionIds: number[] = []
 
 export function AppShell(): React.JSX.Element {
-  const { connection, error, reload } = useConnectionState()
+  const { connection, error, rateLimit, reload } = useConnectionState()
 
   if (connection === null && error) {
     return (
@@ -48,10 +49,10 @@ export function AppShell(): React.JSX.Element {
     return <TokenSetup />
   }
 
-  return <Workspace />
+  return <Workspace rateLimit={rateLimit} />
 }
 
-function Workspace(): React.JSX.Element {
+function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): React.JSX.Element {
   const online = useOnline()
   const warmedCompetitionIds = useRef(new Set<number>())
   const { cached } = useCompetitions()
@@ -174,6 +175,8 @@ function Workspace(): React.JSX.Element {
           </div>
         </nav>
 
+        {rateLimit && <RateLimitNotice rateLimit={rateLimit} />}
+
         <div className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
           <Circle
             className={cn('size-2 fill-current', online ? 'text-emerald-600' : 'text-amber-600')}
@@ -185,6 +188,29 @@ function Workspace(): React.JSX.Element {
       <main className="min-h-0 overflow-y-auto">
         <Outlet />
       </main>
+    </div>
+  )
+}
+
+function RateLimitNotice({ rateLimit }: { rateLimit: SportmonksRateLimit }): React.JSX.Element {
+  const subject = rateLimit.requestedEntity ?? 'Sportmonks'
+  const resetTime = new Intl.DateTimeFormat(undefined, {
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(rateLimit.resetsAt)
+
+  return (
+    <div
+      role="status"
+      className="mx-1 mb-1 flex items-start gap-2.5 rounded-md bg-amber-500/10 px-2.5 py-2 text-amber-800 dark:text-amber-300"
+    >
+      <Clock3 className="mt-0.5 size-3.5 shrink-0" />
+      <div className="min-w-0 text-xs">
+        <p className="truncate font-medium">{subject} limit reached</p>
+        <p className="mt-0.5 opacity-75">
+          {rateLimit.estimated ? 'Available within an hour' : `Resets ${resetTime}`}
+        </p>
+      </div>
     </div>
   )
 }

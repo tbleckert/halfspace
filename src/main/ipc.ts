@@ -1,6 +1,6 @@
 import type { IpcMainInvokeEvent } from 'electron'
 import { BrowserWindow, ipcMain } from 'electron'
-import type { ApiErrorCode, Result } from '@shared/contracts'
+import type { ApiErrorCode, Result, SportmonksRateLimit } from '@shared/contracts'
 import { ipcChannels } from '@shared/contracts'
 import {
   fetchCompetitions,
@@ -33,10 +33,22 @@ import {
 } from './sportmonks'
 import { clearStoredToken, hasStoredToken, readStoredToken, saveStoredToken } from './token-store'
 
+let currentRateLimit: SportmonksRateLimit | null = null
+
 export function registerIpcHandlers(): void {
   ipcMain.handle(ipcChannels.connectionState, async (event) => {
     assertTrustedSender(event)
     return { configured: await hasStoredToken() }
+  })
+
+  ipcMain.handle(ipcChannels.rateLimitState, (event) => {
+    assertTrustedSender(event)
+
+    if (currentRateLimit && currentRateLimit.resetsAt <= Date.now()) {
+      currentRateLimit = null
+    }
+
+    return currentRateLimit
   })
 
   ipcMain.handle(ipcChannels.saveToken, async (event, input: unknown) => {
@@ -374,8 +386,23 @@ function failure(
   fallbackMessage: string
 ): Result<never> {
   if (error instanceof SportmonksError) {
-    return { ok: false, error: { code: error.code, message: error.message } }
+    if (error.code === 'rate_limited' && error.rateLimit) {
+      publishRateLimit(error.rateLimit)
+    }
+
+    return {
+      ok: false,
+      error: { code: error.code, message: error.message, rateLimit: error.rateLimit }
+    }
   }
 
   return { ok: false, error: { code: fallbackCode, message: fallbackMessage } }
+}
+
+function publishRateLimit(rateLimit: SportmonksRateLimit): void {
+  currentRateLimit = rateLimit
+
+  for (const window of BrowserWindow.getAllWindows()) {
+    window.webContents.send(ipcChannels.rateLimitChanged, rateLimit)
+  }
 }

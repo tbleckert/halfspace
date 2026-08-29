@@ -15,7 +15,9 @@ export const ipcChannels = {
   refreshVenue: 'sportmonks:refresh-venue',
   refreshPlayer: 'sportmonks:refresh-player',
   refreshPlayerAppearances: 'sportmonks:refresh-player-appearances',
-  searchEntities: 'sportmonks:search-entities'
+  searchEntities: 'sportmonks:search-entities',
+  rateLimitState: 'sportmonks:rate-limit-state',
+  rateLimitChanged: 'sportmonks:rate-limit-changed'
 } as const
 
 export type ApiErrorCode =
@@ -29,8 +31,20 @@ export type ApiErrorCode =
   | 'storage'
   | 'upstream'
 
-export type Result<T> =
-  { ok: true; data: T } | { ok: false; error: { code: ApiErrorCode; message: string } }
+export interface SportmonksRateLimit {
+  estimated?: boolean
+  remaining: number
+  requestedEntity?: string
+  resetsAt: number
+}
+
+export interface ApiError {
+  code: ApiErrorCode
+  message: string
+  rateLimit?: SportmonksRateLimit
+}
+
+export type Result<T> = { ok: true; data: T } | { ok: false; error: ApiError }
 
 export interface ConnectionState {
   configured: boolean
@@ -562,6 +576,8 @@ export interface HalfspaceApi {
     refreshPlayerAppearances(
       input: RefreshPlayerAppearancesInput
     ): Promise<Result<PlayerAppearancesRefresh>>
+    getRateLimit(): Promise<SportmonksRateLimit | null>
+    onRateLimitChange(listener: (rateLimit: SportmonksRateLimit) => void): () => void
     searchEntities(input: EntitySearchInput): Promise<Result<EntitySearchRefresh>>
   }
 }

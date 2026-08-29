@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { HalfspaceApi } from '@shared/contracts'
+import type { HalfspaceApi, SportmonksRateLimit } from '@shared/contracts'
 import { ipcChannels } from '@shared/contracts'
 
 const halfspaceApi: HalfspaceApi = {
@@ -25,6 +25,19 @@ const halfspaceApi: HalfspaceApi = {
     refreshPlayer: (input) => ipcRenderer.invoke(ipcChannels.refreshPlayer, input),
     refreshPlayerAppearances: (input) =>
       ipcRenderer.invoke(ipcChannels.refreshPlayerAppearances, input),
+    getRateLimit: () => ipcRenderer.invoke(ipcChannels.rateLimitState),
+    onRateLimitChange: (listener) => {
+      const handleRateLimitChange = (
+        _event: Electron.IpcRendererEvent,
+        rateLimit: unknown
+      ): void => {
+        listener(rateLimit as SportmonksRateLimit)
+      }
+
+      ipcRenderer.on(ipcChannels.rateLimitChanged, handleRateLimitChange)
+
+      return () => ipcRenderer.removeListener(ipcChannels.rateLimitChanged, handleRateLimitChange)
+    },
     searchEntities: (input) => ipcRenderer.invoke(ipcChannels.searchEntities, input)
   }
 }

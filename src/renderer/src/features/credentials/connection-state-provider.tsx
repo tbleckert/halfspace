@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
-import type { ConnectionState } from '@shared/contracts'
+import type { ConnectionState, SportmonksRateLimit } from '@shared/contracts'
 import { clearSportmonksCache } from '@/data/db'
 import { invalidateCompetitionRefresh } from '@/features/competitions/use-competitions'
 import { invalidateCompetitionWorkspaceRefreshes } from '@/features/competitions/use-competition-workspace'
@@ -12,6 +12,7 @@ import { ConnectionStateContext } from './connection-state-context'
 export function ConnectionStateProvider({ children }: { children: ReactNode }): React.JSX.Element {
   const [connection, setConnection] = useState<ConnectionState | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [rateLimit, setRateLimit] = useState<SportmonksRateLimit | null>(null)
 
   const reload = useCallback(async () => {
     setError(null)
@@ -37,6 +38,7 @@ export function ConnectionStateProvider({ children }: { children: ReactNode }): 
         await clearSportmonksCache().catch(() => undefined)
         setConnection(result.data)
         setError(null)
+        setRateLimit(null)
       }
 
       return result
@@ -62,6 +64,7 @@ export function ConnectionStateProvider({ children }: { children: ReactNode }): 
         await clearSportmonksCache().catch(() => undefined)
         setConnection({ configured: false })
         setError(null)
+        setRateLimit(null)
       }
 
       return result
@@ -93,8 +96,37 @@ export function ConnectionStateProvider({ children }: { children: ReactNode }): 
     }
   }, [])
 
+  useEffect(() => {
+    let active = true
+    const unsubscribe = window.halfspace.sportmonks.onRateLimitChange(setRateLimit)
+
+    void window.halfspace.sportmonks
+      .getRateLimit()
+      .then((current) => {
+        if (active && current) setRateLimit(current)
+      })
+      .catch(() => undefined)
+
+    return () => {
+      active = false
+      unsubscribe()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!rateLimit) return
+
+    const timeout = window.setTimeout(
+      () => setRateLimit(null),
+      Math.max(0, rateLimit.resetsAt - Date.now())
+    )
+    return () => window.clearTimeout(timeout)
+  }, [rateLimit])
+
   return (
-    <ConnectionStateContext.Provider value={{ connection, error, clearToken, reload, saveToken }}>
+    <ConnectionStateContext.Provider
+      value={{ connection, error, rateLimit, clearToken, reload, saveToken }}
+    >
       {children}
     </ConnectionStateContext.Provider>
   )

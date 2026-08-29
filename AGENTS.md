@@ -42,6 +42,10 @@ abstractions.
 - Sportmonks fixture detail owns events, statistics, and lineups; fixture list refreshes must
   preserve that richer cached detail. Fetch and cache the much larger odds payload only when the
   Odds view opens.
+- Keep provider rate limits distinct from connectivity. Show a persistent compact status beside
+  Online in the sidebar, retain cached data, and remove the status automatically when the limit
+  resets. Use Sportmonks' exact reset time when supplied; otherwise say it will be available within
+  an hour rather than inventing a timestamp.
 - Treat Sportmonks states 2, 6, 9, and 22 as live. Show a reduced-motion-safe live indicator and
   refresh live fixture data every 30 seconds.
 - Present squads as position-grouped player profile cards with rounded portraits and only essential
