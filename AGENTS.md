@@ -37,6 +37,8 @@ abstractions.
 - Keep competition and venue context cards plus compact upcoming and recent fixture snapshots on
   the team Overview. Fixtures browses the complete cached date window across competitions. Squad
   uses the full content width.
+- On the team Fixtures page, the visible date is the first day of the fixture window. Do not expose
+  a hidden midpoint as the navigation date. Keep Overview centered on recent and upcoming fixtures.
 - Fixture pages keep Preview, Timeline, Lineups, Stats, and Odds in horizontal navigation inside
   the score hero. Preview stacks the compact venue card directly below Details.
 - Sportmonks fixture detail owns events, statistics, and lineups; fixture list refreshes must

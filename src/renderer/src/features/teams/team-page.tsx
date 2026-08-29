@@ -67,10 +67,17 @@ export function TeamPage({
   const online = useOnline()
   const timeZone = useMemo(() => currentTimeZone(), [])
   const today = useMemo(() => todayInTimeZone(timeZone), [timeZone])
-  const fixtureDate = date ?? today
+  const fixtureWindowStart = date ?? today
+  const fixtureBrowserInput = useMemo(
+    () => (validTeamId ? teamFixtureInput(parsedTeamId, fixtureWindowStart, timeZone) : null),
+    [fixtureWindowStart, parsedTeamId, timeZone, validTeamId]
+  )
   const fixtureInput = useMemo(
-    () => (validTeamId ? teamFixtureInput(parsedTeamId, fixtureDate, timeZone) : null),
-    [fixtureDate, parsedTeamId, timeZone, validTeamId]
+    () =>
+      view === 'overview' && validTeamId
+        ? teamFixtureInput(parsedTeamId, addDaysToIsoDate(fixtureWindowStart, -30), timeZone)
+        : fixtureBrowserInput,
+    [fixtureBrowserInput, fixtureWindowStart, parsedTeamId, timeZone, validTeamId, view]
   )
   const [pageOpenedAt] = useState(() => Date.now())
   const team = useTeamEntity(validTeamId ? parsedTeamId : null, online)
@@ -184,8 +191,8 @@ export function TeamPage({
 
         <TeamNavigation
           competitionId={competitionId}
-          date={fixtureDate}
-          fixtureInput={fixtureInput!}
+          date={fixtureWindowStart}
+          fixtureInput={fixtureBrowserInput!}
           online={online}
           teamId={parsedTeamId}
           view={view}
@@ -221,7 +228,11 @@ export function TeamPage({
             ) : (
               <>
                 <EntityFixturePanel
-                  context={{ competition: competitionId, date: fixtureDate, team: parsedTeamId }}
+                  context={{
+                    competition: competitionId,
+                    date: fixtureWindowStart,
+                    team: parsedTeamId
+                  }}
                   fixtures={fixtureSections.upcoming}
                   label="Upcoming"
                   loading={fixtures.refreshing}
@@ -229,7 +240,11 @@ export function TeamPage({
                   showCompetition
                 />
                 <EntityFixturePanel
-                  context={{ competition: competitionId, date: fixtureDate, team: parsedTeamId }}
+                  context={{
+                    competition: competitionId,
+                    date: fixtureWindowStart,
+                    team: parsedTeamId
+                  }}
                   fixtures={fixtureSections.recent}
                   label="Recent"
                   loading={fixtures.refreshing}
@@ -245,7 +260,7 @@ export function TeamPage({
       {view === 'fixtures' && (
         <TeamFixtures
           competitionId={competitionId}
-          date={fixtureDate}
+          date={fixtureWindowStart}
           fixtureGroups={fixtureGroups}
           fixturesLoaded={fixtures.cached !== undefined}
           loading={fixtures.refreshing}
@@ -375,7 +390,7 @@ function TeamFixtures({
             <ChevronLeft className="size-4" />
           </Button>
           <Input
-            aria-label="Fixture window date"
+            aria-label="Fixture window start"
             className="w-40 bg-card"
             type="date"
             value={date}

@@ -36,11 +36,11 @@ beforeEach(async () => {
 afterAll(() => db.close())
 
 describe('team refresh', () => {
-  it('centers the team fixture browser on a sixty-one day window', () => {
+  it('starts the team fixture browser on the selected date', () => {
     expect(teamFixtureInput(9, '2026-08-29', 'UTC')).toEqual({
       teamId: 9,
-      startDate: '2026-07-30',
-      endDate: '2026-09-28',
+      startDate: '2026-08-29',
+      endDate: '2026-10-28',
       timeZone: 'UTC'
     })
   })

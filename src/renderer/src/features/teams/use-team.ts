@@ -171,15 +171,15 @@ export async function prefetchTeamFixtures(input: RefreshTeamFixturesInput): Pro
 
 export function teamFixtureInput(
   teamId: number,
-  centerDate?: string,
+  startDate?: string,
   timeZone = currentTimeZone()
 ): RefreshTeamFixturesInput {
-  const date = centerDate ?? todayInTimeZone(timeZone)
+  const date = startDate ?? todayInTimeZone(timeZone)
 
   return {
     teamId,
-    startDate: addDaysToIsoDate(date, -30),
-    endDate: addDaysToIsoDate(date, 30),
+    startDate: date,
+    endDate: addDaysToIsoDate(date, 60),
     timeZone
   }
 }
