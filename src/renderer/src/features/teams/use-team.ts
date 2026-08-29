@@ -10,6 +10,7 @@ import {
   writeTeamRefresh,
   writeTeamSquadRefresh
 } from '@/data/db'
+import { addDaysToIsoDate, currentTimeZone, todayInTimeZone } from '@/lib/date'
 
 interface RefreshRequest {
   generation: number
@@ -159,6 +160,28 @@ export async function prefetchTeamEntity(teamId: number): Promise<void> {
   if (cached.team && cached.team.staleAt > Date.now()) return
 
   await refreshTeamEntity(teamId)
+}
+
+export async function prefetchTeamFixtures(input: RefreshTeamFixturesInput): Promise<void> {
+  const cached = await readTeamFixtureQuery(input)
+  if (cached.query && cached.query.staleAt > Date.now()) return
+
+  await refreshTeamFixtureQuery(input)
+}
+
+export function teamFixtureInput(
+  teamId: number,
+  centerDate?: string,
+  timeZone = currentTimeZone()
+): RefreshTeamFixturesInput {
+  const date = centerDate ?? todayInTimeZone(timeZone)
+
+  return {
+    teamId,
+    startDate: addDaysToIsoDate(date, -30),
+    endDate: addDaysToIsoDate(date, 30),
+    timeZone
+  }
 }
 
 export async function prefetchTeamSquad(teamId: number): Promise<void> {

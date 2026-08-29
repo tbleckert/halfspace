@@ -32,9 +32,11 @@ abstractions.
   current and previous seasons in a compact URL-backed selector; keep standings and fixture windows
   season-scoped, and keep the selected season when changing competition views or opening a fixture.
 - Team pages use horizontal local navigation beneath the team header and above their competition
-  context. Keep Overview and Squad there, and extend that menu when more team views are added. Make
-  the active item prominent with the shared active-indicator treatment.
-- Keep competition and venue context cards on the team Overview. Squad uses the full content width.
+  context. Keep Overview, Fixtures, and Squad there, and extend that menu when more team views are
+  added. Make the active item prominent with the shared active-indicator treatment.
+- Keep competition and venue context cards plus compact upcoming and recent fixture snapshots on
+  the team Overview. Fixtures browses the complete cached date window across competitions. Squad
+  uses the full content width.
 - Fixture pages keep Preview, Timeline, Lineups, Stats, and Odds in horizontal navigation inside
   the score hero. Preview stacks the compact venue card directly below Details.
 - Sportmonks fixture detail owns events, statistics, and lineups; fixture list refreshes must

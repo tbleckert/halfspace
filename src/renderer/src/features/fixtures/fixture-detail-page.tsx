@@ -845,7 +845,7 @@ function FixtureBackLink({
       <Link
         to="/teams/$teamId"
         params={{ teamId: String(teamId) }}
-        search={{ competition: competitionId }}
+        search={{ competition: competitionId, date }}
         className={className}
       >
         <ArrowLeft className="size-4" />
@@ -898,7 +898,7 @@ function MissingFixture({
             <Link
               to="/teams/$teamId"
               params={{ teamId: String(teamId) }}
-              search={{ competition: competitionId }}
+              search={{ competition: competitionId, date }}
               className={cn(buttonVariants({ variant: 'outline' }), 'mt-4')}
             >
               <ArrowLeft className="size-4" />

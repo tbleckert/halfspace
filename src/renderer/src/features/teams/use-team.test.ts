@@ -1,28 +1,62 @@
 // @vitest-environment jsdom
 
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Result, TeamRefresh, TeamSquadRefresh } from '@shared/contracts'
-import { db, readTeamIdentity } from '@/data/db'
+import type { FixtureRefresh, Result, TeamRefresh, TeamSquadRefresh } from '@shared/contracts'
+import { db, readTeamFixtureQuery, readTeamIdentity } from '@/data/db'
+import { currentTimeZone } from '@/lib/date'
 import {
   invalidateTeamRefreshes,
   prefetchTeamEntity,
+  prefetchTeamFixtures,
   prefetchTeamSquad,
-  refreshTeamEntity
+  refreshTeamEntity,
+  teamFixtureInput
 } from './use-team'
 
 beforeEach(async () => {
   invalidateTeamRefreshes()
   if (!db.isOpen()) await db.open()
-  await db.transaction('rw', db.teams, db.squadEntries, db.teamSquadQueries, async () => {
-    await db.teams.clear()
-    await db.squadEntries.clear()
-    await db.teamSquadQueries.clear()
-  })
+  await db.transaction(
+    'rw',
+    db.fixtures,
+    db.teams,
+    db.teamFixtureQueries,
+    db.squadEntries,
+    db.teamSquadQueries,
+    async () => {
+      await db.fixtures.clear()
+      await db.teams.clear()
+      await db.teamFixtureQueries.clear()
+      await db.squadEntries.clear()
+      await db.teamSquadQueries.clear()
+    }
+  )
 })
 
 afterAll(() => db.close())
 
 describe('team refresh', () => {
+  it('centers the team fixture browser on a sixty-one day window', () => {
+    expect(teamFixtureInput(9, '2026-08-29', 'UTC')).toEqual({
+      teamId: 9,
+      startDate: '2026-07-30',
+      endDate: '2026-09-28',
+      timeZone: 'UTC'
+    })
+  })
+
+  it('prefetches a missing team fixture window without refetching fresh data', async () => {
+    const input = teamFixtureInput(9)
+    const refreshTeamFixtures = vi.fn().mockResolvedValue({ ok: true, data: teamFixturesRefresh() })
+    installHalfspace({ refreshTeamFixtures })
+
+    await prefetchTeamFixtures(input)
+    await prefetchTeamFixtures(input)
+
+    expect(refreshTeamFixtures).toHaveBeenCalledTimes(1)
+    expect((await readTeamFixtureQuery(input)).query).not.toBeNull()
+  })
+
   it('prefetches missing team detail without refetching fresh data', async () => {
     const refreshTeam = vi
       .fn()
@@ -89,6 +123,15 @@ function teamSquadRefresh(): TeamSquadRefresh {
   return {
     fetchedAt: Date.now(),
     squad: []
+  }
+}
+
+function teamFixturesRefresh(): FixtureRefresh {
+  return {
+    fetchedAt: Date.now(),
+    pageCount: 1,
+    timeZone: currentTimeZone(),
+    fixtures: []
   }
 }
 

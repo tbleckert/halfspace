@@ -101,6 +101,17 @@ describe('entity subpage navigation', () => {
 
     await act(() =>
       router.navigate({
+        to: '/teams/$teamId/fixtures',
+        params: { teamId: '3603' },
+        search: { date: '2026-08-29' }
+      })
+    )
+
+    expect(screen.getByTestId('team-page').textContent).toBe('1:fixtures')
+    expect(pageInstances.team).toBe(1)
+
+    await act(() =>
+      router.navigate({
         to: '/teams/$teamId/squad',
         params: { teamId: '3603' }
       })

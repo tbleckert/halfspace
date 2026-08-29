@@ -19,7 +19,10 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EntityFixturePanel } from '@/features/fixtures/entity-fixture-panel'
-import { splitEntityFixtures } from '@/features/fixtures/entity-fixture-data'
+import {
+  groupEntityFixturesByDate,
+  splitEntityFixtures
+} from '@/features/fixtures/entity-fixture-data'
 import { TeamLogo } from '@/features/teams/team-logo'
 import { prefetchTeamEntity } from '@/features/teams/use-team'
 import { addDaysToIsoDate, currentTimeZone, todayInTimeZone } from '@/lib/date'
@@ -30,7 +33,6 @@ import { CompetitionLogo } from './competition-logo'
 import {
   competitionSeasonOptions,
   competitionTeams,
-  groupCompetitionFixturesByDate,
   groupStandings,
   nearestFixtureSeasonId,
   seasonFixtureDate,
@@ -115,7 +117,7 @@ export function CompetitionWorkspacePage({
     [seasonFixtures, workspaceOpenedAt]
   )
   const fixtureGroups = useMemo(
-    () => groupCompetitionFixturesByDate(seasonFixtures, timeZone),
+    () => groupEntityFixturesByDate(seasonFixtures, timeZone),
     [seasonFixtures, timeZone]
   )
   const teams = useMemo(
@@ -412,7 +414,7 @@ function CompetitionFixtures({
 }: {
   competitionId: number
   date: string
-  fixtureGroups: ReturnType<typeof groupCompetitionFixturesByDate>
+  fixtureGroups: ReturnType<typeof groupEntityFixturesByDate>
   fixturesLoaded: boolean
   loading: boolean
   online: boolean

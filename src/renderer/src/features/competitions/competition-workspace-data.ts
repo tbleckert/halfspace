@@ -15,11 +15,6 @@ export interface CompetitionTeam {
   position: number | null
 }
 
-export interface CompetitionFixtureGroup {
-  date: string
-  fixtures: CachedFixture[]
-}
-
 export function groupStandings(standings: readonly CachedStanding[]): StandingGroup[] {
   const rows = standingRows(standings)
   const groups = new Map<string, StandingGroup>()
@@ -37,27 +32,6 @@ export function groupStandings(standings: readonly CachedStanding[]): StandingGr
     ...group,
     standings: group.standings.toSorted((left, right) => left.position - right.position)
   }))
-}
-
-export function groupCompetitionFixturesByDate(
-  fixtures: readonly CachedFixture[],
-  timeZone: string
-): CompetitionFixtureGroup[] {
-  const groups = new Map<string, CachedFixture[]>()
-
-  for (const fixture of fixtures
-    .filter(
-      (candidate): candidate is CachedFixture & { startingAt: number } =>
-        candidate.startingAt !== null
-    )
-    .toSorted((left, right) => left.startingAt - right.startingAt)) {
-    const date = isoDateInTimeZone(fixture.startingAt, timeZone)
-    const group = groups.get(date) ?? []
-    group.push(fixture)
-    groups.set(date, group)
-  }
-
-  return [...groups].map(([date, groupedFixtures]) => ({ date, fixtures: groupedFixtures }))
 }
 
 export function competitionTeams(
@@ -155,16 +129,4 @@ export function seasonFixtureDate(season: SportmonksSeason | null, today: string
 function standingRows(standings: readonly CachedStanding[]): readonly CachedStanding[] {
   const overall = standings.filter(({ raw }) => raw.result === 'overall')
   return overall.length > 0 ? overall : standings
-}
-
-function isoDateInTimeZone(timestamp: number, timeZone: string): string {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    day: '2-digit',
-    month: '2-digit',
-    timeZone,
-    year: 'numeric'
-  }).formatToParts(timestamp)
-  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]))
-
-  return `${values.year}-${values.month}-${values.day}`
 }

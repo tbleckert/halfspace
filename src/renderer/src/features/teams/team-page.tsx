@@ -1,16 +1,29 @@
 import { useMemo, useState } from 'react'
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { AlertCircle, ArrowLeft, RefreshCw, Trophy, UsersRound } from 'lucide-react'
+import {
+  AlertCircle,
+  ArrowLeft,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
+  Trophy,
+  UsersRound
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { buttonVariants } from '@/components/ui/button-variants'
 import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { CachedCompetition, CachedStanding, SquadMember } from '@/data/db'
 import { db, readTeamStandings } from '@/data/db'
 import { CompetitionLogo } from '@/features/competitions/competition-logo'
 import { prefetchCompetitionWorkspace } from '@/features/competitions/use-competition-workspace'
-import { splitEntityFixtures } from '@/features/fixtures/entity-fixture-data'
+import {
+  groupEntityFixturesByDate,
+  splitEntityFixtures
+} from '@/features/fixtures/entity-fixture-data'
 import { EntityFixturePanel } from '@/features/fixtures/entity-fixture-panel'
 import { PlayerPhoto } from '@/features/players/player-photo'
 import { prefetchPlayerEntity } from '@/features/players/use-player'
@@ -23,7 +36,9 @@ import { cn } from '@/lib/utils'
 import { TeamLogo } from './team-logo'
 import {
   prefetchTeamEntity,
+  prefetchTeamFixtures,
   prefetchTeamSquad,
+  teamFixtureInput,
   useTeamEntity,
   useTeamFixtures,
   useTeamSquad
@@ -34,14 +49,16 @@ interface TeamCompetitionContext {
   standing: CachedStanding | null
 }
 
-type TeamView = 'overview' | 'squad'
+type TeamView = 'fixtures' | 'overview' | 'squad'
 
 export function TeamPage({
   competitionId,
+  date,
   teamId,
   view = 'overview'
 }: {
   competitionId?: number
+  date?: string
   teamId: string
   view?: TeamView
 }): React.JSX.Element {
@@ -50,21 +67,14 @@ export function TeamPage({
   const online = useOnline()
   const timeZone = useMemo(() => currentTimeZone(), [])
   const today = useMemo(() => todayInTimeZone(timeZone), [timeZone])
+  const fixtureDate = date ?? today
   const fixtureInput = useMemo(
-    () =>
-      validTeamId
-        ? {
-            teamId: parsedTeamId,
-            startDate: addDaysToIsoDate(today, -30),
-            endDate: addDaysToIsoDate(today, 30),
-            timeZone
-          }
-        : null,
-    [parsedTeamId, timeZone, today, validTeamId]
+    () => (validTeamId ? teamFixtureInput(parsedTeamId, fixtureDate, timeZone) : null),
+    [fixtureDate, parsedTeamId, timeZone, validTeamId]
   )
   const [pageOpenedAt] = useState(() => Date.now())
   const team = useTeamEntity(validTeamId ? parsedTeamId : null, online)
-  const fixtures = useTeamFixtures(fixtureInput, online && view === 'overview')
+  const fixtures = useTeamFixtures(fixtureInput, online && view !== 'squad')
   const squad = useTeamSquad(validTeamId ? parsedTeamId : null, online && view === 'squad')
   const competitionContexts = useLiveQuery(
     () =>
@@ -75,9 +85,12 @@ export function TeamPage({
     () => splitEntityFixtures(fixtures.cached?.fixtures ?? [], pageOpenedAt),
     [fixtures.cached?.fixtures, pageOpenedAt]
   )
-  const refreshing =
-    team.refreshing || (view === 'overview' ? fixtures.refreshing : squad.refreshing)
-  const errors = [team.error, view === 'overview' ? fixtures.error : squad.error].filter(
+  const fixtureGroups = useMemo(
+    () => groupEntityFixturesByDate(fixtures.cached?.fixtures ?? [], timeZone),
+    [fixtures.cached?.fixtures, timeZone]
+  )
+  const refreshing = team.refreshing || (view === 'squad' ? squad.refreshing : fixtures.refreshing)
+  const errors = [team.error, view === 'squad' ? squad.error : fixtures.error].filter(
     (error): error is string => Boolean(error)
   )
   const identity = team.cached?.team?.raw ?? team.cached?.participant
@@ -101,7 +114,7 @@ export function TeamPage({
   const detailedTeam = team.cached.team?.raw
 
   async function refresh(): Promise<void> {
-    await Promise.all([team.refresh(), view === 'overview' ? fixtures.refresh() : squad.refresh()])
+    await Promise.all([team.refresh(), view === 'squad' ? squad.refresh() : fixtures.refresh()])
   }
 
   return (
@@ -171,6 +184,8 @@ export function TeamPage({
 
         <TeamNavigation
           competitionId={competitionId}
+          date={fixtureDate}
+          fixtureInput={fixtureInput!}
           online={online}
           teamId={parsedTeamId}
           view={view}
@@ -184,7 +199,7 @@ export function TeamPage({
         </div>
       )}
 
-      {view === 'overview' ? (
+      {view === 'overview' && (
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(16rem,0.65fr)_minmax(24rem,1.35fr)]">
           <div className="flex flex-col gap-5">
             <TeamCompetitions contexts={competitionContexts} online={online} />
@@ -206,7 +221,7 @@ export function TeamPage({
             ) : (
               <>
                 <EntityFixturePanel
-                  context={{ competition: competitionId, team: parsedTeamId }}
+                  context={{ competition: competitionId, date: fixtureDate, team: parsedTeamId }}
                   fixtures={fixtureSections.upcoming}
                   label="Upcoming"
                   loading={fixtures.refreshing}
@@ -214,7 +229,7 @@ export function TeamPage({
                   showCompetition
                 />
                 <EntityFixturePanel
-                  context={{ competition: competitionId, team: parsedTeamId }}
+                  context={{ competition: competitionId, date: fixtureDate, team: parsedTeamId }}
                   fixtures={fixtureSections.recent}
                   label="Recent"
                   loading={fixtures.refreshing}
@@ -225,7 +240,22 @@ export function TeamPage({
             )}
           </div>
         </div>
-      ) : (
+      )}
+
+      {view === 'fixtures' && (
+        <TeamFixtures
+          competitionId={competitionId}
+          date={fixtureDate}
+          fixtureGroups={fixtureGroups}
+          fixturesLoaded={fixtures.cached !== undefined}
+          loading={fixtures.refreshing}
+          online={online}
+          teamId={parsedTeamId}
+          timeZone={timeZone}
+        />
+      )}
+
+      {view === 'squad' && (
         <TeamSquad
           competitionId={competitionId}
           loading={squad.refreshing}
@@ -240,11 +270,15 @@ export function TeamPage({
 
 function TeamNavigation({
   competitionId,
+  date,
+  fixtureInput,
   online,
   teamId,
   view
 }: {
   competitionId?: number
+  date: string
+  fixtureInput: ReturnType<typeof teamFixtureInput>
   online: boolean
   teamId: number
   view: TeamView
@@ -258,33 +292,143 @@ function TeamNavigation({
         aria-current={view === 'overview' ? 'page' : undefined}
         to="/teams/$teamId"
         params={{ teamId: String(teamId) }}
-        search={{ competition: competitionId }}
-        className={cn(
-          itemClassName,
-          view === 'overview'
-            ? 'font-semibold text-foreground after:absolute after:inset-x-0 after:-bottom-px after:z-10 after:h-0.5 after:bg-current after:content-[""]'
-            : 'text-muted-foreground hover:text-foreground'
-        )}
+        search={{ competition: competitionId, date }}
+        className={teamNavigationClassName(itemClassName, view === 'overview')}
         {...intentPrefetchProps(online, () => prefetchTeamEntity(teamId))}
       >
         Overview
       </Link>
       <Link
+        aria-current={view === 'fixtures' ? 'page' : undefined}
+        to="/teams/$teamId/fixtures"
+        params={{ teamId: String(teamId) }}
+        search={{ competition: competitionId, date }}
+        className={teamNavigationClassName(itemClassName, view === 'fixtures')}
+        {...intentPrefetchProps(online, () => prefetchTeamFixtures(fixtureInput))}
+      >
+        Fixtures
+      </Link>
+      <Link
         aria-current={view === 'squad' ? 'page' : undefined}
         to="/teams/$teamId/squad"
         params={{ teamId: String(teamId) }}
-        search={{ competition: competitionId }}
-        className={cn(
-          itemClassName,
-          view === 'squad'
-            ? 'font-semibold text-foreground after:absolute after:inset-x-0 after:-bottom-px after:z-10 after:h-0.5 after:bg-current after:content-[""]'
-            : 'text-muted-foreground hover:text-foreground'
-        )}
+        search={{ competition: competitionId, date }}
+        className={teamNavigationClassName(itemClassName, view === 'squad')}
         {...intentPrefetchProps(online, () => prefetchTeamSquad(teamId))}
       >
         Squad
       </Link>
     </nav>
+  )
+}
+
+function teamNavigationClassName(itemClassName: string, active: boolean): string {
+  return cn(
+    itemClassName,
+    active
+      ? 'font-semibold text-foreground after:absolute after:inset-x-0 after:-bottom-px after:z-10 after:h-0.5 after:bg-current after:content-[""]'
+      : 'text-muted-foreground hover:text-foreground'
+  )
+}
+
+function TeamFixtures({
+  competitionId,
+  date,
+  fixtureGroups,
+  fixturesLoaded,
+  loading,
+  online,
+  teamId,
+  timeZone
+}: {
+  competitionId?: number
+  date: string
+  fixtureGroups: ReturnType<typeof groupEntityFixturesByDate>
+  fixturesLoaded: boolean
+  loading: boolean
+  online: boolean
+  teamId: number
+  timeZone: string
+}): React.JSX.Element {
+  const navigate = useNavigate({ from: '/teams/$teamId/fixtures' })
+  const today = todayInTimeZone(timeZone)
+
+  function selectDate(nextDate: string): void {
+    void navigate({
+      params: { teamId: String(teamId) },
+      search: (previous) => ({ ...previous, date: nextDate }),
+      replace: true
+    })
+  }
+
+  return (
+    <section className="flex flex-col gap-5">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <h2 className="text-xl font-semibold tracking-tight">Fixtures</h2>
+        <div className="flex items-center gap-2">
+          <Button
+            aria-label="Earlier fixtures"
+            size="icon"
+            variant="outline"
+            onClick={() => selectDate(addDaysToIsoDate(date, -61))}
+          >
+            <ChevronLeft className="size-4" />
+          </Button>
+          <Input
+            aria-label="Fixture window date"
+            className="w-40 bg-card"
+            type="date"
+            value={date}
+            onChange={(event) => selectDate(event.target.value)}
+          />
+          <Button
+            aria-label="Later fixtures"
+            size="icon"
+            variant="outline"
+            onClick={() => selectDate(addDaysToIsoDate(date, 61))}
+          >
+            <ChevronRight className="size-4" />
+          </Button>
+        </div>
+      </div>
+
+      {!fixturesLoaded ? (
+        <TeamFixturesBrowserSkeleton />
+      ) : fixtureGroups.length === 0 ? (
+        <Card>
+          <CardContent className="flex min-h-48 flex-col items-center justify-center gap-3 text-center text-muted-foreground">
+            <CalendarDays className="size-6" />
+            <p className="font-medium text-foreground">
+              {loading ? 'Loading fixtures…' : 'No fixtures'}
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="flex flex-col gap-5">
+          {fixtureGroups.map((group) => (
+            <EntityFixturePanel
+              key={group.date}
+              context={{ competition: competitionId, date, team: teamId }}
+              dateDisplay="time"
+              fixtures={group.fixtures}
+              label={formatFixtureGroupDate(group.date)}
+              loading={loading}
+              online={online}
+              showCompetition
+            />
+          ))}
+        </div>
+      )}
+
+      {date !== today && (
+        <button
+          className="self-start text-sm font-medium text-primary hover:underline"
+          onClick={() => selectDate(today)}
+        >
+          Return to today
+        </button>
+      )}
+    </section>
   )
 }
 
@@ -565,6 +709,40 @@ function FixturesSkeleton(): React.JSX.Element {
       </div>
     </div>
   )
+}
+
+function TeamFixturesBrowserSkeleton(): React.JSX.Element {
+  return (
+    <div className="flex flex-col gap-5">
+      {[0, 1, 2].map((group) => (
+        <div key={group} className="overflow-hidden rounded-xl border bg-card">
+          <div className="border-b px-4 py-3">
+            <Skeleton className="h-4 w-36" />
+          </div>
+          <div className="divide-y">
+            {[0, 1].map((row) => (
+              <div key={row} className="space-y-3 px-4 py-3.5">
+                <Skeleton className="h-3 w-32" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-44" />
+                  <Skeleton className="h-4 w-36" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function formatFixtureGroupDate(date: string): string {
+  return new Intl.DateTimeFormat(undefined, {
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC',
+    weekday: 'long'
+  }).format(new Date(`${date}T12:00:00Z`))
 }
 
 function SquadSkeleton(): React.JSX.Element {

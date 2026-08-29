@@ -4,13 +4,15 @@ import type { CachedFixture, CachedStanding } from '@/data/db'
 import {
   competitionSeasonOptions,
   competitionTeams,
-  groupCompetitionFixturesByDate,
   groupStandings,
   nearestFixtureSeasonId,
   seasonFixtureDate,
   selectedCompetitionSeason
 } from './competition-workspace-data'
-import { splitEntityFixtures } from '@/features/fixtures/entity-fixture-data'
+import {
+  groupEntityFixturesByDate,
+  splitEntityFixtures
+} from '@/features/fixtures/entity-fixture-data'
 
 describe('competition workspace data', () => {
   it('groups overall standings by stage and sorts them by position', () => {
@@ -45,7 +47,7 @@ describe('competition workspace data', () => {
       fixture(2, Date.UTC(2026, 7, 28, 12))
     ]
 
-    expect(groupCompetitionFixturesByDate(fixtures, 'Europe/Stockholm')).toEqual([
+    expect(groupEntityFixturesByDate(fixtures, 'Europe/Stockholm')).toEqual([
       {
         date: '2026-08-28',
         fixtures: [fixtures[2], fixtures[1]]
