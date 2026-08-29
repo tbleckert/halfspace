@@ -40,6 +40,7 @@ interface FixtureDetailPageProps {
   competitionId?: number
   date?: string
   fixtureId: string
+  seasonId?: number
   teamId?: number
   view: FixtureView
 }
@@ -48,6 +49,7 @@ export function FixtureDetailPage({
   competitionId,
   date,
   fixtureId,
+  seasonId,
   teamId,
   view
 }: FixtureDetailPageProps): React.JSX.Element {
@@ -61,7 +63,14 @@ export function FixtureDetailPage({
   )
 
   if (!validFixtureId) {
-    return <MissingFixture competitionId={competitionId} date={date} teamId={teamId} />
+    return (
+      <MissingFixture
+        competitionId={competitionId}
+        date={date}
+        seasonId={seasonId}
+        teamId={teamId}
+      />
+    )
   }
 
   if (fixture.cached === undefined || (!fixture.cached.fixture && online && !fixture.error)) {
@@ -73,6 +82,7 @@ export function FixtureDetailPage({
       <MissingFixture
         competitionId={competitionId}
         date={date}
+        seasonId={seasonId}
         message={
           online ? (fixture.error ?? 'Fixture not found.') : 'Fixture not available offline.'
         }
@@ -100,6 +110,7 @@ export function FixtureDetailPage({
           competitionId={competitionId}
           competitionName={match.league?.name ?? fixture.cached.competition?.name}
           date={date}
+          seasonId={seasonId}
           teamId={teamId}
           teamName={teamParticipant?.name}
         />
@@ -144,7 +155,7 @@ export function FixtureDetailPage({
 
       <MatchScore
         competitionId={competitionId ?? cachedFixture.leagueId}
-        context={{ competition: competitionId, date, team: teamId }}
+        context={{ competition: competitionId, date, season: seasonId, team: teamId }}
         fixture={match}
         fixtureId={parsedFixtureId}
         online={online}
@@ -156,8 +167,10 @@ export function FixtureDetailPage({
         <FixturePreview
           competition={fixture.cached.competition}
           competitionId={competitionId ?? cachedFixture.leagueId}
+          date={date}
           fixture={match}
           online={online}
+          seasonId={seasonId}
           startingAt={cachedFixture.startingAt}
           teamId={teamId}
         />
@@ -324,15 +337,19 @@ function FixtureNavigation({
 function FixturePreview({
   competition,
   competitionId,
+  date,
   fixture,
   online,
+  seasonId,
   startingAt,
   teamId
 }: {
   competition: CachedCompetition | null
   competitionId: number
+  date?: string
   fixture: SportmonksFixture
   online: boolean
+  seasonId?: number
   startingAt: number | null
   teamId?: number
 }): React.JSX.Element {
@@ -341,8 +358,10 @@ function FixturePreview({
       <FixtureDetails
         competition={competition}
         competitionId={competitionId}
+        date={date}
         fixture={fixture}
         online={online}
+        seasonId={seasonId}
         startingAt={startingAt}
       />
       {fixture.venue && fixture.venue_id && (
@@ -743,14 +762,18 @@ function FixtureEmptyState({ children }: { children: React.ReactNode }): React.J
 function FixtureDetails({
   competition,
   competitionId,
+  date,
   fixture,
   online,
+  seasonId,
   startingAt
 }: {
   competition: CachedCompetition | null
   competitionId: number
+  date?: string
   fixture: SportmonksFixture
   online: boolean
+  seasonId?: number
   startingAt: number | null
 }): React.JSX.Element {
   const competitionName = fixture.league?.name ?? competition?.name ?? `League ${competitionId}`
@@ -767,6 +790,7 @@ function FixtureDetails({
             <Link
               to="/competitions/$competitionId"
               params={{ competitionId: String(competitionId) }}
+              search={{ date, season: seasonId }}
               className="flex items-center gap-2 font-medium hover:text-primary"
               {...intentPrefetchProps(online, () => prefetchCompetitionWorkspace(competitionId))}
             >
@@ -802,12 +826,14 @@ function FixtureBackLink({
   competitionId,
   competitionName,
   date,
+  seasonId,
   teamId,
   teamName
 }: {
   competitionId?: number
   competitionName?: string
   date?: string
+  seasonId?: number
   teamId?: number
   teamName?: string
 }): React.JSX.Element {
@@ -833,6 +859,7 @@ function FixtureBackLink({
       <Link
         to="/competitions/$competitionId"
         params={{ competitionId: String(competitionId) }}
+        search={{ date, season: seasonId }}
         className={className}
       >
         <ArrowLeft className="size-4" />
@@ -853,11 +880,13 @@ function MissingFixture({
   competitionId,
   date,
   message = 'Fixture not found.',
+  seasonId,
   teamId
 }: {
   competitionId?: number
   date?: string
   message?: string
+  seasonId?: number
   teamId?: number
 }): React.JSX.Element {
   return (
@@ -879,6 +908,7 @@ function MissingFixture({
             <Link
               to="/competitions/$competitionId"
               params={{ competitionId: String(competitionId) }}
+              search={{ date, season: seasonId }}
               className={cn(buttonVariants({ variant: 'outline' }), 'mt-4')}
             >
               <ArrowLeft className="size-4" />

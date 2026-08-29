@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import {
   AlertCircle,
   CalendarDays,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   RefreshCw,
@@ -27,15 +28,19 @@ import { cn } from '@/lib/utils'
 import { useOnline } from '@/lib/use-online'
 import { CompetitionLogo } from './competition-logo'
 import {
+  competitionSeasonOptions,
   competitionTeams,
   groupCompetitionFixturesByDate,
   groupStandings,
-  nearestFixtureSeasonId
+  nearestFixtureSeasonId,
+  seasonFixtureDate,
+  selectedCompetitionSeason
 } from './competition-workspace-data'
 import {
   competitionWorkspaceFixtureInput,
   prefetchCompetitionWorkspace,
   useCompetitionFixtures,
+  useCompetitionSeasons,
   useStandings
 } from './use-competition-workspace'
 
@@ -44,10 +49,12 @@ type CompetitionView = 'overview' | 'fixtures' | 'teams'
 export function CompetitionWorkspacePage({
   competitionId,
   date,
+  season: requestedSeasonId,
   view = 'overview'
 }: {
   competitionId: string
   date?: string
+  season?: number
   view?: CompetitionView
 }): React.JSX.Element {
   const parsedCompetitionId = Number(competitionId)
@@ -58,8 +65,23 @@ export function CompetitionWorkspacePage({
     [parsedCompetitionId, validCompetitionId]
   )
   const online = useOnline()
+  const navigate = useNavigate({ from: '/competitions/$competitionId' })
   const timeZone = useMemo(() => currentTimeZone(), [])
-  const fixtureDate = date ?? todayInTimeZone(timeZone)
+  const today = todayInTimeZone(timeZone)
+  const seasons = useCompetitionSeasons(validCompetitionId ? parsedCompetitionId : null, online)
+  const seasonOptions = useMemo(
+    () =>
+      competitionSeasonOptions(
+        seasons.cached?.seasons ?? [],
+        competition?.raw.currentseason ?? null
+      ),
+    [competition?.raw.currentseason, seasons.cached?.seasons]
+  )
+  const selectedSeason = useMemo(
+    () => selectedCompetitionSeason(seasonOptions, requestedSeasonId),
+    [requestedSeasonId, seasonOptions]
+  )
+  const fixtureDate = date ?? seasonFixtureDate(selectedSeason, today)
   const fixtureInput = useMemo(
     () =>
       validCompetitionId
@@ -73,7 +95,10 @@ export function CompetitionWorkspacePage({
     () => nearestFixtureSeasonId(fixtures.cached?.fixtures ?? [], workspaceOpenedAt),
     [fixtures.cached?.fixtures, workspaceOpenedAt]
   )
-  const seasonId = competition?.currentSeasonId ?? observedSeasonId
+  const seasonId =
+    (requestedSeasonId && !seasons.cached ? requestedSeasonId : selectedSeason?.id) ??
+    competition?.currentSeasonId ??
+    observedSeasonId
   const standings = useStandings(seasonId, online && view !== 'fixtures')
   const seasonFixtures = useMemo(() => {
     const cachedFixtures = fixtures.cached?.fixtures ?? []
@@ -97,19 +122,37 @@ export function CompetitionWorkspacePage({
     () => competitionTeams(standings.cached?.standings ?? [], seasonFixtures),
     [seasonFixtures, standings.cached?.standings]
   )
-  const refreshing = fixtures.refreshing || (view !== 'fixtures' && standings.refreshing)
-  const errors = [fixtures.error, view === 'fixtures' ? null : standings.error].filter(
-    (error): error is string => Boolean(error)
-  )
+  const refreshing =
+    seasons.refreshing || fixtures.refreshing || (view !== 'fixtures' && standings.refreshing)
+  const errors = [
+    seasons.error,
+    fixtures.error,
+    view === 'fixtures' ? null : standings.error
+  ].filter((error): error is string => Boolean(error))
 
   if (competition === undefined) return <CompetitionWorkspaceSkeleton />
   if (!competition) return <MissingCompetition />
 
   async function refresh(): Promise<void> {
     await Promise.all([
+      seasons.refresh(),
       fixtures.refresh(),
       view === 'fixtures' ? Promise.resolve() : standings.refresh()
     ])
+  }
+
+  function selectSeason(nextSeasonId: number): void {
+    const nextSeason = seasonOptions.find(({ id }) => id === nextSeasonId)
+    if (!nextSeason) return
+
+    void navigate({
+      search: (previous) => ({
+        ...previous,
+        date: seasonFixtureDate(nextSeason, today),
+        season: nextSeason.id
+      }),
+      replace: true
+    })
   }
 
   return (
@@ -124,11 +167,29 @@ export function CompetitionWorkspacePage({
             />
             <div className="min-w-0">
               <h1 className="truncate text-3xl font-semibold tracking-tight">{competition.name}</h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {[competition.raw.country?.name, competition.currentSeasonName]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </p>
+              <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+                {competition.raw.country?.name && <span>{competition.raw.country.name}</span>}
+                {competition.raw.country?.name && seasonOptions.length > 0 && <span>·</span>}
+                {seasonOptions.length > 0 && (
+                  <label className="relative -ml-1 inline-flex items-center">
+                    <span className="sr-only">Season</span>
+                    <select
+                      aria-label="Season"
+                      className="h-7 appearance-none rounded-md bg-transparent py-0 pl-1 pr-6 font-medium text-foreground outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default disabled:opacity-70"
+                      disabled={seasonOptions.length < 2}
+                      value={selectedSeason?.id ?? seasonId ?? ''}
+                      onChange={(event) => selectSeason(Number(event.target.value))}
+                    >
+                      {seasonOptions.map((season) => (
+                        <option key={season.id} value={season.id}>
+                          {season.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-1 size-3.5" />
+                  </label>
+                )}
+              </div>
             </div>
           </div>
 
@@ -147,6 +208,7 @@ export function CompetitionWorkspacePage({
           competitionId={competition.id}
           date={fixtureDate}
           online={online}
+          season={seasonId ?? undefined}
           view={view}
         />
       </div>
@@ -161,10 +223,12 @@ export function CompetitionWorkspacePage({
       {view === 'overview' && (
         <CompetitionOverview
           competitionId={competition.id}
+          date={fixtureDate}
           fixtureSections={fixtureSections}
           fixturesLoading={fixtures.refreshing}
           fixturesLoaded={fixtures.cached !== undefined}
           online={online}
+          season={seasonId ?? undefined}
           seasonId={seasonId}
           standingGroups={standingGroups}
           standingsLoaded={standings.cached !== undefined}
@@ -180,6 +244,7 @@ export function CompetitionWorkspacePage({
           fixturesLoaded={fixtures.cached !== undefined}
           loading={fixtures.refreshing}
           online={online}
+          season={selectedSeason}
           timeZone={timeZone}
         />
       )}
@@ -201,11 +266,13 @@ function CompetitionNavigation({
   competitionId,
   date,
   online,
+  season,
   view
 }: {
   competitionId: number
   date: string
   online: boolean
+  season?: number
   view: CompetitionView
 }): React.JSX.Element {
   const itemClassName =
@@ -218,6 +285,7 @@ function CompetitionNavigation({
         aria-current={view === 'overview' ? 'page' : undefined}
         to="/competitions/$competitionId"
         params={{ competitionId: String(competitionId) }}
+        search={{ date, season }}
         className={competitionNavigationClassName(itemClassName, view === 'overview')}
         {...prefetch}
       >
@@ -227,7 +295,7 @@ function CompetitionNavigation({
         aria-current={view === 'fixtures' ? 'page' : undefined}
         to="/competitions/$competitionId/fixtures"
         params={{ competitionId: String(competitionId) }}
-        search={{ date }}
+        search={{ date, season }}
         className={competitionNavigationClassName(itemClassName, view === 'fixtures')}
         {...prefetch}
       >
@@ -237,6 +305,7 @@ function CompetitionNavigation({
         aria-current={view === 'teams' ? 'page' : undefined}
         to="/competitions/$competitionId/teams"
         params={{ competitionId: String(competitionId) }}
+        search={{ date, season }}
         className={competitionNavigationClassName(itemClassName, view === 'teams')}
         {...prefetch}
       >
@@ -257,20 +326,24 @@ function competitionNavigationClassName(itemClassName: string, active: boolean):
 
 function CompetitionOverview({
   competitionId,
+  date,
   fixtureSections,
   fixturesLoaded,
   fixturesLoading,
   online,
+  season,
   seasonId,
   standingGroups,
   standingsLoaded,
   standingsLoading
 }: {
   competitionId: number
+  date: string
   fixtureSections: ReturnType<typeof splitEntityFixtures>
   fixturesLoaded: boolean
   fixturesLoading: boolean
   online: boolean
+  season?: number
   seasonId: number | null
   standingGroups: ReturnType<typeof groupStandings>
   standingsLoaded: boolean
@@ -307,14 +380,14 @@ function CompetitionOverview({
         ) : (
           <>
             <EntityFixturePanel
-              context={{ competition: competitionId }}
+              context={{ competition: competitionId, date, season }}
               fixtures={fixtureSections.upcoming}
               label="Upcoming"
               loading={fixturesLoading}
               online={online}
             />
             <EntityFixturePanel
-              context={{ competition: competitionId }}
+              context={{ competition: competitionId, date, season }}
               fixtures={fixtureSections.recent}
               label="Recent"
               loading={fixturesLoading}
@@ -334,6 +407,7 @@ function CompetitionFixtures({
   fixturesLoaded,
   loading,
   online,
+  season,
   timeZone
 }: {
   competitionId: number
@@ -342,6 +416,7 @@ function CompetitionFixtures({
   fixturesLoaded: boolean
   loading: boolean
   online: boolean
+  season: ReturnType<typeof selectedCompetitionSeason>
   timeZone: string
 }): React.JSX.Element {
   const navigate = useNavigate({ from: '/competitions/$competitionId/fixtures' })
@@ -350,10 +425,15 @@ function CompetitionFixtures({
   function selectDate(nextDate: string): void {
     void navigate({
       params: { competitionId: String(competitionId) },
-      search: { date: nextDate },
+      search: (previous) => ({
+        ...previous,
+        date: seasonFixtureDate(season, nextDate)
+      }),
       replace: true
     })
   }
+
+  const defaultDate = seasonFixtureDate(season, today)
 
   return (
     <section className="flex flex-col gap-5">
@@ -362,6 +442,7 @@ function CompetitionFixtures({
         <div className="flex items-center gap-2">
           <Button
             aria-label="Earlier fixtures"
+            disabled={Boolean(season?.starting_at && date <= season.starting_at)}
             size="icon"
             variant="outline"
             onClick={() => selectDate(addDaysToIsoDate(date, -29))}
@@ -373,10 +454,13 @@ function CompetitionFixtures({
             className="w-40 bg-card"
             type="date"
             value={date}
+            min={season?.starting_at ?? undefined}
+            max={season?.ending_at ?? undefined}
             onChange={(event) => selectDate(event.target.value)}
           />
           <Button
             aria-label="Later fixtures"
+            disabled={Boolean(season?.ending_at && date >= season.ending_at)}
             size="icon"
             variant="outline"
             onClick={() => selectDate(addDaysToIsoDate(date, 29))}
@@ -398,7 +482,11 @@ function CompetitionFixtures({
           {fixtureGroups.map((group) => (
             <EntityFixturePanel
               key={group.date}
-              context={{ competition: competitionId }}
+              context={{
+                competition: competitionId,
+                date,
+                season: season?.id
+              }}
               dateDisplay="time"
               fixtures={group.fixtures}
               label={formatFixtureGroupDate(group.date)}
@@ -409,12 +497,12 @@ function CompetitionFixtures({
         </div>
       )}
 
-      {date !== today && (
+      {date !== defaultDate && (
         <button
           className="self-start text-sm font-medium text-primary hover:underline"
-          onClick={() => selectDate(today)}
+          onClick={() => selectDate(defaultDate)}
         >
-          Return to today
+          {defaultDate === today ? 'Return to today' : 'Latest fixtures'}
         </button>
       )}
     </section>

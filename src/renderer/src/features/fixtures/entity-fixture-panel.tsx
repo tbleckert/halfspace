@@ -10,6 +10,8 @@ import { prefetchFixtureEntity } from './use-fixtures'
 
 interface FixtureContext {
   competition?: number
+  date?: string
+  season?: number
   team?: number
 }
 

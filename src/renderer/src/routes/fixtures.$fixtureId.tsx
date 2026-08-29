@@ -9,7 +9,7 @@ export const Route = createFileRoute('/fixtures/$fixtureId')({
 
 function FixtureDetailRoute(): React.JSX.Element {
   const { fixtureId } = Route.useParams()
-  const { competition, date, team } = Route.useSearch()
+  const { competition, date, season, team } = Route.useSearch()
   const matchRoute = useMatchRoute()
   let view: 'lineups' | 'odds' | 'preview' | 'stats' | 'timeline' = 'preview'
 
@@ -53,6 +53,7 @@ function FixtureDetailRoute(): React.JSX.Element {
         competitionId={competition}
         date={date}
         fixtureId={fixtureId}
+        seasonId={season}
         teamId={team}
         view={view}
       />

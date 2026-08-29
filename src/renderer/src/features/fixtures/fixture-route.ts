@@ -9,6 +9,7 @@ const optionalPositiveId = z.preprocess((value) => {
 export const fixtureDetailSearchSchema = z.object({
   date: z.string().refine(isIsoDate).optional().catch(undefined),
   competition: optionalPositiveId,
+  season: optionalPositiveId,
   team: optionalPositiveId
 })
 

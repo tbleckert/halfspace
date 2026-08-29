@@ -1,11 +1,16 @@
 import { createFileRoute, Outlet, useMatchRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 import { CompetitionWorkspacePage } from '@/features/competitions/competition-workspace-page'
-import { currentTimeZone, isIsoDate, todayInTimeZone } from '@/lib/date'
+import { isIsoDate } from '@/lib/date'
 
-const defaultDate = todayInTimeZone(currentTimeZone())
+const optionalPositiveId = z.preprocess((value) => {
+  const parsed = typeof value === 'number' || typeof value === 'string' ? Number(value) : NaN
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined
+}, z.number().int().positive().optional())
+
 const competitionSearchSchema = z.object({
-  date: z.string().refine(isIsoDate).catch(defaultDate).default(defaultDate)
+  date: z.string().refine(isIsoDate).optional().catch(undefined),
+  season: optionalPositiveId
 })
 
 export const Route = createFileRoute('/competitions_/$competitionId')({
@@ -15,7 +20,7 @@ export const Route = createFileRoute('/competitions_/$competitionId')({
 
 function CompetitionWorkspaceRoute(): React.JSX.Element {
   const { competitionId } = Route.useParams()
-  const { date } = Route.useSearch()
+  const { date, season } = Route.useSearch()
   const matchRoute = useMatchRoute()
   const view = matchRoute({
     to: '/competitions/$competitionId/fixtures',
@@ -33,7 +38,12 @@ function CompetitionWorkspaceRoute(): React.JSX.Element {
 
   return (
     <>
-      <CompetitionWorkspacePage competitionId={competitionId} date={date} view={view} />
+      <CompetitionWorkspacePage
+        competitionId={competitionId}
+        date={date}
+        season={season}
+        view={view}
+      />
       <Outlet />
     </>
   )

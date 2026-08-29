@@ -33,6 +33,7 @@ beforeEach(() => {
       refreshFixture: vi.fn(),
       refreshFixtureOdds: vi.fn(),
       refreshCompetitions: vi.fn(),
+      refreshCompetitionSeasons: vi.fn(),
       refreshStandings: vi.fn(),
       refreshCompetitionFixtures: vi.fn(),
       refreshTeam: vi.fn(),

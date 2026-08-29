@@ -28,8 +28,9 @@ abstractions.
   navigation view does not remount shared data, headers, or context.
 - Competition pages use horizontal local navigation for Overview, Fixtures, and Teams. Overview is
   the current-season snapshot, Fixtures browses the complete cached date window without truncating
-  it, and Teams combines standings with fixture participants when a table is unavailable. Add
-  historical season selection only when the current-season flow is established.
+  it, and Teams combines standings with fixture participants when a table is unavailable. Offer the
+  current and previous seasons in a compact URL-backed selector; keep standings and fixture windows
+  season-scoped, and keep the selected season when changing competition views or opening a fixture.
 - Team pages use horizontal local navigation beneath the team header and above their competition
   context. Keep Overview and Squad there, and extend that menu when more team views are added. Make
   the active item prominent with the shared active-indicator treatment.

@@ -1,6 +1,7 @@
 import Dexie, { type Table } from 'dexie'
 import type {
   CompetitionRefresh,
+  CompetitionSeasonsRefresh,
   EntitySearchRefresh,
   FixtureDetailRefresh,
   FixtureOddsRefresh,
@@ -16,6 +17,7 @@ import type {
   SportmonksOdd,
   SportmonksParticipant,
   SportmonksPlayer,
+  SportmonksSeason,
   SportmonksStanding,
   SportmonksTeam,
   SportmonksVenue,
@@ -28,6 +30,7 @@ import { isFixtureOngoing } from '@/lib/fixture-state'
 
 const subscribedCompetitionCatalog = 'subscribed'
 const competitionCacheDuration = 24 * 60 * 60 * 1000
+const competitionSeasonsCacheDuration = 24 * 60 * 60 * 1000
 const standingsCacheDuration = 60 * 60 * 1000
 const competitionFixturesCacheDuration = 15 * 60 * 1000
 const teamCacheDuration = 24 * 60 * 60 * 1000
@@ -283,6 +286,17 @@ export interface CompetitionCatalog {
   message?: string
 }
 
+export interface CompetitionSeasonQuery {
+  competitionId: number
+  seasons: SportmonksSeason[]
+  fetchedAt: number
+  staleAt: number
+  pageCount: number
+  rateLimitRemaining?: number
+  rateLimitResetsAt?: number
+  message?: string
+}
+
 export interface CompetitionPin {
   competitionId: number
   pinnedAt: number
@@ -296,6 +310,7 @@ class HalfspaceDatabase extends Dexie {
   competitions!: Table<CachedCompetition, number>
   competitionCatalogs!: Table<CompetitionCatalog, string>
   competitionPins!: Table<CompetitionPin, number>
+  competitionSeasonQueries!: Table<CompetitionSeasonQuery, number>
   standings!: Table<CachedStanding, number>
   standingQueries!: Table<StandingQuery, number>
   competitionFixtureQueries!: Table<CompetitionFixtureQuery, string>
@@ -398,6 +413,29 @@ class HalfspaceDatabase extends Dexie {
       competitions: 'id, active, name, countryId',
       competitionCatalogs: '&key, staleAt',
       competitionPins: '&competitionId, pinnedAt',
+      standings: 'id, participantId, seasonId, [seasonId+position], leagueId, stageId, groupId',
+      standingQueries: '&seasonId, staleAt',
+      competitionFixtureQueries: '&key, competitionId, staleAt',
+      teams: 'id, name, countryId, venueId, staleAt',
+      teamFixtureQueries: '&key, teamId, staleAt',
+      venues: 'id, name, countryId, staleAt',
+      players: 'id, name, displayName, positionId, nationalityId, staleAt',
+      squadEntries: 'id, teamId, playerId, positionId, [teamId+positionId]',
+      teamSquadQueries: '&teamId, staleAt',
+      playerAppearances: '&key, playerId, teamId, fixtureId, [playerId+fixtureId]',
+      playerAppearanceQueries: '&key, playerId, teamId, staleAt'
+    })
+
+    this.version(8).stores({
+      fixtures:
+        'id, leagueId, startingAt, [leagueId+startingAt], stateId, homeTeamId, awayTeamId, staleAt',
+      fixtureQueries: '&key, date, staleAt',
+      fixtureOdds: 'id, fixtureId, marketId, bookmakerId, [fixtureId+marketId]',
+      fixtureOddsQueries: '&fixtureId, staleAt',
+      competitions: 'id, active, name, countryId',
+      competitionCatalogs: '&key, staleAt',
+      competitionPins: '&competitionId, pinnedAt',
+      competitionSeasonQueries: '&competitionId, staleAt',
       standings: 'id, participantId, seasonId, [seasonId+position], leagueId, stageId, groupId',
       standingQueries: '&seasonId, staleAt',
       competitionFixtureQueries: '&key, competitionId, staleAt',
@@ -583,6 +621,28 @@ export async function writeCompetitionRefresh(refresh: CompetitionRefresh): Prom
     await db.competitions.clear()
     await db.competitions.bulkPut(competitions)
     await db.competitionCatalogs.put(catalog)
+  })
+}
+
+export async function readCompetitionSeasons(
+  competitionId: number
+): Promise<CompetitionSeasonQuery | null> {
+  return (await db.competitionSeasonQueries.get(competitionId)) ?? null
+}
+
+export async function writeCompetitionSeasonsRefresh(
+  competitionId: number,
+  refresh: CompetitionSeasonsRefresh
+): Promise<void> {
+  await db.competitionSeasonQueries.put({
+    competitionId,
+    seasons: refresh.seasons,
+    fetchedAt: refresh.fetchedAt,
+    staleAt: refresh.fetchedAt + competitionSeasonsCacheDuration,
+    pageCount: refresh.pageCount,
+    rateLimitRemaining: refresh.rateLimit?.remaining,
+    rateLimitResetsAt: refresh.rateLimit?.resetsAt,
+    message: refresh.message
   })
 }
 
@@ -1145,6 +1205,7 @@ export async function clearSportmonksCache(): Promise<void> {
       db.fixtureOddsQueries,
       db.competitions,
       db.competitionCatalogs,
+      db.competitionSeasonQueries,
       db.standings,
       db.standingQueries,
       db.competitionFixtureQueries,
@@ -1164,6 +1225,7 @@ export async function clearSportmonksCache(): Promise<void> {
       await db.fixtureOddsQueries.clear()
       await db.competitions.clear()
       await db.competitionCatalogs.clear()
+      await db.competitionSeasonQueries.clear()
       await db.standings.clear()
       await db.standingQueries.clear()
       await db.competitionFixtureQueries.clear()

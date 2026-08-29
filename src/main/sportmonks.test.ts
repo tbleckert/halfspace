@@ -3,6 +3,7 @@ import type { SportmonksCompetition, SportmonksFixture, SportmonksPlayer } from 
 import {
   fetchCompetitions,
   fetchCompetitionFixtures,
+  fetchCompetitionSeasons,
   fetchEntitySearch,
   fetchFixtureById,
   fetchFixtureOdds,
@@ -15,6 +16,7 @@ import {
   fetchTeamSquad,
   fetchVenueById,
   validateCompetitionFixturesInput,
+  validateCompetitionSeasonsInput,
   validateEntitySearchInput,
   validateFixtureInput,
   validateRefreshInput,
@@ -216,6 +218,42 @@ describe('Sportmonks client', () => {
     const firstUrl = new URL(firstInput.toString())
     expect(firstUrl.pathname).toBe('/v3/football/leagues')
     expect(firstUrl.searchParams.get('include')).toBe('country;currentSeason')
+    expect(firstUrl.searchParams.get('per_page')).toBe('50')
+    expect(firstUrl.searchParams.get('page')).toBe('1')
+    expect(firstUrl.searchParams.has('api_token')).toBe(false)
+    expect(new Headers(firstInit?.headers).get('Authorization')).toBe('private-token')
+  })
+
+  it('fetches every season for one competition', async () => {
+    const currentSeason = makeCompetition().currentseason!
+    const previousSeason = {
+      ...currentSeason,
+      id: 21646,
+      name: '2025/2026',
+      is_current: false,
+      starting_at: '2025-08-01',
+      ending_at: '2026-05-31'
+    }
+    const fetcher = vi.fn<typeof fetch>(async (input) => {
+      const page = Number(new URL(input.toString()).searchParams.get('page'))
+
+      return Response.json({
+        data: page === 1 ? [currentSeason] : [previousSeason],
+        pagination: { current_page: page, has_more: page === 1 },
+        rate_limit: { remaining: 2_996, resets_in_seconds: 3_600 }
+      })
+    })
+
+    const refresh = await fetchCompetitionSeasons({ competitionId: 8 }, 'private-token', fetcher)
+
+    expect(refresh.seasons.map(({ id }) => id)).toEqual([23614, 21646])
+    expect(refresh.pageCount).toBe(2)
+
+    const [firstInput, firstInit] = fetcher.mock.calls[0]
+    const firstUrl = new URL(firstInput.toString())
+    expect(firstUrl.pathname).toBe('/v3/football/seasons')
+    expect(firstUrl.searchParams.get('filters')).toBe('seasonLeagues:8')
+    expect(firstUrl.searchParams.get('order')).toBe('desc')
     expect(firstUrl.searchParams.get('per_page')).toBe('50')
     expect(firstUrl.searchParams.get('page')).toBe('1')
     expect(firstUrl.searchParams.has('api_token')).toBe(false)
@@ -615,6 +653,9 @@ describe('Sportmonks client', () => {
     )
     expect(() => validateToken('token with spaces')).toThrow('Enter a valid Sportmonks token.')
     expect(() => validateStandingsInput({ seasonId: -1 })).toThrow('Choose a valid current season.')
+    expect(() => validateCompetitionSeasonsInput({ competitionId: 0 })).toThrow(
+      'Choose a valid competition.'
+    )
     expect(() => validateTeamInput({ teamId: 0 })).toThrow('Choose a valid team.')
     expect(() => validateVenueInput({ venueId: 0 })).toThrow('Choose a valid venue.')
     expect(() => validatePlayerInput({ playerId: 0 })).toThrow('Choose a valid player.')

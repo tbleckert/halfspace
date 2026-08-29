@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest'
+import type { SportmonksSeason } from '@shared/contracts'
 import type { CachedFixture, CachedStanding } from '@/data/db'
 import {
+  competitionSeasonOptions,
   competitionTeams,
   groupCompetitionFixturesByDate,
   groupStandings,
-  nearestFixtureSeasonId
+  nearestFixtureSeasonId,
+  seasonFixtureDate,
+  selectedCompetitionSeason
 } from './competition-workspace-data'
 import { splitEntityFixtures } from '@/features/fixtures/entity-fixture-data'
 
@@ -72,7 +76,44 @@ describe('competition workspace data', () => {
       { id: 3, imagePath: 'west.png', name: 'West FC', points: null, position: null }
     ])
   })
+
+  it('offers the current and previous seasons in recency order', () => {
+    const current = season(23614, '2026/2027', true, '2026-08-01', '2027-05-31')
+    const previous = season(21646, '2025/2026', false, '2025-08-01', '2026-05-31')
+    const older = season(19686, '2024/2025', false, '2024-08-01', '2025-05-31')
+
+    const options = competitionSeasonOptions([older, current, previous], current)
+
+    expect(options.map(({ id }) => id)).toEqual([23614, 21646])
+    expect(selectedCompetitionSeason(options, 21646)?.id).toBe(21646)
+    expect(selectedCompetitionSeason(options, 999)?.id).toBe(23614)
+  })
+
+  it('anchors fixture windows inside the selected season', () => {
+    const previous = season(21646, '2025/2026', false, '2025-08-01', '2026-05-31')
+
+    expect(seasonFixtureDate(previous, '2026-08-29')).toBe('2026-05-31')
+    expect(seasonFixtureDate(previous, '2025-07-01')).toBe('2025-08-01')
+    expect(seasonFixtureDate(previous, '2026-01-15')).toBe('2026-01-15')
+  })
 })
+
+function season(
+  id: number,
+  name: string,
+  isCurrent: boolean,
+  startingAt: string,
+  endingAt: string
+): SportmonksSeason {
+  return {
+    id,
+    league_id: 8,
+    name,
+    is_current: isCurrent,
+    starting_at: startingAt,
+    ending_at: endingAt
+  }
+}
 
 function standing(
   id: number,

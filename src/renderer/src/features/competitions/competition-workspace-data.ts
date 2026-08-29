@@ -1,4 +1,5 @@
 import type { CachedFixture, CachedStanding } from '@/data/db'
+import type { SportmonksSeason } from '@shared/contracts'
 
 export interface StandingGroup {
   key: string
@@ -114,6 +115,41 @@ export function nearestFixtureSeasonId(
     )[0]
 
   return nearest?.seasonId ?? null
+}
+
+export function competitionSeasonOptions(
+  seasons: readonly SportmonksSeason[],
+  currentSeason?: SportmonksSeason | null
+): SportmonksSeason[] {
+  const uniqueSeasons = new Map<number, SportmonksSeason>()
+
+  for (const season of [...seasons, ...(currentSeason ? [currentSeason] : [])]) {
+    uniqueSeasons.set(season.id, season)
+  }
+
+  return [...uniqueSeasons.values()]
+    .toSorted((left, right) => {
+      if (left.is_current !== right.is_current) return left.is_current ? -1 : 1
+
+      const leftDate = left.ending_at ?? left.starting_at ?? ''
+      const rightDate = right.ending_at ?? right.starting_at ?? ''
+      return rightDate.localeCompare(leftDate) || right.id - left.id
+    })
+    .slice(0, 2)
+}
+
+export function selectedCompetitionSeason(
+  seasons: readonly SportmonksSeason[],
+  requestedSeasonId?: number
+): SportmonksSeason | null {
+  return seasons.find(({ id }) => id === requestedSeasonId) ?? seasons[0] ?? null
+}
+
+export function seasonFixtureDate(season: SportmonksSeason | null, today: string): string {
+  if (!season) return today
+  if (season.starting_at && today < season.starting_at) return season.starting_at
+  if (season.ending_at && today > season.ending_at) return season.ending_at
+  return today
 }
 
 function standingRows(standings: readonly CachedStanding[]): readonly CachedStanding[] {

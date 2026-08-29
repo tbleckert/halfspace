@@ -1,6 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type {
   CompetitionRefresh,
+  CompetitionSeasonsRefresh,
   EntitySearchRefresh,
   FixtureDetailRefresh,
   FixtureOddsRefresh,
@@ -19,6 +20,7 @@ import type {
 import {
   db,
   readCompetitionCatalog,
+  readCompetitionSeasons,
   readCompetitionFixtureQuery,
   readEntitySearch,
   readFixtureQuery,
@@ -34,6 +36,7 @@ import {
   setCompetitionPinned,
   writeCompetitionFixtureRefresh,
   writeCompetitionRefresh,
+  writeCompetitionSeasonsRefresh,
   writeEntitySearchRefresh,
   writeFixtureDetailRefresh,
   writeFixtureOddsRefresh,
@@ -60,6 +63,7 @@ beforeEach(async () => {
       db.competitions,
       db.competitionCatalogs,
       db.competitionPins,
+      db.competitionSeasonQueries,
       db.standings,
       db.standingQueries,
       db.competitionFixtureQueries,
@@ -80,6 +84,7 @@ beforeEach(async () => {
       await db.competitions.clear()
       await db.competitionCatalogs.clear()
       await db.competitionPins.clear()
+      await db.competitionSeasonQueries.clear()
       await db.standings.clear()
       await db.standingQueries.clear()
       await db.competitionFixtureQueries.clear()
@@ -394,6 +399,35 @@ describe('competition cache', () => {
 })
 
 describe('competition workspace cache', () => {
+  it('writes and reads the season catalogue for one competition', async () => {
+    const refresh: CompetitionSeasonsRefresh = {
+      fetchedAt: Date.UTC(2026, 7, 29, 10),
+      pageCount: 1,
+      seasons: [
+        {
+          id: 23614,
+          league_id: 8,
+          name: '2026/2027',
+          is_current: true,
+          starting_at: '2026-08-01',
+          ending_at: '2027-05-31'
+        },
+        {
+          id: 21646,
+          league_id: 8,
+          name: '2025/2026',
+          is_current: false,
+          starting_at: '2025-08-01',
+          ending_at: '2026-05-31'
+        }
+      ]
+    }
+
+    await writeCompetitionSeasonsRefresh(8, refresh)
+
+    expect((await readCompetitionSeasons(8))?.seasons.map(({ id }) => id)).toEqual([23614, 21646])
+  })
+
   it('writes and reads a season standings snapshot', async () => {
     const refresh: StandingsRefresh = {
       fetchedAt: Date.UTC(2026, 7, 28, 10),
