@@ -117,6 +117,13 @@ export function invalidatePlayerRefreshes(): void {
   playerAppearanceRefreshes.clear()
 }
 
+export async function prefetchPlayerEntity(playerId: number): Promise<void> {
+  const cached = await readPlayerIdentity(playerId)
+  if (cached.player?.detailed && cached.player.staleAt > Date.now()) return
+
+  await refreshPlayerEntity(playerId)
+}
+
 export async function refreshPlayerEntity(playerId: number): Promise<void> {
   const active = playerRefreshes.get(playerId)
   if (active?.generation === refreshGeneration) return active.promise

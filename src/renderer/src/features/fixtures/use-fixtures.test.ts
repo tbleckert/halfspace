@@ -6,6 +6,7 @@ import { db, readFixtureIdentity, readFixtureQuery } from '@/data/db'
 import { currentTimeZone, todayInTimeZone } from '@/lib/date'
 import {
   invalidateFixtureRefreshes,
+  prefetchFixtureEntity,
   prefetchFixtureQuery,
   refreshFixtureEntity
 } from './use-fixtures'
@@ -32,6 +33,19 @@ describe('fixture refresh', () => {
 
     expect(refreshFixtures).toHaveBeenCalledTimes(1)
     expect((await readFixtureQuery(date, currentTimeZone())).fixtures).toHaveLength(1)
+  })
+
+  it('prefetches missing fixture detail without refetching fresh data', async () => {
+    const refreshFixture = vi.fn().mockResolvedValue({
+      ok: true,
+      data: fixtureRefresh('Manchester City vs Arsenal', Date.now())
+    })
+    installHalfspace({ refreshFixture })
+
+    await prefetchFixtureEntity(19425456)
+    await prefetchFixtureEntity(19425456)
+
+    expect(refreshFixture).toHaveBeenCalledTimes(1)
   })
 
   it('does not restore an old fixture after the credential changes', async () => {
@@ -67,9 +81,9 @@ function fixtureListRefresh(): FixtureRefresh {
   }
 }
 
-function fixtureRefresh(name: string): FixtureDetailRefresh {
+function fixtureRefresh(name: string, fetchedAt = Date.UTC(2026, 7, 28, 10)): FixtureDetailRefresh {
   return {
-    fetchedAt: Date.UTC(2026, 7, 28, 10),
+    fetchedAt,
     fixture: {
       id: 19425456,
       league_id: 8,

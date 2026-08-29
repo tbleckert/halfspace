@@ -15,6 +15,8 @@ import { useOnline } from '@/lib/use-online'
 import { CompetitionLogo } from './competition-logo'
 import { groupStandings, nearestFixtureSeasonId } from './competition-workspace-data'
 import { TeamLogo } from '@/features/teams/team-logo'
+import { prefetchTeamEntity } from '@/features/teams/use-team'
+import { intentPrefetchProps } from '@/lib/prefetch'
 import {
   competitionWorkspaceFixtureInput,
   useCompetitionFixtures,
@@ -190,6 +192,7 @@ function StandingsTable({
                   params={{ teamId: String(standing.participantId) }}
                   search={{ competition: competitionId }}
                   className="flex min-w-0 items-center gap-2.5 rounded-sm outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
+                  {...intentPrefetchProps(online, () => prefetchTeamEntity(standing.participantId))}
                 >
                   <TeamLogo
                     className="size-7 bg-background"

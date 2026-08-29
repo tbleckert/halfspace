@@ -1,19 +1,50 @@
 // @vitest-environment jsdom
 
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Result, TeamRefresh } from '@shared/contracts'
+import type { Result, TeamRefresh, TeamSquadRefresh } from '@shared/contracts'
 import { db, readTeamIdentity } from '@/data/db'
-import { invalidateTeamRefreshes, refreshTeamEntity } from './use-team'
+import {
+  invalidateTeamRefreshes,
+  prefetchTeamEntity,
+  prefetchTeamSquad,
+  refreshTeamEntity
+} from './use-team'
 
 beforeEach(async () => {
   invalidateTeamRefreshes()
   if (!db.isOpen()) await db.open()
-  await db.teams.clear()
+  await db.transaction('rw', db.teams, db.squadEntries, db.teamSquadQueries, async () => {
+    await db.teams.clear()
+    await db.squadEntries.clear()
+    await db.teamSquadQueries.clear()
+  })
 })
 
 afterAll(() => db.close())
 
 describe('team refresh', () => {
+  it('prefetches missing team detail without refetching fresh data', async () => {
+    const refreshTeam = vi
+      .fn()
+      .mockResolvedValue({ ok: true, data: teamRefresh('Manchester City', Date.now()) })
+    installHalfspace({ refreshTeam })
+
+    await prefetchTeamEntity(9)
+    await prefetchTeamEntity(9)
+
+    expect(refreshTeam).toHaveBeenCalledTimes(1)
+  })
+
+  it('prefetches a missing squad without refetching fresh data', async () => {
+    const refreshTeamSquad = vi.fn().mockResolvedValue({ ok: true, data: teamSquadRefresh() })
+    installHalfspace({ refreshTeamSquad })
+
+    await prefetchTeamSquad(9)
+    await prefetchTeamSquad(9)
+
+    expect(refreshTeamSquad).toHaveBeenCalledTimes(1)
+  })
+
   it('does not restore an old team after the credential changes', async () => {
     const oldRequest = deferred<Result<TeamRefresh>>()
     const newRequest = deferred<Result<TeamRefresh>>()
@@ -22,28 +53,7 @@ describe('team refresh', () => {
       .mockReturnValueOnce(oldRequest.promise)
       .mockReturnValueOnce(newRequest.promise)
 
-    window.halfspace = {
-      credentials: {
-        getConnectionState: vi.fn(),
-        saveToken: vi.fn(),
-        clearToken: vi.fn()
-      },
-      sportmonks: {
-        refreshFixtures: vi.fn(),
-        refreshFixture: vi.fn(),
-        refreshFixtureOdds: vi.fn(),
-        refreshCompetitions: vi.fn(),
-        refreshStandings: vi.fn(),
-        refreshCompetitionFixtures: vi.fn(),
-        refreshTeam,
-        refreshTeamFixtures: vi.fn(),
-        refreshTeamSquad: vi.fn(),
-        refreshVenue: vi.fn(),
-        refreshPlayer: vi.fn(),
-        refreshPlayerAppearances: vi.fn(),
-        searchEntities: vi.fn()
-      }
-    }
+    installHalfspace({ refreshTeam })
 
     const oldRefresh = refreshTeamEntity(9)
     invalidateTeamRefreshes()
@@ -59,9 +69,9 @@ describe('team refresh', () => {
   })
 })
 
-function teamRefresh(name: string): TeamRefresh {
+function teamRefresh(name: string, fetchedAt = Date.UTC(2026, 7, 28, 10)): TeamRefresh {
   return {
-    fetchedAt: Date.UTC(2026, 7, 28, 10),
+    fetchedAt,
     team: {
       id: 9,
       sport_id: 1,
@@ -75,6 +85,13 @@ function teamRefresh(name: string): TeamRefresh {
   }
 }
 
+function teamSquadRefresh(): TeamSquadRefresh {
+  return {
+    fetchedAt: Date.now(),
+    squad: []
+  }
+}
+
 function deferred<T>(): {
   promise: Promise<T>
   resolve: (value: T) => void
@@ -85,4 +102,30 @@ function deferred<T>(): {
   })
 
   return { promise, resolve }
+}
+
+function installHalfspace(overrides: Partial<Window['halfspace']['sportmonks']>): void {
+  window.halfspace = {
+    credentials: {
+      getConnectionState: vi.fn(),
+      saveToken: vi.fn(),
+      clearToken: vi.fn()
+    },
+    sportmonks: {
+      refreshFixtures: vi.fn(),
+      refreshFixture: vi.fn(),
+      refreshFixtureOdds: vi.fn(),
+      refreshCompetitions: vi.fn(),
+      refreshStandings: vi.fn(),
+      refreshCompetitionFixtures: vi.fn(),
+      refreshTeam: vi.fn(),
+      refreshTeamFixtures: vi.fn(),
+      refreshTeamSquad: vi.fn(),
+      refreshVenue: vi.fn(),
+      refreshPlayer: vi.fn(),
+      refreshPlayerAppearances: vi.fn(),
+      searchEntities: vi.fn(),
+      ...overrides
+    }
+  }
 }

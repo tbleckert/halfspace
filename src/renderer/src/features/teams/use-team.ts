@@ -154,6 +154,20 @@ export function invalidateTeamRefreshes(): void {
   teamSquadRefreshes.clear()
 }
 
+export async function prefetchTeamEntity(teamId: number): Promise<void> {
+  const cached = await readTeamIdentity(teamId)
+  if (cached.team && cached.team.staleAt > Date.now()) return
+
+  await refreshTeamEntity(teamId)
+}
+
+export async function prefetchTeamSquad(teamId: number): Promise<void> {
+  const cached = await readTeamSquad(teamId)
+  if (cached.query && cached.query.staleAt > Date.now()) return
+
+  await refreshTeamSquad(teamId)
+}
+
 export async function refreshTeamSquad(teamId: number): Promise<void> {
   const active = teamSquadRefreshes.get(teamId)
   if (active?.generation === refreshGeneration) return active.promise

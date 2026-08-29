@@ -58,7 +58,9 @@ abstractions.
 - Keep navigation prefetch non-blocking and stale-aware. TanStack Router preloads routes on intent;
   data intent should warm the existing Dexie queries without bypassing their TTLs. After startup,
   warm today’s Matchday and each visible sidebar competition in the background, one competition at
-  a time, so likely destinations are ready without flooding Sportmonks.
+  a time, so likely destinations are ready without flooding Sportmonks. Prefetch fixture, team,
+  squad, player, and venue detail on keyboard focus or deliberate hover; cancel incidental hovers,
+  and keep fixture Odds lazy until that view opens.
 
 ## Mindset & Process
 

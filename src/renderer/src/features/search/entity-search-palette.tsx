@@ -3,9 +3,14 @@ import { useRouter } from '@tanstack/react-router'
 import { LoaderCircle, Search } from 'lucide-react'
 import type { EntitySearchResult, EntitySearchResultType } from '@/data/db'
 import { CompetitionLogo } from '@/features/competitions/competition-logo'
+import { prefetchCompetitionWorkspace } from '@/features/competitions/use-competition-workspace'
 import { PlayerPhoto } from '@/features/players/player-photo'
+import { prefetchPlayerEntity } from '@/features/players/use-player'
 import { TeamLogo } from '@/features/teams/team-logo'
+import { prefetchTeamEntity } from '@/features/teams/use-team'
 import { VenueImage } from '@/features/venues/venue-image'
+import { prefetchVenueEntity } from '@/features/venues/use-venue'
+import { intentPrefetchProps, startPrefetch } from '@/lib/prefetch'
 import { cn } from '@/lib/utils'
 import { useEntitySearch } from './use-entity-search'
 
@@ -96,13 +101,23 @@ export function EntitySearchPalette({ online }: { online: boolean }): React.JSX.
     if (event.key === 'ArrowDown') {
       event.preventDefault()
       if (results.length === 0) return
-      setActiveIndex((index) => Math.min(index + 1, results.length - 1))
+      setActiveIndex((index) => {
+        const nextIndex = Math.min(index + 1, results.length - 1)
+        if (online) startPrefetch(() => prefetchSearchResult(results[nextIndex]))
+        return nextIndex
+      })
       return
     }
 
     if (event.key === 'ArrowUp') {
       event.preventDefault()
-      setActiveIndex((index) => Math.max(index - 1, 0))
+      setActiveIndex((index) => {
+        const nextIndex = Math.max(index - 1, 0)
+        if (online && results[nextIndex]) {
+          startPrefetch(() => prefetchSearchResult(results[nextIndex]))
+        }
+        return nextIndex
+      })
       return
     }
 
@@ -207,6 +222,7 @@ export function EntitySearchPalette({ online }: { online: boolean }): React.JSX.
                         role="option"
                         onClick={() => void openResult(result)}
                         onMouseMove={() => setActiveIndex(index)}
+                        {...intentPrefetchProps(online, () => prefetchSearchResult(result))}
                       >
                         <ResultImage online={online} result={result} />
                         <span className="min-w-0">
@@ -235,6 +251,25 @@ export function EntitySearchPalette({ online }: { online: boolean }): React.JSX.
       )}
     </>
   )
+}
+
+async function prefetchSearchResult(result: EntitySearchResult): Promise<void> {
+  if (result.type === 'competition') {
+    await prefetchCompetitionWorkspace(result.id)
+    return
+  }
+
+  if (result.type === 'team') {
+    await prefetchTeamEntity(result.id)
+    return
+  }
+
+  if (result.type === 'player') {
+    await prefetchPlayerEntity(result.id)
+    return
+  }
+
+  await prefetchVenueEntity(result.id)
 }
 
 function ResultImage({

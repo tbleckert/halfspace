@@ -170,6 +170,13 @@ export async function prefetchFixtureQuery(date: string, timeZone: string): Prom
   await refreshFixtureQuery(date, timeZone)
 }
 
+export async function prefetchFixtureEntity(fixtureId: number): Promise<void> {
+  const cached = await readFixtureIdentity(fixtureId)
+  if (cached.fixture?.detailStaleAt && cached.fixture.detailStaleAt > Date.now()) return
+
+  await refreshFixtureEntity(fixtureId)
+}
+
 async function refreshFixtureQuery(date: string, timeZone: string): Promise<void> {
   const key = `${date}|${timeZone}`
   const existing = refreshes.get(key)

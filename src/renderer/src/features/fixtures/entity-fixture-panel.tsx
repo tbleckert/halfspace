@@ -4,6 +4,8 @@ import type { CachedFixture } from '@/data/db'
 import { TeamLogo } from '@/features/teams/team-logo'
 import { FixtureLiveIndicator } from './fixture-live-indicator'
 import { fixtureProgressLabel } from '@/lib/fixture-state'
+import { intentPrefetchProps } from '@/lib/prefetch'
+import { prefetchFixtureEntity } from './use-fixtures'
 
 interface FixtureContext {
   competition?: number
@@ -76,6 +78,7 @@ function EntityFixtureRow({
       params={{ fixtureId: String(fixture.id) }}
       search={context}
       className="block px-4 py-3.5 transition-colors hover:bg-muted/45"
+      {...intentPrefetchProps(online, () => prefetchFixtureEntity(fixture.id))}
     >
       <div className="mb-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
         <div className="flex min-w-0 items-center gap-2">

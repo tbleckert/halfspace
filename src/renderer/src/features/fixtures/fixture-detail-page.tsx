@@ -14,11 +14,15 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { CachedCompetition } from '@/data/db'
 import { CompetitionLogo } from '@/features/competitions/competition-logo'
+import { prefetchCompetitionWorkspace } from '@/features/competitions/use-competition-workspace'
 import { PlayerPhoto } from '@/features/players/player-photo'
+import { prefetchPlayerEntity } from '@/features/players/use-player'
 import { TeamLogo } from '@/features/teams/team-logo'
+import { prefetchTeamEntity } from '@/features/teams/use-team'
 import { VenueCard } from '@/features/venues/venue-card'
 import { isFixtureLive } from '@/lib/fixture-state'
 import { useOnline } from '@/lib/use-online'
+import { intentPrefetchProps } from '@/lib/prefetch'
 import { cn } from '@/lib/utils'
 import {
   fixtureOddsGroups,
@@ -258,6 +262,7 @@ function FixtureTeam({
       params={{ teamId: String(participant.id) }}
       search={{ competition: competitionId }}
       className="group flex min-w-0 flex-col items-center gap-3 rounded-lg text-center outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      {...intentPrefetchProps(online, () => prefetchTeamEntity(participant.id))}
     >
       <TeamLogo
         className="size-16 rounded-xl bg-background shadow-xs sm:size-24"
@@ -534,12 +539,14 @@ function TeamLineup({
             competitionId={competitionId}
             entries={starters}
             label="Starting XI"
+            online={online}
             teamId={team?.id}
           />
           <LineupGroup
             competitionId={competitionId}
             entries={substitutes}
             label="Substitutes"
+            online={online}
             teamId={team?.id}
           />
         </div>
@@ -552,11 +559,13 @@ function LineupGroup({
   competitionId,
   entries,
   label,
+  online,
   teamId
 }: {
   competitionId: number
   entries: SportmonksLineup[]
   label: string
+  online: boolean
   teamId?: number
 }): React.JSX.Element | null {
   if (entries.length === 0) return null
@@ -572,6 +581,7 @@ function LineupGroup({
             params={{ playerId: String(entry.player_id) }}
             search={{ competition: competitionId, team: teamId }}
             className="grid grid-cols-[2rem_1fr] items-center gap-2 px-4 py-2 text-sm outline-none hover:bg-muted/45 focus-visible:bg-muted/45"
+            {...intentPrefetchProps(online, () => prefetchPlayerEntity(entry.player_id))}
           >
             <span className="text-center font-medium tabular-nums text-muted-foreground">
               {entry.jersey_number ?? '–'}
@@ -758,6 +768,7 @@ function FixtureDetails({
               to="/competitions/$competitionId"
               params={{ competitionId: String(competitionId) }}
               className="flex items-center gap-2 font-medium hover:text-primary"
+              {...intentPrefetchProps(online, () => prefetchCompetitionWorkspace(competitionId))}
             >
               <CompetitionLogo
                 className="size-7 bg-background"

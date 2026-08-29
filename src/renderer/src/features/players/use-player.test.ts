@@ -3,7 +3,7 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PlayerRefresh, Result } from '@shared/contracts'
 import { db, readPlayerIdentity } from '@/data/db'
-import { invalidatePlayerRefreshes, refreshPlayerEntity } from './use-player'
+import { invalidatePlayerRefreshes, prefetchPlayerEntity, refreshPlayerEntity } from './use-player'
 
 beforeEach(async () => {
   invalidatePlayerRefreshes()
@@ -14,6 +14,18 @@ beforeEach(async () => {
 afterAll(() => db.close())
 
 describe('player refresh', () => {
+  it('prefetches missing player detail without refetching fresh data', async () => {
+    const refreshPlayer = vi
+      .fn()
+      .mockResolvedValue({ ok: true, data: playerRefresh('Quinten Timber', Date.now()) })
+    installHalfspace({ refreshPlayer })
+
+    await prefetchPlayerEntity(6306068)
+    await prefetchPlayerEntity(6306068)
+
+    expect(refreshPlayer).toHaveBeenCalledTimes(1)
+  })
+
   it('does not restore an old player after the credential changes', async () => {
     const oldRequest = deferred<Result<PlayerRefresh>>()
     const newRequest = deferred<Result<PlayerRefresh>>()
@@ -22,28 +34,7 @@ describe('player refresh', () => {
       .mockReturnValueOnce(oldRequest.promise)
       .mockReturnValueOnce(newRequest.promise)
 
-    window.halfspace = {
-      credentials: {
-        getConnectionState: vi.fn(),
-        saveToken: vi.fn(),
-        clearToken: vi.fn()
-      },
-      sportmonks: {
-        refreshFixtures: vi.fn(),
-        refreshFixture: vi.fn(),
-        refreshFixtureOdds: vi.fn(),
-        refreshCompetitions: vi.fn(),
-        refreshStandings: vi.fn(),
-        refreshCompetitionFixtures: vi.fn(),
-        refreshTeam: vi.fn(),
-        refreshTeamFixtures: vi.fn(),
-        refreshTeamSquad: vi.fn(),
-        refreshVenue: vi.fn(),
-        refreshPlayer,
-        refreshPlayerAppearances: vi.fn(),
-        searchEntities: vi.fn()
-      }
-    }
+    installHalfspace({ refreshPlayer })
 
     const oldRefresh = refreshPlayerEntity(6306068)
     invalidatePlayerRefreshes()
@@ -59,9 +50,9 @@ describe('player refresh', () => {
   })
 })
 
-function playerRefresh(displayName: string): PlayerRefresh {
+function playerRefresh(displayName: string, fetchedAt = Date.UTC(2026, 7, 28, 10)): PlayerRefresh {
   return {
-    fetchedAt: Date.UTC(2026, 7, 28, 10),
+    fetchedAt,
     player: {
       id: 6306068,
       sport_id: 1,
@@ -91,4 +82,30 @@ function deferred<T>(): {
   })
 
   return { promise, resolve }
+}
+
+function installHalfspace(overrides: Partial<Window['halfspace']['sportmonks']>): void {
+  window.halfspace = {
+    credentials: {
+      getConnectionState: vi.fn(),
+      saveToken: vi.fn(),
+      clearToken: vi.fn()
+    },
+    sportmonks: {
+      refreshFixtures: vi.fn(),
+      refreshFixture: vi.fn(),
+      refreshFixtureOdds: vi.fn(),
+      refreshCompetitions: vi.fn(),
+      refreshStandings: vi.fn(),
+      refreshCompetitionFixtures: vi.fn(),
+      refreshTeam: vi.fn(),
+      refreshTeamFixtures: vi.fn(),
+      refreshTeamSquad: vi.fn(),
+      refreshVenue: vi.fn(),
+      refreshPlayer: vi.fn(),
+      refreshPlayerAppearances: vi.fn(),
+      searchEntities: vi.fn(),
+      ...overrides
+    }
+  }
 }

@@ -64,6 +64,13 @@ export function invalidateVenueRefreshes(): void {
   venueRefreshes.clear()
 }
 
+export async function prefetchVenueEntity(venueId: number): Promise<void> {
+  const cached = await readVenueIdentity(venueId)
+  if (cached.venue && cached.venue.staleAt > Date.now()) return
+
+  await refreshVenueEntity(venueId)
+}
+
 export async function refreshVenueEntity(venueId: number): Promise<void> {
   const active = venueRefreshes.get(venueId)
   if (active?.generation === refreshGeneration) return active.promise

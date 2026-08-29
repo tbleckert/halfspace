@@ -12,7 +12,7 @@ import { useCompetitions, usePinnedCompetitionIds } from '@/features/competition
 import { prefetchFixtureQuery } from '@/features/fixtures/use-fixtures'
 import { EntitySearchPalette } from '@/features/search/entity-search-palette'
 import { currentTimeZone, todayInTimeZone } from '@/lib/date'
-import { startPrefetch } from '@/lib/prefetch'
+import { intentPrefetchProps, startPrefetch } from '@/lib/prefetch'
 import { cn } from '@/lib/utils'
 import { useOnline } from '@/lib/use-online'
 
@@ -99,16 +99,6 @@ function Workspace(): React.JSX.Element {
     })
   }, [currentDate, online, quickCompetitions, timeZone])
 
-  function prefetchMatchday(): void {
-    if (!online) return
-    startPrefetch(() => prefetchFixtureQuery(sidebarDate, timeZone))
-  }
-
-  function prefetchCompetition(competitionId: number): void {
-    if (!online) return
-    startPrefetch(() => prefetchCompetitionWorkspace(competitionId))
-  }
-
   return (
     <div className="grid h-full grid-cols-[14rem_1fr] bg-background">
       <aside className="flex min-h-0 flex-col border-r bg-card px-3 py-4">
@@ -131,8 +121,7 @@ function Workspace(): React.JSX.Element {
                 'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
                 matchdayActive && 'bg-accent text-accent-foreground'
               )}
-              onFocus={prefetchMatchday}
-              onMouseEnter={prefetchMatchday}
+              {...intentPrefetchProps(online, () => prefetchFixtureQuery(sidebarDate, timeZone))}
             >
               <CalendarDays className="size-4" />
               Matchday
@@ -163,8 +152,9 @@ function Workspace(): React.JSX.Element {
                       'flex items-center gap-2.5 rounded-md px-3 py-1.5 text-[13px] font-medium text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring',
                       active && 'bg-accent text-accent-foreground'
                     )}
-                    onFocus={() => prefetchCompetition(competition.id)}
-                    onMouseEnter={() => prefetchCompetition(competition.id)}
+                    {...intentPrefetchProps(online, () =>
+                      prefetchCompetitionWorkspace(competition.id)
+                    )}
                   >
                     <CompetitionLogo
                       className="size-6 bg-background"

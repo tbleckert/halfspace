@@ -8,9 +8,12 @@ import { buttonVariants } from '@/components/ui/button-variants'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { CachedTeam, PlayerAppearanceRecord } from '@/data/db'
+import { prefetchFixtureEntity } from '@/features/fixtures/use-fixtures'
 import { TeamLogo } from '@/features/teams/team-logo'
+import { prefetchTeamEntity, prefetchTeamSquad } from '@/features/teams/use-team'
 import { addDaysToIsoDate, currentTimeZone, todayInTimeZone } from '@/lib/date'
 import { useOnline } from '@/lib/use-online'
+import { intentPrefetchProps } from '@/lib/prefetch'
 import { cn } from '@/lib/utils'
 import { PlayerPhoto } from './player-photo'
 import { usePlayerAppearances, usePlayerEntity } from './use-player'
@@ -78,6 +81,7 @@ export function PlayerPage({
             params={{ teamId: String(teamId) }}
             search={{ competition: competitionId }}
             className="mb-5 flex w-fit items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+            {...intentPrefetchProps(online, () => prefetchTeamSquad(teamId))}
           >
             <ArrowLeft className="size-4" />
             {currentTeam?.name ?? 'Team'}
@@ -211,6 +215,7 @@ function PlayerTeams({
               params={{ teamId: String(team.id) }}
               search={{ competition: competitionId }}
               className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-muted/45"
+              {...intentPrefetchProps(online, () => prefetchTeamEntity(team.id))}
             >
               <TeamLogo
                 className="size-9 bg-background"
@@ -273,6 +278,7 @@ function PlayerLineups({
                 params={{ fixtureId: String(fixture.id) }}
                 search={{ competition: competitionId, team: teamId }}
                 className="block px-4 py-3.5 transition-colors hover:bg-muted/45"
+                {...intentPrefetchProps(online, () => prefetchFixtureEntity(fixture.id))}
               >
                 <div className="mb-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
                   <div className="flex min-w-0 items-center gap-2">

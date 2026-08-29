@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { AlertCircle, CalendarDays, RefreshCw } from 'lucide-react'
 import type { CachedFixture } from '@/data/db'
-import { useFixtures } from './use-fixtures'
+import { prefetchFixtureEntity, useFixtures } from './use-fixtures'
 import { FixtureLiveIndicator } from './fixture-live-indicator'
 import { fixtureProgressLabel } from '@/lib/fixture-state'
 import { Badge } from '@/components/ui/badge'
@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { TeamLogo } from '@/features/teams/team-logo'
 import { cn } from '@/lib/utils'
 import { currentTimeZone, formatFixtureTime, todayInTimeZone } from '@/lib/date'
+import { intentPrefetchProps } from '@/lib/prefetch'
 import { useOnline } from '@/lib/use-online'
 
 interface FixturesPageProps {
@@ -128,6 +129,7 @@ function FixtureRow({
       params={{ fixtureId: String(fixture.id) }}
       search={true}
       className="grid grid-cols-[5rem_1fr_auto] items-center gap-4 px-4 py-3.5 transition-colors hover:bg-muted/45"
+      {...intentPrefetchProps(online, () => prefetchFixtureEntity(fixture.id))}
     >
       <div className={cn('flex flex-col gap-1', progressLabel ? 'items-center' : 'items-start')}>
         {progressLabel ? (

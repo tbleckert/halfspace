@@ -9,15 +9,25 @@ import { Skeleton } from '@/components/ui/skeleton'
 import type { CachedCompetition, CachedStanding, SquadMember } from '@/data/db'
 import { db, readTeamStandings } from '@/data/db'
 import { CompetitionLogo } from '@/features/competitions/competition-logo'
+import { prefetchCompetitionWorkspace } from '@/features/competitions/use-competition-workspace'
 import { splitEntityFixtures } from '@/features/fixtures/entity-fixture-data'
 import { EntityFixturePanel } from '@/features/fixtures/entity-fixture-panel'
 import { PlayerPhoto } from '@/features/players/player-photo'
+import { prefetchPlayerEntity } from '@/features/players/use-player'
 import { VenueCard } from '@/features/venues/venue-card'
+import { prefetchVenueEntity } from '@/features/venues/use-venue'
 import { addDaysToIsoDate, currentTimeZone, todayInTimeZone } from '@/lib/date'
+import { intentPrefetchProps } from '@/lib/prefetch'
 import { useOnline } from '@/lib/use-online'
 import { cn } from '@/lib/utils'
 import { TeamLogo } from './team-logo'
-import { useTeamEntity, useTeamFixtures, useTeamSquad } from './use-team'
+import {
+  prefetchTeamEntity,
+  prefetchTeamSquad,
+  useTeamEntity,
+  useTeamFixtures,
+  useTeamSquad
+} from './use-team'
 
 interface TeamCompetitionContext {
   competition: CachedCompetition
@@ -135,6 +145,9 @@ export function TeamPage({
                         params={{ venueId: String(detailedTeam.venue_id) }}
                         search={{ competition: competitionId, team: parsedTeamId }}
                         className="rounded-sm outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                        {...intentPrefetchProps(online, () =>
+                          prefetchVenueEntity(detailedTeam.venue_id!)
+                        )}
                       >
                         {detailedTeam.venue.name}
                       </Link>
@@ -156,7 +169,12 @@ export function TeamPage({
           </Button>
         </header>
 
-        <TeamNavigation competitionId={competitionId} teamId={parsedTeamId} view={view} />
+        <TeamNavigation
+          competitionId={competitionId}
+          online={online}
+          teamId={parsedTeamId}
+          view={view}
+        />
       </div>
 
       {errors.length > 0 && (
@@ -222,10 +240,12 @@ export function TeamPage({
 
 function TeamNavigation({
   competitionId,
+  online,
   teamId,
   view
 }: {
   competitionId?: number
+  online: boolean
   teamId: number
   view: TeamView
 }): React.JSX.Element {
@@ -245,6 +265,7 @@ function TeamNavigation({
             ? 'z-10 border-black font-semibold text-foreground dark:border-white'
             : 'border-transparent text-muted-foreground hover:text-foreground'
         )}
+        {...intentPrefetchProps(online, () => prefetchTeamEntity(teamId))}
       >
         Overview
       </Link>
@@ -259,6 +280,7 @@ function TeamNavigation({
             ? 'z-10 border-black font-semibold text-foreground dark:border-white'
             : 'border-transparent text-muted-foreground hover:text-foreground'
         )}
+        {...intentPrefetchProps(online, () => prefetchTeamSquad(teamId))}
       >
         Squad
       </Link>
@@ -341,6 +363,7 @@ function SquadPlayerCard({
       params={{ playerId: String(player.id) }}
       search={{ competition: competitionId, team: teamId }}
       className="group flex min-w-0 flex-col items-center rounded-xl border bg-card px-4 py-5 text-center shadow-xs outline-none transition-[border-color,transform] duration-150 hover:border-foreground/20 focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98]"
+      {...intentPrefetchProps(online, () => prefetchPlayerEntity(player.id))}
     >
       <div className="relative">
         <PlayerPhoto
@@ -416,6 +439,7 @@ function TeamCompetitions({
               to="/competitions/$competitionId"
               params={{ competitionId: String(competition.id) }}
               className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-muted/45"
+              {...intentPrefetchProps(online, () => prefetchCompetitionWorkspace(competition.id))}
             >
               <CompetitionLogo
                 className="size-9 bg-background"

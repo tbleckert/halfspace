@@ -2,6 +2,8 @@ import { Link } from '@tanstack/react-router'
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { SportmonksVenue } from '@shared/contracts'
 import { readVenueIdentity } from '@/data/db'
+import { intentPrefetchProps } from '@/lib/prefetch'
+import { prefetchVenueEntity } from './use-venue'
 import { VenueImage } from './venue-image'
 
 export function VenueCard({
@@ -34,6 +36,7 @@ export function VenueCard({
         params={{ venueId: String(venueId) }}
         search={{ competition: competitionId, team: teamId }}
         className="group block outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        {...intentPrefetchProps(online, () => prefetchVenueEntity(venueId))}
       >
         <VenueImage
           className="aspect-[4/3] w-full rounded-none border-b bg-background"

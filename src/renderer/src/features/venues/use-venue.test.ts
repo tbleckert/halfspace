@@ -3,7 +3,7 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Result, VenueRefresh } from '@shared/contracts'
 import { db, readVenueIdentity } from '@/data/db'
-import { invalidateVenueRefreshes, refreshVenueEntity } from './use-venue'
+import { invalidateVenueRefreshes, prefetchVenueEntity, refreshVenueEntity } from './use-venue'
 
 beforeEach(async () => {
   invalidateVenueRefreshes()
@@ -14,6 +14,18 @@ beforeEach(async () => {
 afterAll(() => db.close())
 
 describe('venue refresh', () => {
+  it('prefetches missing venue detail without refetching fresh data', async () => {
+    const refreshVenue = vi
+      .fn()
+      .mockResolvedValue({ ok: true, data: venueRefresh('Etihad Stadium', Date.now()) })
+    installHalfspace({ refreshVenue })
+
+    await prefetchVenueEntity(206)
+    await prefetchVenueEntity(206)
+
+    expect(refreshVenue).toHaveBeenCalledTimes(1)
+  })
+
   it('does not restore an old venue after the credential changes', async () => {
     const oldRequest = deferred<Result<VenueRefresh>>()
     const newRequest = deferred<Result<VenueRefresh>>()
@@ -22,28 +34,7 @@ describe('venue refresh', () => {
       .mockReturnValueOnce(oldRequest.promise)
       .mockReturnValueOnce(newRequest.promise)
 
-    window.halfspace = {
-      credentials: {
-        getConnectionState: vi.fn(),
-        saveToken: vi.fn(),
-        clearToken: vi.fn()
-      },
-      sportmonks: {
-        refreshFixtures: vi.fn(),
-        refreshFixture: vi.fn(),
-        refreshFixtureOdds: vi.fn(),
-        refreshCompetitions: vi.fn(),
-        refreshStandings: vi.fn(),
-        refreshCompetitionFixtures: vi.fn(),
-        refreshTeam: vi.fn(),
-        refreshTeamFixtures: vi.fn(),
-        refreshTeamSquad: vi.fn(),
-        refreshVenue,
-        refreshPlayer: vi.fn(),
-        refreshPlayerAppearances: vi.fn(),
-        searchEntities: vi.fn()
-      }
-    }
+    installHalfspace({ refreshVenue })
 
     const oldRefresh = refreshVenueEntity(206)
     invalidateVenueRefreshes()
@@ -59,9 +50,9 @@ describe('venue refresh', () => {
   })
 })
 
-function venueRefresh(name: string): VenueRefresh {
+function venueRefresh(name: string, fetchedAt = Date.UTC(2026, 7, 28, 10)): VenueRefresh {
   return {
-    fetchedAt: Date.UTC(2026, 7, 28, 10),
+    fetchedAt,
     venue: {
       id: 206,
       country_id: 462,
@@ -81,4 +72,30 @@ function deferred<T>(): {
   })
 
   return { promise, resolve }
+}
+
+function installHalfspace(overrides: Partial<Window['halfspace']['sportmonks']>): void {
+  window.halfspace = {
+    credentials: {
+      getConnectionState: vi.fn(),
+      saveToken: vi.fn(),
+      clearToken: vi.fn()
+    },
+    sportmonks: {
+      refreshFixtures: vi.fn(),
+      refreshFixture: vi.fn(),
+      refreshFixtureOdds: vi.fn(),
+      refreshCompetitions: vi.fn(),
+      refreshStandings: vi.fn(),
+      refreshCompetitionFixtures: vi.fn(),
+      refreshTeam: vi.fn(),
+      refreshTeamFixtures: vi.fn(),
+      refreshTeamSquad: vi.fn(),
+      refreshVenue: vi.fn(),
+      refreshPlayer: vi.fn(),
+      refreshPlayerAppearances: vi.fn(),
+      searchEntities: vi.fn(),
+      ...overrides
+    }
+  }
 }

@@ -8,7 +8,9 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { readVenueTeams } from '@/data/db'
 import { TeamLogo } from '@/features/teams/team-logo'
+import { prefetchTeamEntity } from '@/features/teams/use-team'
 import { useOnline } from '@/lib/use-online'
+import { intentPrefetchProps } from '@/lib/prefetch'
 import { cn } from '@/lib/utils'
 import { useVenueEntity } from './use-venue'
 import { VenueImage } from './venue-image'
@@ -56,6 +58,7 @@ export function VenuePage({
             params={{ teamId: String(teamId) }}
             search={{ competition: competitionId }}
             className="mb-5 flex w-fit items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+            {...intentPrefetchProps(online, () => prefetchTeamEntity(teamId))}
           >
             <ArrowLeft className="size-4" />
             {teams.find(({ id }) => id === teamId)?.name ?? 'Team'}
@@ -109,6 +112,7 @@ export function VenuePage({
                     params={{ teamId: String(team.id) }}
                     search={{ competition: competitionId }}
                     className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-muted/45"
+                    {...intentPrefetchProps(online, () => prefetchTeamEntity(team.id))}
                   >
                     <TeamLogo
                       className="size-9 bg-background"
