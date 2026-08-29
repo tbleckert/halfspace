@@ -230,7 +230,7 @@ function MatchScore({
             </p>
           )}
           {live ? (
-            <FixtureLiveIndicator className="rounded-full bg-red-50 px-2.5 py-1 dark:bg-red-950/30" />
+            <FixtureLiveIndicator className="rounded-full bg-emerald-50 px-2.5 py-1 dark:bg-emerald-950/30" />
           ) : (
             <Badge variant="secondary">{fixture.state?.name ?? 'Scheduled'}</Badge>
           )}

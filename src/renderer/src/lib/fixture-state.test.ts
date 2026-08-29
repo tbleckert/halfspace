@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { SportmonksFixture } from '@shared/contracts'
-import { fixtureProgressLabel, isFixtureLive, isFixtureOngoing } from './fixture-state'
+import {
+  fixtureProgressLabel,
+  fixtureRowStatus,
+  isFixtureLive,
+  isFixtureOngoing
+} from './fixture-state'
 
 describe('fixture state', () => {
   it.each([2, 6, 9, 22])('recognises live state %s', (stateId) => {
@@ -50,6 +55,39 @@ describe('fixture state', () => {
 
   it('does not replace kickoff time for a fixture that has not started', () => {
     expect(fixtureProgressLabel(fixture({ state_id: 1 }))).toBeNull()
+  })
+
+  it('uses kickoff time as the row status before a fixture starts', () => {
+    expect(
+      fixtureRowStatus(
+        fixture({
+          state_id: 1,
+          state: { id: 1, name: 'Not Started', short_name: 'NS' }
+        })
+      )
+    ).toEqual({ kind: 'kickoff' })
+  })
+
+  it('uses the current minute as the row status during play', () => {
+    expect(
+      fixtureRowStatus(
+        fixture({
+          state_id: 22,
+          periods: [period({ counts_from: 45, minutes: 66, period_length: 45 })]
+        })
+      )
+    ).toEqual({ kind: 'in-play', label: '66′' })
+  })
+
+  it('uses the short state label as the row status after a fixture ends', () => {
+    expect(
+      fixtureRowStatus(
+        fixture({
+          state_id: 5,
+          state: { id: 5, name: 'Full Time', short_name: 'FT' }
+        })
+      )
+    ).toEqual({ kind: 'state', label: 'FT' })
   })
 })
 

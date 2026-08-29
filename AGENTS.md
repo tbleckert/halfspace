@@ -45,9 +45,9 @@ abstractions.
   identity and football data rather than a dense table or list.
 - Keep low-resolution provider imagery in compact supporting cards. Do not stretch it into hero
   treatment that exposes its limitations.
-- Fixture rows use the live ping alone; the fixture hero may pair it with a visible status label.
-- Live fixture rows replace kickoff time with a prominent match minute, or the current phase label
-  during breaks such as half-time, and center the live ping beneath it.
+- Matchday fixture rows use one centered status column: a short terminal state such as FT, a green
+  live ping beside the match minute or phase, or the scheduled kickoff time. Do not repeat the
+  state in a separate badge. The fixture hero may pair its live ping with a visible status label.
 - Derive live match time from Sportmonks periods rather than elapsed wall-clock time.
 - Fixture timelines include the event player relationship so player portraits can accompany events.
 - Fetch fixture odds lazily from the dedicated pre-match endpoint. Its response is a single,

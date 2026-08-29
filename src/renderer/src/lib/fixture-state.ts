@@ -25,3 +25,16 @@ export function fixtureProgressLabel(fixture: SportmonksFixture): string | null 
 
   return `${period.minutes}′`
 }
+
+export type FixtureRowStatus =
+  { kind: 'kickoff' } | { kind: 'in-play'; label: string } | { kind: 'state'; label: string }
+
+export function fixtureRowStatus(fixture: SportmonksFixture): FixtureRowStatus {
+  const progressLabel = fixtureProgressLabel(fixture)
+  if (progressLabel) return { kind: 'in-play', label: progressLabel }
+
+  if (fixture.state_id === 1) return { kind: 'kickoff' }
+
+  const stateLabel = fixture.state?.short_name ?? fixture.state?.name
+  return stateLabel ? { kind: 'state', label: stateLabel } : { kind: 'kickoff' }
+}

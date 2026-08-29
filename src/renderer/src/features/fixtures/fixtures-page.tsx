@@ -4,8 +4,7 @@ import { AlertCircle, CalendarDays, RefreshCw } from 'lucide-react'
 import type { CachedFixture } from '@/data/db'
 import { prefetchFixtureEntity, useFixtures } from './use-fixtures'
 import { FixtureLiveIndicator } from './fixture-live-indicator'
-import { fixtureProgressLabel } from '@/lib/fixture-state'
-import { Badge } from '@/components/ui/badge'
+import { fixtureRowStatus } from '@/lib/fixture-state'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -121,28 +120,16 @@ function FixtureRow({
   const homeScore = currentScores.find((score) => score.score.participant === 'home')?.score.goals
   const awayScore = currentScores.find((score) => score.score.participant === 'away')?.score.goals
   const hasScore = homeScore !== undefined || awayScore !== undefined
-  const progressLabel = fixtureProgressLabel(fixture.raw)
 
   return (
     <Link
       to="/fixtures/$fixtureId"
       params={{ fixtureId: String(fixture.id) }}
       search={true}
-      className="grid grid-cols-[5rem_1fr_auto] items-center gap-4 px-4 py-3.5 transition-colors hover:bg-muted/45"
+      className="grid grid-cols-[5rem_minmax(0,1fr)_1.5rem] items-center gap-4 px-4 py-3.5 transition-colors hover:bg-muted/45"
       {...intentPrefetchProps(online, () => prefetchFixtureEntity(fixture.id))}
     >
-      <div className={cn('flex flex-col gap-1', progressLabel ? 'items-center' : 'items-start')}>
-        {progressLabel ? (
-          <>
-            <span className="text-base font-semibold tabular-nums">{progressLabel}</span>
-            <FixtureLiveIndicator showLabel={false} />
-          </>
-        ) : (
-          <time className="text-sm tabular-nums text-muted-foreground">
-            {formatFixtureTime(fixture.startingAt)}
-          </time>
-        )}
-      </div>
+      <FixtureRowStatus fixture={fixture} />
       <div className="grid min-w-0 gap-1.5">
         <div className="flex min-w-0 items-center gap-2.5">
           <TeamLogo
@@ -163,17 +150,42 @@ function FixtureRow({
           <p className="truncate text-sm text-muted-foreground">{away?.name ?? 'Away team'}</p>
         </div>
       </div>
-      <div className="text-right">
-        {hasScore ? (
-          <div className="grid grid-rows-2 gap-0.5 text-sm font-semibold tabular-nums">
+      <div className="grid grid-rows-2 gap-0.5 text-right text-sm font-semibold tabular-nums">
+        {hasScore && (
+          <>
             <span>{homeScore ?? '–'}</span>
             <span>{awayScore ?? '–'}</span>
-          </div>
-        ) : (
-          <Badge variant="outline">{fixture.raw.state?.short_name ?? 'Scheduled'}</Badge>
+          </>
         )}
       </div>
     </Link>
+  )
+}
+
+function FixtureRowStatus({ fixture }: { fixture: CachedFixture }): React.JSX.Element {
+  const status = fixtureRowStatus(fixture.raw)
+
+  if (status.kind === 'in-play') {
+    return (
+      <div className="flex items-center justify-center gap-2 text-sm font-semibold tabular-nums text-emerald-600">
+        <FixtureLiveIndicator showLabel={false} />
+        <span>{status.label}</span>
+      </div>
+    )
+  }
+
+  if (status.kind === 'state') {
+    return (
+      <span className="text-center text-sm font-medium tabular-nums text-muted-foreground">
+        {status.label}
+      </span>
+    )
+  }
+
+  return (
+    <time className="text-center text-sm font-medium tabular-nums text-muted-foreground">
+      {formatFixtureTime(fixture.startingAt)}
+    </time>
   )
 }
 
