@@ -11,10 +11,12 @@ import type {
   RefreshPlayerAppearancesInput,
   RefreshCompetitionFixturesInput,
   RefreshTeamFixturesInput,
+  SeasonStatisticsRefresh,
   StandingsRefresh,
   SportmonksPlayer,
   TeamRefresh,
   TeamSquadRefresh,
+  TeamStatisticsRefresh,
   VenueRefresh
 } from '@shared/contracts'
 import {
@@ -27,10 +29,12 @@ import {
   readFixtureOdds,
   readPlayerAppearanceQuery,
   readPlayerIdentity,
+  readSeasonStatistics,
   readStandingsQuery,
   readTeamFixtureQuery,
   readTeamIdentity,
   readTeamSquad,
+  readTeamStatistics,
   readVenueIdentity,
   readVenueTeams,
   setCompetitionPinned,
@@ -43,10 +47,12 @@ import {
   writeFixtureRefresh,
   writePlayerAppearancesRefresh,
   writePlayerRefresh,
+  writeSeasonStatisticsRefresh,
   writeStandingsRefresh,
   writeTeamFixtureRefresh,
   writeTeamRefresh,
   writeTeamSquadRefresh,
+  writeTeamStatisticsRefresh,
   writeVenueRefresh
 } from './db'
 
@@ -66,9 +72,11 @@ beforeEach(async () => {
       db.competitionSeasonQueries,
       db.standings,
       db.standingQueries,
+      db.seasonStatisticsQueries,
       db.competitionFixtureQueries,
       db.teams,
       db.teamFixtureQueries,
+      db.teamStatisticsQueries,
       db.venues,
       db.players,
       db.squadEntries,
@@ -87,9 +95,11 @@ beforeEach(async () => {
       await db.competitionSeasonQueries.clear()
       await db.standings.clear()
       await db.standingQueries.clear()
+      await db.seasonStatisticsQueries.clear()
       await db.competitionFixtureQueries.clear()
       await db.teams.clear()
       await db.teamFixtureQueries.clear()
+      await db.teamStatisticsQueries.clear()
       await db.venues.clear()
       await db.players.clear()
       await db.squadEntries.clear()
@@ -457,6 +467,25 @@ describe('competition workspace cache', () => {
     expect((await readTeamIdentity(10)).participant?.name).toBe('Home')
   })
 
+  it('writes and reads season statistics independently from standings', async () => {
+    const refresh: SeasonStatisticsRefresh = {
+      fetchedAt: Date.UTC(2026, 7, 30, 10),
+      statistics: [
+        {
+          id: 701,
+          model_id: 23614,
+          type_id: 191,
+          relation_id: null,
+          value: { total: 92 }
+        }
+      ]
+    }
+
+    await writeSeasonStatisticsRefresh(23614, refresh)
+
+    expect((await readSeasonStatistics(23614))?.statistics[0].value).toEqual({ total: 92 })
+  })
+
   it('reuses normalized fixtures for a competition range', async () => {
     const input: RefreshCompetitionFixturesInput = {
       competitionId: 8,
@@ -528,6 +557,26 @@ describe('team entity cache', () => {
     const cached = await readTeamFixtureQuery(input)
     expect(cached.fixtures[0].name).toBe('Updated')
     expect(await db.fixtures.count()).toBe(1)
+  })
+
+  it('writes and reads team statistics for one season', async () => {
+    const refresh: TeamStatisticsRefresh = {
+      fetchedAt: Date.UTC(2026, 7, 30, 10),
+      statistics: [
+        {
+          id: 801,
+          team_statistic_id: 501,
+          type_id: 214,
+          value: { count: 12 }
+        }
+      ]
+    }
+
+    await writeTeamStatisticsRefresh({ seasonId: 23614, teamId: 9 }, refresh)
+
+    expect((await readTeamStatistics({ seasonId: 23614, teamId: 9 }))?.statistics[0].value).toEqual(
+      { count: 12 }
+    )
   })
 })
 

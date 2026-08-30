@@ -8,7 +8,11 @@ const teamSearchSchema = z.object({
     const parsed = typeof value === 'number' || typeof value === 'string' ? Number(value) : NaN
     return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined
   }, z.number().int().positive().optional()),
-  date: z.string().refine(isIsoDate).optional().catch(undefined)
+  date: z.string().refine(isIsoDate).optional().catch(undefined),
+  season: z.preprocess((value) => {
+    const parsed = typeof value === 'number' || typeof value === 'string' ? Number(value) : NaN
+    return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined
+  }, z.number().int().positive().optional())
 })
 
 export const Route = createFileRoute('/teams_/$teamId')({
@@ -18,7 +22,7 @@ export const Route = createFileRoute('/teams_/$teamId')({
 
 function TeamRoute(): React.JSX.Element {
   const { teamId } = Route.useParams()
-  const { competition, date } = Route.useSearch()
+  const { competition, date, season } = Route.useSearch()
   const matchRoute = useMatchRoute()
   const view = matchRoute({
     to: '/teams/$teamId/fixtures',
@@ -27,16 +31,28 @@ function TeamRoute(): React.JSX.Element {
   })
     ? 'fixtures'
     : matchRoute({
-          to: '/teams/$teamId/squad',
+          to: '/teams/$teamId/stats',
           params: { teamId },
           fuzzy: false
         })
-      ? 'squad'
-      : 'overview'
+      ? 'stats'
+      : matchRoute({
+            to: '/teams/$teamId/squad',
+            params: { teamId },
+            fuzzy: false
+          })
+        ? 'squad'
+        : 'overview'
 
   return (
     <>
-      <TeamPage competitionId={competition} date={date} teamId={teamId} view={view} />
+      <TeamPage
+        competitionId={competition}
+        date={date}
+        season={season}
+        teamId={teamId}
+        view={view}
+      />
       <Outlet />
     </>
   )

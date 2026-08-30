@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { RefreshTeamFixturesInput } from '@shared/contracts'
+import type { RefreshTeamFixturesInput, RefreshTeamStatisticsInput } from '@shared/contracts'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   readTeamFixtureQuery,
   readTeamIdentity,
   readTeamSquad,
+  readTeamStatistics,
   teamFixtureQueryKey,
+  teamStatisticsQueryKey,
   writeTeamFixtureRefresh,
   writeTeamRefresh,
-  writeTeamSquadRefresh
+  writeTeamSquadRefresh,
+  writeTeamStatisticsRefresh
 } from '@/data/db'
 import { addDaysToIsoDate, currentTimeZone, todayInTimeZone } from '@/lib/date'
 
@@ -20,6 +23,7 @@ interface RefreshRequest {
 type TeamIdentityCache = Awaited<ReturnType<typeof readTeamIdentity>>
 type TeamFixturesCache = Awaited<ReturnType<typeof readTeamFixtureQuery>>
 type TeamSquadCache = Awaited<ReturnType<typeof readTeamSquad>>
+type TeamStatisticsCache = Awaited<ReturnType<typeof readTeamStatistics>>
 
 interface TeamQueryResult<T> {
   cached: T | undefined
@@ -32,6 +36,7 @@ let refreshGeneration = 0
 const teamRefreshes = new Map<number, RefreshRequest>()
 const teamFixtureRefreshes = new Map<string, RefreshRequest>()
 const teamSquadRefreshes = new Map<number, RefreshRequest>()
+const teamStatisticsRefreshes = new Map<string, RefreshRequest>()
 
 export function useTeamEntity(
   teamId: number | null,
@@ -148,11 +153,46 @@ export function useTeamSquad(
   return { cached, refreshing, error, refresh }
 }
 
+export function useTeamStatistics(
+  input: RefreshTeamStatisticsInput | null,
+  enabled: boolean
+): TeamQueryResult<TeamStatisticsCache> {
+  const cacheKey = input ? teamStatisticsQueryKey(input) : null
+  const cached = useLiveQuery(
+    () => (input === null ? Promise.resolve(null) : readTeamStatistics(input)),
+    [cacheKey]
+  )
+  const [refreshing, setRefreshing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const refresh = useCallback(async () => {
+    if (!enabled || input === null) return
+
+    setRefreshing(true)
+    setError(null)
+
+    try {
+      await refreshTeamStatisticsQuery(input)
+    } catch (refreshError) {
+      setError(
+        refreshError instanceof Error ? refreshError.message : 'Could not refresh team statistics.'
+      )
+    } finally {
+      setRefreshing(false)
+    }
+  }, [enabled, input])
+
+  useAutomaticRefresh(enabled && input !== null, cached !== undefined, cached?.staleAt, refresh)
+
+  return { cached, refreshing, error, refresh }
+}
+
 export function invalidateTeamRefreshes(): void {
   refreshGeneration += 1
   teamRefreshes.clear()
   teamFixtureRefreshes.clear()
   teamSquadRefreshes.clear()
+  teamStatisticsRefreshes.clear()
 }
 
 export async function prefetchTeamEntity(teamId: number): Promise<void> {
@@ -189,6 +229,35 @@ export async function prefetchTeamSquad(teamId: number): Promise<void> {
   if (cached.query && cached.query.staleAt > Date.now()) return
 
   await refreshTeamSquad(teamId)
+}
+
+export async function prefetchTeamStatistics(input: RefreshTeamStatisticsInput): Promise<void> {
+  const cached = await readTeamStatistics(input)
+  if (cached && cached.staleAt > Date.now()) return
+
+  await refreshTeamStatisticsQuery(input)
+}
+
+async function refreshTeamStatisticsQuery(input: RefreshTeamStatisticsInput): Promise<void> {
+  const key = teamStatisticsQueryKey(input)
+  const active = teamStatisticsRefreshes.get(key)
+  if (active?.generation === refreshGeneration) return active.promise
+
+  const generation = refreshGeneration
+  const promise = (async () => {
+    const result = await window.halfspace.sportmonks.refreshTeamStatistics(input)
+    if (generation !== refreshGeneration) return
+    if (!result.ok) throw new Error(result.error.message)
+    await writeTeamStatisticsRefresh(input, result.data)
+  })()
+
+  teamStatisticsRefreshes.set(key, { generation, promise })
+
+  try {
+    await promise
+  } finally {
+    if (teamStatisticsRefreshes.get(key)?.promise === promise) teamStatisticsRefreshes.delete(key)
+  }
 }
 
 export async function refreshTeamSquad(teamId: number): Promise<void> {

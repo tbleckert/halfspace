@@ -11,6 +11,8 @@ import type {
   RefreshCompetitionFixturesInput,
   RefreshPlayerAppearancesInput,
   RefreshTeamFixturesInput,
+  RefreshTeamStatisticsInput,
+  SeasonStatisticsRefresh,
   StandingsRefresh,
   SportmonksCompetition,
   SportmonksFixture,
@@ -23,6 +25,7 @@ import type {
   SportmonksVenue,
   TeamRefresh,
   TeamSquadRefresh,
+  TeamStatisticsRefresh,
   VenueRefresh
 } from '@shared/contracts'
 import { fixtureCacheExpiry } from '@/lib/date'
@@ -32,6 +35,7 @@ const subscribedCompetitionCatalog = 'subscribed'
 const competitionCacheDuration = 24 * 60 * 60 * 1000
 const competitionSeasonsCacheDuration = 24 * 60 * 60 * 1000
 const standingsCacheDuration = 60 * 60 * 1000
+const statisticsCacheDuration = 60 * 60 * 1000
 const competitionFixturesCacheDuration = 15 * 60 * 1000
 const teamCacheDuration = 24 * 60 * 60 * 1000
 const teamFixturesCacheDuration = 15 * 60 * 1000
@@ -133,6 +137,16 @@ export interface StandingQuery {
   message?: string
 }
 
+export interface SeasonStatisticsQuery {
+  seasonId: number
+  statistics: SeasonStatisticsRefresh['statistics']
+  fetchedAt: number
+  staleAt: number
+  rateLimitRemaining?: number
+  rateLimitResetsAt?: number
+  message?: string
+}
+
 export interface CompetitionFixtureQuery {
   key: string
   competitionId: number
@@ -172,6 +186,18 @@ export interface TeamFixtureQuery {
   fetchedAt: number
   staleAt: number
   pageCount: number
+  rateLimitRemaining?: number
+  rateLimitResetsAt?: number
+  message?: string
+}
+
+export interface TeamStatisticsQuery {
+  key: string
+  teamId: number
+  seasonId: number
+  statistics: TeamStatisticsRefresh['statistics']
+  fetchedAt: number
+  staleAt: number
   rateLimitRemaining?: number
   rateLimitResetsAt?: number
   message?: string
@@ -313,9 +339,11 @@ class HalfspaceDatabase extends Dexie {
   competitionSeasonQueries!: Table<CompetitionSeasonQuery, number>
   standings!: Table<CachedStanding, number>
   standingQueries!: Table<StandingQuery, number>
+  seasonStatisticsQueries!: Table<SeasonStatisticsQuery, number>
   competitionFixtureQueries!: Table<CompetitionFixtureQuery, string>
   teams!: Table<CachedTeam, number>
   teamFixtureQueries!: Table<TeamFixtureQuery, string>
+  teamStatisticsQueries!: Table<TeamStatisticsQuery, string>
   venues!: Table<CachedVenue, number>
   players!: Table<CachedPlayer, number>
   squadEntries!: Table<CachedSquadEntry, number>
@@ -441,6 +469,31 @@ class HalfspaceDatabase extends Dexie {
       competitionFixtureQueries: '&key, competitionId, staleAt',
       teams: 'id, name, countryId, venueId, staleAt',
       teamFixtureQueries: '&key, teamId, staleAt',
+      venues: 'id, name, countryId, staleAt',
+      players: 'id, name, displayName, positionId, nationalityId, staleAt',
+      squadEntries: 'id, teamId, playerId, positionId, [teamId+positionId]',
+      teamSquadQueries: '&teamId, staleAt',
+      playerAppearances: '&key, playerId, teamId, fixtureId, [playerId+fixtureId]',
+      playerAppearanceQueries: '&key, playerId, teamId, staleAt'
+    })
+
+    this.version(9).stores({
+      fixtures:
+        'id, leagueId, startingAt, [leagueId+startingAt], stateId, homeTeamId, awayTeamId, staleAt',
+      fixtureQueries: '&key, date, staleAt',
+      fixtureOdds: 'id, fixtureId, marketId, bookmakerId, [fixtureId+marketId]',
+      fixtureOddsQueries: '&fixtureId, staleAt',
+      competitions: 'id, active, name, countryId',
+      competitionCatalogs: '&key, staleAt',
+      competitionPins: '&competitionId, pinnedAt',
+      competitionSeasonQueries: '&competitionId, staleAt',
+      standings: 'id, participantId, seasonId, [seasonId+position], leagueId, stageId, groupId',
+      standingQueries: '&seasonId, staleAt',
+      seasonStatisticsQueries: '&seasonId, staleAt',
+      competitionFixtureQueries: '&key, competitionId, staleAt',
+      teams: 'id, name, countryId, venueId, staleAt',
+      teamFixtureQueries: '&key, teamId, staleAt',
+      teamStatisticsQueries: '&key, teamId, seasonId, staleAt',
       venues: 'id, name, countryId, staleAt',
       players: 'id, name, displayName, positionId, nationalityId, staleAt',
       squadEntries: 'id, teamId, playerId, positionId, [teamId+positionId]',
@@ -829,6 +882,27 @@ export async function writeStandingsRefresh(
   })
 }
 
+export async function readSeasonStatistics(
+  seasonId: number
+): Promise<SeasonStatisticsQuery | null> {
+  return (await db.seasonStatisticsQueries.get(seasonId)) ?? null
+}
+
+export async function writeSeasonStatisticsRefresh(
+  seasonId: number,
+  refresh: SeasonStatisticsRefresh
+): Promise<void> {
+  await db.seasonStatisticsQueries.put({
+    seasonId,
+    statistics: refresh.statistics,
+    fetchedAt: refresh.fetchedAt,
+    staleAt: refresh.fetchedAt + statisticsCacheDuration,
+    rateLimitRemaining: refresh.rateLimit?.remaining,
+    rateLimitResetsAt: refresh.rateLimit?.resetsAt,
+    message: refresh.message
+  })
+}
+
 export function competitionFixtureQueryKey(input: RefreshCompetitionFixturesInput): string {
   return `${input.competitionId}|${input.startDate}|${input.endDate}|${input.timeZone}`
 }
@@ -1149,6 +1223,33 @@ export async function writeTeamFixtureRefresh(
   })
 }
 
+export function teamStatisticsQueryKey(input: RefreshTeamStatisticsInput): string {
+  return `${input.teamId}|${input.seasonId}`
+}
+
+export async function readTeamStatistics(
+  input: RefreshTeamStatisticsInput
+): Promise<TeamStatisticsQuery | null> {
+  return (await db.teamStatisticsQueries.get(teamStatisticsQueryKey(input))) ?? null
+}
+
+export async function writeTeamStatisticsRefresh(
+  input: RefreshTeamStatisticsInput,
+  refresh: TeamStatisticsRefresh
+): Promise<void> {
+  await db.teamStatisticsQueries.put({
+    key: teamStatisticsQueryKey(input),
+    teamId: input.teamId,
+    seasonId: input.seasonId,
+    statistics: refresh.statistics,
+    fetchedAt: refresh.fetchedAt,
+    staleAt: refresh.fetchedAt + statisticsCacheDuration,
+    rateLimitRemaining: refresh.rateLimit?.remaining,
+    rateLimitResetsAt: refresh.rateLimit?.resetsAt,
+    message: refresh.message
+  })
+}
+
 export async function readVenueIdentity(venueId: number): Promise<{
   venue: CachedVenue | null
   summary: SportmonksVenue | null
@@ -1208,9 +1309,11 @@ export async function clearSportmonksCache(): Promise<void> {
       db.competitionSeasonQueries,
       db.standings,
       db.standingQueries,
+      db.seasonStatisticsQueries,
       db.competitionFixtureQueries,
       db.teams,
       db.teamFixtureQueries,
+      db.teamStatisticsQueries,
       db.venues,
       db.players,
       db.squadEntries,
@@ -1228,9 +1331,11 @@ export async function clearSportmonksCache(): Promise<void> {
       await db.competitionSeasonQueries.clear()
       await db.standings.clear()
       await db.standingQueries.clear()
+      await db.seasonStatisticsQueries.clear()
       await db.competitionFixtureQueries.clear()
       await db.teams.clear()
       await db.teamFixtureQueries.clear()
+      await db.teamStatisticsQueries.clear()
       await db.venues.clear()
       await db.players.clear()
       await db.squadEntries.clear()

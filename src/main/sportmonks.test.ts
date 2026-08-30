@@ -10,10 +10,12 @@ import {
   fetchFixturesByDate,
   fetchPlayerAppearances,
   fetchPlayerById,
+  fetchSeasonStatistics,
   fetchStandingsBySeason,
   fetchTeamById,
   fetchTeamFixtures,
   fetchTeamSquad,
+  fetchTeamStatistics,
   fetchVenueById,
   validateCompetitionFixturesInput,
   validateCompetitionSeasonsInput,
@@ -22,9 +24,11 @@ import {
   validateRefreshInput,
   validatePlayerAppearancesInput,
   validatePlayerInput,
+  validateSeasonStatisticsInput,
   validateStandingsInput,
   validateTeamFixturesInput,
   validateTeamInput,
+  validateTeamStatisticsInput,
   validateVenueInput,
   validateToken
 } from './sportmonks'
@@ -455,6 +459,36 @@ describe('Sportmonks client', () => {
     expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')
   })
 
+  it('fetches a filtered season statistics snapshot', async () => {
+    const fetcher = vi.fn<typeof fetch>(async () =>
+      Response.json({
+        data: {
+          id: 23614,
+          statistics: [
+            {
+              id: 701,
+              model_id: 23614,
+              type_id: 191,
+              relation_id: null,
+              value: { total: 92 }
+            }
+          ]
+        },
+        rate_limit: { remaining: 2_995, resets_in_seconds: 3_600 }
+      })
+    )
+
+    const refresh = await fetchSeasonStatistics({ seasonId: 23614 }, 'private-token', fetcher)
+
+    expect(refresh.statistics[0].value).toEqual({ total: 92 })
+    const [input, init] = fetcher.mock.calls[0]
+    const url = new URL(input.toString())
+    expect(url.pathname).toBe('/v3/football/seasons/23614')
+    expect(url.searchParams.get('include')).toBe('statistics')
+    expect(url.searchParams.get('filters')).toContain('seasonStatisticTypes:')
+    expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')
+  })
+
   it('paginates a league-filtered fixture window', async () => {
     const fixture = makeFixture()
     const fetcher = vi.fn<typeof fetch>(async (input) => {
@@ -523,6 +557,59 @@ describe('Sportmonks client', () => {
     expect(url.searchParams.get('include')).toBe('country;venue')
     expect(url.searchParams.has('api_token')).toBe(false)
     expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')
+  })
+
+  it('fetches team statistics for one season', async () => {
+    const fetcher = vi.fn<typeof fetch>(async () =>
+      Response.json({
+        data: {
+          id: 9,
+          statistics: [
+            {
+              id: 501,
+              team_id: 9,
+              season_id: 23614,
+              has_values: true,
+              details: [
+                {
+                  id: 801,
+                  team_statistic_id: 501,
+                  type_id: 214,
+                  value: { count: 12 }
+                }
+              ]
+            }
+          ]
+        },
+        rate_limit: { remaining: 2_994, resets_in_seconds: 3_600 }
+      })
+    )
+
+    const refresh = await fetchTeamStatistics(
+      { seasonId: 23614, teamId: 9 },
+      'private-token',
+      fetcher
+    )
+
+    expect(refresh.statistics[0].value).toEqual({ count: 12 })
+    const [input, init] = fetcher.mock.calls[0]
+    const url = new URL(input.toString())
+    expect(url.pathname).toBe('/v3/football/teams/9')
+    expect(url.searchParams.get('include')).toBe('statistics.details')
+    expect(url.searchParams.get('filters')).toContain('teamStatisticSeasons:23614')
+    expect(url.searchParams.get('filters')).toContain('teamStatisticDetailTypes:')
+    expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')
+  })
+
+  it('validates season and team statistics identifiers', () => {
+    expect(validateSeasonStatisticsInput({ seasonId: 23614 })).toEqual({ seasonId: 23614 })
+    expect(validateTeamStatisticsInput({ seasonId: 23614, teamId: 9 })).toEqual({
+      seasonId: 23614,
+      teamId: 9
+    })
+    expect(() => validateTeamStatisticsInput({ seasonId: 0, teamId: 9 })).toThrow(
+      'Choose a valid season.'
+    )
   })
 
   it('fetches a team fixture window across competitions', async () => {

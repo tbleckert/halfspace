@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useLiveQuery } from 'dexie-react-hooks'
+import type { SportmonksSeason } from '@shared/contracts'
 import {
   AlertCircle,
   ArrowLeft,
@@ -19,6 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import type { CachedCompetition, CachedStanding, SquadMember } from '@/data/db'
 import { db, readTeamStandings } from '@/data/db'
 import { CompetitionLogo } from '@/features/competitions/competition-logo'
+import { seasonFixtureDate } from '@/features/competitions/competition-workspace-data'
 import { prefetchCompetitionWorkspace } from '@/features/competitions/use-competition-workspace'
 import {
   groupEntityFixturesByDate,
@@ -27,6 +29,7 @@ import {
 import { EntityFixturePanel } from '@/features/fixtures/entity-fixture-panel'
 import { PlayerPhoto } from '@/features/players/player-photo'
 import { prefetchPlayerEntity } from '@/features/players/use-player'
+import { TeamStatisticsView } from '@/features/statistics/statistics-views'
 import { VenueCard } from '@/features/venues/venue-card'
 import { prefetchVenueEntity } from '@/features/venues/use-venue'
 import { addDaysToIsoDate, currentTimeZone, todayInTimeZone } from '@/lib/date'
@@ -38,27 +41,34 @@ import {
   prefetchTeamEntity,
   prefetchTeamFixtures,
   prefetchTeamSquad,
+  prefetchTeamStatistics,
   teamFixtureInput,
   useTeamEntity,
   useTeamFixtures,
-  useTeamSquad
+  useTeamSquad,
+  useTeamStatistics
 } from './use-team'
 
 interface TeamCompetitionContext {
   competition: CachedCompetition
+  season: SportmonksSeason | null
+  seasonId: number | null
+  seasonName: string | null
   standing: CachedStanding | null
 }
 
-type TeamView = 'fixtures' | 'overview' | 'squad'
+type TeamView = 'fixtures' | 'overview' | 'squad' | 'stats'
 
 export function TeamPage({
   competitionId,
   date,
+  season: requestedSeasonId,
   teamId,
   view = 'overview'
 }: {
   competitionId?: number
   date?: string
+  season?: number
   teamId: string
   view?: TeamView
 }): React.JSX.Element {
@@ -67,7 +77,18 @@ export function TeamPage({
   const online = useOnline()
   const timeZone = useMemo(() => currentTimeZone(), [])
   const today = useMemo(() => todayInTimeZone(timeZone), [timeZone])
-  const fixtureWindowStart = date ?? today
+  const team = useTeamEntity(validTeamId ? parsedTeamId : null, online)
+  const competitionContexts = useLiveQuery(
+    () =>
+      validTeamId
+        ? readTeamCompetitionContexts(parsedTeamId, competitionId, requestedSeasonId)
+        : Promise.resolve([]),
+    [competitionId, parsedTeamId, requestedSeasonId, validTeamId]
+  )
+  const statisticsContext = competitionContexts?.[0] ?? null
+  const fixtureWindowStart =
+    date ??
+    (requestedSeasonId ? seasonFixtureDate(statisticsContext?.season ?? null, today) : today)
   const fixtureBrowserInput = useMemo(
     () => (validTeamId ? teamFixtureInput(parsedTeamId, fixtureWindowStart, timeZone) : null),
     [fixtureWindowStart, parsedTeamId, timeZone, validTeamId]
@@ -80,14 +101,23 @@ export function TeamPage({
     [fixtureBrowserInput, fixtureWindowStart, parsedTeamId, timeZone, validTeamId, view]
   )
   const [pageOpenedAt] = useState(() => Date.now())
-  const team = useTeamEntity(validTeamId ? parsedTeamId : null, online)
-  const fixtures = useTeamFixtures(fixtureInput, online && view !== 'squad')
-  const squad = useTeamSquad(validTeamId ? parsedTeamId : null, online && view === 'squad')
-  const competitionContexts = useLiveQuery(
-    () =>
-      validTeamId ? readTeamCompetitionContexts(parsedTeamId, competitionId) : Promise.resolve([]),
-    [competitionId, parsedTeamId, validTeamId]
+  const fixtures = useTeamFixtures(
+    fixtureInput,
+    online &&
+      view !== 'squad' &&
+      view !== 'stats' &&
+      (!requestedSeasonId || competitionContexts !== undefined)
   )
+  const squad = useTeamSquad(validTeamId ? parsedTeamId : null, online && view === 'squad')
+  const statisticsSeasonId = statisticsContext?.seasonId ?? null
+  const statisticsInput = useMemo(
+    () =>
+      validTeamId && statisticsSeasonId
+        ? { seasonId: statisticsSeasonId, teamId: parsedTeamId }
+        : null,
+    [parsedTeamId, statisticsSeasonId, validTeamId]
+  )
+  const statistics = useTeamStatistics(statisticsInput, online && view === 'stats')
   const fixtureSections = useMemo(
     () => splitEntityFixtures(fixtures.cached?.fixtures ?? [], pageOpenedAt),
     [fixtures.cached?.fixtures, pageOpenedAt]
@@ -96,10 +126,17 @@ export function TeamPage({
     () => groupEntityFixturesByDate(fixtures.cached?.fixtures ?? [], timeZone),
     [fixtures.cached?.fixtures, timeZone]
   )
-  const refreshing = team.refreshing || (view === 'squad' ? squad.refreshing : fixtures.refreshing)
-  const errors = [team.error, view === 'squad' ? squad.error : fixtures.error].filter(
-    (error): error is string => Boolean(error)
-  )
+  const refreshing =
+    team.refreshing ||
+    (view === 'squad'
+      ? squad.refreshing
+      : view === 'stats'
+        ? statistics.refreshing
+        : fixtures.refreshing)
+  const errors = [
+    team.error,
+    view === 'squad' ? squad.error : view === 'stats' ? statistics.error : fixtures.error
+  ].filter((error): error is string => Boolean(error))
   const identity = team.cached?.team?.raw ?? team.cached?.participant
 
   if (!validTeamId) return <MissingTeam />
@@ -121,7 +158,14 @@ export function TeamPage({
   const detailedTeam = team.cached.team?.raw
 
   async function refresh(): Promise<void> {
-    await Promise.all([team.refresh(), view === 'squad' ? squad.refresh() : fixtures.refresh()])
+    await Promise.all([
+      team.refresh(),
+      view === 'squad'
+        ? squad.refresh()
+        : view === 'stats'
+          ? statistics.refresh()
+          : fixtures.refresh()
+    ])
   }
 
   return (
@@ -131,6 +175,7 @@ export function TeamPage({
           <Link
             to="/competitions/$competitionId"
             params={{ competitionId: String(competitionId) }}
+            search={{ season: requestedSeasonId }}
             className="mb-5 flex w-fit items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="size-4" />
@@ -194,6 +239,8 @@ export function TeamPage({
           date={fixtureWindowStart}
           fixtureInput={fixtureBrowserInput!}
           online={online}
+          season={requestedSeasonId}
+          statisticsInput={statisticsInput}
           teamId={parsedTeamId}
           view={view}
         />
@@ -231,6 +278,7 @@ export function TeamPage({
                   context={{
                     competition: competitionId,
                     date: fixtureWindowStart,
+                    season: requestedSeasonId,
                     team: parsedTeamId
                   }}
                   fixtures={fixtureSections.upcoming}
@@ -243,6 +291,7 @@ export function TeamPage({
                   context={{
                     competition: competitionId,
                     date: fixtureWindowStart,
+                    season: requestedSeasonId,
                     team: parsedTeamId
                   }}
                   fixtures={fixtureSections.recent}
@@ -265,6 +314,7 @@ export function TeamPage({
           fixturesLoaded={fixtures.cached !== undefined}
           loading={fixtures.refreshing}
           online={online}
+          season={requestedSeasonId}
           teamId={parsedTeamId}
           timeZone={timeZone}
         />
@@ -279,6 +329,21 @@ export function TeamPage({
           teamId={parsedTeamId}
         />
       )}
+
+      {view === 'stats' && (
+        <TeamStatisticsView
+          context={
+            statisticsContext
+              ? [statisticsContext.competition.name, statisticsContext.seasonName]
+                  .filter(Boolean)
+                  .join(' · ')
+              : null
+          }
+          loaded={statistics.cached !== undefined}
+          loading={statistics.refreshing}
+          statistics={statistics.cached?.statistics ?? []}
+        />
+      )}
     </div>
   )
 }
@@ -288,6 +353,8 @@ function TeamNavigation({
   date,
   fixtureInput,
   online,
+  season,
+  statisticsInput,
   teamId,
   view
 }: {
@@ -295,6 +362,8 @@ function TeamNavigation({
   date: string
   fixtureInput: ReturnType<typeof teamFixtureInput>
   online: boolean
+  season?: number
+  statisticsInput: { seasonId: number; teamId: number } | null
   teamId: number
   view: TeamView
 }): React.JSX.Element {
@@ -307,7 +376,7 @@ function TeamNavigation({
         aria-current={view === 'overview' ? 'page' : undefined}
         to="/teams/$teamId"
         params={{ teamId: String(teamId) }}
-        search={{ competition: competitionId, date }}
+        search={{ competition: competitionId, date, season }}
         className={teamNavigationClassName(itemClassName, view === 'overview')}
         {...intentPrefetchProps(online, () => prefetchTeamEntity(teamId))}
       >
@@ -317,7 +386,7 @@ function TeamNavigation({
         aria-current={view === 'fixtures' ? 'page' : undefined}
         to="/teams/$teamId/fixtures"
         params={{ teamId: String(teamId) }}
-        search={{ competition: competitionId, date }}
+        search={{ competition: competitionId, date, season }}
         className={teamNavigationClassName(itemClassName, view === 'fixtures')}
         {...intentPrefetchProps(online, () => prefetchTeamFixtures(fixtureInput))}
       >
@@ -327,11 +396,23 @@ function TeamNavigation({
         aria-current={view === 'squad' ? 'page' : undefined}
         to="/teams/$teamId/squad"
         params={{ teamId: String(teamId) }}
-        search={{ competition: competitionId, date }}
+        search={{ competition: competitionId, date, season }}
         className={teamNavigationClassName(itemClassName, view === 'squad')}
         {...intentPrefetchProps(online, () => prefetchTeamSquad(teamId))}
       >
         Squad
+      </Link>
+      <Link
+        aria-current={view === 'stats' ? 'page' : undefined}
+        to="/teams/$teamId/stats"
+        params={{ teamId: String(teamId) }}
+        search={{ competition: competitionId, date, season }}
+        className={teamNavigationClassName(itemClassName, view === 'stats')}
+        {...intentPrefetchProps(online && statisticsInput !== null, () =>
+          statisticsInput ? prefetchTeamStatistics(statisticsInput) : Promise.resolve()
+        )}
+      >
+        Stats
       </Link>
     </nav>
   )
@@ -353,6 +434,7 @@ function TeamFixtures({
   fixturesLoaded,
   loading,
   online,
+  season,
   teamId,
   timeZone
 }: {
@@ -362,6 +444,7 @@ function TeamFixtures({
   fixturesLoaded: boolean
   loading: boolean
   online: boolean
+  season?: number
   teamId: number
   timeZone: string
 }): React.JSX.Element {
@@ -423,7 +506,7 @@ function TeamFixtures({
           {fixtureGroups.map((group) => (
             <EntityFixturePanel
               key={group.date}
-              context={{ competition: competitionId, date, team: teamId }}
+              context={{ competition: competitionId, date, season, team: teamId }}
               dateDisplay="time"
               fixtures={group.fixtures}
               label={formatFixtureGroupDate(group.date)}
@@ -592,11 +675,12 @@ function TeamCompetitions({
         </div>
       ) : (
         <div className="divide-y">
-          {contexts.map(({ competition, standing }) => (
+          {contexts.map(({ competition, seasonId, seasonName, standing }) => (
             <Link
               key={competition.id}
               to="/competitions/$competitionId"
               params={{ competitionId: String(competition.id) }}
+              search={{ season: seasonId ?? undefined }}
               className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-muted/45"
               {...intentPrefetchProps(online, () => prefetchCompetitionWorkspace(competition.id))}
             >
@@ -608,7 +692,7 @@ function TeamCompetitions({
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{competition.name}</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  {competition.currentSeasonName ?? competition.raw.country?.name ?? 'Competition'}
+                  {seasonName ?? competition.raw.country?.name ?? 'Competition'}
                 </p>
               </div>
               {standing && (
@@ -629,7 +713,8 @@ function TeamCompetitions({
 
 async function readTeamCompetitionContexts(
   teamId: number,
-  competitionId?: number
+  competitionId?: number,
+  requestedSeasonId?: number
 ): Promise<TeamCompetitionContext[]> {
   const standings = await readTeamStandings(teamId)
   const competitionIds = [
@@ -641,17 +726,34 @@ async function readTeamCompetitionContexts(
   const competitions = (await db.competitions.bulkGet(competitionIds)).filter(
     (competition): competition is CachedCompetition => competition !== undefined
   )
+  const seasonQueries = await db.competitionSeasonQueries.bulkGet(competitionIds)
 
   return competitions
-    .map((competition) => ({
-      competition,
-      standing:
-        standings.find(
-          ({ leagueId, seasonId }) =>
-            leagueId === competition.id &&
-            (competition.currentSeasonId === null || seasonId === competition.currentSeasonId)
-        ) ?? null
-    }))
+    .map((competition, index) => {
+      const fallbackStanding = standings.find(({ leagueId }) => leagueId === competition.id)
+      const seasonId =
+        competition.id === competitionId && requestedSeasonId
+          ? requestedSeasonId
+          : (competition.currentSeasonId ?? fallbackStanding?.seasonId ?? null)
+      const season =
+        seasonQueries[index]?.seasons.find(({ id }) => id === seasonId) ??
+        (competition.raw.currentseason?.id === seasonId ? competition.raw.currentseason : null)
+      const seasonName =
+        season?.name ??
+        (seasonId === competition.currentSeasonId ? competition.currentSeasonName : null)
+
+      return {
+        competition,
+        season,
+        seasonId,
+        seasonName,
+        standing:
+          standings.find(
+            ({ leagueId, seasonId: standingSeasonId }) =>
+              leagueId === competition.id && (seasonId === null || standingSeasonId === seasonId)
+          ) ?? null
+      }
+    })
     .toSorted((left, right) => {
       if (left.competition.id === competitionId) return -1
       if (right.competition.id === competitionId) return 1

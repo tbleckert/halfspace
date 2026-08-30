@@ -8,10 +8,12 @@ export const ipcChannels = {
   refreshCompetitions: 'sportmonks:refresh-competitions',
   refreshCompetitionSeasons: 'sportmonks:refresh-competition-seasons',
   refreshStandings: 'sportmonks:refresh-standings',
+  refreshSeasonStatistics: 'sportmonks:refresh-season-statistics',
   refreshCompetitionFixtures: 'sportmonks:refresh-competition-fixtures',
   refreshTeam: 'sportmonks:refresh-team',
   refreshTeamFixtures: 'sportmonks:refresh-team-fixtures',
   refreshTeamSquad: 'sportmonks:refresh-team-squad',
+  refreshTeamStatistics: 'sportmonks:refresh-team-statistics',
   refreshVenue: 'sportmonks:refresh-venue',
   refreshPlayer: 'sportmonks:refresh-player',
   refreshPlayerAppearances: 'sportmonks:refresh-player-appearances',
@@ -67,6 +69,10 @@ export interface RefreshStandingsInput {
   seasonId: number
 }
 
+export interface RefreshSeasonStatisticsInput {
+  seasonId: number
+}
+
 export interface RefreshCompetitionSeasonsInput {
   competitionId: number
 }
@@ -79,6 +85,11 @@ export interface RefreshCompetitionFixturesInput {
 }
 
 export interface RefreshTeamInput {
+  teamId: number
+}
+
+export interface RefreshTeamStatisticsInput {
+  seasonId: number
   teamId: number
 }
 
@@ -421,6 +432,21 @@ export interface SportmonksStanding {
   group?: SportmonksStandingContext | null
 }
 
+export interface SportmonksSeasonStatistic {
+  id: number
+  model_id: number
+  type_id: number
+  relation_id?: number | null
+  value: unknown
+}
+
+export interface SportmonksTeamStatistic {
+  id: number
+  team_statistic_id: number
+  type_id: number
+  value: unknown
+}
+
 export interface FixtureRefresh {
   fixtures: SportmonksFixture[]
   fetchedAt: number
@@ -485,8 +511,28 @@ export interface StandingsRefresh {
   message?: string
 }
 
+export interface SeasonStatisticsRefresh {
+  statistics: SportmonksSeasonStatistic[]
+  fetchedAt: number
+  rateLimit?: {
+    remaining: number
+    resetsAt: number
+  }
+  message?: string
+}
+
 export interface TeamRefresh {
   team: SportmonksTeam
+  fetchedAt: number
+  rateLimit?: {
+    remaining: number
+    resetsAt: number
+  }
+  message?: string
+}
+
+export interface TeamStatisticsRefresh {
+  statistics: SportmonksTeamStatistic[]
   fetchedAt: number
   rateLimit?: {
     remaining: number
@@ -565,12 +611,16 @@ export interface HalfspaceApi {
       input: RefreshCompetitionSeasonsInput
     ): Promise<Result<CompetitionSeasonsRefresh>>
     refreshStandings(input: RefreshStandingsInput): Promise<Result<StandingsRefresh>>
+    refreshSeasonStatistics(
+      input: RefreshSeasonStatisticsInput
+    ): Promise<Result<SeasonStatisticsRefresh>>
     refreshCompetitionFixtures(
       input: RefreshCompetitionFixturesInput
     ): Promise<Result<FixtureRefresh>>
     refreshTeam(input: RefreshTeamInput): Promise<Result<TeamRefresh>>
     refreshTeamFixtures(input: RefreshTeamFixturesInput): Promise<Result<FixtureRefresh>>
     refreshTeamSquad(input: RefreshTeamSquadInput): Promise<Result<TeamSquadRefresh>>
+    refreshTeamStatistics(input: RefreshTeamStatisticsInput): Promise<Result<TeamStatisticsRefresh>>
     refreshVenue(input: RefreshVenueInput): Promise<Result<VenueRefresh>>
     refreshPlayer(input: RefreshPlayerInput): Promise<Result<PlayerRefresh>>
     refreshPlayerAppearances(

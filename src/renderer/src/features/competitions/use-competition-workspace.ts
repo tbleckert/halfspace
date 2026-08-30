@@ -6,9 +6,11 @@ import {
   db,
   readCompetitionFixtureQuery,
   readCompetitionSeasons,
+  readSeasonStatistics,
   readStandingsQuery,
   writeCompetitionFixtureRefresh,
   writeCompetitionSeasonsRefresh,
+  writeSeasonStatisticsRefresh,
   writeStandingsRefresh
 } from '@/data/db'
 import { addDaysToIsoDate, currentTimeZone, todayInTimeZone } from '@/lib/date'
@@ -21,6 +23,7 @@ interface RefreshRequest {
 type StandingsCache = Awaited<ReturnType<typeof readStandingsQuery>>
 type CompetitionSeasonsCache = Awaited<ReturnType<typeof readCompetitionSeasons>>
 type CompetitionFixturesCache = Awaited<ReturnType<typeof readCompetitionFixtureQuery>>
+type SeasonStatisticsCache = Awaited<ReturnType<typeof readSeasonStatistics>>
 
 interface WorkspaceQueryResult<T> {
   cached: T | undefined
@@ -32,6 +35,7 @@ interface WorkspaceQueryResult<T> {
 let refreshGeneration = 0
 const standingRefreshes = new Map<number, RefreshRequest>()
 const seasonRefreshes = new Map<number, RefreshRequest>()
+const seasonStatisticsRefreshes = new Map<number, RefreshRequest>()
 const fixtureRefreshes = new Map<string, RefreshRequest>()
 
 export function useStandings(
@@ -159,11 +163,54 @@ export function useCompetitionFixtures(
   return { cached, refreshing, error, refresh }
 }
 
+export function useSeasonStatistics(
+  seasonId: number | null,
+  enabled: boolean
+): WorkspaceQueryResult<SeasonStatisticsCache> {
+  const cached = useLiveQuery(
+    () => (seasonId === null ? Promise.resolve(null) : readSeasonStatistics(seasonId)),
+    [seasonId]
+  )
+  const [refreshing, setRefreshing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const refresh = useCallback(async () => {
+    if (!enabled || seasonId === null) return
+
+    setRefreshing(true)
+    setError(null)
+
+    try {
+      await refreshSeasonStatisticsQuery(seasonId)
+    } catch (refreshError) {
+      setError(
+        refreshError instanceof Error
+          ? refreshError.message
+          : 'Could not refresh season statistics.'
+      )
+    } finally {
+      setRefreshing(false)
+    }
+  }, [enabled, seasonId])
+
+  useAutomaticRefresh(enabled && seasonId !== null, cached !== undefined, cached?.staleAt, refresh)
+
+  return { cached, refreshing, error, refresh }
+}
+
 export function invalidateCompetitionWorkspaceRefreshes(): void {
   refreshGeneration += 1
   standingRefreshes.clear()
   seasonRefreshes.clear()
+  seasonStatisticsRefreshes.clear()
   fixtureRefreshes.clear()
+}
+
+export async function prefetchSeasonStatistics(seasonId: number): Promise<void> {
+  const cached = await readSeasonStatistics(seasonId)
+  if (cached && cached.staleAt > Date.now()) return
+
+  await refreshSeasonStatisticsQuery(seasonId)
 }
 
 export async function prefetchCompetitionWorkspace(competitionId: number): Promise<void> {
@@ -240,6 +287,29 @@ async function refreshStandingsQuery(seasonId: number): Promise<void> {
     await promise
   } finally {
     if (standingRefreshes.get(seasonId)?.promise === promise) standingRefreshes.delete(seasonId)
+  }
+}
+
+async function refreshSeasonStatisticsQuery(seasonId: number): Promise<void> {
+  const active = seasonStatisticsRefreshes.get(seasonId)
+  if (active?.generation === refreshGeneration) return active.promise
+
+  const generation = refreshGeneration
+  const promise = (async () => {
+    const result = await window.halfspace.sportmonks.refreshSeasonStatistics({ seasonId })
+    if (generation !== refreshGeneration) return
+    if (!result.ok) throw new Error(result.error.message)
+    await writeSeasonStatisticsRefresh(seasonId, result.data)
+  })()
+
+  seasonStatisticsRefreshes.set(seasonId, { generation, promise })
+
+  try {
+    await promise
+  } finally {
+    if (seasonStatisticsRefreshes.get(seasonId)?.promise === promise) {
+      seasonStatisticsRefreshes.delete(seasonId)
+    }
   }
 }
 

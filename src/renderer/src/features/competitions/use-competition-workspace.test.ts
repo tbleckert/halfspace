@@ -1,31 +1,43 @@
 // @vitest-environment jsdom
 
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { FixtureRefresh, StandingsRefresh } from '@shared/contracts'
-import { db, readCompetitionFixtureQuery, readStandingsQuery } from '@/data/db'
+import type { FixtureRefresh, SeasonStatisticsRefresh, StandingsRefresh } from '@shared/contracts'
+import {
+  db,
+  readCompetitionFixtureQuery,
+  readSeasonStatistics,
+  readStandingsQuery
+} from '@/data/db'
 import { currentTimeZone } from '@/lib/date'
 import {
   competitionWorkspaceFixtureInput,
+  invalidateCompetitionWorkspaceRefreshes,
+  prefetchSeasonStatistics,
   prefetchCompetitionWorkspace
 } from './use-competition-workspace'
 
 beforeEach(async () => {
+  invalidateCompetitionWorkspaceRefreshes()
   if (!db.isOpen()) await db.open()
 
   await db.transaction(
     'rw',
-    db.competitions,
-    db.fixtures,
-    db.competitionFixtureQueries,
-    db.standings,
-    db.standingQueries,
+    [
+      db.competitions,
+      db.fixtures,
+      db.competitionFixtureQueries,
+      db.standings,
+      db.standingQueries,
+      db.seasonStatisticsQueries
+    ],
     async () => {
       await Promise.all([
         db.competitions.clear(),
         db.fixtures.clear(),
         db.competitionFixtureQueries.clear(),
         db.standings.clear(),
-        db.standingQueries.clear()
+        db.standingQueries.clear(),
+        db.seasonStatisticsQueries.clear()
       ])
     }
   )
@@ -82,6 +94,19 @@ describe('competition workspace prefetch', () => {
     ).not.toBeNull()
     expect((await readStandingsQuery(25591)).query).not.toBeNull()
   })
+
+  it('prefetches missing season statistics without refetching fresh data', async () => {
+    const refreshSeasonStatistics = vi
+      .fn()
+      .mockResolvedValue({ ok: true, data: seasonStatisticsRefresh() })
+    installHalfspace({ refreshSeasonStatistics })
+
+    await prefetchSeasonStatistics(25591)
+    await prefetchSeasonStatistics(25591)
+
+    expect(refreshSeasonStatistics).toHaveBeenCalledTimes(1)
+    expect(await readSeasonStatistics(25591)).not.toBeNull()
+  })
 })
 
 function fixtureRefresh(): FixtureRefresh {
@@ -100,6 +125,13 @@ function standingsRefresh(): StandingsRefresh {
   }
 }
 
+function seasonStatisticsRefresh(): SeasonStatisticsRefresh {
+  return {
+    fetchedAt: Date.now(),
+    statistics: []
+  }
+}
+
 function installHalfspace(overrides: Partial<Window['halfspace']['sportmonks']>): void {
   window.halfspace = {
     credentials: {
@@ -114,10 +146,12 @@ function installHalfspace(overrides: Partial<Window['halfspace']['sportmonks']>)
       refreshCompetitions: vi.fn(),
       refreshCompetitionSeasons: vi.fn(),
       refreshStandings: vi.fn(),
+      refreshSeasonStatistics: vi.fn(),
       refreshCompetitionFixtures: vi.fn(),
       refreshTeam: vi.fn(),
       refreshTeamFixtures: vi.fn(),
       refreshTeamSquad: vi.fn(),
+      refreshTeamStatistics: vi.fn(),
       refreshVenue: vi.fn(),
       refreshPlayer: vi.fn(),
       refreshPlayerAppearances: vi.fn(),

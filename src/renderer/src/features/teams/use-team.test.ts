@@ -1,14 +1,21 @@
 // @vitest-environment jsdom
 
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { FixtureRefresh, Result, TeamRefresh, TeamSquadRefresh } from '@shared/contracts'
-import { db, readTeamFixtureQuery, readTeamIdentity } from '@/data/db'
+import type {
+  FixtureRefresh,
+  Result,
+  TeamRefresh,
+  TeamSquadRefresh,
+  TeamStatisticsRefresh
+} from '@shared/contracts'
+import { db, readTeamFixtureQuery, readTeamIdentity, readTeamStatistics } from '@/data/db'
 import { currentTimeZone } from '@/lib/date'
 import {
   invalidateTeamRefreshes,
   prefetchTeamEntity,
   prefetchTeamFixtures,
   prefetchTeamSquad,
+  prefetchTeamStatistics,
   refreshTeamEntity,
   teamFixtureInput
 } from './use-team'
@@ -18,17 +25,21 @@ beforeEach(async () => {
   if (!db.isOpen()) await db.open()
   await db.transaction(
     'rw',
-    db.fixtures,
-    db.teams,
-    db.teamFixtureQueries,
-    db.squadEntries,
-    db.teamSquadQueries,
+    [
+      db.fixtures,
+      db.teams,
+      db.teamFixtureQueries,
+      db.squadEntries,
+      db.teamSquadQueries,
+      db.teamStatisticsQueries
+    ],
     async () => {
       await db.fixtures.clear()
       await db.teams.clear()
       await db.teamFixtureQueries.clear()
       await db.squadEntries.clear()
       await db.teamSquadQueries.clear()
+      await db.teamStatisticsQueries.clear()
     }
   )
 })
@@ -77,6 +88,20 @@ describe('team refresh', () => {
     await prefetchTeamSquad(9)
 
     expect(refreshTeamSquad).toHaveBeenCalledTimes(1)
+  })
+
+  it('prefetches missing team statistics without refetching fresh data', async () => {
+    const input = { seasonId: 23614, teamId: 9 }
+    const refreshTeamStatistics = vi
+      .fn()
+      .mockResolvedValue({ ok: true, data: teamStatisticsRefresh() })
+    installHalfspace({ refreshTeamStatistics })
+
+    await prefetchTeamStatistics(input)
+    await prefetchTeamStatistics(input)
+
+    expect(refreshTeamStatistics).toHaveBeenCalledTimes(1)
+    expect(await readTeamStatistics(input)).not.toBeNull()
   })
 
   it('does not restore an old team after the credential changes', async () => {
@@ -135,6 +160,13 @@ function teamFixturesRefresh(): FixtureRefresh {
   }
 }
 
+function teamStatisticsRefresh(): TeamStatisticsRefresh {
+  return {
+    fetchedAt: Date.now(),
+    statistics: []
+  }
+}
+
 function deferred<T>(): {
   promise: Promise<T>
   resolve: (value: T) => void
@@ -161,10 +193,12 @@ function installHalfspace(overrides: Partial<Window['halfspace']['sportmonks']>)
       refreshCompetitions: vi.fn(),
       refreshCompetitionSeasons: vi.fn(),
       refreshStandings: vi.fn(),
+      refreshSeasonStatistics: vi.fn(),
       refreshCompetitionFixtures: vi.fn(),
       refreshTeam: vi.fn(),
       refreshTeamFixtures: vi.fn(),
       refreshTeamSquad: vi.fn(),
+      refreshTeamStatistics: vi.fn(),
       refreshVenue: vi.fn(),
       refreshPlayer: vi.fn(),
       refreshPlayerAppearances: vi.fn(),

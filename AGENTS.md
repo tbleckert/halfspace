@@ -39,6 +39,9 @@ abstractions.
   uses the full content width.
 - On the team Fixtures page, the visible date is the first day of the fixture window. Do not expose
   a hidden midpoint as the navigation date. Keep Overview centered on recent and upcoming fixtures.
+- Competition and team Stats are season-scoped entity views. Fetch league totals and team
+  performance separately, cache each query locally, preserve the selected season when moving from
+  a competition to a team, and request only the statistic types shown in the UI.
 - Fixture pages keep Preview, Timeline, Lineups, Stats, and Odds in horizontal navigation inside
   the score hero. Preview stacks the compact venue card directly below Details.
 - Sportmonks fixture detail owns events, statistics, and lineups; fixture list refreshes must

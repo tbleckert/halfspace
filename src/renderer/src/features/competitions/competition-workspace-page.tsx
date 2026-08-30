@@ -25,6 +25,7 @@ import {
 } from '@/features/fixtures/entity-fixture-data'
 import { TeamLogo } from '@/features/teams/team-logo'
 import { prefetchTeamEntity } from '@/features/teams/use-team'
+import { LeagueStatisticsView } from '@/features/statistics/statistics-views'
 import { addDaysToIsoDate, currentTimeZone, todayInTimeZone } from '@/lib/date'
 import { intentPrefetchProps } from '@/lib/prefetch'
 import { cn } from '@/lib/utils'
@@ -41,12 +42,14 @@ import {
 import {
   competitionWorkspaceFixtureInput,
   prefetchCompetitionWorkspace,
+  prefetchSeasonStatistics,
   useCompetitionFixtures,
   useCompetitionSeasons,
+  useSeasonStatistics,
   useStandings
 } from './use-competition-workspace'
 
-type CompetitionView = 'overview' | 'fixtures' | 'teams'
+type CompetitionView = 'overview' | 'fixtures' | 'stats' | 'teams'
 
 export function CompetitionWorkspacePage({
   competitionId,
@@ -92,7 +95,7 @@ export function CompetitionWorkspacePage({
     [fixtureDate, parsedCompetitionId, timeZone, validCompetitionId]
   )
   const [workspaceOpenedAt] = useState(() => Date.now())
-  const fixtures = useCompetitionFixtures(fixtureInput, online)
+  const fixtures = useCompetitionFixtures(fixtureInput, online && view !== 'stats')
   const observedSeasonId = useMemo(
     () => nearestFixtureSeasonId(fixtures.cached?.fixtures ?? [], workspaceOpenedAt),
     [fixtures.cached?.fixtures, workspaceOpenedAt]
@@ -101,7 +104,8 @@ export function CompetitionWorkspacePage({
     (requestedSeasonId && !seasons.cached ? requestedSeasonId : selectedSeason?.id) ??
     competition?.currentSeasonId ??
     observedSeasonId
-  const standings = useStandings(seasonId, online && view !== 'fixtures')
+  const standings = useStandings(seasonId, online && view !== 'fixtures' && view !== 'stats')
+  const statistics = useSeasonStatistics(seasonId, online && view === 'stats')
   const seasonFixtures = useMemo(() => {
     const cachedFixtures = fixtures.cached?.fixtures ?? []
     return seasonId === null
@@ -125,11 +129,13 @@ export function CompetitionWorkspacePage({
     [seasonFixtures, standings.cached?.standings]
   )
   const refreshing =
-    seasons.refreshing || fixtures.refreshing || (view !== 'fixtures' && standings.refreshing)
+    seasons.refreshing ||
+    (view === 'stats' ? statistics.refreshing : fixtures.refreshing) ||
+    (view !== 'fixtures' && view !== 'stats' && standings.refreshing)
   const errors = [
     seasons.error,
-    fixtures.error,
-    view === 'fixtures' ? null : standings.error
+    view === 'stats' ? statistics.error : fixtures.error,
+    view === 'overview' || view === 'teams' ? standings.error : null
   ].filter((error): error is string => Boolean(error))
 
   if (competition === undefined) return <CompetitionWorkspaceSkeleton />
@@ -138,8 +144,8 @@ export function CompetitionWorkspacePage({
   async function refresh(): Promise<void> {
     await Promise.all([
       seasons.refresh(),
-      fixtures.refresh(),
-      view === 'fixtures' ? Promise.resolve() : standings.refresh()
+      view === 'stats' ? statistics.refresh() : fixtures.refresh(),
+      view === 'overview' || view === 'teams' ? standings.refresh() : Promise.resolve()
     ])
   }
 
@@ -257,7 +263,16 @@ export function CompetitionWorkspacePage({
           loaded={fixtures.cached !== undefined && standings.cached !== undefined}
           loading={refreshing}
           online={online}
+          season={seasonId ?? undefined}
           teams={teams}
+        />
+      )}
+
+      {view === 'stats' && (
+        <LeagueStatisticsView
+          loaded={statistics.cached !== undefined}
+          loading={statistics.refreshing}
+          statistics={statistics.cached?.statistics ?? []}
         />
       )}
     </div>
@@ -279,7 +294,12 @@ function CompetitionNavigation({
 }): React.JSX.Element {
   const itemClassName =
     'relative px-0.5 pb-3 text-sm font-medium outline-none focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring'
-  const prefetch = intentPrefetchProps(online, () => prefetchCompetitionWorkspace(competitionId))
+  const workspacePrefetch = intentPrefetchProps(online, () =>
+    prefetchCompetitionWorkspace(competitionId)
+  )
+  const statisticsPrefetch = intentPrefetchProps(online && season !== undefined, () =>
+    season === undefined ? Promise.resolve() : prefetchSeasonStatistics(season)
+  )
 
   return (
     <nav aria-label="Competition" className="mt-6 flex gap-6 border-b">
@@ -289,7 +309,7 @@ function CompetitionNavigation({
         params={{ competitionId: String(competitionId) }}
         search={{ date, season }}
         className={competitionNavigationClassName(itemClassName, view === 'overview')}
-        {...prefetch}
+        {...workspacePrefetch}
       >
         Overview
       </Link>
@@ -299,7 +319,7 @@ function CompetitionNavigation({
         params={{ competitionId: String(competitionId) }}
         search={{ date, season }}
         className={competitionNavigationClassName(itemClassName, view === 'fixtures')}
-        {...prefetch}
+        {...workspacePrefetch}
       >
         Fixtures
       </Link>
@@ -309,9 +329,19 @@ function CompetitionNavigation({
         params={{ competitionId: String(competitionId) }}
         search={{ date, season }}
         className={competitionNavigationClassName(itemClassName, view === 'teams')}
-        {...prefetch}
+        {...workspacePrefetch}
       >
         Teams
+      </Link>
+      <Link
+        aria-current={view === 'stats' ? 'page' : undefined}
+        to="/competitions/$competitionId/stats"
+        params={{ competitionId: String(competitionId) }}
+        search={{ date, season }}
+        className={competitionNavigationClassName(itemClassName, view === 'stats')}
+        {...statisticsPrefetch}
+      >
+        Stats
       </Link>
     </nav>
   )
@@ -370,6 +400,7 @@ function CompetitionOverview({
               competitionId={competitionId}
               name={standingGroups.length === 1 ? 'Table' : group.name}
               online={online}
+              season={season}
               standings={group.standings}
             />
           ))
@@ -516,12 +547,14 @@ function CompetitionTeams({
   loaded,
   loading,
   online,
+  season,
   teams
 }: {
   competitionId: number
   loaded: boolean
   loading: boolean
   online: boolean
+  season?: number
   teams: ReturnType<typeof competitionTeams>
 }): React.JSX.Element {
   if (!loaded) return <TeamsSkeleton />
@@ -544,7 +577,7 @@ function CompetitionTeams({
             <Link
               to="/teams/$teamId"
               params={{ teamId: String(team.id) }}
-              search={{ competition: competitionId }}
+              search={{ competition: competitionId, season }}
               className="flex h-full items-center gap-4 rounded-xl border bg-card p-4 shadow-xs outline-none transition-colors hover:bg-muted/45 focus-visible:ring-2 focus-visible:ring-ring"
               {...intentPrefetchProps(online, () => prefetchTeamEntity(team.id))}
             >
@@ -573,11 +606,13 @@ function StandingsTable({
   competitionId,
   name,
   online,
+  season,
   standings
 }: {
   competitionId: number
   name: string
   online: boolean
+  season?: number
   standings: CachedStanding[]
 }): React.JSX.Element {
   return (
@@ -603,7 +638,7 @@ function StandingsTable({
                 <Link
                   to="/teams/$teamId"
                   params={{ teamId: String(standing.participantId) }}
-                  search={{ competition: competitionId }}
+                  search={{ competition: competitionId, season }}
                   className="flex min-w-0 items-center gap-2.5 rounded-sm outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
                   {...intentPrefetchProps(online, () => prefetchTeamEntity(standing.participantId))}
                 >

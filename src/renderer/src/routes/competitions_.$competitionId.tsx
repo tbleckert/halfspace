@@ -29,12 +29,18 @@ function CompetitionWorkspaceRoute(): React.JSX.Element {
   })
     ? 'fixtures'
     : matchRoute({
-          to: '/competitions/$competitionId/teams',
+          to: '/competitions/$competitionId/stats',
           params: { competitionId },
           fuzzy: false
         })
-      ? 'teams'
-      : 'overview'
+      ? 'stats'
+      : matchRoute({
+            to: '/competitions/$competitionId/teams',
+            params: { competitionId },
+            fuzzy: false
+          })
+        ? 'teams'
+        : 'overview'
 
   return (
     <>

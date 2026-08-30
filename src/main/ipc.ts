@@ -12,10 +12,12 @@ import {
   fetchFixturesByDate,
   fetchPlayerAppearances,
   fetchPlayerById,
+  fetchSeasonStatistics,
   fetchStandingsBySeason,
   fetchTeamById,
   fetchTeamFixtures,
   fetchTeamSquad,
+  fetchTeamStatistics,
   fetchVenueById,
   SportmonksError,
   validateCompetitionFixturesInput,
@@ -25,9 +27,11 @@ import {
   validatePlayerAppearancesInput,
   validatePlayerInput,
   validateRefreshInput,
+  validateSeasonStatisticsInput,
   validateStandingsInput,
   validateTeamFixturesInput,
   validateTeamInput,
+  validateTeamStatisticsInput,
   validateToken,
   validateVenueInput
 } from './sportmonks'
@@ -178,6 +182,27 @@ export function registerIpcHandlers(): void {
     }
   })
 
+  ipcMain.handle(ipcChannels.refreshSeasonStatistics, async (event, rawInput: unknown) => {
+    assertTrustedSender(event)
+
+    try {
+      const input = validateSeasonStatisticsInput(rawInput)
+      const token = await readStoredToken()
+
+      if (!token) {
+        return failure(
+          new SportmonksError('missing_token', 'Add your Sportmonks token in Settings.'),
+          'missing_token',
+          'Add your Sportmonks token in Settings.'
+        )
+      }
+
+      return success(await fetchSeasonStatistics(input, token))
+    } catch (error) {
+      return failure(error, 'upstream', 'Could not refresh season statistics.')
+    }
+  })
+
   ipcMain.handle(ipcChannels.refreshCompetitionSeasons, async (event, rawInput: unknown) => {
     assertTrustedSender(event)
 
@@ -280,6 +305,27 @@ export function registerIpcHandlers(): void {
       return success(await fetchTeamSquad(input, token))
     } catch (error) {
       return failure(error, 'upstream', 'Could not refresh team squad.')
+    }
+  })
+
+  ipcMain.handle(ipcChannels.refreshTeamStatistics, async (event, rawInput: unknown) => {
+    assertTrustedSender(event)
+
+    try {
+      const input = validateTeamStatisticsInput(rawInput)
+      const token = await readStoredToken()
+
+      if (!token) {
+        return failure(
+          new SportmonksError('missing_token', 'Add your Sportmonks token in Settings.'),
+          'missing_token',
+          'Add your Sportmonks token in Settings.'
+        )
+      }
+
+      return success(await fetchTeamStatistics(input, token))
+    } catch (error) {
+      return failure(error, 'upstream', 'Could not refresh team statistics.')
     }
   })
 
