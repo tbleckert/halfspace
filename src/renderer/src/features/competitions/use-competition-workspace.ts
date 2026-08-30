@@ -213,6 +213,13 @@ export async function prefetchSeasonStatistics(seasonId: number): Promise<void> 
   await refreshSeasonStatisticsQuery(seasonId)
 }
 
+export async function prefetchStandings(seasonId: number): Promise<void> {
+  const cached = await readStandingsQuery(seasonId)
+  if (cached.query && cached.query.staleAt > Date.now()) return
+
+  await refreshStandingsQuery(seasonId)
+}
+
 export async function prefetchCompetitionWorkspace(competitionId: number): Promise<void> {
   const input = competitionWorkspaceFixtureInput(competitionId)
   const competition = await db.competitions.get(competitionId)

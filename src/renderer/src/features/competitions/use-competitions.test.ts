@@ -35,6 +35,7 @@ describe('competition refresh', () => {
       sportmonks: {
         refreshFixtures: vi.fn(),
         refreshFixture: vi.fn(),
+        refreshFixtureHeadToHead: vi.fn(),
         refreshFixtureOdds: vi.fn(),
         refreshCompetitions,
         refreshCompetitionSeasons: vi.fn(),

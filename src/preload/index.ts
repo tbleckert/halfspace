@@ -11,6 +11,8 @@ const halfspaceApi: HalfspaceApi = {
   sportmonks: {
     refreshFixtures: (input) => ipcRenderer.invoke(ipcChannels.refreshFixtures, input),
     refreshFixture: (input) => ipcRenderer.invoke(ipcChannels.refreshFixture, input),
+    refreshFixtureHeadToHead: (input) =>
+      ipcRenderer.invoke(ipcChannels.refreshFixtureHeadToHead, input),
     refreshFixtureOdds: (input) => ipcRenderer.invoke(ipcChannels.refreshFixtureOdds, input),
     refreshCompetitions: () => ipcRenderer.invoke(ipcChannels.refreshCompetitions),
     refreshCompetitionSeasons: (input) =>

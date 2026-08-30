@@ -11,6 +11,7 @@ import type {
   PlayerRefresh,
   RefreshCompetitionFixturesInput,
   RefreshCompetitionSeasonsInput,
+  RefreshFixtureHeadToHeadInput,
   RefreshFixtureInput,
   RefreshFixturesInput,
   RefreshPlayerAppearancesInput,
@@ -406,10 +407,12 @@ const fixtureDetailResponseSchema = z
 const fixtureResponseSchema = z
   .object({
     data: z.array(fixtureSchema),
-    pagination: z.object({
-      current_page: z.number().int().positive(),
-      has_more: z.boolean()
-    }),
+    pagination: z
+      .object({
+        current_page: z.number().int().positive(),
+        has_more: z.boolean()
+      })
+      .optional(),
     rate_limit: z
       .object({
         remaining: z.number(),
@@ -708,6 +711,31 @@ export function validateFixtureInput(value: unknown): RefreshFixtureInput {
   return { fixtureId }
 }
 
+export function validateFixtureHeadToHeadInput(value: unknown): RefreshFixtureHeadToHeadInput {
+  if (!value || typeof value !== 'object') {
+    throw new SportmonksError('invalid_input', 'Choose two valid teams.')
+  }
+
+  const input = value as Record<string, unknown>
+  if (!isPositiveId(input.firstTeamId) || !isPositiveId(input.secondTeamId)) {
+    throw new SportmonksError('invalid_input', 'Choose two valid teams.')
+  }
+
+  if (input.firstTeamId === input.secondTeamId) {
+    throw new SportmonksError('invalid_input', 'Choose two different teams.')
+  }
+
+  if (typeof input.timeZone !== 'string' || !isValidTimeZone(input.timeZone)) {
+    throw new SportmonksError('invalid_input', 'The selected time zone is not valid.')
+  }
+
+  return {
+    firstTeamId: input.firstTeamId,
+    secondTeamId: input.secondTeamId,
+    timeZone: input.timeZone
+  }
+}
+
 export function validateStandingsInput(value: unknown): RefreshStandingsInput {
   const seasonId =
     value && typeof value === 'object' ? (value as { seasonId?: unknown }).seasonId : 0
@@ -899,6 +927,22 @@ export async function fetchFixtureById(
   }
 }
 
+export async function fetchFixtureHeadToHead(
+  input: RefreshFixtureHeadToHeadInput,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<FixtureRefresh> {
+  return fetchFixturePages(
+    `fixtures/head-to-head/${input.firstTeamId}/${input.secondTeamId}`,
+    input.timeZone,
+    token,
+    fetcher,
+    undefined,
+    'participants;league;state;scores;periods',
+    { order: 'desc', pageLimit: 1, perPage: 10 }
+  )
+}
+
 export async function fetchFixtureOdds(
   input: RefreshFixtureInput,
   token: string,
@@ -1009,7 +1053,8 @@ async function fetchFixturePages(
   token: string,
   fetcher: typeof fetch,
   filters?: string,
-  includes = 'participants;league;state;scores;periods'
+  includes = 'participants;league;state;scores;periods',
+  options: { order?: 'asc' | 'desc'; pageLimit?: number; perPage?: number } = {}
 ): Promise<FixtureRefresh> {
   const fixtures: SportmonksFixture[] = []
   const fetchedAt = Date.now()
@@ -1017,12 +1062,14 @@ async function fetchFixturePages(
   let rateLimit: FixtureRefresh['rateLimit']
   let message: string | undefined
 
-  while (page <= maximumPages) {
+  const pageLimit = options.pageLimit ?? maximumPages
+
+  while (page <= pageLimit) {
     const url = new URL(`${apiBaseUrl}/${path}`)
     url.searchParams.set('include', includes)
     url.searchParams.set('timezone', timeZone)
-    url.searchParams.set('order', 'asc')
-    url.searchParams.set('per_page', '50')
+    url.searchParams.set('order', options.order ?? 'asc')
+    url.searchParams.set('per_page', String(options.perPage ?? 50))
     url.searchParams.set('page', String(page))
     if (filters) url.searchParams.set('filters', filters)
 
@@ -1062,7 +1109,7 @@ async function fetchFixturePages(
       }
     }
 
-    if (!parsed.pagination.has_more) {
+    if (!parsed.pagination?.has_more || page === pageLimit) {
       return {
         fixtures,
         fetchedAt,

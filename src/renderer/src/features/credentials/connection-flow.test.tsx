@@ -36,6 +36,7 @@ beforeEach(() => {
     sportmonks: {
       refreshFixtures: vi.fn(),
       refreshFixture: vi.fn(),
+      refreshFixtureHeadToHead: vi.fn(),
       refreshFixtureOdds: vi.fn(),
       refreshCompetitions: vi.fn(),
       refreshCompetitionSeasons: vi.fn(),

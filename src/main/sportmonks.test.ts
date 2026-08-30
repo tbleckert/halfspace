@@ -6,6 +6,7 @@ import {
   fetchCompetitionSeasons,
   fetchEntitySearch,
   fetchFixtureById,
+  fetchFixtureHeadToHead,
   fetchFixtureOdds,
   fetchFixturesByDate,
   fetchPlayerAppearances,
@@ -21,6 +22,7 @@ import {
   validateCompetitionSeasonsInput,
   validateEntitySearchInput,
   validateFixtureInput,
+  validateFixtureHeadToHeadInput,
   validateRefreshInput,
   validatePlayerAppearancesInput,
   validatePlayerInput,
@@ -147,6 +149,30 @@ describe('Sportmonks client', () => {
     )
     expect(url.searchParams.has('api_token')).toBe(false)
     expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')
+  })
+
+  it('fetches the latest head-to-head fixtures without walking the full history', async () => {
+    const fetcher = vi.fn<typeof fetch>(async () =>
+      Response.json({
+        data: [makeFixture()],
+        timezone: 'Europe/Stockholm'
+      })
+    )
+
+    const refresh = await fetchFixtureHeadToHead(
+      { firstTeamId: 11, secondTeamId: 22, timeZone: 'Europe/Stockholm' },
+      'private-token',
+      fetcher
+    )
+
+    expect(refresh.fixtures).toHaveLength(1)
+    expect(fetcher).toHaveBeenCalledTimes(1)
+
+    const [input] = fetcher.mock.calls[0]
+    const url = new URL(input.toString())
+    expect(url.pathname).toBe('/v3/football/fixtures/head-to-head/11/22')
+    expect(url.searchParams.get('order')).toBe('desc')
+    expect(url.searchParams.get('per_page')).toBe('10')
   })
 
   it('preserves the affected entity and reset time from a rate-limit response', async () => {
@@ -806,6 +832,12 @@ describe('Sportmonks client', () => {
       'Choose a valid date.'
     )
     expect(() => validateFixtureInput({ fixtureId: 0 })).toThrow('Choose a valid fixture.')
+    expect(() =>
+      validateFixtureHeadToHeadInput({ firstTeamId: 11, secondTeamId: 11, timeZone: 'UTC' })
+    ).toThrow('Choose two different teams.')
+    expect(() =>
+      validateFixtureHeadToHeadInput({ firstTeamId: 11, secondTeamId: 22, timeZone: 'Not/AZone' })
+    ).toThrow('The selected time zone is not valid.')
     expect(() => validateRefreshInput({ date: '2026-08-27', timeZone: 'Not/AZone' })).toThrow(
       'The selected time zone is not valid.'
     )

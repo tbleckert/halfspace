@@ -1,12 +1,18 @@
 // @vitest-environment jsdom
 
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { FixtureDetailRefresh, FixtureRefresh, Result } from '@shared/contracts'
-import { db, readFixtureIdentity, readFixtureQuery } from '@/data/db'
+import type {
+  FixtureDetailRefresh,
+  FixtureRefresh,
+  RefreshFixtureHeadToHeadInput,
+  Result
+} from '@shared/contracts'
+import { db, readFixtureHeadToHead, readFixtureIdentity, readFixtureQuery } from '@/data/db'
 import { currentTimeZone, todayInTimeZone } from '@/lib/date'
 import {
   invalidateFixtureRefreshes,
   prefetchFixtureEntity,
+  prefetchFixtureHeadToHead,
   prefetchFixtureQuery,
   refreshFixtureEntity
 } from './use-fixtures'
@@ -14,10 +20,17 @@ import {
 beforeEach(async () => {
   invalidateFixtureRefreshes()
   if (!db.isOpen()) await db.open()
-  await db.transaction('rw', db.fixtures, db.fixtureQueries, async () => {
-    await db.fixtures.clear()
-    await db.fixtureQueries.clear()
-  })
+  await db.transaction(
+    'rw',
+    db.fixtures,
+    db.fixtureQueries,
+    db.fixtureHeadToHeadQueries,
+    async () => {
+      await db.fixtures.clear()
+      await db.fixtureQueries.clear()
+      await db.fixtureHeadToHeadQueries.clear()
+    }
+  )
 })
 
 afterAll(() => db.close())
@@ -70,6 +83,24 @@ describe('fixture refresh', () => {
 
     expect((await readFixtureIdentity(19425456)).fixture?.name).toBe('Manchester City vs Arsenal')
   })
+
+  it('prefetches a team pair once while its previous meetings are fresh', async () => {
+    const input: RefreshFixtureHeadToHeadInput = {
+      firstTeamId: 11,
+      secondTeamId: 22,
+      timeZone: currentTimeZone()
+    }
+    const refreshFixtureHeadToHead = vi
+      .fn()
+      .mockResolvedValue({ ok: true, data: fixtureListRefresh() })
+    installHalfspace({ refreshFixtureHeadToHead })
+
+    await prefetchFixtureHeadToHead(input)
+    await prefetchFixtureHeadToHead({ ...input, firstTeamId: 22, secondTeamId: 11 })
+
+    expect(refreshFixtureHeadToHead).toHaveBeenCalledTimes(1)
+    expect((await readFixtureHeadToHead(input)).fixtures).toHaveLength(1)
+  })
 })
 
 function fixtureListRefresh(): FixtureRefresh {
@@ -121,6 +152,7 @@ function installHalfspace(overrides: Partial<Window['halfspace']['sportmonks']>)
     sportmonks: {
       refreshFixtures: vi.fn(),
       refreshFixture: vi.fn(),
+      refreshFixtureHeadToHead: vi.fn(),
       refreshFixtureOdds: vi.fn(),
       refreshCompetitions: vi.fn(),
       refreshCompetitionSeasons: vi.fn(),

@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
+import type { RefreshFixtureHeadToHeadInput } from '@shared/contracts'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
+  fixtureHeadToHeadQueryKey,
+  readFixtureHeadToHead,
   readFixtureIdentity,
   readFixtureOdds,
   readFixtureQuery,
   writeFixtureDetailRefresh,
+  writeFixtureHeadToHeadRefresh,
   writeFixtureOddsRefresh,
   writeFixtureRefresh
 } from '@/data/db'
@@ -18,6 +22,7 @@ let refreshGeneration = 0
 const refreshes = new Map<string, FixtureRefreshRequest>()
 const entityRefreshes = new Map<number, FixtureRefreshRequest>()
 const oddsRefreshes = new Map<number, FixtureRefreshRequest>()
+const headToHeadRefreshes = new Map<string, FixtureRefreshRequest>()
 
 type FixtureCache = Awaited<ReturnType<typeof readFixtureQuery>>
 
@@ -38,9 +43,17 @@ interface UseFixtureResult {
 }
 
 type FixtureOddsCache = Awaited<ReturnType<typeof readFixtureOdds>>
+type FixtureHeadToHeadCache = Awaited<ReturnType<typeof readFixtureHeadToHead>>
 
 interface UseFixtureOddsResult {
   cached: FixtureOddsCache | undefined
+  refreshing: boolean
+  error: string | null
+  refresh: () => Promise<void>
+}
+
+interface UseFixtureHeadToHeadResult {
+  cached: FixtureHeadToHeadCache | undefined
   refreshing: boolean
   error: string | null
   refresh: () => Promise<void>
@@ -163,6 +176,55 @@ export function useFixtureOdds(fixtureId: number | null, enabled: boolean): UseF
   return { cached, refreshing, error, refresh }
 }
 
+export function useFixtureHeadToHead(
+  input: RefreshFixtureHeadToHeadInput | null,
+  enabled: boolean
+): UseFixtureHeadToHeadResult {
+  const cacheKey = input ? fixtureHeadToHeadQueryKey(input) : null
+  const cached = useLiveQuery(
+    () =>
+      input === null
+        ? Promise.resolve({ query: null, fixtures: [] })
+        : readFixtureHeadToHead(input),
+    [cacheKey]
+  )
+  const [refreshing, setRefreshing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const refresh = useCallback(async () => {
+    if (!enabled || input === null) return
+
+    setRefreshing(true)
+    setError(null)
+
+    try {
+      await refreshFixtureHeadToHead(input)
+    } catch (refreshError) {
+      setError(
+        refreshError instanceof Error
+          ? refreshError.message
+          : 'Could not refresh previous meetings.'
+      )
+    } finally {
+      setRefreshing(false)
+    }
+  }, [enabled, input])
+
+  const cacheLoaded = cached !== undefined
+  const staleAt = cached?.query?.staleAt
+
+  useEffect(() => {
+    if (!enabled || !cacheLoaded) return
+
+    const delay = staleAt ? Math.max(0, staleAt - Date.now()) : 0
+    const timeout = window.setTimeout(() => void refresh(), delay)
+
+    return () => window.clearTimeout(timeout)
+  }, [cacheLoaded, enabled, refresh, staleAt])
+
+  return { cached, refreshing, error, refresh }
+}
+
 export async function prefetchFixtureQuery(date: string, timeZone: string): Promise<void> {
   const cached = await readFixtureQuery(date, timeZone)
   if (cached.query && cached.query.staleAt > Date.now()) return
@@ -175,6 +237,15 @@ export async function prefetchFixtureEntity(fixtureId: number): Promise<void> {
   if (cached.fixture?.detailStaleAt && cached.fixture.detailStaleAt > Date.now()) return
 
   await refreshFixtureEntity(fixtureId)
+}
+
+export async function prefetchFixtureHeadToHead(
+  input: RefreshFixtureHeadToHeadInput
+): Promise<void> {
+  const cached = await readFixtureHeadToHead(input)
+  if (cached.query && cached.query.staleAt > Date.now()) return
+
+  await refreshFixtureHeadToHead(input)
 }
 
 async function refreshFixtureQuery(date: string, timeZone: string): Promise<void> {
@@ -247,9 +318,32 @@ async function refreshFixtureOdds(fixtureId: number): Promise<void> {
   }
 }
 
+async function refreshFixtureHeadToHead(input: RefreshFixtureHeadToHeadInput): Promise<void> {
+  const key = fixtureHeadToHeadQueryKey(input)
+  const existing = headToHeadRefreshes.get(key)
+  if (existing?.generation === refreshGeneration) return existing.promise
+
+  const generation = refreshGeneration
+  const promise = (async () => {
+    const result = await window.halfspace.sportmonks.refreshFixtureHeadToHead(input)
+    if (generation !== refreshGeneration) return
+    if (!result.ok) throw new Error(result.error.message)
+    await writeFixtureHeadToHeadRefresh(input, result.data)
+  })()
+
+  headToHeadRefreshes.set(key, { generation, promise })
+
+  try {
+    await promise
+  } finally {
+    if (headToHeadRefreshes.get(key)?.promise === promise) headToHeadRefreshes.delete(key)
+  }
+}
+
 export function invalidateFixtureRefreshes(): void {
   refreshGeneration += 1
   refreshes.clear()
   entityRefreshes.clear()
   oddsRefreshes.clear()
+  headToHeadRefreshes.clear()
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addDaysToIsoDate, fixtureCacheExpiry, isIsoDate } from './date'
+import { addDaysToIsoDate, fixtureCacheExpiry, isIsoDate, isoDateInTimeZone } from './date'
 
 describe('date utilities', () => {
   it('rejects impossible calendar dates', () => {
@@ -15,5 +15,12 @@ describe('date utilities', () => {
   it('moves ISO dates across month and year boundaries', () => {
     expect(addDaysToIsoDate('2026-12-28', 7)).toBe('2027-01-04')
     expect(addDaysToIsoDate('2026-03-01', -1)).toBe('2026-02-28')
+  })
+
+  it('formats a timestamp as the calendar date in a time zone', () => {
+    const timestamp = Date.UTC(2026, 7, 30, 22, 30)
+
+    expect(isoDateInTimeZone(timestamp, 'Europe/Stockholm')).toBe('2026-08-31')
+    expect(isoDateInTimeZone(timestamp, 'America/New_York')).toBe('2026-08-30')
   })
 })

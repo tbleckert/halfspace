@@ -8,6 +8,7 @@ import {
   fetchCompetitionSeasons,
   fetchEntitySearch,
   fetchFixtureById,
+  fetchFixtureHeadToHead,
   fetchFixtureOdds,
   fetchFixturesByDate,
   fetchPlayerAppearances,
@@ -24,6 +25,7 @@ import {
   validateCompetitionSeasonsInput,
   validateEntitySearchInput,
   validateFixtureInput,
+  validateFixtureHeadToHeadInput,
   validatePlayerAppearancesInput,
   validatePlayerInput,
   validateRefreshInput,
@@ -117,6 +119,27 @@ export function registerIpcHandlers(): void {
       return success(await fetchFixtureById(input, token))
     } catch (error) {
       return failure(error, 'upstream', 'Could not refresh fixture.')
+    }
+  })
+
+  ipcMain.handle(ipcChannels.refreshFixtureHeadToHead, async (event, rawInput: unknown) => {
+    assertTrustedSender(event)
+
+    try {
+      const input = validateFixtureHeadToHeadInput(rawInput)
+      const token = await readStoredToken()
+
+      if (!token) {
+        return failure(
+          new SportmonksError('missing_token', 'Add your Sportmonks token in Settings.'),
+          'missing_token',
+          'Add your Sportmonks token in Settings.'
+        )
+      }
+
+      return success(await fetchFixtureHeadToHead(input, token))
+    } catch (error) {
+      return failure(error, 'upstream', 'Could not refresh previous meetings.')
     }
   })
 

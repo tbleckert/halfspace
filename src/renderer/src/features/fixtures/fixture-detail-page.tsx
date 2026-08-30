@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Link } from '@tanstack/react-router'
 import { AlertCircle, ArrowLeft, RefreshCw } from 'lucide-react'
 import type {
@@ -12,7 +13,7 @@ import { Button } from '@/components/ui/button'
 import { buttonVariants } from '@/components/ui/button-variants'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { CachedCompetition } from '@/data/db'
+import type { CachedCompetition, CachedFixture } from '@/data/db'
 import { CompetitionLogo } from '@/features/competitions/competition-logo'
 import { prefetchCompetitionWorkspace } from '@/features/competitions/use-competition-workspace'
 import { PlayerPhoto } from '@/features/players/player-photo'
@@ -20,6 +21,7 @@ import { prefetchPlayerEntity } from '@/features/players/use-player'
 import { TeamLogo } from '@/features/teams/team-logo'
 import { prefetchTeamEntity } from '@/features/teams/use-team'
 import { VenueCard } from '@/features/venues/venue-card'
+import { currentTimeZone } from '@/lib/date'
 import { isFixtureLive } from '@/lib/fixture-state'
 import { useOnline } from '@/lib/use-online'
 import { intentPrefetchProps } from '@/lib/prefetch'
@@ -31,7 +33,9 @@ import {
   sortedFixtureEvents
 } from './fixture-detail-data'
 import { FixtureLiveIndicator } from './fixture-live-indicator'
+import { FixturePreviewWorkspace } from './fixture-preview'
 import type { FixtureDetailSearch } from './fixture-route'
+import { prefetchFixturePreview, type FixturePreviewInput } from './use-fixture-preview'
 import { useFixtureEntity, useFixtureOdds } from './use-fixtures'
 
 export type FixtureView = 'preview' | 'timeline' | 'lineups' | 'stats' | 'odds'
@@ -92,6 +96,7 @@ export function FixtureDetailPage({
   }
 
   const cachedFixture = fixture.cached.fixture
+  const resolvedSeasonId = seasonId ?? cachedFixture.seasonId
   const match = cachedFixture.raw
   const home = participantAt(match, 'home')
   const away = participantAt(match, 'away')
@@ -110,7 +115,7 @@ export function FixtureDetailPage({
           competitionId={competitionId}
           competitionName={match.league?.name ?? fixture.cached.competition?.name}
           date={date}
-          seasonId={seasonId}
+          seasonId={resolvedSeasonId}
           teamId={teamId}
           teamName={teamParticipant?.name}
         />
@@ -155,7 +160,7 @@ export function FixtureDetailPage({
 
       <MatchScore
         competitionId={competitionId ?? cachedFixture.leagueId}
-        context={{ competition: competitionId, date, season: seasonId, team: teamId }}
+        context={{ competition: competitionId, date, season: resolvedSeasonId, team: teamId }}
         fixture={match}
         fixtureId={parsedFixtureId}
         online={online}
@@ -165,13 +170,13 @@ export function FixtureDetailPage({
 
       {view === 'preview' && (
         <FixturePreview
+          cachedFixture={cachedFixture}
           competition={fixture.cached.competition}
           competitionId={competitionId ?? cachedFixture.leagueId}
+          context={{ competition: competitionId, date, season: resolvedSeasonId, team: teamId }}
           date={date}
-          fixture={match}
           online={online}
-          seasonId={seasonId}
-          startingAt={cachedFixture.startingAt}
+          seasonId={resolvedSeasonId}
           teamId={teamId}
         />
       )}
@@ -226,11 +231,22 @@ function MatchScore({
   const awayScore = scores.find(({ score }) => score.participant === 'away')?.score.goals
   const hasScore = homeScore !== undefined || awayScore !== undefined
   const live = isFixtureLive(fixture.state_id)
+  const previewInput = createFixturePreviewInput(
+    fixtureId,
+    fixture,
+    startingAt,
+    context.season ?? fixture.season_id
+  )
 
   return (
     <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
       <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-4 py-8 sm:gap-8 sm:px-10 sm:py-10">
-        <FixtureTeam competitionId={competitionId} online={online} participant={home} />
+        <FixtureTeam
+          competitionId={competitionId}
+          context={context}
+          online={online}
+          participant={home}
+        />
 
         <div className="flex min-w-20 flex-col items-center gap-2 text-center sm:min-w-32">
           {hasScore ? (
@@ -249,19 +265,32 @@ function MatchScore({
           )}
         </div>
 
-        <FixtureTeam competitionId={competitionId} online={online} participant={away} />
+        <FixtureTeam
+          competitionId={competitionId}
+          context={context}
+          online={online}
+          participant={away}
+        />
       </div>
-      <FixtureNavigation context={context} fixtureId={fixtureId} view={view} />
+      <FixtureNavigation
+        context={context}
+        fixtureId={fixtureId}
+        online={online}
+        previewInput={previewInput}
+        view={view}
+      />
     </section>
   )
 }
 
 function FixtureTeam({
   competitionId,
+  context,
   online,
   participant
 }: {
   competitionId: number
+  context: FixtureDetailSearch
   online: boolean
   participant?: SportmonksParticipant
 }): React.JSX.Element {
@@ -273,7 +302,7 @@ function FixtureTeam({
     <Link
       to="/teams/$teamId"
       params={{ teamId: String(participant.id) }}
-      search={{ competition: competitionId }}
+      search={{ competition: competitionId, date: context.date, season: context.season }}
       className="group flex min-w-0 flex-col items-center gap-3 rounded-lg text-center outline-none focus-visible:ring-2 focus-visible:ring-ring"
       {...intentPrefetchProps(online, () => prefetchTeamEntity(participant.id))}
     >
@@ -292,10 +321,14 @@ function FixtureTeam({
 function FixtureNavigation({
   context,
   fixtureId,
+  online,
+  previewInput,
   view
 }: {
   context: FixtureDetailSearch
   fixtureId: number
+  online: boolean
+  previewInput: FixturePreviewInput | null
   view: FixtureView
 }): React.JSX.Element {
   const items: Array<{ label: string; to: string; view: FixtureView }> = [
@@ -326,6 +359,9 @@ function FixtureNavigation({
               ? 'font-semibold text-foreground before:absolute before:inset-x-0 before:-top-px before:z-10 before:h-0.5 before:bg-current before:content-[""]'
               : 'text-muted-foreground hover:text-foreground'
           )}
+          {...(item.view === 'preview' && previewInput
+            ? intentPrefetchProps(online, () => prefetchFixturePreview(previewInput))
+            : {})}
         >
           {item.label}
         </Link>
@@ -335,45 +371,64 @@ function FixtureNavigation({
 }
 
 function FixturePreview({
+  cachedFixture,
   competition,
   competitionId,
+  context,
   date,
-  fixture,
   online,
   seasonId,
-  startingAt,
   teamId
 }: {
+  cachedFixture: CachedFixture
   competition: CachedCompetition | null
   competitionId: number
+  context: FixtureDetailSearch
   date?: string
-  fixture: SportmonksFixture
   online: boolean
   seasonId?: number
-  startingAt: number | null
   teamId?: number
 }): React.JSX.Element {
+  const previewInput = useMemo(
+    () =>
+      createFixturePreviewInput(
+        cachedFixture.id,
+        cachedFixture.raw,
+        cachedFixture.startingAt,
+        seasonId ?? cachedFixture.seasonId
+      ),
+    [cachedFixture, seasonId]
+  )
+
   return (
-    <div className="mx-auto flex w-full max-w-sm flex-col gap-5">
-      <FixtureDetails
-        competition={competition}
-        competitionId={competitionId}
-        date={date}
-        fixture={fixture}
+    <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
+      <FixturePreviewWorkspace
+        context={context}
+        fixture={cachedFixture}
+        input={previewInput}
         online={online}
-        seasonId={seasonId}
-        startingAt={startingAt}
       />
-      {fixture.venue && fixture.venue_id && (
-        <VenueCard
+      <aside className="order-first flex flex-col gap-5 lg:order-last">
+        <FixtureDetails
+          competition={competition}
           competitionId={competitionId}
-          countryName={fixture.venue.country?.name}
+          date={date}
+          fixture={cachedFixture.raw}
           online={online}
-          teamId={teamId}
-          venueId={fixture.venue_id}
-          venueSummary={fixture.venue}
+          seasonId={seasonId}
+          startingAt={cachedFixture.startingAt}
         />
-      )}
+        {cachedFixture.raw.venue && cachedFixture.raw.venue_id && (
+          <VenueCard
+            competitionId={competitionId}
+            countryName={cachedFixture.raw.venue.country?.name}
+            online={online}
+            teamId={teamId}
+            venueId={cachedFixture.raw.venue_id}
+            venueSummary={cachedFixture.raw.venue}
+          />
+        )}
+      </aside>
     </div>
   )
 }
@@ -845,7 +900,7 @@ function FixtureBackLink({
       <Link
         to="/teams/$teamId"
         params={{ teamId: String(teamId) }}
-        search={{ competition: competitionId, date }}
+        search={{ competition: competitionId, date, season: seasonId }}
         className={className}
       >
         <ArrowLeft className="size-4" />
@@ -898,7 +953,7 @@ function MissingFixture({
             <Link
               to="/teams/$teamId"
               params={{ teamId: String(teamId) }}
-              search={{ competition: competitionId, date }}
+              search={{ competition: competitionId, date, season: seasonId }}
               className={cn(buttonVariants({ variant: 'outline' }), 'mt-4')}
             >
               <ArrowLeft className="size-4" />
@@ -944,6 +999,26 @@ function FixturePageSkeleton(): React.JSX.Element {
       </div>
     </div>
   )
+}
+
+function createFixturePreviewInput(
+  fixtureId: number,
+  fixture: SportmonksFixture,
+  startingAt: number | null,
+  seasonId: number
+): FixturePreviewInput | null {
+  const home = participantAt(fixture, 'home')
+  const away = participantAt(fixture, 'away')
+  if (!home || !away || startingAt === null) return null
+
+  return {
+    fixtureId,
+    seasonId,
+    startingAt,
+    homeTeamId: home.id,
+    awayTeamId: away.id,
+    timeZone: currentTimeZone()
+  }
 }
 
 function participantAt(

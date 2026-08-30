@@ -44,6 +44,9 @@ abstractions.
   a competition to a team, and request only the statistic types shown in the UI.
 - Fixture pages keep Preview, Timeline, Lineups, Stats, and Odds in horizontal navigation inside
   the score hero. Preview stacks the compact venue card directly below Details.
+- Fixture Preview pairs that supporting column with season table context, each team’s five most
+  recent completed matches before kickoff, and recent head-to-head meetings. Reuse standings and
+  team-fixture caches, cache head-to-head separately, and prefetch Preview on intent.
 - Sportmonks fixture detail owns events, statistics, and lineups; fixture list refreshes must
   preserve that richer cached detail. Fetch and cache the much larger odds payload only when the
   Odds view opens.

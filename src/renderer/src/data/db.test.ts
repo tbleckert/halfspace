@@ -10,6 +10,7 @@ import type {
   PlayerRefresh,
   RefreshPlayerAppearancesInput,
   RefreshCompetitionFixturesInput,
+  RefreshFixtureHeadToHeadInput,
   RefreshTeamFixturesInput,
   SeasonStatisticsRefresh,
   StandingsRefresh,
@@ -27,6 +28,7 @@ import {
   readEntitySearch,
   readFixtureQuery,
   readFixtureOdds,
+  readFixtureHeadToHead,
   readPlayerAppearanceQuery,
   readPlayerIdentity,
   readSeasonStatistics,
@@ -44,6 +46,7 @@ import {
   writeEntitySearchRefresh,
   writeFixtureDetailRefresh,
   writeFixtureOddsRefresh,
+  writeFixtureHeadToHeadRefresh,
   writeFixtureRefresh,
   writePlayerAppearancesRefresh,
   writePlayerRefresh,
@@ -66,6 +69,7 @@ beforeEach(async () => {
       db.fixtureQueries,
       db.fixtureOdds,
       db.fixtureOddsQueries,
+      db.fixtureHeadToHeadQueries,
       db.competitions,
       db.competitionCatalogs,
       db.competitionPins,
@@ -89,6 +93,7 @@ beforeEach(async () => {
       await db.fixtureQueries.clear()
       await db.fixtureOdds.clear()
       await db.fixtureOddsQueries.clear()
+      await db.fixtureHeadToHeadQueries.clear()
       await db.competitions.clear()
       await db.competitionCatalogs.clear()
       await db.competitionPins.clear()
@@ -329,6 +334,25 @@ describe('fixture cache', () => {
     const cached = await readFixtureOdds(19425456)
     expect(cached.query?.oddIds).toEqual([701])
     expect(cached.odds[0].raw.market?.name).toBe('Fulltime Result')
+  })
+
+  it('caches head-to-head fixtures under a canonical team pair', async () => {
+    const input: RefreshFixtureHeadToHeadInput = {
+      firstTeamId: 22,
+      secondTeamId: 11,
+      timeZone: 'Europe/Stockholm'
+    }
+    const refresh = fixtureRefresh(19425456, 'Manchester City vs Arsenal')
+
+    await writeFixtureHeadToHeadRefresh(input, refresh)
+
+    const cached = await readFixtureHeadToHead({
+      firstTeamId: 11,
+      secondTeamId: 22,
+      timeZone: 'Europe/Stockholm'
+    })
+    expect(cached.query?.fixtureIds).toEqual([19425456])
+    expect(cached.fixtures[0].name).toBe('Manchester City vs Arsenal')
   })
 
   it('refreshes live fixture details after thirty seconds', async () => {

@@ -9,6 +9,7 @@ import type {
   PlayerAppearancesRefresh,
   PlayerRefresh,
   RefreshCompetitionFixturesInput,
+  RefreshFixtureHeadToHeadInput,
   RefreshPlayerAppearancesInput,
   RefreshTeamFixturesInput,
   RefreshTeamStatisticsInput,
@@ -45,6 +46,7 @@ const playerCacheDuration = 24 * 60 * 60 * 1000
 const playerAppearancesCacheDuration = 15 * 60 * 1000
 const fixtureDetailCacheDuration = 5 * 60 * 1000
 const fixtureOddsCacheDuration = 5 * 60 * 1000
+const fixtureHeadToHeadCacheDuration = 6 * 60 * 60 * 1000
 const liveFixtureCacheDuration = 30 * 1000
 const entityTypeOrder: Record<EntitySearchResultType, number> = {
   competition: 0,
@@ -98,6 +100,20 @@ export interface FixtureOddsQuery {
   oddIds: number[]
   fetchedAt: number
   staleAt: number
+  rateLimitRemaining?: number
+  rateLimitResetsAt?: number
+  message?: string
+}
+
+export interface FixtureHeadToHeadQuery {
+  key: string
+  firstTeamId: number
+  secondTeamId: number
+  timeZone: string
+  fixtureIds: number[]
+  fetchedAt: number
+  staleAt: number
+  pageCount: number
   rateLimitRemaining?: number
   rateLimitResetsAt?: number
   message?: string
@@ -333,6 +349,7 @@ class HalfspaceDatabase extends Dexie {
   fixtureQueries!: Table<FixtureQuery, string>
   fixtureOdds!: Table<CachedFixtureOdd, number>
   fixtureOddsQueries!: Table<FixtureOddsQuery, number>
+  fixtureHeadToHeadQueries!: Table<FixtureHeadToHeadQuery, string>
   competitions!: Table<CachedCompetition, number>
   competitionCatalogs!: Table<CompetitionCatalog, string>
   competitionPins!: Table<CompetitionPin, number>
@@ -501,6 +518,32 @@ class HalfspaceDatabase extends Dexie {
       playerAppearances: '&key, playerId, teamId, fixtureId, [playerId+fixtureId]',
       playerAppearanceQueries: '&key, playerId, teamId, staleAt'
     })
+
+    this.version(10).stores({
+      fixtures:
+        'id, leagueId, startingAt, [leagueId+startingAt], stateId, homeTeamId, awayTeamId, staleAt',
+      fixtureQueries: '&key, date, staleAt',
+      fixtureOdds: 'id, fixtureId, marketId, bookmakerId, [fixtureId+marketId]',
+      fixtureOddsQueries: '&fixtureId, staleAt',
+      fixtureHeadToHeadQueries: '&key, firstTeamId, secondTeamId, staleAt',
+      competitions: 'id, active, name, countryId',
+      competitionCatalogs: '&key, staleAt',
+      competitionPins: '&competitionId, pinnedAt',
+      competitionSeasonQueries: '&competitionId, staleAt',
+      standings: 'id, participantId, seasonId, [seasonId+position], leagueId, stageId, groupId',
+      standingQueries: '&seasonId, staleAt',
+      seasonStatisticsQueries: '&seasonId, staleAt',
+      competitionFixtureQueries: '&key, competitionId, staleAt',
+      teams: 'id, name, countryId, venueId, staleAt',
+      teamFixtureQueries: '&key, teamId, staleAt',
+      teamStatisticsQueries: '&key, teamId, seasonId, staleAt',
+      venues: 'id, name, countryId, staleAt',
+      players: 'id, name, displayName, positionId, nationalityId, staleAt',
+      squadEntries: 'id, teamId, playerId, positionId, [teamId+positionId]',
+      teamSquadQueries: '&teamId, staleAt',
+      playerAppearances: '&key, playerId, teamId, fixtureId, [playerId+fixtureId]',
+      playerAppearanceQueries: '&key, playerId, teamId, staleAt'
+    })
   }
 }
 
@@ -630,6 +673,60 @@ export async function writeFixtureOddsRefresh(
     await db.fixtureOdds.bulkDelete(removedOddIds)
     await db.fixtureOdds.bulkPut(odds)
     await db.fixtureOddsQueries.put(query)
+  })
+}
+
+export function fixtureHeadToHeadQueryKey(input: RefreshFixtureHeadToHeadInput): string {
+  const [firstTeamId, secondTeamId] = [input.firstTeamId, input.secondTeamId].toSorted(
+    (left, right) => left - right
+  )
+  return `${firstTeamId}|${secondTeamId}|${input.timeZone}`
+}
+
+export async function readFixtureHeadToHead(input: RefreshFixtureHeadToHeadInput): Promise<{
+  query: FixtureHeadToHeadQuery | null
+  fixtures: CachedFixture[]
+}> {
+  const query = await db.fixtureHeadToHeadQueries.get(fixtureHeadToHeadQueryKey(input))
+  if (!query) return { query: null, fixtures: [] }
+
+  const fixtures = (await db.fixtures.bulkGet(query.fixtureIds)).filter(
+    (fixture): fixture is CachedFixture => fixture !== undefined
+  )
+
+  return { query, fixtures }
+}
+
+export async function writeFixtureHeadToHeadRefresh(
+  input: RefreshFixtureHeadToHeadInput,
+  refresh: FixtureRefresh
+): Promise<void> {
+  const [firstTeamId, secondTeamId] = [input.firstTeamId, input.secondTeamId].toSorted(
+    (left, right) => left - right
+  )
+  const staleAt = fixtureRefreshExpiry(
+    refresh.fixtures,
+    refresh.fetchedAt,
+    refresh.fetchedAt + fixtureHeadToHeadCacheDuration
+  )
+  const query: FixtureHeadToHeadQuery = {
+    key: fixtureHeadToHeadQueryKey(input),
+    firstTeamId,
+    secondTeamId,
+    timeZone: input.timeZone,
+    fixtureIds: refresh.fixtures.map(({ id }) => id),
+    fetchedAt: refresh.fetchedAt,
+    staleAt,
+    pageCount: refresh.pageCount,
+    rateLimitRemaining: refresh.rateLimit?.remaining,
+    rateLimitResetsAt: refresh.rateLimit?.resetsAt,
+    message: refresh.message
+  }
+
+  await db.transaction('rw', db.fixtures, db.fixtureHeadToHeadQueries, async () => {
+    const fixtures = await toCachedFixtures(refresh.fixtures, refresh.fetchedAt, staleAt)
+    await db.fixtures.bulkPut(fixtures)
+    await db.fixtureHeadToHeadQueries.put(query)
   })
 }
 
@@ -1304,6 +1401,7 @@ export async function clearSportmonksCache(): Promise<void> {
       db.fixtureQueries,
       db.fixtureOdds,
       db.fixtureOddsQueries,
+      db.fixtureHeadToHeadQueries,
       db.competitions,
       db.competitionCatalogs,
       db.competitionSeasonQueries,
@@ -1326,6 +1424,7 @@ export async function clearSportmonksCache(): Promise<void> {
       await db.fixtureQueries.clear()
       await db.fixtureOdds.clear()
       await db.fixtureOddsQueries.clear()
+      await db.fixtureHeadToHeadQueries.clear()
       await db.competitions.clear()
       await db.competitionCatalogs.clear()
       await db.competitionSeasonQueries.clear()

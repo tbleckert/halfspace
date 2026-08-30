@@ -22,11 +22,15 @@ export function EntityFixturePanel({
   loading,
   online,
   dateDisplay = 'full',
+  emptyLabel = 'No fixtures',
+  fixtureSeasonLinks = false,
   showCompetition = false
 }: {
   context: FixtureContext
-  dateDisplay?: 'full' | 'time'
+  dateDisplay?: 'full' | 'historical' | 'time'
+  emptyLabel?: string
   fixtures: CachedFixture[]
+  fixtureSeasonLinks?: boolean
   label: string
   loading: boolean
   online: boolean
@@ -39,7 +43,7 @@ export function EntityFixturePanel({
       </div>
       {fixtures.length === 0 ? (
         <div className="flex min-h-28 items-center justify-center px-4 text-sm text-muted-foreground">
-          {loading ? 'Loading fixtures…' : 'No fixtures'}
+          {loading ? 'Loading fixtures…' : emptyLabel}
         </div>
       ) : (
         <div className="divide-y">
@@ -49,6 +53,7 @@ export function EntityFixturePanel({
               context={context}
               dateDisplay={dateDisplay}
               fixture={fixture}
+              fixtureSeasonLinks={fixtureSeasonLinks}
               online={online}
               showCompetition={showCompetition}
             />
@@ -63,12 +68,14 @@ function EntityFixtureRow({
   context,
   dateDisplay,
   fixture,
+  fixtureSeasonLinks,
   online,
   showCompetition
 }: {
   context: FixtureContext
-  dateDisplay: 'full' | 'time'
+  dateDisplay: 'full' | 'historical' | 'time'
   fixture: CachedFixture
+  fixtureSeasonLinks: boolean
   online: boolean
   showCompetition: boolean
 }): React.JSX.Element {
@@ -84,7 +91,7 @@ function EntityFixtureRow({
     <Link
       to="/fixtures/$fixtureId"
       params={{ fixtureId: String(fixture.id) }}
-      search={context}
+      search={fixtureSeasonLinks ? { ...context, season: fixture.seasonId } : context}
       className="block px-4 py-3.5 transition-colors hover:bg-muted/45"
       {...intentPrefetchProps(online, () => prefetchFixtureEntity(fixture.id))}
     >
@@ -99,9 +106,9 @@ function EntityFixtureRow({
             </span>
           ) : (
             <time className="shrink-0">
-              {dateDisplay === 'time'
-                ? formatFixtureTime(fixture.startingAt)
-                : formatFixtureDate(fixture.startingAt)}
+              {dateDisplay === 'time' && formatFixtureTime(fixture.startingAt)}
+              {dateDisplay === 'full' && formatFixtureDate(fixture.startingAt)}
+              {dateDisplay === 'historical' && formatHistoricalFixtureDate(fixture.startingAt)}
             </time>
           )}
           {showCompetition && (
@@ -150,6 +157,19 @@ function formatFixtureDate(timestamp: number | null): string {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(timestamp)
+}
+
+function formatHistoricalFixtureDate(timestamp: number | null): string {
+  if (timestamp === null) return 'Date unavailable'
+
+  return new Intl.DateTimeFormat(undefined, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
   }).format(timestamp)
