@@ -24,6 +24,9 @@ abstractions.
 - Keep the application shell quiet. The sidebar is only slightly lighter than the content canvas,
   with a subtle white boundary; use muted active-item backgrounds and brand blue for active text
   instead of large areas of solid brand color.
+- Keep a dedicated drag region across the empty top strip of the hidden-title-bar window. It must
+  remain available in setup states as well as the main workspace; keep interactive controls outside
+  it or explicitly mark them as non-draggable.
 - Use shadcn/ui's Nova style (`b0`) as the density reference: compact 32px default controls,
   restrained radii, and tighter page and card spacing. Preserve Halfspace's own palette and
   football-specific presentation rather than applying a preset as a wholesale visual reset.
