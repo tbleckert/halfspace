@@ -2,9 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
-  AlertCircle,
   CalendarDays,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   RefreshCw,
@@ -13,11 +11,23 @@ import {
 } from 'lucide-react'
 import type { CachedStanding } from '@/data/db'
 import { db } from '@/data/db'
+import { EntitySubpageNavigation } from '@/components/entity-subpage-navigation'
+import { entitySubpageNavigationItemClassName } from '@/components/entity-subpage-navigation-variants'
+import { ErrorAlert } from '@/components/error-alert'
 import { Button } from '@/components/ui/button'
 import { buttonVariants } from '@/components/ui/button-variants'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@/components/ui/table'
 import { EntityFixturePanel } from '@/features/fixtures/entity-fixture-panel'
 import {
   groupEntityFixturesByDate,
@@ -179,23 +189,20 @@ export function CompetitionWorkspacePage({
                 {competition.raw.country?.name && <span>{competition.raw.country.name}</span>}
                 {competition.raw.country?.name && seasonOptions.length > 0 && <span>·</span>}
                 {seasonOptions.length > 0 && (
-                  <label className="relative -ml-1 inline-flex items-center">
-                    <span className="sr-only">Season</span>
-                    <select
-                      aria-label="Season"
-                      className="h-7 appearance-none rounded-md bg-transparent py-0 pl-1 pr-6 font-medium text-foreground outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default disabled:opacity-70"
-                      disabled={seasonOptions.length < 2}
-                      value={selectedSeason?.id ?? seasonId ?? ''}
-                      onChange={(event) => selectSeason(Number(event.target.value))}
-                    >
-                      {seasonOptions.map((season) => (
-                        <option key={season.id} value={season.id}>
-                          {season.name}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="pointer-events-none absolute right-1 size-3.5" />
-                  </label>
+                  <NativeSelect
+                    aria-label="Season"
+                    className="-ml-1 has-[select:disabled]:opacity-100 [&_[data-slot=native-select-icon]]:right-1 [&_[data-slot=native-select-icon]]:size-3.5"
+                    disabled={seasonOptions.length < 2}
+                    selectClassName="h-7 rounded-md border-0 py-0 pl-1 pr-6 font-medium text-foreground shadow-none hover:bg-muted focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default disabled:opacity-70"
+                    value={selectedSeason?.id ?? seasonId ?? ''}
+                    onChange={(event) => selectSeason(Number(event.target.value))}
+                  >
+                    {seasonOptions.map((season) => (
+                      <NativeSelectOption key={season.id} value={season.id}>
+                        {season.name}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
                 )}
               </div>
             </div>
@@ -221,12 +228,7 @@ export function CompetitionWorkspacePage({
         />
       </div>
 
-      {errors.length > 0 && (
-        <div className="flex items-start gap-3 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          <AlertCircle className="mt-0.5 size-4 shrink-0" />
-          <span>{errors.join(' ')}</span>
-        </div>
-      )}
+      {errors.length > 0 && <ErrorAlert>{errors.join(' ')}</ErrorAlert>}
 
       {view === 'overview' && (
         <CompetitionOverview
@@ -292,8 +294,6 @@ function CompetitionNavigation({
   season?: number
   view: CompetitionView
 }): React.JSX.Element {
-  const itemClassName =
-    'relative px-0.5 pb-3 text-sm font-medium outline-none focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring'
   const workspacePrefetch = intentPrefetchProps(online, () =>
     prefetchCompetitionWorkspace(competitionId)
   )
@@ -302,13 +302,13 @@ function CompetitionNavigation({
   )
 
   return (
-    <nav aria-label="Competition" className="mt-6 flex gap-6 border-b">
+    <EntitySubpageNavigation aria-label="Competition" className="mt-6 border-b">
       <Link
         aria-current={view === 'overview' ? 'page' : undefined}
         to="/competitions/$competitionId"
         params={{ competitionId: String(competitionId) }}
         search={{ date, season }}
-        className={competitionNavigationClassName(itemClassName, view === 'overview')}
+        className={entitySubpageNavigationItemClassName(view === 'overview')}
         {...workspacePrefetch}
       >
         Overview
@@ -318,7 +318,7 @@ function CompetitionNavigation({
         to="/competitions/$competitionId/fixtures"
         params={{ competitionId: String(competitionId) }}
         search={{ date, season }}
-        className={competitionNavigationClassName(itemClassName, view === 'fixtures')}
+        className={entitySubpageNavigationItemClassName(view === 'fixtures')}
         {...workspacePrefetch}
       >
         Fixtures
@@ -328,7 +328,7 @@ function CompetitionNavigation({
         to="/competitions/$competitionId/teams"
         params={{ competitionId: String(competitionId) }}
         search={{ date, season }}
-        className={competitionNavigationClassName(itemClassName, view === 'teams')}
+        className={entitySubpageNavigationItemClassName(view === 'teams')}
         {...workspacePrefetch}
       >
         Teams
@@ -338,21 +338,12 @@ function CompetitionNavigation({
         to="/competitions/$competitionId/stats"
         params={{ competitionId: String(competitionId) }}
         search={{ date, season }}
-        className={competitionNavigationClassName(itemClassName, view === 'stats')}
+        className={entitySubpageNavigationItemClassName(view === 'stats')}
         {...statisticsPrefetch}
       >
         Stats
       </Link>
-    </nav>
-  )
-}
-
-function competitionNavigationClassName(itemClassName: string, active: boolean): string {
-  return cn(
-    itemClassName,
-    active
-      ? 'font-semibold text-foreground after:absolute after:inset-x-0 after:-bottom-px after:z-10 after:h-0.5 after:bg-current after:content-[""]'
-      : 'text-muted-foreground hover:text-foreground'
+    </EntitySubpageNavigation>
   )
 }
 
@@ -531,12 +522,14 @@ function CompetitionFixtures({
       )}
 
       {date !== defaultDate && (
-        <button
-          className="self-start text-sm font-medium text-primary hover:underline"
+        <Button
+          className="h-auto self-start px-0 text-sm active:scale-100"
+          size="sm"
+          variant="link"
           onClick={() => selectDate(defaultDate)}
         >
           {defaultDate === today ? 'Return to today' : 'Latest fixtures'}
-        </button>
+        </Button>
       )}
     </section>
   )
@@ -620,21 +613,23 @@ function StandingsTable({
       <div className="border-b px-4 py-3">
         <h2 className="text-sm font-semibold">{name}</h2>
       </div>
-      <table className="w-full table-fixed border-collapse text-sm">
-        <thead className="bg-muted/45 text-xs text-muted-foreground">
-          <tr>
-            <th className="w-12 px-4 py-2 text-left font-medium">#</th>
-            <th className="px-2 py-2 text-left font-medium">Team</th>
-            <th className="w-14 px-4 py-2 text-right font-medium">Pts</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y">
+      <Table className="table-fixed border-collapse">
+        <TableHeader className="bg-muted/45 text-xs text-muted-foreground [&_tr]:border-0">
+          <TableRow className="border-0 hover:bg-transparent">
+            <TableHead className="h-auto w-12 px-4 py-2 text-muted-foreground">#</TableHead>
+            <TableHead className="h-auto px-2 py-2 text-muted-foreground">Team</TableHead>
+            <TableHead className="h-auto w-14 px-4 py-2 text-right text-muted-foreground">
+              Pts
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody className="divide-y">
           {standings.map((standing) => (
-            <tr key={standing.id}>
-              <td className="px-4 py-2.5 font-mono tabular-nums text-muted-foreground">
+            <TableRow key={standing.id} className="border-0 hover:bg-transparent">
+              <TableCell className="px-4 py-2.5 font-mono tabular-nums text-muted-foreground">
                 {standing.position}
-              </td>
-              <td className="px-2 py-2.5">
+              </TableCell>
+              <TableCell className="whitespace-normal px-2 py-2.5">
                 <Link
                   to="/teams/$teamId"
                   params={{ teamId: String(standing.participantId) }}
@@ -651,14 +646,14 @@ function StandingsTable({
                     {standing.raw.participant?.name ?? `Team ${standing.participantId}`}
                   </span>
                 </Link>
-              </td>
-              <td className="px-4 py-2.5 text-right font-mono font-semibold tabular-nums">
+              </TableCell>
+              <TableCell className="px-4 py-2.5 text-right font-mono font-semibold tabular-nums">
                 {standing.raw.points}
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </section>
   )
 }

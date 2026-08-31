@@ -1,25 +1,17 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { readVenueIdentity, writeVenueRefresh } from '@/data/db'
-
-interface RefreshRequest {
-  generation: number
-  promise: Promise<void>
-}
+import { type RefreshableQuery, type RefreshRequest, useStaleRefresh } from '@/lib/refresh'
 
 type VenueIdentityCache = Awaited<ReturnType<typeof readVenueIdentity>>
-
-interface VenueQueryResult {
-  cached: VenueIdentityCache | undefined
-  refreshing: boolean
-  error: string | null
-  refresh: () => Promise<void>
-}
 
 let refreshGeneration = 0
 const venueRefreshes = new Map<number, RefreshRequest>()
 
-export function useVenueEntity(venueId: number | null, enabled: boolean): VenueQueryResult {
+export function useVenueEntity(
+  venueId: number | null,
+  enabled: boolean
+): RefreshableQuery<VenueIdentityCache> {
   const cached = useLiveQuery(
     () =>
       venueId === null
@@ -29,9 +21,6 @@ export function useVenueEntity(venueId: number | null, enabled: boolean): VenueQ
   )
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const cacheLoaded = cached !== undefined
-  const staleAt = cached?.venue?.staleAt
-
   const refresh = useCallback(async () => {
     if (!enabled || venueId === null) return
 
@@ -47,14 +36,12 @@ export function useVenueEntity(venueId: number | null, enabled: boolean): VenueQ
     }
   }, [enabled, venueId])
 
-  useEffect(() => {
-    if (!enabled || venueId === null || !cacheLoaded) return
-
-    const delay = staleAt ? Math.max(0, staleAt - Date.now()) : 0
-    const timeout = window.setTimeout(() => void refresh(), delay)
-
-    return () => window.clearTimeout(timeout)
-  }, [cacheLoaded, enabled, refresh, staleAt, venueId])
+  useStaleRefresh(
+    enabled && venueId !== null,
+    cached !== undefined,
+    cached?.venue?.staleAt,
+    refresh
+  )
 
   return { cached, refreshing, error, refresh }
 }

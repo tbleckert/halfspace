@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import { AlertCircle, ArrowLeft, RefreshCw, UsersRound } from 'lucide-react'
+import { ArrowLeft, RefreshCw, UsersRound } from 'lucide-react'
 import type { SportmonksPlayer } from '@shared/contracts'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { ErrorAlert } from '@/components/error-alert'
 import { buttonVariants } from '@/components/ui/button-variants'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -12,6 +13,7 @@ import { prefetchFixtureEntity } from '@/features/fixtures/use-fixtures'
 import { TeamLogo } from '@/features/teams/team-logo'
 import { prefetchTeamEntity, prefetchTeamSquad } from '@/features/teams/use-team'
 import { addDaysToIsoDate, currentTimeZone, todayInTimeZone } from '@/lib/date'
+import { currentFixtureScore, fixtureParticipantAt } from '@/lib/fixture'
 import { useOnline } from '@/lib/use-online'
 import { intentPrefetchProps } from '@/lib/prefetch'
 import { cn } from '@/lib/utils'
@@ -115,12 +117,7 @@ export function PlayerPage({
         </header>
       </div>
 
-      {errors.length > 0 && (
-        <div className="flex items-start gap-3 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          <AlertCircle className="mt-0.5 size-4 shrink-0" />
-          <span>{errors.join(' ')}</span>
-        </div>
-      )}
+      {errors.length > 0 && <ErrorAlert>{errors.join(' ')}</ErrorAlert>}
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="flex flex-col gap-6">
@@ -265,11 +262,9 @@ function PlayerLineups({
       ) : (
         <div className="divide-y">
           {recent.map(({ appearance, fixture }) => {
-            const home = fixture.raw.participants.find(({ meta }) => meta?.location === 'home')
-            const away = fixture.raw.participants.find(({ meta }) => meta?.location === 'away')
-            const scores = fixture.raw.scores.filter(({ description }) => description === 'CURRENT')
-            const homeScore = scores.find(({ score }) => score.participant === 'home')?.score.goals
-            const awayScore = scores.find(({ score }) => score.participant === 'away')?.score.goals
+            const home = fixtureParticipantAt(fixture.raw, 'home')
+            const away = fixtureParticipantAt(fixture.raw, 'away')
+            const { home: homeScore, away: awayScore } = currentFixtureScore(fixture.raw)
 
             return (
               <Link

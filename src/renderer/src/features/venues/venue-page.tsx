@@ -1,8 +1,9 @@
 import { Link } from '@tanstack/react-router'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { AlertCircle, ArrowLeft, RefreshCw, Users } from 'lucide-react'
+import { ArrowLeft, RefreshCw, Users } from 'lucide-react'
 import type { SportmonksVenue } from '@shared/contracts'
 import { Button } from '@/components/ui/button'
+import { ErrorAlert } from '@/components/error-alert'
 import { buttonVariants } from '@/components/ui/button-variants'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -83,12 +84,7 @@ export function VenuePage({
         </header>
       </div>
 
-      {venue.error && (
-        <div className="flex items-start gap-3 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          <AlertCircle className="mt-0.5 size-4 shrink-0" />
-          <span>{venue.error}</span>
-        </div>
-      )}
+      {venue.error && <ErrorAlert>{venue.error}</ErrorAlert>}
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="flex flex-col gap-6">

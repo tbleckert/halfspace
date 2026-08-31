@@ -3,7 +3,6 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { useLiveQuery } from 'dexie-react-hooks'
 import type { SportmonksSeason } from '@shared/contracts'
 import {
-  AlertCircle,
   ArrowLeft,
   CalendarDays,
   ChevronLeft,
@@ -15,8 +14,11 @@ import {
 import { Button } from '@/components/ui/button'
 import { buttonVariants } from '@/components/ui/button-variants'
 import { Card, CardContent } from '@/components/ui/card'
+import { EntitySubpageNavigation } from '@/components/entity-subpage-navigation'
+import { entitySubpageNavigationItemClassName } from '@/components/entity-subpage-navigation-variants'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ErrorAlert } from '@/components/error-alert'
 import type { CachedCompetition, CachedStanding, SquadMember } from '@/data/db'
 import { db, readTeamStandings } from '@/data/db'
 import { CompetitionLogo } from '@/features/competitions/competition-logo'
@@ -246,12 +248,7 @@ export function TeamPage({
         />
       </div>
 
-      {errors.length > 0 && (
-        <div className="flex items-start gap-3 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          <AlertCircle className="mt-0.5 size-4 shrink-0" />
-          <span>{errors.join(' ')}</span>
-        </div>
-      )}
+      {errors.length > 0 && <ErrorAlert>{errors.join(' ')}</ErrorAlert>}
 
       {view === 'overview' && (
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(16rem,0.65fr)_minmax(24rem,1.35fr)]">
@@ -367,17 +364,14 @@ function TeamNavigation({
   teamId: number
   view: TeamView
 }): React.JSX.Element {
-  const itemClassName =
-    'relative px-0.5 pb-3 text-sm font-medium outline-none focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring'
-
   return (
-    <nav aria-label="Team" className="mt-6 flex gap-6 border-b">
+    <EntitySubpageNavigation aria-label="Team" className="mt-6 border-b">
       <Link
         aria-current={view === 'overview' ? 'page' : undefined}
         to="/teams/$teamId"
         params={{ teamId: String(teamId) }}
         search={{ competition: competitionId, date, season }}
-        className={teamNavigationClassName(itemClassName, view === 'overview')}
+        className={entitySubpageNavigationItemClassName(view === 'overview')}
         {...intentPrefetchProps(online, () => prefetchTeamEntity(teamId))}
       >
         Overview
@@ -387,7 +381,7 @@ function TeamNavigation({
         to="/teams/$teamId/fixtures"
         params={{ teamId: String(teamId) }}
         search={{ competition: competitionId, date, season }}
-        className={teamNavigationClassName(itemClassName, view === 'fixtures')}
+        className={entitySubpageNavigationItemClassName(view === 'fixtures')}
         {...intentPrefetchProps(online, () => prefetchTeamFixtures(fixtureInput))}
       >
         Fixtures
@@ -397,7 +391,7 @@ function TeamNavigation({
         to="/teams/$teamId/squad"
         params={{ teamId: String(teamId) }}
         search={{ competition: competitionId, date, season }}
-        className={teamNavigationClassName(itemClassName, view === 'squad')}
+        className={entitySubpageNavigationItemClassName(view === 'squad')}
         {...intentPrefetchProps(online, () => prefetchTeamSquad(teamId))}
       >
         Squad
@@ -407,23 +401,14 @@ function TeamNavigation({
         to="/teams/$teamId/stats"
         params={{ teamId: String(teamId) }}
         search={{ competition: competitionId, date, season }}
-        className={teamNavigationClassName(itemClassName, view === 'stats')}
+        className={entitySubpageNavigationItemClassName(view === 'stats')}
         {...intentPrefetchProps(online && statisticsInput !== null, () =>
           statisticsInput ? prefetchTeamStatistics(statisticsInput) : Promise.resolve()
         )}
       >
         Stats
       </Link>
-    </nav>
-  )
-}
-
-function teamNavigationClassName(itemClassName: string, active: boolean): string {
-  return cn(
-    itemClassName,
-    active
-      ? 'font-semibold text-foreground after:absolute after:inset-x-0 after:-bottom-px after:z-10 after:h-0.5 after:bg-current after:content-[""]'
-      : 'text-muted-foreground hover:text-foreground'
+    </EntitySubpageNavigation>
   )
 }
 
@@ -519,12 +504,14 @@ function TeamFixtures({
       )}
 
       {date !== today && (
-        <button
-          className="self-start text-sm font-medium text-primary hover:underline"
+        <Button
+          className="h-auto self-start px-0 text-sm active:scale-100"
+          size="sm"
+          variant="link"
           onClick={() => selectDate(today)}
         >
           Return to today
-        </button>
+        </Button>
       )}
     </section>
   )

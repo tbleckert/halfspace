@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import type { RefreshTeamFixturesInput, RefreshTeamStatisticsInput } from '@shared/contracts'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
@@ -14,23 +14,12 @@ import {
   writeTeamStatisticsRefresh
 } from '@/data/db'
 import { addDaysToIsoDate, currentTimeZone, todayInTimeZone } from '@/lib/date'
-
-interface RefreshRequest {
-  generation: number
-  promise: Promise<void>
-}
+import { type RefreshableQuery, type RefreshRequest, useStaleRefresh } from '@/lib/refresh'
 
 type TeamIdentityCache = Awaited<ReturnType<typeof readTeamIdentity>>
 type TeamFixturesCache = Awaited<ReturnType<typeof readTeamFixtureQuery>>
 type TeamSquadCache = Awaited<ReturnType<typeof readTeamSquad>>
 type TeamStatisticsCache = Awaited<ReturnType<typeof readTeamStatistics>>
-
-interface TeamQueryResult<T> {
-  cached: T | undefined
-  refreshing: boolean
-  error: string | null
-  refresh: () => Promise<void>
-}
 
 let refreshGeneration = 0
 const teamRefreshes = new Map<number, RefreshRequest>()
@@ -41,7 +30,7 @@ const teamStatisticsRefreshes = new Map<string, RefreshRequest>()
 export function useTeamEntity(
   teamId: number | null,
   enabled: boolean
-): TeamQueryResult<TeamIdentityCache> {
+): RefreshableQuery<TeamIdentityCache> {
   const cached = useLiveQuery(
     () =>
       teamId === null
@@ -67,12 +56,7 @@ export function useTeamEntity(
     }
   }, [enabled, teamId])
 
-  useAutomaticRefresh(
-    enabled && teamId !== null,
-    cached !== undefined,
-    cached?.team?.staleAt,
-    refresh
-  )
+  useStaleRefresh(enabled && teamId !== null, cached !== undefined, cached?.team?.staleAt, refresh)
 
   return { cached, refreshing, error, refresh }
 }
@@ -80,7 +64,7 @@ export function useTeamEntity(
 export function useTeamFixtures(
   input: RefreshTeamFixturesInput | null,
   enabled: boolean
-): TeamQueryResult<TeamFixturesCache> {
+): RefreshableQuery<TeamFixturesCache> {
   const cacheKey = input ? teamFixtureQueryKey(input) : null
   const cached = useLiveQuery(
     () =>
@@ -107,12 +91,7 @@ export function useTeamFixtures(
     }
   }, [enabled, input])
 
-  useAutomaticRefresh(
-    enabled && input !== null,
-    cached !== undefined,
-    cached?.query?.staleAt,
-    refresh
-  )
+  useStaleRefresh(enabled && input !== null, cached !== undefined, cached?.query?.staleAt, refresh)
 
   return { cached, refreshing, error, refresh }
 }
@@ -120,7 +99,7 @@ export function useTeamFixtures(
 export function useTeamSquad(
   teamId: number | null,
   enabled: boolean
-): TeamQueryResult<TeamSquadCache> {
+): RefreshableQuery<TeamSquadCache> {
   const cached = useLiveQuery(
     () => (teamId === null ? Promise.resolve({ query: null, members: [] }) : readTeamSquad(teamId)),
     [teamId]
@@ -143,12 +122,7 @@ export function useTeamSquad(
     }
   }, [enabled, teamId])
 
-  useAutomaticRefresh(
-    enabled && teamId !== null,
-    cached !== undefined,
-    cached?.query?.staleAt,
-    refresh
-  )
+  useStaleRefresh(enabled && teamId !== null, cached !== undefined, cached?.query?.staleAt, refresh)
 
   return { cached, refreshing, error, refresh }
 }
@@ -156,7 +130,7 @@ export function useTeamSquad(
 export function useTeamStatistics(
   input: RefreshTeamStatisticsInput | null,
   enabled: boolean
-): TeamQueryResult<TeamStatisticsCache> {
+): RefreshableQuery<TeamStatisticsCache> {
   const cacheKey = input ? teamStatisticsQueryKey(input) : null
   const cached = useLiveQuery(
     () => (input === null ? Promise.resolve(null) : readTeamStatistics(input)),
@@ -182,7 +156,7 @@ export function useTeamStatistics(
     }
   }, [enabled, input])
 
-  useAutomaticRefresh(enabled && input !== null, cached !== undefined, cached?.staleAt, refresh)
+  useStaleRefresh(enabled && input !== null, cached !== undefined, cached?.staleAt, refresh)
 
   return { cached, refreshing, error, refresh }
 }
@@ -300,22 +274,6 @@ export async function refreshTeamEntity(teamId: number): Promise<void> {
   } finally {
     if (teamRefreshes.get(teamId)?.promise === promise) teamRefreshes.delete(teamId)
   }
-}
-
-function useAutomaticRefresh(
-  enabled: boolean,
-  cacheLoaded: boolean,
-  staleAt: number | undefined,
-  refresh: () => Promise<void>
-): void {
-  useEffect(() => {
-    if (!enabled || !cacheLoaded) return
-
-    const delay = staleAt ? Math.max(0, staleAt - Date.now()) : 0
-    const timeout = window.setTimeout(() => void refresh(), delay)
-
-    return () => window.clearTimeout(timeout)
-  }, [cacheLoaded, enabled, refresh, staleAt])
 }
 
 async function refreshTeamFixtureQuery(input: RefreshTeamFixturesInput): Promise<void> {

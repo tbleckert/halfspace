@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import type { RefreshCompetitionFixturesInput } from '@shared/contracts'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
@@ -14,23 +14,12 @@ import {
   writeStandingsRefresh
 } from '@/data/db'
 import { addDaysToIsoDate, currentTimeZone, todayInTimeZone } from '@/lib/date'
-
-interface RefreshRequest {
-  generation: number
-  promise: Promise<void>
-}
+import { type RefreshableQuery, type RefreshRequest, useStaleRefresh } from '@/lib/refresh'
 
 type StandingsCache = Awaited<ReturnType<typeof readStandingsQuery>>
 type CompetitionSeasonsCache = Awaited<ReturnType<typeof readCompetitionSeasons>>
 type CompetitionFixturesCache = Awaited<ReturnType<typeof readCompetitionFixtureQuery>>
 type SeasonStatisticsCache = Awaited<ReturnType<typeof readSeasonStatistics>>
-
-interface WorkspaceQueryResult<T> {
-  cached: T | undefined
-  refreshing: boolean
-  error: string | null
-  refresh: () => Promise<void>
-}
 
 let refreshGeneration = 0
 const standingRefreshes = new Map<number, RefreshRequest>()
@@ -41,7 +30,7 @@ const fixtureRefreshes = new Map<string, RefreshRequest>()
 export function useStandings(
   seasonId: number | null,
   enabled: boolean
-): WorkspaceQueryResult<StandingsCache> {
+): RefreshableQuery<StandingsCache> {
   const cached = useLiveQuery(
     () =>
       seasonId === null
@@ -69,7 +58,7 @@ export function useStandings(
     }
   }, [enabled, seasonId])
 
-  useAutomaticRefresh(
+  useStaleRefresh(
     enabled && seasonId !== null,
     cached !== undefined,
     cached?.query?.staleAt,
@@ -82,7 +71,7 @@ export function useStandings(
 export function useCompetitionSeasons(
   competitionId: number | null,
   enabled: boolean
-): WorkspaceQueryResult<CompetitionSeasonsCache> {
+): RefreshableQuery<CompetitionSeasonsCache> {
   const cached = useLiveQuery(
     () => (competitionId === null ? Promise.resolve(null) : readCompetitionSeasons(competitionId)),
     [competitionId]
@@ -109,12 +98,7 @@ export function useCompetitionSeasons(
     }
   }, [competitionId, enabled])
 
-  useAutomaticRefresh(
-    enabled && competitionId !== null,
-    cached !== undefined,
-    cached?.staleAt,
-    refresh
-  )
+  useStaleRefresh(enabled && competitionId !== null, cached !== undefined, cached?.staleAt, refresh)
 
   return { cached, refreshing, error, refresh }
 }
@@ -122,7 +106,7 @@ export function useCompetitionSeasons(
 export function useCompetitionFixtures(
   input: RefreshCompetitionFixturesInput | null,
   enabled: boolean
-): WorkspaceQueryResult<CompetitionFixturesCache> {
+): RefreshableQuery<CompetitionFixturesCache> {
   const cacheKey = input ? competitionFixtureQueryKey(input) : null
   const cached = useLiveQuery(
     () =>
@@ -153,12 +137,7 @@ export function useCompetitionFixtures(
     }
   }, [enabled, input])
 
-  useAutomaticRefresh(
-    enabled && input !== null,
-    cached !== undefined,
-    cached?.query?.staleAt,
-    refresh
-  )
+  useStaleRefresh(enabled && input !== null, cached !== undefined, cached?.query?.staleAt, refresh)
 
   return { cached, refreshing, error, refresh }
 }
@@ -166,7 +145,7 @@ export function useCompetitionFixtures(
 export function useSeasonStatistics(
   seasonId: number | null,
   enabled: boolean
-): WorkspaceQueryResult<SeasonStatisticsCache> {
+): RefreshableQuery<SeasonStatisticsCache> {
   const cached = useLiveQuery(
     () => (seasonId === null ? Promise.resolve(null) : readSeasonStatistics(seasonId)),
     [seasonId]
@@ -193,7 +172,7 @@ export function useSeasonStatistics(
     }
   }, [enabled, seasonId])
 
-  useAutomaticRefresh(enabled && seasonId !== null, cached !== undefined, cached?.staleAt, refresh)
+  useStaleRefresh(enabled && seasonId !== null, cached !== undefined, cached?.staleAt, refresh)
 
   return { cached, refreshing, error, refresh }
 }
@@ -258,22 +237,6 @@ export function competitionWorkspaceFixtureInput(
     endDate: addDaysToIsoDate(date, 14),
     timeZone
   }
-}
-
-function useAutomaticRefresh(
-  enabled: boolean,
-  cacheLoaded: boolean,
-  staleAt: number | undefined,
-  refresh: () => Promise<void>
-): void {
-  useEffect(() => {
-    if (!enabled || !cacheLoaded) return
-
-    const delay = staleAt ? Math.max(0, staleAt - Date.now()) : 0
-    const timeout = window.setTimeout(() => void refresh(), delay)
-
-    return () => window.clearTimeout(timeout)
-  }, [cacheLoaded, enabled, refresh, staleAt])
 }
 
 async function refreshStandingsQuery(seasonId: number): Promise<void> {

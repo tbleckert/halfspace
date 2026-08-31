@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import type { RefreshFixtureHeadToHeadInput } from '@shared/contracts'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
@@ -12,54 +12,25 @@ import {
   writeFixtureOddsRefresh,
   writeFixtureRefresh
 } from '@/data/db'
-
-interface FixtureRefreshRequest {
-  generation: number
-  promise: Promise<void>
-}
+import { type RefreshableQuery, type RefreshRequest, useStaleRefresh } from '@/lib/refresh'
 
 let refreshGeneration = 0
-const refreshes = new Map<string, FixtureRefreshRequest>()
-const entityRefreshes = new Map<number, FixtureRefreshRequest>()
-const oddsRefreshes = new Map<number, FixtureRefreshRequest>()
-const headToHeadRefreshes = new Map<string, FixtureRefreshRequest>()
+const refreshes = new Map<string, RefreshRequest>()
+const entityRefreshes = new Map<number, RefreshRequest>()
+const oddsRefreshes = new Map<number, RefreshRequest>()
+const headToHeadRefreshes = new Map<string, RefreshRequest>()
 
 type FixtureCache = Awaited<ReturnType<typeof readFixtureQuery>>
 
-interface UseFixturesResult {
-  cached: FixtureCache | undefined
-  refreshing: boolean
-  error: string | null
-  refresh: () => Promise<void>
-}
-
 type FixtureIdentityCache = Awaited<ReturnType<typeof readFixtureIdentity>>
-
-interface UseFixtureResult {
-  cached: FixtureIdentityCache | undefined
-  refreshing: boolean
-  error: string | null
-  refresh: () => Promise<void>
-}
-
 type FixtureOddsCache = Awaited<ReturnType<typeof readFixtureOdds>>
 type FixtureHeadToHeadCache = Awaited<ReturnType<typeof readFixtureHeadToHead>>
 
-interface UseFixtureOddsResult {
-  cached: FixtureOddsCache | undefined
-  refreshing: boolean
-  error: string | null
-  refresh: () => Promise<void>
-}
-
-interface UseFixtureHeadToHeadResult {
-  cached: FixtureHeadToHeadCache | undefined
-  refreshing: boolean
-  error: string | null
-  refresh: () => Promise<void>
-}
-
-export function useFixtures(date: string, timeZone: string, enabled: boolean): UseFixturesResult {
+export function useFixtures(
+  date: string,
+  timeZone: string,
+  enabled: boolean
+): RefreshableQuery<FixtureCache> {
   const cached = useLiveQuery(() => readFixtureQuery(date, timeZone), [date, timeZone])
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -79,22 +50,15 @@ export function useFixtures(date: string, timeZone: string, enabled: boolean): U
     }
   }, [date, enabled, timeZone])
 
-  const cacheLoaded = cached !== undefined
-  const staleAt = cached?.query?.staleAt
-
-  useEffect(() => {
-    if (!enabled || !cacheLoaded) return
-
-    const delay = staleAt ? Math.max(0, staleAt - Date.now()) : 0
-    const timeout = window.setTimeout(() => void refresh(), delay)
-
-    return () => window.clearTimeout(timeout)
-  }, [cacheLoaded, date, enabled, refresh, staleAt, timeZone])
+  useStaleRefresh(enabled, cached !== undefined, cached?.query?.staleAt, refresh)
 
   return { cached, refreshing, error, refresh }
 }
 
-export function useFixtureEntity(fixtureId: number | null, enabled: boolean): UseFixtureResult {
+export function useFixtureEntity(
+  fixtureId: number | null,
+  enabled: boolean
+): RefreshableQuery<FixtureIdentityCache> {
   const cached = useLiveQuery(
     () =>
       fixtureId === null
@@ -120,22 +84,20 @@ export function useFixtureEntity(fixtureId: number | null, enabled: boolean): Us
     }
   }, [enabled, fixtureId])
 
-  const cacheLoaded = cached !== undefined
-  const staleAt = cached?.fixture?.detailStaleAt
-
-  useEffect(() => {
-    if (!enabled || !cacheLoaded) return
-
-    const delay = staleAt ? Math.max(0, staleAt - Date.now()) : 0
-    const timeout = window.setTimeout(() => void refresh(), delay)
-
-    return () => window.clearTimeout(timeout)
-  }, [cacheLoaded, enabled, refresh, staleAt])
+  useStaleRefresh(
+    enabled && fixtureId !== null,
+    cached !== undefined,
+    cached?.fixture?.detailStaleAt,
+    refresh
+  )
 
   return { cached, refreshing, error, refresh }
 }
 
-export function useFixtureOdds(fixtureId: number | null, enabled: boolean): UseFixtureOddsResult {
+export function useFixtureOdds(
+  fixtureId: number | null,
+  enabled: boolean
+): RefreshableQuery<FixtureOddsCache> {
   const cached = useLiveQuery(
     () =>
       fixtureId === null ? Promise.resolve({ query: null, odds: [] }) : readFixtureOdds(fixtureId),
@@ -161,17 +123,12 @@ export function useFixtureOdds(fixtureId: number | null, enabled: boolean): UseF
     }
   }, [enabled, fixtureId])
 
-  const cacheLoaded = cached !== undefined
-  const staleAt = cached?.query?.staleAt
-
-  useEffect(() => {
-    if (!enabled || !cacheLoaded) return
-
-    const delay = staleAt ? Math.max(0, staleAt - Date.now()) : 0
-    const timeout = window.setTimeout(() => void refresh(), delay)
-
-    return () => window.clearTimeout(timeout)
-  }, [cacheLoaded, enabled, refresh, staleAt])
+  useStaleRefresh(
+    enabled && fixtureId !== null,
+    cached !== undefined,
+    cached?.query?.staleAt,
+    refresh
+  )
 
   return { cached, refreshing, error, refresh }
 }
@@ -179,7 +136,7 @@ export function useFixtureOdds(fixtureId: number | null, enabled: boolean): UseF
 export function useFixtureHeadToHead(
   input: RefreshFixtureHeadToHeadInput | null,
   enabled: boolean
-): UseFixtureHeadToHeadResult {
+): RefreshableQuery<FixtureHeadToHeadCache> {
   const cacheKey = input ? fixtureHeadToHeadQueryKey(input) : null
   const cached = useLiveQuery(
     () =>
@@ -210,17 +167,7 @@ export function useFixtureHeadToHead(
     }
   }, [enabled, input])
 
-  const cacheLoaded = cached !== undefined
-  const staleAt = cached?.query?.staleAt
-
-  useEffect(() => {
-    if (!enabled || !cacheLoaded) return
-
-    const delay = staleAt ? Math.max(0, staleAt - Date.now()) : 0
-    const timeout = window.setTimeout(() => void refresh(), delay)
-
-    return () => window.clearTimeout(timeout)
-  }, [cacheLoaded, enabled, refresh, staleAt])
+  useStaleRefresh(enabled && input !== null, cached !== undefined, cached?.query?.staleAt, refresh)
 
   return { cached, refreshing, error, refresh }
 }

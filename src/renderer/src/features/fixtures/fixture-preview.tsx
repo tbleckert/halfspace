@@ -5,6 +5,7 @@ import type { CachedFixture, CachedStanding } from '@/data/db'
 import { TeamLogo } from '@/features/teams/team-logo'
 import { intentPrefetchProps } from '@/lib/prefetch'
 import { cn } from '@/lib/utils'
+import { currentFixtureScore, fixtureParticipantAt } from '@/lib/fixture'
 import { EntityFixturePanel } from './entity-fixture-panel'
 import {
   fixtureOutcome,
@@ -31,8 +32,8 @@ export function FixturePreviewWorkspace({
   const preview = useFixturePreview(input, online)
   if (!input) return null
 
-  const home = participantAt(fixture, 'home')
-  const away = participantAt(fixture, 'away')
+  const home = fixtureParticipantAt(fixture.raw, 'home')
+  const away = fixtureParticipantAt(fixture.raw, 'away')
   if (!home || !away) return null
 
   const standings = preview.standings.cached?.standings ?? []
@@ -328,15 +329,6 @@ function Outcome({ outcome }: { outcome: FixtureOutcome }): React.JSX.Element {
 }
 
 function fixtureScore(fixture: CachedFixture): string {
-  const scores = fixture.raw.scores.filter(({ description }) => description === 'CURRENT')
-  const home = scores.find(({ score }) => score.participant === 'home')?.score.goals
-  const away = scores.find(({ score }) => score.participant === 'away')?.score.goals
+  const { home, away } = currentFixtureScore(fixture.raw)
   return home === undefined || away === undefined ? '–' : `${home}–${away}`
-}
-
-function participantAt(
-  fixture: CachedFixture,
-  location: 'home' | 'away'
-): SportmonksParticipant | undefined {
-  return fixture.raw.participants.find((participant) => participant.meta?.location === location)
 }

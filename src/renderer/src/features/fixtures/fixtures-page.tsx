@@ -1,11 +1,12 @@
 import { useMemo } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { AlertCircle, CalendarDays, RefreshCw } from 'lucide-react'
+import { CalendarDays, RefreshCw } from 'lucide-react'
 import type { CachedFixture } from '@/data/db'
 import { prefetchFixtureEntity, useFixtures } from './use-fixtures'
 import { FixtureLiveIndicator } from './fixture-live-indicator'
 import { fixtureRowStatus } from '@/lib/fixture-state'
 import { Button } from '@/components/ui/button'
+import { ErrorAlert } from '@/components/error-alert'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -15,6 +16,7 @@ import { useCompetitions } from '@/features/competitions/use-competitions'
 import { TeamLogo } from '@/features/teams/team-logo'
 import { cn } from '@/lib/utils'
 import { currentTimeZone, formatFixtureTime } from '@/lib/date'
+import { currentFixtureScore, fixtureParticipantAt } from '@/lib/fixture'
 import { intentPrefetchProps } from '@/lib/prefetch'
 import { useTodayInTimeZone } from '@/lib/use-today'
 import { useOnline } from '@/lib/use-online'
@@ -85,12 +87,7 @@ export function FixturesPage({ date }: FixturesPageProps): React.JSX.Element {
         </div>
       </header>
 
-      {error && (
-        <div className="flex items-start gap-3 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          <AlertCircle className="mt-0.5 size-4 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
+      {error && <ErrorAlert>{error}</ErrorAlert>}
 
       {cached === undefined ? (
         <FixtureListSkeleton />
@@ -143,11 +140,9 @@ function FixtureRow({
   fixture: CachedFixture
   online: boolean
 }): React.JSX.Element {
-  const home = fixture.raw.participants.find((participant) => participant.meta?.location === 'home')
-  const away = fixture.raw.participants.find((participant) => participant.meta?.location === 'away')
-  const currentScores = fixture.raw.scores.filter((score) => score.description === 'CURRENT')
-  const homeScore = currentScores.find((score) => score.score.participant === 'home')?.score.goals
-  const awayScore = currentScores.find((score) => score.score.participant === 'away')?.score.goals
+  const home = fixtureParticipantAt(fixture.raw, 'home')
+  const away = fixtureParticipantAt(fixture.raw, 'away')
+  const { home: homeScore, away: awayScore } = currentFixtureScore(fixture.raw)
   const hasScore = homeScore !== undefined || awayScore !== undefined
 
   return (
@@ -198,7 +193,7 @@ function FixtureRowStatus({ fixture }: { fixture: CachedFixture }): React.JSX.El
 
   if (status.kind === 'in-play') {
     return (
-      <div className="flex items-center justify-center gap-2 font-mono text-sm font-semibold tabular-nums text-emerald-600">
+      <div className="flex items-center justify-center gap-2 font-mono text-sm font-semibold tabular-nums text-success-emphasis">
         <FixtureLiveIndicator showLabel={false} />
         <span>{status.label}</span>
       </div>

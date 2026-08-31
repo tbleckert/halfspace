@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import type { RefreshPlayerAppearancesInput } from '@shared/contracts'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
@@ -8,21 +8,10 @@ import {
   writePlayerAppearancesRefresh,
   writePlayerRefresh
 } from '@/data/db'
-
-interface RefreshRequest {
-  generation: number
-  promise: Promise<void>
-}
+import { type RefreshableQuery, type RefreshRequest, useStaleRefresh } from '@/lib/refresh'
 
 type PlayerIdentityCache = Awaited<ReturnType<typeof readPlayerIdentity>>
 type PlayerAppearancesCache = Awaited<ReturnType<typeof readPlayerAppearanceQuery>>
-
-interface PlayerQueryResult<T> {
-  cached: T | undefined
-  refreshing: boolean
-  error: string | null
-  refresh: () => Promise<void>
-}
 
 let refreshGeneration = 0
 const playerRefreshes = new Map<number, RefreshRequest>()
@@ -31,7 +20,7 @@ const playerAppearanceRefreshes = new Map<string, RefreshRequest>()
 export function usePlayerEntity(
   playerId: number | null,
   enabled: boolean
-): PlayerQueryResult<PlayerIdentityCache> {
+): RefreshableQuery<PlayerIdentityCache> {
   const cached = useLiveQuery(
     () =>
       playerId === null
@@ -57,7 +46,7 @@ export function usePlayerEntity(
     }
   }, [enabled, playerId])
 
-  useAutomaticRefresh(
+  useStaleRefresh(
     enabled && playerId !== null,
     cached !== undefined,
     cached?.player?.staleAt,
@@ -70,7 +59,7 @@ export function usePlayerEntity(
 export function usePlayerAppearances(
   input: RefreshPlayerAppearancesInput | null,
   enabled: boolean
-): PlayerQueryResult<PlayerAppearancesCache> {
+): RefreshableQuery<PlayerAppearancesCache> {
   const cacheKey = input ? playerAppearanceQueryKey(input) : null
   const cached = useLiveQuery(
     () =>
@@ -101,12 +90,7 @@ export function usePlayerAppearances(
     }
   }, [enabled, input])
 
-  useAutomaticRefresh(
-    enabled && input !== null,
-    cached !== undefined,
-    cached?.query?.staleAt,
-    refresh
-  )
+  useStaleRefresh(enabled && input !== null, cached !== undefined, cached?.query?.staleAt, refresh)
 
   return { cached, refreshing, error, refresh }
 }
@@ -167,20 +151,4 @@ async function refreshPlayerAppearanceQuery(input: RefreshPlayerAppearancesInput
       playerAppearanceRefreshes.delete(key)
     }
   }
-}
-
-function useAutomaticRefresh(
-  enabled: boolean,
-  cacheLoaded: boolean,
-  staleAt: number | undefined,
-  refresh: () => Promise<void>
-): void {
-  useEffect(() => {
-    if (!enabled || !cacheLoaded) return
-
-    const delay = staleAt ? Math.max(0, staleAt - Date.now()) : 0
-    const timeout = window.setTimeout(() => void refresh(), delay)
-
-    return () => window.clearTimeout(timeout)
-  }, [cacheLoaded, enabled, refresh, staleAt])
 }

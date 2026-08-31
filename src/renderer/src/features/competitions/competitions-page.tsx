@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import { AlertCircle, RefreshCw, Search, Star, Trophy } from 'lucide-react'
+import { RefreshCw, Search, Star, Trophy } from 'lucide-react'
+import { ErrorAlert } from '@/components/error-alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -74,12 +75,7 @@ export function CompetitionsPage(): React.JSX.Element {
         />
       </div>
 
-      {visibleError && (
-        <div className="flex items-start gap-3 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          <AlertCircle className="mt-0.5 size-4 shrink-0" />
-          <span>{visibleError}</span>
-        </div>
-      )}
+      {visibleError && <ErrorAlert>{visibleError}</ErrorAlert>}
 
       {cached === undefined || (!cached.catalog && !visibleError) ? (
         <CompetitionListSkeleton />

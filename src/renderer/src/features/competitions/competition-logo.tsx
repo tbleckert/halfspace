@@ -1,7 +1,6 @@
-import { useState } from 'react'
 import { Trophy } from 'lucide-react'
+import { ProviderImage } from '@/components/provider-image'
 import { cn } from '@/lib/utils'
-import { sportmonksImageUrl } from '@/lib/sportmonks-image-url'
 
 export function CompetitionLogo({
   imagePath,
@@ -12,28 +11,13 @@ export function CompetitionLogo({
   className?: string
   online: boolean
 }): React.JSX.Element {
-  const source = sportmonksImageUrl(imagePath)
-  const [failure, setFailure] = useState<{ source: string; online: boolean } | null>(null)
-  const failed = failure?.source === source && failure.online === online
-
   return (
-    <span
-      aria-hidden="true"
-      className={cn(
-        'grid size-7 shrink-0 place-items-center overflow-hidden rounded-md bg-muted text-muted-foreground',
-        className
-      )}
-    >
-      {source && !failed ? (
-        <img
-          alt=""
-          className="size-full object-contain p-1"
-          src={source}
-          onError={() => setFailure({ source, online })}
-        />
-      ) : (
-        <Trophy className="size-3.5" />
-      )}
-    </span>
+    <ProviderImage
+      className={cn('size-7 shrink-0 rounded-md', className)}
+      fallback={<Trophy className="size-3.5" />}
+      imageClassName="size-full object-contain p-1"
+      imagePath={imagePath}
+      online={online}
+    />
   )
 }

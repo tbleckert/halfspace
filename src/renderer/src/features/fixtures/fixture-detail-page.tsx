@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Link } from '@tanstack/react-router'
-import { AlertCircle, ArrowLeft, RefreshCw } from 'lucide-react'
+import { ArrowLeft, RefreshCw } from 'lucide-react'
 import type {
   SportmonksEvent,
   SportmonksFixture,
@@ -10,6 +10,9 @@ import type {
 } from '@shared/contracts'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { EntitySubpageNavigation } from '@/components/entity-subpage-navigation'
+import { entitySubpageNavigationItemClassName } from '@/components/entity-subpage-navigation-variants'
+import { ErrorAlert } from '@/components/error-alert'
 import { buttonVariants } from '@/components/ui/button-variants'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -23,6 +26,7 @@ import { prefetchTeamEntity } from '@/features/teams/use-team'
 import { VenueCard } from '@/features/venues/venue-card'
 import { currentTimeZone } from '@/lib/date'
 import { isFixtureLive } from '@/lib/fixture-state'
+import { currentFixtureScore, fixtureParticipantAt } from '@/lib/fixture'
 import { useOnline } from '@/lib/use-online'
 import { intentPrefetchProps } from '@/lib/prefetch'
 import { cn } from '@/lib/utils'
@@ -98,8 +102,8 @@ export function FixtureDetailPage({
   const cachedFixture = fixture.cached.fixture
   const resolvedSeasonId = seasonId ?? cachedFixture.seasonId
   const match = cachedFixture.raw
-  const home = participantAt(match, 'home')
-  const away = participantAt(match, 'away')
+  const home = fixtureParticipantAt(match, 'home')
+  const away = fixtureParticipantAt(match, 'away')
   const heading = `${home?.name ?? 'Home'} vs ${away?.name ?? 'Away'}`
   const teamParticipant = match.participants.find(({ id }) => id === teamId)
   const refreshing = fixture.refreshing || odds.refreshing
@@ -145,18 +149,8 @@ export function FixtureDetailPage({
         </header>
       </div>
 
-      {fixture.error && (
-        <div className="flex items-start gap-3 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          <AlertCircle className="mt-0.5 size-4 shrink-0" />
-          <span>{fixture.error}</span>
-        </div>
-      )}
-      {odds.error && (
-        <div className="flex items-start gap-3 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          <AlertCircle className="mt-0.5 size-4 shrink-0" />
-          <span>{odds.error}</span>
-        </div>
-      )}
+      {fixture.error && <ErrorAlert>{fixture.error}</ErrorAlert>}
+      {odds.error && <ErrorAlert>{odds.error}</ErrorAlert>}
 
       <MatchScore
         competitionId={competitionId ?? cachedFixture.leagueId}
@@ -224,11 +218,9 @@ function MatchScore({
   startingAt: number | null
   view: FixtureView
 }): React.JSX.Element {
-  const home = participantAt(fixture, 'home')
-  const away = participantAt(fixture, 'away')
-  const scores = fixture.scores.filter(({ description }) => description === 'CURRENT')
-  const homeScore = scores.find(({ score }) => score.participant === 'home')?.score.goals
-  const awayScore = scores.find(({ score }) => score.participant === 'away')?.score.goals
+  const home = fixtureParticipantAt(fixture, 'home')
+  const away = fixtureParticipantAt(fixture, 'away')
+  const { home: homeScore, away: awayScore } = currentFixtureScore(fixture)
   const hasScore = homeScore !== undefined || awayScore !== undefined
   const live = isFixtureLive(fixture.state_id)
   const previewInput = createFixturePreviewInput(
@@ -259,7 +251,7 @@ function MatchScore({
             </p>
           )}
           {live ? (
-            <FixtureLiveIndicator className="rounded-full bg-emerald-50 px-2.5 py-1 dark:bg-emerald-950/30" />
+            <FixtureLiveIndicator className="rounded-full bg-success-muted px-2.5 py-1 dark:bg-success-muted-dark/30" />
           ) : (
             <Badge className="font-mono" variant="secondary">
               {fixture.state?.name ?? 'Scheduled'}
@@ -340,13 +332,10 @@ function FixtureNavigation({
     { label: 'Stats', to: '/fixtures/$fixtureId/stats', view: 'stats' },
     { label: 'Odds', to: '/fixtures/$fixtureId/odds', view: 'odds' }
   ]
-  const itemClassName =
-    'relative px-0.5 pb-4 pt-3 text-sm font-medium outline-none focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring'
-
   return (
-    <nav
+    <EntitySubpageNavigation
       aria-label="Fixture"
-      className="flex gap-6 overflow-x-auto border-t px-4 sm:justify-center"
+      className="overflow-x-auto border-t px-4 sm:justify-center"
     >
       {items.map((item) => (
         <Link
@@ -355,12 +344,7 @@ function FixtureNavigation({
           to={item.to}
           params={{ fixtureId: String(fixtureId) }}
           search={context}
-          className={cn(
-            itemClassName,
-            view === item.view
-              ? 'font-semibold text-foreground before:absolute before:inset-x-0 before:-top-px before:z-10 before:h-0.5 before:bg-current before:content-[""]'
-              : 'text-muted-foreground hover:text-foreground'
-          )}
+          className={entitySubpageNavigationItemClassName(view === item.view, 'top', 'pb-4 pt-3')}
           {...(item.view === 'preview' && previewInput
             ? intentPrefetchProps(online, () => prefetchFixturePreview(previewInput))
             : {})}
@@ -368,7 +352,7 @@ function FixtureNavigation({
           {item.label}
         </Link>
       ))}
-    </nav>
+    </EntitySubpageNavigation>
   )
 }
 
@@ -714,8 +698,8 @@ function FixtureStats({
                 >
                   {share && (
                     <>
-                      <span className="bg-blue-600" style={{ width: `${share.home}%` }} />
-                      <span className="bg-red-500" style={{ width: `${share.away}%` }} />
+                      <span className="bg-chart-1" style={{ width: `${share.home}%` }} />
+                      <span className="bg-chart-5" style={{ width: `${share.away}%` }} />
                     </>
                   )}
                 </div>
@@ -1017,8 +1001,8 @@ function createFixturePreviewInput(
   startingAt: number | null,
   seasonId: number
 ): FixturePreviewInput | null {
-  const home = participantAt(fixture, 'home')
-  const away = participantAt(fixture, 'away')
+  const home = fixtureParticipantAt(fixture, 'home')
+  const away = fixtureParticipantAt(fixture, 'away')
   if (!home || !away || startingAt === null) return null
 
   return {
@@ -1029,13 +1013,6 @@ function createFixturePreviewInput(
     awayTeamId: away.id,
     timeZone: currentTimeZone()
   }
-}
-
-function participantAt(
-  fixture: SportmonksFixture,
-  location: 'home' | 'away'
-): SportmonksParticipant | undefined {
-  return fixture.participants.find((participant) => participant.meta?.location === location)
 }
 
 function lineupGroup(entries: SportmonksLineup[], typeId: number): SportmonksLineup[] {

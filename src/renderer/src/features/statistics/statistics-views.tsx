@@ -156,8 +156,8 @@ function LeagueGoals({ summary }: { summary: LeagueStatisticsSummary }): React.J
       </div>
       {total > 0 && (
         <div aria-hidden="true" className="mt-4 flex h-2 overflow-hidden rounded-full bg-muted">
-          <span className="bg-blue-600" style={{ width: `${homeShare}%` }} />
-          <span className="flex-1 bg-amber-400" />
+          <span className="bg-chart-1" style={{ width: `${homeShare}%` }} />
+          <span className="flex-1 bg-chart-2" />
         </div>
       )}
     </section>
@@ -180,9 +180,9 @@ function TeamRecord({ summary }: { summary: TeamStatisticsSummary }): React.JSX.
       </div>
       {total > 0 && (
         <div aria-hidden="true" className="mt-4 flex h-2 overflow-hidden rounded-full bg-muted">
-          <span className="bg-emerald-500" style={{ width: `${(wins / total) * 100}%` }} />
-          <span className="bg-zinc-400" style={{ width: `${(draws / total) * 100}%` }} />
-          <span className="bg-red-500" style={{ width: `${(losses / total) * 100}%` }} />
+          <span className="bg-chart-3" style={{ width: `${(wins / total) * 100}%` }} />
+          <span className="bg-chart-4" style={{ width: `${(draws / total) * 100}%` }} />
+          <span className="bg-chart-5" style={{ width: `${(losses / total) * 100}%` }} />
         </div>
       )}
     </section>

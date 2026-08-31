@@ -5,6 +5,7 @@ import { TeamLogo } from '@/features/teams/team-logo'
 import { FixtureLiveIndicator } from './fixture-live-indicator'
 import { fixtureProgressLabel } from '@/lib/fixture-state'
 import { formatFixtureTime } from '@/lib/date'
+import { currentFixtureScore, fixtureParticipantAt } from '@/lib/fixture'
 import { intentPrefetchProps } from '@/lib/prefetch'
 import { prefetchFixtureEntity } from './use-fixtures'
 
@@ -79,11 +80,9 @@ function EntityFixtureRow({
   online: boolean
   showCompetition: boolean
 }): React.JSX.Element {
-  const home = fixture.raw.participants.find(({ meta }) => meta?.location === 'home')
-  const away = fixture.raw.participants.find(({ meta }) => meta?.location === 'away')
-  const scores = fixture.raw.scores.filter(({ description }) => description === 'CURRENT')
-  const homeScore = scores.find(({ score }) => score.participant === 'home')?.score.goals
-  const awayScore = scores.find(({ score }) => score.participant === 'away')?.score.goals
+  const home = fixtureParticipantAt(fixture.raw, 'home')
+  const away = fixtureParticipantAt(fixture.raw, 'away')
+  const { home: homeScore, away: awayScore } = currentFixtureScore(fixture.raw)
   const hasScore = homeScore !== undefined || awayScore !== undefined
   const progressLabel = fixtureProgressLabel(fixture.raw)
 

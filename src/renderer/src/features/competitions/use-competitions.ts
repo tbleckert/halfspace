@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   db,
@@ -6,25 +6,14 @@ import {
   setCompetitionPinned,
   writeCompetitionRefresh
 } from '@/data/db'
-
-interface CompetitionRefreshRequest {
-  generation: number
-  promise: Promise<void>
-}
+import { type RefreshableQuery, type RefreshRequest, useStaleRefresh } from '@/lib/refresh'
 
 let refreshGeneration = 0
-let activeRefresh: CompetitionRefreshRequest | null = null
+let activeRefresh: RefreshRequest | null = null
 
 type CompetitionCache = Awaited<ReturnType<typeof readCompetitionCatalog>>
 
-interface UseCompetitionsResult {
-  cached: CompetitionCache | undefined
-  refreshing: boolean
-  error: string | null
-  refresh: () => Promise<void>
-}
-
-export function useCompetitions(enabled = true): UseCompetitionsResult {
+export function useCompetitions(enabled = true): RefreshableQuery<CompetitionCache> {
   const cached = useLiveQuery(() => readCompetitionCatalog(), [])
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -46,17 +35,7 @@ export function useCompetitions(enabled = true): UseCompetitionsResult {
     }
   }, [enabled])
 
-  const cacheLoaded = cached !== undefined
-  const staleAt = cached?.catalog?.staleAt
-
-  useEffect(() => {
-    if (!enabled || !cacheLoaded) return
-
-    const delay = staleAt ? Math.max(0, staleAt - Date.now()) : 0
-    const timeout = window.setTimeout(() => void refresh(), delay)
-
-    return () => window.clearTimeout(timeout)
-  }, [cacheLoaded, enabled, refresh, staleAt])
+  useStaleRefresh(enabled, cached !== undefined, cached?.catalog?.staleAt, refresh)
 
   return { cached, refreshing, error, refresh }
 }

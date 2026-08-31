@@ -185,9 +185,7 @@ function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): Re
       <div className="pointer-events-none absolute right-5 top-2.5 z-20 flex items-center gap-3">
         {rateLimit && <RateLimitNotice rateLimit={rateLimit} />}
         <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-          <Circle
-            className={cn('size-2 fill-current', online ? 'text-emerald-500' : 'text-amber-500')}
-          />
+          <Circle className={cn('size-2 fill-current', online ? 'text-success' : 'text-warning')} />
           {online ? 'Online' : 'Offline'}
         </div>
       </div>
@@ -205,7 +203,7 @@ function RateLimitNotice({ rateLimit }: { rateLimit: SportmonksRateLimit }): Rea
   return (
     <div
       role="status"
-      className="flex items-center gap-1.5 rounded-md bg-amber-400/15 px-2 py-1 text-xs font-medium text-amber-800"
+      className="flex items-center gap-1.5 rounded-md bg-warning-muted/15 px-2 py-1 text-xs font-medium text-warning-foreground"
     >
       <Clock3 className="size-3.5 shrink-0" />
       <span>{subject} limit reached</span>
