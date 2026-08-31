@@ -43,7 +43,7 @@ export function FixturesPage({ date }: FixturesPageProps): React.JSX.Element {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 p-6 lg:p-8">
       <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <h1 className="text-4xl font-extrabold tracking-[-0.045em] text-brand-navy">Matchday</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">Matchday</h1>
 
         <div className="flex items-center gap-1 rounded-lg border bg-card p-0.5 shadow-xs">
           <Input
@@ -179,7 +179,7 @@ function FixtureRow({
           </p>
         </div>
       </div>
-      <div className="grid grid-rows-2 gap-0.5 text-right text-base font-extrabold tabular-nums text-brand-navy">
+      <div className="grid grid-rows-2 gap-0.5 text-right font-mono text-base font-extrabold tabular-nums text-brand-navy">
         {hasScore && (
           <>
             <span>{homeScore ?? '–'}</span>
@@ -196,7 +196,7 @@ function FixtureRowStatus({ fixture }: { fixture: CachedFixture }): React.JSX.El
 
   if (status.kind === 'in-play') {
     return (
-      <div className="flex items-center justify-center gap-2 text-sm font-semibold tabular-nums text-emerald-600">
+      <div className="flex items-center justify-center gap-2 font-mono text-sm font-semibold tabular-nums text-emerald-600">
         <FixtureLiveIndicator showLabel={false} />
         <span>{status.label}</span>
       </div>
@@ -205,14 +205,14 @@ function FixtureRowStatus({ fixture }: { fixture: CachedFixture }): React.JSX.El
 
   if (status.kind === 'state') {
     return (
-      <span className="text-center text-xs font-bold tracking-[0.08em] tabular-nums text-muted-foreground">
+      <span className="text-center font-mono text-xs font-bold tracking-[0.08em] tabular-nums text-muted-foreground">
         {status.label}
       </span>
     )
   }
 
   return (
-    <time className="text-center text-sm font-semibold tabular-nums text-brand-navy/70">
+    <time className="text-center font-mono text-sm font-semibold tabular-nums text-brand-navy/70">
       {formatFixtureTime(fixture.startingAt)}
     </time>
   )

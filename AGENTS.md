@@ -72,12 +72,14 @@ abstractions.
   treatment that exposes its limitations.
 - Matchday fixture rows use one centered status column: a short terminal state such as FT, a green
   live ping beside the match minute or phase, or the scheduled kickoff time. Do not repeat the
-  state in a separate badge. The fixture hero may pair its live ping with a visible status label.
+  state in a separate badge. Use monospaced tabular typography for row status, time, minute, and
+  score. The fixture hero may pair its live ping with a visible status label.
 - Matchday competition groups use the shared `Card`, `CardHeader`, and `CardTitle` hierarchy. Keep
   headers on the normal card surface rather than filling them with solid brand color. Use a muted
   outer border and header divider, and link each competition name together with its logo. Use the
   sidebar active-item background for fixture-row hover and separators between rows. Keep header and
-  row padding compact.
+  row padding compact. Keep the Matchday heading consistent with the other page headings rather
+  than giving it separate oversized brand treatment.
 - Derive live match time from Sportmonks periods rather than elapsed wall-clock time.
 - Fixture timelines include the event player relationship so player portraits can accompany events.
 - Fetch fixture odds lazily from the dedicated pre-match endpoint. Its response is a single,
