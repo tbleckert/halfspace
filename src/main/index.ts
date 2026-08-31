@@ -12,6 +12,7 @@ function createWindow(): void {
     autoHideMenuBar: true,
     backgroundColor: '#f5f5f4',
     title: 'Halfspace',
+    ...(process.platform === 'darwin' && { titleBarStyle: 'hiddenInset' as const }),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,

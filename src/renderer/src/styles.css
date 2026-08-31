@@ -4,23 +4,26 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(0.985 0.003 75);
-  --foreground: oklch(0.24 0.018 65);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.24 0.018 65);
-  --primary: oklch(0.47 0.21 260);
+  --brand-yellow: #fcc605;
+  --brand-blue: #024cd1;
+  --brand-navy: #022465;
+  --background: oklch(0.973 0.008 90);
+  --foreground: oklch(0.24 0.045 258);
+  --card: oklch(0.995 0.003 85);
+  --card-foreground: oklch(0.24 0.045 258);
+  --primary: oklch(0.48 0.22 260);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.955 0.008 75);
-  --secondary-foreground: oklch(0.29 0.018 65);
-  --muted: oklch(0.96 0.006 75);
-  --muted-foreground: oklch(0.53 0.018 65);
-  --accent: oklch(0.94 0.035 257);
-  --accent-foreground: oklch(0.3 0.13 260);
+  --secondary: oklch(0.94 0.013 88);
+  --secondary-foreground: oklch(0.29 0.04 258);
+  --muted: oklch(0.945 0.01 88);
+  --muted-foreground: oklch(0.52 0.027 258);
+  --accent: oklch(0.91 0.06 91);
+  --accent-foreground: oklch(0.25 0.095 258);
   --destructive: oklch(0.58 0.22 27);
-  --border: oklch(0.9 0.009 75);
-  --input: oklch(0.9 0.009 75);
+  --border: oklch(0.875 0.015 88);
+  --input: oklch(0.875 0.015 88);
   --ring: oklch(0.54 0.18 260);
-  --radius: 0.65rem;
+  --radius: 0.625rem;
 }
 
 @theme inline {
@@ -40,6 +43,9 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-brand-yellow: var(--brand-yellow);
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-navy: var(--brand-navy);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);

@@ -101,13 +101,13 @@ function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): Re
   }, [currentDate, online, quickCompetitions, timeZone])
 
   return (
-    <div className="grid h-full grid-cols-[14rem_1fr] bg-background">
-      <aside className="flex min-h-0 flex-col border-r bg-card px-3 py-4">
-        <div className="px-3 py-2">
-          <div className="flex items-center gap-2.5">
-            <HalfspaceLogo alt="" className="size-8 rounded-lg" />
-            <div>
-              <p className="font-semibold tracking-tight">Halfspace</p>
+    <div className="relative grid h-full grid-cols-[14.5rem_1fr] bg-background">
+      <aside className="flex min-h-0 flex-col border-r border-white bg-card px-3 py-4 text-foreground">
+        <div className="px-3 pb-2.5 pt-7">
+          <div className="flex items-center gap-3">
+            <HalfspaceLogo alt="" className="size-8 rounded-[0.6rem]" />
+            <div className="min-w-0">
+              <p className="truncate text-[15px] font-bold tracking-[-0.02em]">Halfspace</p>
             </div>
           </div>
         </div>
@@ -119,8 +119,9 @@ function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): Re
               search={{ date: sidebarDate }}
               aria-current={matchdayActive ? 'page' : undefined}
               className={cn(
-                'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
-                matchdayActive && 'bg-accent text-accent-foreground'
+                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground outline-none transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand-blue',
+                matchdayActive &&
+                  'bg-brand-blue/[0.08] font-semibold text-brand-blue hover:bg-brand-blue/[0.1] hover:text-brand-blue'
               )}
               {...intentPrefetchProps(online, () => prefetchFixtureQuery(sidebarDate, timeZone))}
             >
@@ -150,8 +151,8 @@ function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): Re
                         : undefined
                     }
                     className={cn(
-                      'flex items-center gap-2.5 rounded-md px-3 py-1.5 text-[13px] font-medium text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring',
-                      active && 'bg-accent text-accent-foreground'
+                      'relative flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-[13px] font-medium text-muted-foreground outline-none transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand-blue',
+                      active && 'bg-brand-blue/[0.08] text-brand-blue'
                     )}
                     {...intentPrefetchProps(online, () =>
                       prefetchCompetitionWorkspace(competition.id)
@@ -174,20 +175,21 @@ function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): Re
             <SidebarLink icon={<Settings className="size-4" />} label="Settings" to="/settings" />
           </div>
         </nav>
+      </aside>
 
+      <main className="min-h-0 overflow-y-auto bg-background">
+        <Outlet />
+      </main>
+
+      <div className="pointer-events-none absolute right-5 top-2.5 z-20 flex items-center gap-3">
         {rateLimit && <RateLimitNotice rateLimit={rateLimit} />}
-
-        <div className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
           <Circle
-            className={cn('size-2 fill-current', online ? 'text-emerald-600' : 'text-amber-600')}
+            className={cn('size-2 fill-current', online ? 'text-emerald-500' : 'text-amber-500')}
           />
           {online ? 'Online' : 'Offline'}
         </div>
-      </aside>
-
-      <main className="min-h-0 overflow-y-auto">
-        <Outlet />
-      </main>
+      </div>
     </div>
   )
 }
@@ -202,15 +204,14 @@ function RateLimitNotice({ rateLimit }: { rateLimit: SportmonksRateLimit }): Rea
   return (
     <div
       role="status"
-      className="mx-1 mb-1 flex items-start gap-2.5 rounded-md bg-amber-500/10 px-2.5 py-2 text-amber-800 dark:text-amber-300"
+      className="flex items-center gap-1.5 rounded-md bg-amber-400/15 px-2 py-1 text-xs font-medium text-amber-800"
     >
-      <Clock3 className="mt-0.5 size-3.5 shrink-0" />
-      <div className="min-w-0 text-xs">
-        <p className="truncate font-medium">{subject} limit reached</p>
-        <p className="mt-0.5 opacity-75">
-          {rateLimit.estimated ? 'Available within an hour' : `Resets ${resetTime}`}
-        </p>
-      </div>
+      <Clock3 className="size-3.5 shrink-0" />
+      <span>{subject} limit reached</span>
+      <span className="opacity-65">·</span>
+      <span className="opacity-75">
+        {rateLimit.estimated ? 'Available within an hour' : `Resets ${resetTime}`}
+      </span>
     </div>
   )
 }
@@ -230,8 +231,11 @@ function SidebarLink({
     <Link
       to={to}
       activeOptions={{ exact }}
-      className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-      activeProps={{ className: 'bg-accent text-accent-foreground' }}
+      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground outline-none transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand-blue"
+      activeProps={{
+        className:
+          'bg-brand-blue/[0.08] font-semibold text-brand-blue hover:bg-brand-blue/[0.1] hover:text-brand-blue'
+      }}
     >
       {icon}
       {label}

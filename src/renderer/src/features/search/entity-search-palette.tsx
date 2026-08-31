@@ -132,14 +132,14 @@ export function EntitySearchPalette({ online }: { online: boolean }): React.JSX.
       <button
         ref={triggerRef}
         type="button"
-        className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-muted-foreground outline-none transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand-blue"
         onClick={() => setOpen(true)}
       >
         <Search className="size-4" />
         <span>Search</span>
         <kbd
           aria-hidden="true"
-          className="ml-auto rounded border bg-muted px-1.5 py-0.5 font-sans text-[10px] font-medium text-muted-foreground"
+          className="ml-auto rounded border bg-background px-1.5 py-0.5 font-sans text-[10px] font-medium text-muted-foreground"
         >
           ⌘K
         </kbd>

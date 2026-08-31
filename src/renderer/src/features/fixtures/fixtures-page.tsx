@@ -6,9 +6,12 @@ import { prefetchFixtureEntity, useFixtures } from './use-fixtures'
 import { FixtureLiveIndicator } from './fixture-live-indicator'
 import { fixtureRowStatus } from '@/lib/fixture-state'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { CompetitionLogo } from '@/features/competitions/competition-logo'
+import { prefetchCompetitionWorkspace } from '@/features/competitions/use-competition-workspace'
+import { useCompetitions } from '@/features/competitions/use-competitions'
 import { TeamLogo } from '@/features/teams/team-logo'
 import { cn } from '@/lib/utils'
 import { currentTimeZone, formatFixtureTime, todayInTimeZone } from '@/lib/date'
@@ -24,19 +27,28 @@ export function FixturesPage({ date }: FixturesPageProps): React.JSX.Element {
   const timeZone = useMemo(() => currentTimeZone(), [])
   const online = useOnline()
   const { cached, refreshing, error, refresh } = useFixtures(date, timeZone, true)
+  const { cached: competitionCatalog } = useCompetitions(false)
   const groupedFixtures = useMemo(() => groupFixtures(cached?.fixtures ?? []), [cached?.fixtures])
+  const competitionImagePaths = useMemo(
+    () =>
+      new Map(
+        (competitionCatalog?.competitions ?? []).map((competition) => [
+          competition.id,
+          competition.imagePath
+        ])
+      ),
+    [competitionCatalog?.competitions]
+  )
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-7 lg:p-10">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 p-6 lg:p-8">
       <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Matchday</h1>
-        </div>
+        <h1 className="text-4xl font-extrabold tracking-[-0.045em] text-brand-navy">Matchday</h1>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 rounded-lg border bg-card p-0.5 shadow-xs">
           <Input
             aria-label="Fixture date"
-            className="w-40 bg-card"
+            className="w-40 border-0 bg-transparent font-semibold text-brand-navy shadow-none focus-visible:ring-0"
             type="date"
             value={date}
             onChange={(event) => {
@@ -50,7 +62,7 @@ export function FixturesPage({ date }: FixturesPageProps): React.JSX.Element {
             aria-label="Refresh fixtures"
             disabled={refreshing}
             size="icon"
-            variant="outline"
+            variant="ghost"
             onClick={() => void refresh()}
           >
             <RefreshCw className={cn('size-4', refreshing && 'animate-spin')} />
@@ -75,18 +87,33 @@ export function FixturesPage({ date }: FixturesPageProps): React.JSX.Element {
           </CardContent>
         </Card>
       ) : (
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-4">
           {groupedFixtures.map(([league, fixtures]) => (
-            <section key={league} className="overflow-hidden rounded-xl border bg-card shadow-xs">
-              <div className="border-b bg-muted/45 px-4 py-3">
-                <h2 className="text-sm font-semibold">{league}</h2>
-              </div>
+            <Card key={league} className="overflow-hidden border-border/60 shadow-none">
+              <CardHeader className="border-b px-4 py-3">
+                <Link
+                  to="/competitions/$competitionId"
+                  params={{ competitionId: String(fixtures[0].leagueId) }}
+                  search={{ date, season: fixtures[0].seasonId }}
+                  className="flex w-fit items-center gap-2.5 rounded-md outline-none transition-colors hover:text-brand-blue focus-visible:ring-2 focus-visible:ring-brand-blue"
+                  {...intentPrefetchProps(online, () =>
+                    prefetchCompetitionWorkspace(fixtures[0].leagueId)
+                  )}
+                >
+                  <CompetitionLogo
+                    className="size-6 bg-background"
+                    imagePath={competitionImagePaths.get(fixtures[0].leagueId) ?? null}
+                    online={online}
+                  />
+                  <CardTitle>{league}</CardTitle>
+                </Link>
+              </CardHeader>
               <div className="divide-y">
                 {fixtures.map((fixture) => (
                   <FixtureRow key={fixture.id} fixture={fixture} online={online} />
                 ))}
               </div>
-            </section>
+            </Card>
           ))}
         </div>
       )}
@@ -126,31 +153,33 @@ function FixtureRow({
       to="/fixtures/$fixtureId"
       params={{ fixtureId: String(fixture.id) }}
       search={true}
-      className="grid grid-cols-[5rem_minmax(0,1fr)_1.5rem] items-center gap-4 px-4 py-3.5 transition-colors hover:bg-muted/45"
+      className="grid grid-cols-[4rem_minmax(0,1fr)_2rem] items-center gap-4 px-4 py-3 outline-none transition-colors hover:bg-brand-blue/[0.08] focus-visible:bg-brand-blue/[0.08]"
       {...intentPrefetchProps(online, () => prefetchFixtureEntity(fixture.id))}
     >
       <FixtureRowStatus fixture={fixture} />
       <div className="grid min-w-0 gap-1.5">
-        <div className="flex min-w-0 items-center gap-2.5">
+        <div className="flex min-w-0 items-center gap-2">
           <TeamLogo
-            className="size-7 bg-background"
+            className="size-6 bg-background"
             imagePath={home?.image_path ?? null}
             online={online}
           />
-          <p className="truncate text-sm font-medium">
+          <p className="truncate text-sm font-semibold text-foreground">
             {home?.name ?? fixture.name ?? 'Home team'}
           </p>
         </div>
-        <div className="flex min-w-0 items-center gap-2.5">
+        <div className="flex min-w-0 items-center gap-2">
           <TeamLogo
-            className="size-7 bg-background"
+            className="size-6 bg-background"
             imagePath={away?.image_path ?? null}
             online={online}
           />
-          <p className="truncate text-sm text-muted-foreground">{away?.name ?? 'Away team'}</p>
+          <p className="truncate text-sm font-medium text-foreground/75">
+            {away?.name ?? 'Away team'}
+          </p>
         </div>
       </div>
-      <div className="grid grid-rows-2 gap-0.5 text-right text-sm font-semibold tabular-nums">
+      <div className="grid grid-rows-2 gap-0.5 text-right text-base font-extrabold tabular-nums text-brand-navy">
         {hasScore && (
           <>
             <span>{homeScore ?? '–'}</span>
@@ -176,14 +205,14 @@ function FixtureRowStatus({ fixture }: { fixture: CachedFixture }): React.JSX.El
 
   if (status.kind === 'state') {
     return (
-      <span className="text-center text-sm font-medium tabular-nums text-muted-foreground">
+      <span className="text-center text-xs font-bold tracking-[0.08em] tabular-nums text-muted-foreground">
         {status.label}
       </span>
     )
   }
 
   return (
-    <time className="text-center text-sm font-medium tabular-nums text-muted-foreground">
+    <time className="text-center text-sm font-semibold tabular-nums text-brand-navy/70">
       {formatFixtureTime(fixture.startingAt)}
     </time>
   )
@@ -193,13 +222,16 @@ function FixtureListSkeleton(): React.JSX.Element {
   return (
     <div className="space-y-5">
       {[0, 1].map((section) => (
-        <div key={section} className="overflow-hidden rounded-xl border bg-card">
-          <div className="border-b p-4">
-            <Skeleton className="h-4 w-36" />
-          </div>
-          <div className="space-y-4 p-4">
+        <Card key={section} className="overflow-hidden border-border/60 shadow-none">
+          <CardHeader className="border-b px-4 py-3">
+            <div className="flex items-center gap-2.5">
+              <Skeleton className="size-6 rounded-md" />
+              <Skeleton className="h-4 w-36" />
+            </div>
+          </CardHeader>
+          <div className="divide-y">
             {[0, 1, 2].map((row) => (
-              <div key={row} className="flex items-center gap-5">
+              <div key={row} className="flex items-center gap-4 px-4 py-3">
                 <Skeleton className="h-4 w-14" />
                 <div className="flex-1 space-y-2">
                   <Skeleton className="h-4 w-40" />
@@ -208,7 +240,7 @@ function FixtureListSkeleton(): React.JSX.Element {
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       ))}
     </div>
   )

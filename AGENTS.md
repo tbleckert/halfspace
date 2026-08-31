@@ -14,6 +14,16 @@ abstractions.
 
 - Keep the brand identity vibrant and energetic. Avoid restrained heritage-sports palettes that
   can make the product feel like an American football brand.
+- Treat shadcn/ui as a component foundation, not as Halfspace's visual identity. Build an
+  editorial football-workbench language through typography, spacing, match presentation, and
+  graphic details derived from the logo. Keep data surfaces calm and concentrate vibrant brand
+  color in navigation, section framing, and meaningful state.
+- Keep the application shell quiet. The sidebar is only slightly lighter than the content canvas,
+  with a subtle white boundary; use muted active-item backgrounds and brand blue for active text
+  instead of large areas of solid brand color.
+- Use shadcn/ui's Nova style (`b0`) as the density reference: compact 32px default controls,
+  restrained radii, and tighter page and card spacing. Preserve Halfspace's own palette and
+  football-specific presentation rather than applying a preset as a wholesale visual reset.
 - Use `resources/halfspace-logo.svg` as the canonical brand mark. Preserve its flat yellow, blue,
   navy, and white geometry and its legibility down to 16px.
 - Required setup states use a focused fullscreen flow before the main app appears.
@@ -50,10 +60,10 @@ abstractions.
 - Sportmonks fixture detail owns events, statistics, and lineups; fixture list refreshes must
   preserve that richer cached detail. Fetch and cache the much larger odds payload only when the
   Odds view opens.
-- Keep provider rate limits distinct from connectivity. Show a persistent compact status beside
-  Online in the sidebar, retain cached data, and remove the status automatically when the limit
-  resets. Use Sportmonks' exact reset time when supplied; otherwise say it will be available within
-  an hour rather than inventing a timestamp.
+- Keep provider rate limits distinct from connectivity. Show connectivity persistently in the
+  upper-right app chrome and place a compact rate-limit status beside it, retain cached data, and
+  remove the status automatically when the limit resets. Use Sportmonks' exact reset time when
+  supplied; otherwise say it will be available within an hour rather than inventing a timestamp.
 - Treat Sportmonks states 2, 6, 9, and 22 as live. Show a reduced-motion-safe live indicator and
   refresh live fixture data every 30 seconds.
 - Present squads as position-grouped player profile cards with rounded portraits and only essential
@@ -63,6 +73,11 @@ abstractions.
 - Matchday fixture rows use one centered status column: a short terminal state such as FT, a green
   live ping beside the match minute or phase, or the scheduled kickoff time. Do not repeat the
   state in a separate badge. The fixture hero may pair its live ping with a visible status label.
+- Matchday competition groups use the shared `Card`, `CardHeader`, and `CardTitle` hierarchy. Keep
+  headers on the normal card surface rather than filling them with solid brand color. Use a muted
+  outer border and header divider, and link each competition name together with its logo. Use the
+  sidebar active-item background for fixture-row hover and separators between rows. Keep header and
+  row padding compact.
 - Derive live match time from Sportmonks periods rather than elapsed wall-clock time.
 - Fixture timelines include the event player relationship so player portraits can accompany events.
 - Fetch fixture odds lazily from the dedicated pre-match endpoint. Its response is a single,
