@@ -1,11 +1,17 @@
-import type { SportmonksSeasonStatistic, SportmonksTeamStatistic } from '@shared/contracts'
+import type {
+  SportmonksPlayerStatistic,
+  SportmonksSeasonStatistic,
+  SportmonksTeamStatistic
+} from '@shared/contracts'
 import { BarChart3 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   leagueStatisticsSummary,
+  playerStatisticsSummary,
   teamStatisticsSummary,
   type LeagueStatisticsSummary,
+  type PlayerStatisticsSummary,
   type TeamStatisticsSummary
 } from './statistics-data'
 
@@ -109,6 +115,100 @@ export function TeamStatisticsView({
         />
       </div>
     </section>
+  )
+}
+
+export function PlayerStatisticsView({
+  context,
+  loaded,
+  loading,
+  statistics,
+  teamId
+}: {
+  context: string | null
+  loaded: boolean
+  loading: boolean
+  statistics: SportmonksPlayerStatistic[]
+  teamId?: number
+}): React.JSX.Element {
+  if (!loaded || (loading && statistics.length === 0)) return <StatisticsSkeleton />
+
+  const teamStatistics = teamId
+    ? statistics.filter((statistic) => statistic.team_id === teamId)
+    : statistics
+  const summary = playerStatisticsSummary(teamStatistics.flatMap((statistic) => statistic.details))
+
+  if (!hasValues(summary)) return <StatisticsEmpty />
+
+  return (
+    <section className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-xl font-semibold tracking-tight">Stats</h2>
+        {context && <p className="text-sm text-muted-foreground">{context}</p>}
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatisticCard label="Appearances" value={formatNumber(summary.appearances)} />
+        <StatisticCard label="Starts" value={formatNumber(summary.starts)} />
+        <StatisticCard label="Minutes" value={formatNumber(summary.minutes)} />
+        <StatisticCard label="Rating" value={formatDecimal(summary.rating)} />
+      </div>
+      <div className="grid items-start gap-5 lg:grid-cols-2">
+        <PlayerAttacking summary={summary} />
+        <StatisticList
+          title="Passing"
+          rows={[
+            { label: 'Passes', value: formatNumber(summary.passes) },
+            { label: 'Accurate passes', value: formatNumber(summary.accuratePasses) },
+            {
+              label: 'Pass accuracy',
+              value:
+                summary.passAccuracy === null ? null : `${formatDecimal(summary.passAccuracy)}%`
+            },
+            { label: 'Key passes', value: formatNumber(summary.keyPasses) }
+          ]}
+        />
+        <StatisticList
+          title="Defending"
+          rows={[
+            { label: 'Tackles', value: formatNumber(summary.tackles) },
+            { label: 'Interceptions', value: formatNumber(summary.interceptions) },
+            { label: 'Clearances', value: formatNumber(summary.clearances) },
+            { label: 'Duels won', value: formatNumber(summary.duelsWon) }
+          ]}
+        />
+        <StatisticList
+          title="Discipline"
+          rows={[
+            { label: 'Fouls', value: formatNumber(summary.fouls) },
+            { label: 'Yellow cards', value: formatNumber(summary.yellowCards) },
+            { label: 'Red cards', value: formatNumber(summary.redCards) }
+          ]}
+        />
+        <StatisticList
+          title="Goalkeeping"
+          rows={[
+            { label: 'Saves', value: formatNumber(summary.saves) },
+            { label: 'Goals conceded', value: formatNumber(summary.goalsConceded) },
+            { label: 'Clean sheets', value: formatNumber(summary.cleanSheets) }
+          ]}
+        />
+      </div>
+    </section>
+  )
+}
+
+function PlayerAttacking({ summary }: { summary: PlayerStatisticsSummary }): React.JSX.Element {
+  return (
+    <StatisticList
+      title="Attacking"
+      rows={[
+        { label: 'Goals', value: formatNumber(summary.goals) },
+        { label: 'Assists', value: formatNumber(summary.assists) },
+        { label: 'Shots', value: formatNumber(summary.shots) },
+        { label: 'Shots on target', value: formatNumber(summary.shotsOnTarget) },
+        { label: 'Expected goals', value: formatDecimal(summary.expectedGoals) }
+      ]}
+    />
   )
 }
 

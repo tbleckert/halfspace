@@ -9,6 +9,7 @@ import type {
   FixtureRefresh,
   PlayerAppearancesRefresh,
   PlayerRefresh,
+  PlayerStatisticsRefresh,
   RefreshCompetitionFixturesInput,
   RefreshCompetitionSeasonsInput,
   RefreshFixtureHeadToHeadInput,
@@ -16,6 +17,7 @@ import type {
   RefreshFixturesInput,
   RefreshPlayerAppearancesInput,
   RefreshPlayerInput,
+  RefreshPlayerStatisticsInput,
   RefreshSeasonStatisticsInput,
   RefreshStandingsInput,
   RefreshTeamFixturesInput,
@@ -29,6 +31,7 @@ import type {
   SportmonksFixture,
   SportmonksOdd,
   SportmonksPlayer,
+  SportmonksPlayerStatistic,
   SportmonksRateLimit,
   SportmonksSeason,
   SportmonksSeasonStatistic,
@@ -48,6 +51,10 @@ const apiBaseUrl = 'https://api.sportmonks.com/v3/football'
 const maximumPages = 100
 const seasonStatisticTypeIds = [188, 189, 190, 191, 192, 193, 194]
 const teamStatisticTypeIds = [34, 45, 52, 83, 84, 88, 188, 191, 194, 214, 215, 216, 1677, 27263]
+const playerStatisticTypeIds = [
+  42, 52, 56, 57, 78, 79, 80, 83, 84, 85, 86, 88, 100, 101, 106, 116, 117, 118, 119, 194, 321, 322,
+  5304
+]
 
 const countrySchema = z
   .object({
@@ -549,6 +556,50 @@ const teamStatisticsResponseSchema = z
   })
   .passthrough()
 
+const playerStatisticDetailSchema = z
+  .object({
+    id: z.number().int(),
+    player_statistic_id: z.number().int(),
+    type_id: z.number().int(),
+    value: z.unknown()
+  })
+  .passthrough()
+
+const playerStatisticsResponseSchema = z
+  .object({
+    data: z
+      .object({
+        id: z.number().int(),
+        statistics: z
+          .array(
+            z
+              .object({
+                id: z.number().int(),
+                player_id: z.number().int(),
+                team_id: z.number().int(),
+                season_id: z.number().int(),
+                has_values: z.union([z.boolean(), z.literal(0), z.literal(1)]).transform(Boolean),
+                position_id: z.number().int().nullable().optional().default(null),
+                jersey_number: z.number().int().nullable().optional().default(null),
+                details: z.array(playerStatisticDetailSchema).optional().default([])
+              })
+              .passthrough()
+          )
+          .optional()
+          .default([])
+      })
+      .passthrough(),
+    rate_limit: z
+      .object({
+        remaining: z.number(),
+        resets_in_seconds: z.number()
+      })
+      .passthrough()
+      .optional(),
+    message: z.string().optional()
+  })
+  .passthrough()
+
 const competitionResponseSchema = z
   .object({
     data: z.array(competitionSchema),
@@ -814,6 +865,20 @@ export function validatePlayerInput(value: unknown): RefreshPlayerInput {
   return { playerId }
 }
 
+export function validatePlayerStatisticsInput(value: unknown): RefreshPlayerStatisticsInput {
+  const input = value && typeof value === 'object' ? (value as Record<string, unknown>) : {}
+
+  if (!isPositiveId(input.playerId)) {
+    throw new SportmonksError('invalid_input', 'Choose a valid player.')
+  }
+
+  if (!isPositiveId(input.seasonId)) {
+    throw new SportmonksError('invalid_input', 'Choose a valid season.')
+  }
+
+  return { playerId: input.playerId, seasonId: input.seasonId }
+}
+
 export function validateEntitySearchInput(value: unknown): EntitySearchInput {
   const query =
     value && typeof value === 'object' ? (value as { query?: unknown }).query : undefined
@@ -1044,6 +1109,56 @@ export async function fetchPlayerAppearances(
     timeZone: refresh.timeZone,
     rateLimit: refresh.rateLimit,
     message: refresh.message
+  }
+}
+
+export async function fetchPlayerStatistics(
+  input: RefreshPlayerStatisticsInput,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<PlayerStatisticsRefresh> {
+  const fetchedAt = Date.now()
+  const url = new URL(`${apiBaseUrl}/players/${input.playerId}`)
+  url.searchParams.set('include', 'statistics.details')
+  url.searchParams.set(
+    'filters',
+    `playerStatisticSeasons:${input.seasonId};playerStatisticDetailTypes:${playerStatisticTypeIds.join(',')}`
+  )
+
+  let response: Response
+
+  try {
+    response = await fetcher(url, {
+      headers: {
+        Accept: 'application/json',
+        Authorization: token
+      },
+      signal: AbortSignal.timeout(20_000)
+    })
+  } catch {
+    throw new SportmonksError('network', 'Could not reach Sportmonks.')
+  }
+
+  if (!response.ok) throw await errorForResponse(response)
+
+  let parsed: z.infer<typeof playerStatisticsResponseSchema>
+
+  try {
+    parsed = playerStatisticsResponseSchema.parse(await response.json())
+  } catch {
+    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
+  }
+
+  return {
+    statistics: parsed.data.statistics as SportmonksPlayerStatistic[],
+    fetchedAt,
+    rateLimit: parsed.rate_limit
+      ? {
+          remaining: parsed.rate_limit.remaining,
+          resetsAt: fetchedAt + parsed.rate_limit.resets_in_seconds * 1000
+        }
+      : undefined,
+    message: parsed.message
   }
 }
 

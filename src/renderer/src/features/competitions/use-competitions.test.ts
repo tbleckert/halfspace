@@ -49,6 +49,7 @@ describe('competition refresh', () => {
         refreshVenue: vi.fn(),
         refreshPlayer: vi.fn(),
         refreshPlayerAppearances: vi.fn(),
+        refreshPlayerStatistics: vi.fn(),
         getRateLimit: vi.fn(),
         onRateLimitChange: vi.fn(() => vi.fn()),
         searchEntities: vi.fn()

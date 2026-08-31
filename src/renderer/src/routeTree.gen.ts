@@ -25,6 +25,7 @@ import { Route as FixturesFixtureIdOddsRouteImport } from './routes/fixtures.$fi
 import { Route as FixturesFixtureIdStatsRouteImport } from './routes/fixtures.$fixtureId.stats'
 import { Route as FixturesFixtureIdTimelineRouteImport } from './routes/fixtures.$fixtureId.timeline'
 import { Route as PlayersPlayerIdMatchesRouteImport } from './routes/players_.$playerId.matches'
+import { Route as PlayersPlayerIdStatsRouteImport } from './routes/players_.$playerId.stats'
 import { Route as TeamsTeamIdFixturesRouteImport } from './routes/teams_.$teamId.fixtures'
 import { Route as TeamsTeamIdSquadRouteImport } from './routes/teams_.$teamId.squad'
 import { Route as TeamsTeamIdStatsRouteImport } from './routes/teams_.$teamId.stats'
@@ -115,6 +116,11 @@ const PlayersPlayerIdMatchesRoute = PlayersPlayerIdMatchesRouteImport.update({
   path: '/matches',
   getParentRoute: () => PlayersPlayerIdRoute,
 } as any)
+const PlayersPlayerIdStatsRoute = PlayersPlayerIdStatsRouteImport.update({
+  id: '/stats',
+  path: '/stats',
+  getParentRoute: () => PlayersPlayerIdRoute,
+} as any)
 const TeamsTeamIdFixturesRoute = TeamsTeamIdFixturesRouteImport.update({
   id: '/fixtures',
   path: '/fixtures',
@@ -148,6 +154,7 @@ export interface FileRoutesByFullPath {
   '/fixtures/$fixtureId/stats': typeof FixturesFixtureIdStatsRoute
   '/fixtures/$fixtureId/timeline': typeof FixturesFixtureIdTimelineRoute
   '/players/$playerId/matches': typeof PlayersPlayerIdMatchesRoute
+  '/players/$playerId/stats': typeof PlayersPlayerIdStatsRoute
   '/teams/$teamId/fixtures': typeof TeamsTeamIdFixturesRoute
   '/teams/$teamId/squad': typeof TeamsTeamIdSquadRoute
   '/teams/$teamId/stats': typeof TeamsTeamIdStatsRoute
@@ -169,6 +176,7 @@ export interface FileRoutesByTo {
   '/fixtures/$fixtureId/stats': typeof FixturesFixtureIdStatsRoute
   '/fixtures/$fixtureId/timeline': typeof FixturesFixtureIdTimelineRoute
   '/players/$playerId/matches': typeof PlayersPlayerIdMatchesRoute
+  '/players/$playerId/stats': typeof PlayersPlayerIdStatsRoute
   '/teams/$teamId/fixtures': typeof TeamsTeamIdFixturesRoute
   '/teams/$teamId/squad': typeof TeamsTeamIdSquadRoute
   '/teams/$teamId/stats': typeof TeamsTeamIdStatsRoute
@@ -191,6 +199,7 @@ export interface FileRoutesById {
   '/fixtures/$fixtureId/stats': typeof FixturesFixtureIdStatsRoute
   '/fixtures/$fixtureId/timeline': typeof FixturesFixtureIdTimelineRoute
   '/players_/$playerId/matches': typeof PlayersPlayerIdMatchesRoute
+  '/players_/$playerId/stats': typeof PlayersPlayerIdStatsRoute
   '/teams_/$teamId/fixtures': typeof TeamsTeamIdFixturesRoute
   '/teams_/$teamId/squad': typeof TeamsTeamIdSquadRoute
   '/teams_/$teamId/stats': typeof TeamsTeamIdStatsRoute
@@ -214,6 +223,7 @@ export interface FileRouteTypes {
     | '/fixtures/$fixtureId/stats'
     | '/fixtures/$fixtureId/timeline'
     | '/players/$playerId/matches'
+    | '/players/$playerId/stats'
     | '/teams/$teamId/fixtures'
     | '/teams/$teamId/squad'
     | '/teams/$teamId/stats'
@@ -235,6 +245,7 @@ export interface FileRouteTypes {
     | '/fixtures/$fixtureId/stats'
     | '/fixtures/$fixtureId/timeline'
     | '/players/$playerId/matches'
+    | '/players/$playerId/stats'
     | '/teams/$teamId/fixtures'
     | '/teams/$teamId/squad'
     | '/teams/$teamId/stats'
@@ -256,6 +267,7 @@ export interface FileRouteTypes {
     | '/fixtures/$fixtureId/stats'
     | '/fixtures/$fixtureId/timeline'
     | '/players_/$playerId/matches'
+    | '/players_/$playerId/stats'
     | '/teams_/$teamId/fixtures'
     | '/teams_/$teamId/squad'
     | '/teams_/$teamId/stats'
@@ -386,6 +398,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlayersPlayerIdMatchesRouteImport
       parentRoute: typeof PlayersPlayerIdRoute
     }
+    '/players_/$playerId/stats': {
+      id: '/players_/$playerId/stats'
+      path: '/stats'
+      fullPath: '/players/$playerId/stats'
+      preLoaderRoute: typeof PlayersPlayerIdStatsRouteImport
+      parentRoute: typeof PlayersPlayerIdRoute
+    }
     '/teams_/$teamId/fixtures': {
       id: '/teams_/$teamId/fixtures'
       path: '/fixtures'
@@ -448,10 +467,12 @@ const FixturesFixtureIdRouteWithChildren =
 
 interface PlayersPlayerIdRouteChildren {
   PlayersPlayerIdMatchesRoute: typeof PlayersPlayerIdMatchesRoute
+  PlayersPlayerIdStatsRoute: typeof PlayersPlayerIdStatsRoute
 }
 
 const PlayersPlayerIdRouteChildren: PlayersPlayerIdRouteChildren = {
   PlayersPlayerIdMatchesRoute: PlayersPlayerIdMatchesRoute,
+  PlayersPlayerIdStatsRoute: PlayersPlayerIdStatsRoute,
 }
 
 const PlayersPlayerIdRouteWithChildren = PlayersPlayerIdRoute._addFileChildren(

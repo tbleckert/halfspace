@@ -11,6 +11,7 @@ import {
   fetchFixturesByDate,
   fetchPlayerAppearances,
   fetchPlayerById,
+  fetchPlayerStatistics,
   fetchSeasonStatistics,
   fetchStandingsBySeason,
   fetchTeamById,
@@ -26,6 +27,7 @@ import {
   validateRefreshInput,
   validatePlayerAppearancesInput,
   validatePlayerInput,
+  validatePlayerStatisticsInput,
   validateSeasonStatisticsInput,
   validateStandingsInput,
   validateTeamFixturesInput,
@@ -725,6 +727,61 @@ describe('Sportmonks client', () => {
     expect(url.searchParams.get('include')).toBe('nationality;position;detailedPosition')
     expect(url.searchParams.has('api_token')).toBe(false)
     expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')
+  })
+
+  it('fetches player statistics for one season', async () => {
+    const fetcher = vi.fn<typeof fetch>(async () =>
+      Response.json({
+        data: {
+          id: 6306068,
+          statistics: [
+            {
+              id: 501,
+              player_id: 6306068,
+              team_id: 62,
+              season_id: 23614,
+              has_values: true,
+              position_id: 26,
+              jersey_number: 8,
+              details: [
+                {
+                  id: 801,
+                  player_statistic_id: 501,
+                  type_id: 52,
+                  value: { total: 9 }
+                }
+              ]
+            }
+          ]
+        },
+        rate_limit: { remaining: 2_991, resets_in_seconds: 3_600 }
+      })
+    )
+
+    const refresh = await fetchPlayerStatistics(
+      { playerId: 6306068, seasonId: 23614 },
+      'private-token',
+      fetcher
+    )
+
+    expect(refresh.statistics[0].details[0].value).toEqual({ total: 9 })
+    const [input, init] = fetcher.mock.calls[0]
+    const url = new URL(input.toString())
+    expect(url.pathname).toBe('/v3/football/players/6306068')
+    expect(url.searchParams.get('include')).toBe('statistics.details')
+    expect(url.searchParams.get('filters')).toContain('playerStatisticSeasons:23614')
+    expect(url.searchParams.get('filters')).toContain('playerStatisticDetailTypes:')
+    expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')
+  })
+
+  it('validates season and player statistics identifiers', () => {
+    expect(validatePlayerStatisticsInput({ playerId: 6306068, seasonId: 23614 })).toEqual({
+      playerId: 6306068,
+      seasonId: 23614
+    })
+    expect(() => validatePlayerStatisticsInput({ playerId: 6306068, seasonId: 0 })).toThrow(
+      'Choose a valid season.'
+    )
   })
 
   it('returns recent appearances only when the player is in a confirmed lineup', async () => {

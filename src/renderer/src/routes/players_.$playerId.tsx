@@ -20,12 +20,18 @@ function PlayerRoute(): React.JSX.Element {
   const { competition, date, season, team } = Route.useSearch()
   const matchRoute = useMatchRoute()
   const view = matchRoute({
-    to: '/players/$playerId/matches',
+    to: '/players/$playerId/stats',
     params: { playerId },
     fuzzy: false
   })
-    ? 'matches'
-    : 'overview'
+    ? 'stats'
+    : matchRoute({
+          to: '/players/$playerId/matches',
+          params: { playerId },
+          fuzzy: false
+        })
+      ? 'matches'
+      : 'overview'
 
   return (
     <>

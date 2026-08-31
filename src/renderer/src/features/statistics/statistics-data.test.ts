@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import type { SportmonksSeasonStatistic, SportmonksTeamStatistic } from '@shared/contracts'
-import { leagueStatisticsSummary, teamStatisticsSummary } from './statistics-data'
+import type {
+  SportmonksPlayerStatisticDetail,
+  SportmonksSeasonStatistic,
+  SportmonksTeamStatistic
+} from '@shared/contracts'
+import {
+  leagueStatisticsSummary,
+  playerStatisticsSummary,
+  teamStatisticsSummary
+} from './statistics-data'
 
 describe('statistics summaries', () => {
   it('turns season statistics into a compact league summary', () => {
@@ -66,6 +74,44 @@ describe('statistics summaries', () => {
       yellowCards: 31
     })
   })
+
+  it('turns player statistic details into a season summary', () => {
+    const summary = playerStatisticsSummary([
+      playerStatistic(321, { total: 24 }),
+      playerStatistic(322, { total: 20 }),
+      playerStatistic(119, { total: 1_842 }),
+      playerStatistic(118, { average: 7.31 }),
+      playerStatistic(52, { total: 9 }),
+      playerStatistic(79, { total: 6 }),
+      playerStatistic(42, { total: 48 }),
+      playerStatistic(86, { total: 21 }),
+      playerStatistic(5304, { total: 8.7 }),
+      playerStatistic(80, { total: 1_204 }),
+      playerStatistic(116, { total: 1_031 }),
+      playerStatistic(1584, { percentage: 85.6 }),
+      playerStatistic(117, { total: 31 }),
+      playerStatistic(78, { total: 42 }),
+      playerStatistic(100, { total: 27 }),
+      playerStatistic(101, { total: 18 }),
+      playerStatistic(106, { total: 109 }),
+      playerStatistic(56, { total: 22 }),
+      playerStatistic(84, { total: 5 }),
+      playerStatistic(83, { total: 1 }),
+      playerStatistic(85, { total: 1 })
+    ])
+
+    expect(summary).toMatchObject({
+      appearances: 24,
+      assists: 6,
+      expectedGoals: 8.7,
+      goals: 9,
+      minutes: 1_842,
+      passAccuracy: 85.6,
+      rating: 7.31,
+      redCards: 2,
+      starts: 20
+    })
+  })
 })
 
 function seasonStatistic(typeId: number, value: unknown): SportmonksSeasonStatistic {
@@ -74,4 +120,8 @@ function seasonStatistic(typeId: number, value: unknown): SportmonksSeasonStatis
 
 function teamStatistic(typeId: number, value: unknown): SportmonksTeamStatistic {
   return { id: typeId, team_statistic_id: 501, type_id: typeId, value }
+}
+
+function playerStatistic(typeId: number, value: unknown): SportmonksPlayerStatisticDetail {
+  return { id: typeId, player_statistic_id: 501, type_id: typeId, value }
 }

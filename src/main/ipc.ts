@@ -13,6 +13,7 @@ import {
   fetchFixturesByDate,
   fetchPlayerAppearances,
   fetchPlayerById,
+  fetchPlayerStatistics,
   fetchSeasonStatistics,
   fetchStandingsBySeason,
   fetchTeamById,
@@ -28,6 +29,7 @@ import {
   validateFixtureHeadToHeadInput,
   validatePlayerAppearancesInput,
   validatePlayerInput,
+  validatePlayerStatisticsInput,
   validateRefreshInput,
   validateSeasonStatisticsInput,
   validateStandingsInput,
@@ -176,6 +178,12 @@ export function registerIpcHandlers(): void {
     validatePlayerAppearancesInput,
     fetchPlayerAppearances,
     'Could not refresh player appearances.'
+  )
+  registerSportmonksHandler(
+    ipcChannels.refreshPlayerStatistics,
+    validatePlayerStatisticsInput,
+    fetchPlayerStatistics,
+    'Could not refresh player statistics.'
   )
   registerSportmonksHandler(
     ipcChannels.searchEntities,

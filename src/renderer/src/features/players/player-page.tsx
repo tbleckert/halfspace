@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
+import { useLiveQuery } from 'dexie-react-hooks'
 import {
   ArrowLeft,
   CalendarDays,
@@ -18,8 +19,9 @@ import { buttonVariants } from '@/components/ui/button-variants'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { CachedTeam, PlayerAppearanceRecord } from '@/data/db'
+import { db, type CachedTeam, type PlayerAppearanceRecord } from '@/data/db'
 import { prefetchFixtureEntity } from '@/features/fixtures/use-fixtures'
+import { PlayerStatisticsView } from '@/features/statistics/statistics-views'
 import { TeamLogo } from '@/features/teams/team-logo'
 import { prefetchTeamEntity, prefetchTeamSquad } from '@/features/teams/use-team'
 import { addDaysToIsoDate, currentTimeZone, todayInTimeZone } from '@/lib/date'
@@ -31,11 +33,13 @@ import { PlayerPhoto } from './player-photo'
 import {
   prefetchPlayerAppearances,
   prefetchPlayerEntity,
+  prefetchPlayerStatistics,
   usePlayerAppearances,
-  usePlayerEntity
+  usePlayerEntity,
+  usePlayerStatistics
 } from './use-player'
 
-type PlayerView = 'matches' | 'overview'
+type PlayerView = 'matches' | 'overview' | 'stats'
 
 const playerMatchWindowDays = 90
 
@@ -76,13 +80,60 @@ export function PlayerPage({
         : null,
     [currentTeamId, matchWindowEnd, parsedPlayerId, timeZone, validPlayerId]
   )
-  const appearances = usePlayerAppearances(appearanceInput, online)
+  const appearances = usePlayerAppearances(appearanceInput, online && (view !== 'stats' || !season))
+  const competitionContext = useLiveQuery(async () => {
+    if (!competitionId) return { competition: null, seasons: [] }
+
+    const [competition, seasonQuery] = await Promise.all([
+      db.competitions.get(competitionId),
+      db.competitionSeasonQueries.get(competitionId)
+    ])
+
+    return {
+      competition: competition ?? null,
+      seasons: seasonQuery?.seasons ?? []
+    }
+  }, [competitionId])
+  const observedSeasonId = useMemo(() => {
+    const target = new Date(`${matchWindowEnd}T12:00:00Z`).getTime()
+    return (
+      (appearances.cached?.appearances ?? [])
+        .filter(({ fixture }) => fixture.startingAt !== null)
+        .toSorted(
+          (left, right) =>
+            Math.abs((left.fixture.startingAt ?? target) - target) -
+            Math.abs((right.fixture.startingAt ?? target) - target)
+        )[0]?.fixture.seasonId ?? null
+    )
+  }, [appearances.cached?.appearances, matchWindowEnd])
+  const statisticsSeasonId =
+    season ?? observedSeasonId ?? competitionContext?.competition?.currentSeasonId ?? null
+  const statisticsInput = useMemo(
+    () =>
+      validPlayerId && statisticsSeasonId
+        ? { playerId: parsedPlayerId, seasonId: statisticsSeasonId }
+        : null,
+    [parsedPlayerId, statisticsSeasonId, validPlayerId]
+  )
+  const statistics = usePlayerStatistics(statisticsInput, online && view === 'stats')
   const identity = player.cached?.player?.raw
   const currentTeam = player.cached?.teams.find(({ id }) => id === currentTeamId)
-  const refreshing = player.refreshing || appearances.refreshing
-  const errors = [player.error, appearances.error].filter((error): error is string =>
-    Boolean(error)
-  )
+  const statisticsSeasonName =
+    competitionContext?.seasons.find(({ id }) => id === statisticsSeasonId)?.name ??
+    (competitionContext?.competition?.currentSeasonId === statisticsSeasonId
+      ? competitionContext.competition.currentSeasonName
+      : null)
+  const statisticsContext = [currentTeam?.name, statisticsSeasonName].filter(Boolean).join(' · ')
+  const refreshing =
+    player.refreshing ||
+    (view === 'stats'
+      ? statistics.refreshing || (statisticsInput === null && appearances.refreshing)
+      : appearances.refreshing)
+  const playerDataError =
+    view === 'stats'
+      ? (statistics.error ?? (statisticsInput === null ? appearances.error : null))
+      : appearances.error
+  const errors = [player.error, playerDataError].filter((error): error is string => Boolean(error))
 
   if (!validPlayerId) return <MissingPlayer />
   if (player.cached === undefined || (!identity && online && !player.error)) {
@@ -97,7 +148,10 @@ export function PlayerPage({
   }
 
   async function refresh(): Promise<void> {
-    await Promise.all([player.refresh(), appearances.refresh()])
+    await Promise.all([
+      player.refresh(),
+      view === 'stats' && statisticsInput ? statistics.refresh() : appearances.refresh()
+    ])
   }
 
   return (
@@ -149,6 +203,7 @@ export function PlayerPage({
           online={online}
           playerId={parsedPlayerId}
           season={season}
+          statisticsInput={statisticsInput}
           teamId={currentTeamId ?? undefined}
           view={view}
         />
@@ -193,6 +248,20 @@ export function PlayerPage({
           season={season}
           teamId={currentTeamId ?? undefined}
           timeZone={timeZone}
+        />
+      )}
+
+      {view === 'stats' && (
+        <PlayerStatisticsView
+          context={statisticsContext || null}
+          loaded={
+            statisticsInput
+              ? statistics.cached !== undefined
+              : appearances.cached !== undefined && competitionContext !== undefined
+          }
+          loading={statistics.refreshing}
+          statistics={statistics.cached?.statistics ?? []}
+          teamId={currentTeamId ?? undefined}
         />
       )}
     </div>
@@ -290,6 +359,7 @@ function PlayerNavigation({
   online,
   playerId,
   season,
+  statisticsInput,
   teamId,
   view
 }: {
@@ -299,6 +369,7 @@ function PlayerNavigation({
   online: boolean
   playerId: number
   season?: number
+  statisticsInput: Parameters<typeof prefetchPlayerStatistics>[0] | null
   teamId?: number
   view: PlayerView
 }): React.JSX.Element {
@@ -327,6 +398,18 @@ function PlayerNavigation({
         )}
       >
         Matches
+      </Link>
+      <Link
+        aria-current={view === 'stats' ? 'page' : undefined}
+        to="/players/$playerId/stats"
+        params={{ playerId: String(playerId) }}
+        search={search}
+        className={entitySubpageNavigationItemClassName(view === 'stats')}
+        {...intentPrefetchProps(online && statisticsInput !== null, () =>
+          statisticsInput ? prefetchPlayerStatistics(statisticsInput) : Promise.resolve()
+        )}
+      >
+        Stats
       </Link>
     </EntitySubpageNavigation>
   )

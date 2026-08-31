@@ -8,9 +8,10 @@ import type {
   FixtureRefresh,
   PlayerAppearancesRefresh,
   PlayerRefresh,
-  RefreshPlayerAppearancesInput,
+  PlayerStatisticsRefresh,
   RefreshCompetitionFixturesInput,
   RefreshFixtureHeadToHeadInput,
+  RefreshPlayerAppearancesInput,
   RefreshTeamFixturesInput,
   SeasonStatisticsRefresh,
   StandingsRefresh,
@@ -31,6 +32,7 @@ import {
   readFixtureHeadToHead,
   readPlayerAppearanceQuery,
   readPlayerIdentity,
+  readPlayerStatistics,
   readSeasonStatistics,
   readStandingsQuery,
   readTeamFixtureQuery,
@@ -50,6 +52,7 @@ import {
   writeFixtureRefresh,
   writePlayerAppearancesRefresh,
   writePlayerRefresh,
+  writePlayerStatisticsRefresh,
   writeSeasonStatisticsRefresh,
   writeStandingsRefresh,
   writeTeamFixtureRefresh,
@@ -86,7 +89,8 @@ beforeEach(async () => {
       db.squadEntries,
       db.teamSquadQueries,
       db.playerAppearances,
-      db.playerAppearanceQueries
+      db.playerAppearanceQueries,
+      db.playerStatisticsQueries
     ],
     async () => {
       await db.fixtures.clear()
@@ -111,6 +115,7 @@ beforeEach(async () => {
       await db.teamSquadQueries.clear()
       await db.playerAppearances.clear()
       await db.playerAppearanceQueries.clear()
+      await db.playerStatisticsQueries.clear()
     }
   )
 })
@@ -666,6 +671,38 @@ describe('squad and player cache', () => {
     expect(cached.query?.appearanceKeys).toEqual(['6306068|19425456'])
     expect(cached.appearances[0].appearance.lineup.type_id).toBe(11)
     expect(cached.appearances[0].fixture.name).toBe('Manchester City vs Arsenal')
+  })
+
+  it('writes and reads player statistics for one season', async () => {
+    const refresh: PlayerStatisticsRefresh = {
+      fetchedAt: Date.UTC(2026, 7, 30, 10),
+      statistics: [
+        {
+          id: 501,
+          player_id: 6306068,
+          team_id: 9,
+          season_id: 23614,
+          has_values: true,
+          position_id: 26,
+          jersey_number: 8,
+          details: [
+            {
+              id: 801,
+              player_statistic_id: 501,
+              type_id: 52,
+              value: { total: 9 }
+            }
+          ]
+        }
+      ]
+    }
+
+    await writePlayerStatisticsRefresh({ playerId: 6306068, seasonId: 23614 }, refresh)
+
+    expect(
+      (await readPlayerStatistics({ playerId: 6306068, seasonId: 23614 }))?.statistics[0].details[0]
+        .value
+    ).toEqual({ total: 9 })
   })
 })
 

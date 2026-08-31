@@ -1,14 +1,20 @@
 // @vitest-environment jsdom
 
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { PlayerRefresh, Result } from '@shared/contracts'
-import { db, readPlayerIdentity } from '@/data/db'
-import { invalidatePlayerRefreshes, prefetchPlayerEntity, refreshPlayerEntity } from './use-player'
+import type { PlayerRefresh, PlayerStatisticsRefresh, Result } from '@shared/contracts'
+import { db, readPlayerIdentity, readPlayerStatistics } from '@/data/db'
+import {
+  invalidatePlayerRefreshes,
+  prefetchPlayerEntity,
+  prefetchPlayerStatistics,
+  refreshPlayerEntity
+} from './use-player'
 
 beforeEach(async () => {
   invalidatePlayerRefreshes()
   if (!db.isOpen()) await db.open()
   await db.players.clear()
+  await db.playerStatisticsQueries.clear()
 })
 
 afterAll(() => db.close())
@@ -48,6 +54,20 @@ describe('player refresh', () => {
 
     expect((await readPlayerIdentity(6306068)).player?.displayName).toBe('Quinten Timber')
   })
+
+  it('prefetches missing player statistics without refetching fresh data', async () => {
+    const refreshPlayerStatistics = vi
+      .fn()
+      .mockResolvedValue({ ok: true, data: playerStatisticsRefresh() })
+    installHalfspace({ refreshPlayerStatistics })
+    const input = { playerId: 6306068, seasonId: 23614 }
+
+    await prefetchPlayerStatistics(input)
+    await prefetchPlayerStatistics(input)
+
+    expect(refreshPlayerStatistics).toHaveBeenCalledTimes(1)
+    expect(await readPlayerStatistics(input)).not.toBeNull()
+  })
 })
 
 function playerRefresh(displayName: string, fetchedAt = Date.UTC(2026, 7, 28, 10)): PlayerRefresh {
@@ -69,6 +89,31 @@ function playerRefresh(displayName: string, fetchedAt = Date.UTC(2026, 7, 28, 10
       date_of_birth: '2001-06-17',
       gender: 'male'
     }
+  }
+}
+
+function playerStatisticsRefresh(): PlayerStatisticsRefresh {
+  return {
+    fetchedAt: Date.now(),
+    statistics: [
+      {
+        id: 501,
+        player_id: 6306068,
+        team_id: 62,
+        season_id: 23614,
+        has_values: true,
+        position_id: 26,
+        jersey_number: 8,
+        details: [
+          {
+            id: 801,
+            player_statistic_id: 501,
+            type_id: 52,
+            value: { total: 9 }
+          }
+        ]
+      }
+    ]
   }
 }
 
@@ -108,6 +153,7 @@ function installHalfspace(overrides: Partial<Window['halfspace']['sportmonks']>)
       refreshVenue: vi.fn(),
       refreshPlayer: vi.fn(),
       refreshPlayerAppearances: vi.fn(),
+      refreshPlayerStatistics: vi.fn(),
       getRateLimit: vi.fn(),
       onRateLimitChange: vi.fn(() => vi.fn()),
       searchEntities: vi.fn(),

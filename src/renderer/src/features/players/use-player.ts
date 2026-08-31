@@ -1,21 +1,26 @@
 import { useCallback, useState } from 'react'
-import type { RefreshPlayerAppearancesInput } from '@shared/contracts'
+import type { RefreshPlayerAppearancesInput, RefreshPlayerStatisticsInput } from '@shared/contracts'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   playerAppearanceQueryKey,
   readPlayerAppearanceQuery,
   readPlayerIdentity,
+  readPlayerStatistics,
+  playerStatisticsQueryKey,
   writePlayerAppearancesRefresh,
-  writePlayerRefresh
+  writePlayerRefresh,
+  writePlayerStatisticsRefresh
 } from '@/data/db'
 import { type RefreshableQuery, type RefreshRequest, useStaleRefresh } from '@/lib/refresh'
 
 type PlayerIdentityCache = Awaited<ReturnType<typeof readPlayerIdentity>>
 type PlayerAppearancesCache = Awaited<ReturnType<typeof readPlayerAppearanceQuery>>
+type PlayerStatisticsCache = Awaited<ReturnType<typeof readPlayerStatistics>>
 
 let refreshGeneration = 0
 const playerRefreshes = new Map<number, RefreshRequest>()
 const playerAppearanceRefreshes = new Map<string, RefreshRequest>()
+const playerStatisticsRefreshes = new Map<string, RefreshRequest>()
 
 export function usePlayerEntity(
   playerId: number | null,
@@ -95,10 +100,47 @@ export function usePlayerAppearances(
   return { cached, refreshing, error, refresh }
 }
 
+export function usePlayerStatistics(
+  input: RefreshPlayerStatisticsInput | null,
+  enabled: boolean
+): RefreshableQuery<PlayerStatisticsCache> {
+  const cacheKey = input ? playerStatisticsQueryKey(input) : null
+  const cached = useLiveQuery(
+    () => (input === null ? Promise.resolve(null) : readPlayerStatistics(input)),
+    [cacheKey]
+  )
+  const [refreshing, setRefreshing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const refresh = useCallback(async () => {
+    if (!enabled || input === null) return
+
+    setRefreshing(true)
+    setError(null)
+
+    try {
+      await refreshPlayerStatisticsQuery(input)
+    } catch (refreshError) {
+      setError(
+        refreshError instanceof Error
+          ? refreshError.message
+          : 'Could not refresh player statistics.'
+      )
+    } finally {
+      setRefreshing(false)
+    }
+  }, [enabled, input])
+
+  useStaleRefresh(enabled && input !== null, cached !== undefined, cached?.staleAt, refresh)
+
+  return { cached, refreshing, error, refresh }
+}
+
 export function invalidatePlayerRefreshes(): void {
   refreshGeneration += 1
   playerRefreshes.clear()
   playerAppearanceRefreshes.clear()
+  playerStatisticsRefreshes.clear()
 }
 
 export async function prefetchPlayerEntity(playerId: number): Promise<void> {
@@ -115,6 +157,13 @@ export async function prefetchPlayerAppearances(
   if (cached.query && cached.query.staleAt > Date.now()) return
 
   await refreshPlayerAppearanceQuery(input)
+}
+
+export async function prefetchPlayerStatistics(input: RefreshPlayerStatisticsInput): Promise<void> {
+  const cached = await readPlayerStatistics(input)
+  if (cached && cached.staleAt > Date.now()) return
+
+  await refreshPlayerStatisticsQuery(input)
 }
 
 export async function refreshPlayerEntity(playerId: number): Promise<void> {
@@ -158,6 +207,30 @@ async function refreshPlayerAppearanceQuery(input: RefreshPlayerAppearancesInput
   } finally {
     if (playerAppearanceRefreshes.get(key)?.promise === promise) {
       playerAppearanceRefreshes.delete(key)
+    }
+  }
+}
+
+async function refreshPlayerStatisticsQuery(input: RefreshPlayerStatisticsInput): Promise<void> {
+  const key = playerStatisticsQueryKey(input)
+  const active = playerStatisticsRefreshes.get(key)
+  if (active?.generation === refreshGeneration) return active.promise
+
+  const generation = refreshGeneration
+  const promise = (async () => {
+    const result = await window.halfspace.sportmonks.refreshPlayerStatistics(input)
+    if (generation !== refreshGeneration) return
+    if (!result.ok) throw new Error(result.error.message)
+    await writePlayerStatisticsRefresh(input, result.data)
+  })()
+
+  playerStatisticsRefreshes.set(key, { generation, promise })
+
+  try {
+    await promise
+  } finally {
+    if (playerStatisticsRefreshes.get(key)?.promise === promise) {
+      playerStatisticsRefreshes.delete(key)
     }
   }
 }

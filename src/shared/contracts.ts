@@ -18,6 +18,7 @@ export const ipcChannels = {
   refreshVenue: 'sportmonks:refresh-venue',
   refreshPlayer: 'sportmonks:refresh-player',
   refreshPlayerAppearances: 'sportmonks:refresh-player-appearances',
+  refreshPlayerStatistics: 'sportmonks:refresh-player-statistics',
   searchEntities: 'sportmonks:search-entities',
   rateLimitState: 'sportmonks:rate-limit-state',
   rateLimitChanged: 'sportmonks:rate-limit-changed'
@@ -125,6 +126,11 @@ export interface RefreshPlayerAppearancesInput {
   startDate: string
   endDate: string
   timeZone: string
+}
+
+export interface RefreshPlayerStatisticsInput {
+  playerId: number
+  seasonId: number
 }
 
 export interface EntitySearchInput {
@@ -454,6 +460,24 @@ export interface SportmonksTeamStatistic {
   value: unknown
 }
 
+export interface SportmonksPlayerStatisticDetail {
+  id: number
+  player_statistic_id: number
+  type_id: number
+  value: unknown
+}
+
+export interface SportmonksPlayerStatistic {
+  id: number
+  player_id: number
+  team_id: number
+  season_id: number
+  has_values: boolean
+  position_id: number | null
+  jersey_number: number | null
+  details: SportmonksPlayerStatisticDetail[]
+}
+
 export interface FixtureRefresh {
   fixtures: SportmonksFixture[]
   fetchedAt: number
@@ -603,6 +627,16 @@ export interface PlayerAppearancesRefresh {
   message?: string
 }
 
+export interface PlayerStatisticsRefresh {
+  statistics: SportmonksPlayerStatistic[]
+  fetchedAt: number
+  rateLimit?: {
+    remaining: number
+    resetsAt: number
+  }
+  message?: string
+}
+
 export interface HalfspaceApi {
   credentials: {
     getConnectionState(): Promise<ConnectionState>
@@ -634,6 +668,9 @@ export interface HalfspaceApi {
     refreshPlayerAppearances(
       input: RefreshPlayerAppearancesInput
     ): Promise<Result<PlayerAppearancesRefresh>>
+    refreshPlayerStatistics(
+      input: RefreshPlayerStatisticsInput
+    ): Promise<Result<PlayerStatisticsRefresh>>
     getRateLimit(): Promise<SportmonksRateLimit | null>
     onRateLimitChange(listener: (rateLimit: SportmonksRateLimit) => void): () => void
     searchEntities(input: EntitySearchInput): Promise<Result<EntitySearchRefresh>>
