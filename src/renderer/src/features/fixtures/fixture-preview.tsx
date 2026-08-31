@@ -152,7 +152,9 @@ function TeamStanding({
       />
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold">{participant.name}</p>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p
+          className={cn('mt-1 text-sm text-muted-foreground', standing && 'font-mono tabular-nums')}
+        >
           {standing ? `#${standing.position} · ${standing.raw.points} pts` : 'Not in table'}
         </p>
       </div>
@@ -303,7 +305,7 @@ function FormFixtureRow({
         online={online}
       />
       <span className="truncate">{opponent?.name ?? 'Opponent'}</span>
-      <span className="font-semibold tabular-nums">{fixtureScore(fixture)}</span>
+      <span className="font-mono font-semibold tabular-nums">{fixtureScore(fixture)}</span>
       {outcome && <Outcome outcome={outcome} />}
     </Link>
   )
@@ -313,7 +315,7 @@ function Outcome({ outcome }: { outcome: FixtureOutcome }): React.JSX.Element {
   return (
     <span
       className={cn(
-        'flex size-5 items-center justify-center rounded-full text-[10px] font-bold',
+        'flex size-5 items-center justify-center rounded-full font-mono text-[10px] font-bold',
         outcome === 'W' &&
           'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
         outcome === 'D' && 'bg-muted text-muted-foreground',

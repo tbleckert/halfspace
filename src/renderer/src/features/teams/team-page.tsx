@@ -474,7 +474,7 @@ function TeamFixtures({
           </Button>
           <Input
             aria-label="Fixture window start"
-            className="w-40 bg-card"
+            className="w-40 bg-card font-mono tabular-nums"
             type="date"
             value={date}
             onChange={(event) => selectDate(event.target.value)}
@@ -613,7 +613,7 @@ function SquadPlayerCard({
           imagePath={player.imagePath}
           online={online}
         />
-        <span className="absolute -right-1 -bottom-1 grid size-7 place-items-center rounded-full border bg-card text-xs font-semibold tabular-nums shadow-xs">
+        <span className="absolute -right-1 -bottom-1 grid size-7 place-items-center rounded-full border bg-card font-mono text-xs font-semibold tabular-nums shadow-xs">
           {entry.jerseyNumber ?? '–'}
         </span>
       </div>
@@ -697,8 +697,10 @@ function TeamCompetitions({
               </div>
               {standing && (
                 <div className="text-right">
-                  <p className="text-sm font-semibold tabular-nums">#{standing.position}</p>
-                  <p className="text-xs text-muted-foreground tabular-nums">
+                  <p className="font-mono text-sm font-semibold tabular-nums">
+                    #{standing.position}
+                  </p>
+                  <p className="font-mono text-xs text-muted-foreground tabular-nums">
                     {standing.raw.points} pts
                   </p>
                 </div>

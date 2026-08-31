@@ -18,6 +18,9 @@ abstractions.
   editorial football-workbench language through typography, spacing, match presentation, and
   graphic details derived from the logo. Keep data surfaces calm and concentrate vibrant brand
   color in navigation, section framing, and meaningful state.
+- Use monospaced tabular typography as the shared language for compact football facts: scores,
+  clocks, event minutes, match states, table values, statistics, odds, shirt numbers, and W/D/L.
+  Keep names, headings, labels, positions, and prose in the regular interface font.
 - Keep the application shell quiet. The sidebar is only slightly lighter than the content canvas,
   with a subtle white boundary; use muted active-item backgrounds and brand blue for active text
   instead of large areas of solid brand color.

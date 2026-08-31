@@ -99,13 +99,13 @@ function EntityFixtureRow({
         <div className="flex min-w-0 items-center gap-2">
           {progressLabel ? (
             <span className="flex shrink-0 flex-col items-center gap-1">
-              <span className="text-sm font-semibold tabular-nums text-foreground">
+              <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
                 {progressLabel}
               </span>
               <FixtureLiveIndicator showLabel={false} />
             </span>
           ) : (
-            <time className="shrink-0">
+            <time className="shrink-0 font-mono tabular-nums">
               {dateDisplay === 'time' && formatFixtureTime(fixture.startingAt)}
               {dateDisplay === 'full' && formatFixtureDate(fixture.startingAt)}
               {dateDisplay === 'historical' && formatHistoricalFixtureDate(fixture.startingAt)}
@@ -121,7 +121,7 @@ function EntityFixtureRow({
           )}
         </div>
         {!hasScore && (
-          <Badge className="shrink-0" variant="outline">
+          <Badge className="shrink-0 font-mono" variant="outline">
             {fixture.raw.state?.short_name ?? 'Scheduled'}
           </Badge>
         )}
@@ -135,7 +135,9 @@ function EntityFixtureRow({
           />
           <span className="truncate">{home?.name ?? fixture.name ?? 'Home team'}</span>
         </span>
-        <span className="font-semibold tabular-nums">{hasScore ? (homeScore ?? '–') : ''}</span>
+        <span className="font-mono font-semibold tabular-nums">
+          {hasScore ? (homeScore ?? '–') : ''}
+        </span>
         <span className="flex min-w-0 items-center gap-2.5 text-muted-foreground">
           <TeamLogo
             className="size-6 bg-background"
@@ -144,7 +146,9 @@ function EntityFixtureRow({
           />
           <span className="truncate">{away?.name ?? 'Away team'}</span>
         </span>
-        <span className="font-semibold tabular-nums">{hasScore ? (awayScore ?? '–') : ''}</span>
+        <span className="font-mono font-semibold tabular-nums">
+          {hasScore ? (awayScore ?? '–') : ''}
+        </span>
       </div>
     </Link>
   )

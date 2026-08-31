@@ -250,18 +250,20 @@ function MatchScore({
 
         <div className="flex min-w-20 flex-col items-center gap-2 text-center sm:min-w-32">
           {hasScore ? (
-            <p className="text-3xl font-semibold tracking-tight tabular-nums sm:text-5xl">
+            <p className="font-mono text-3xl font-semibold tracking-tight tabular-nums sm:text-5xl">
               {homeScore ?? '–'} <span className="text-muted-foreground">–</span> {awayScore ?? '–'}
             </p>
           ) : (
-            <p className="text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl">
+            <p className="font-mono text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl">
               {formatFixtureTime(startingAt)}
             </p>
           )}
           {live ? (
             <FixtureLiveIndicator className="rounded-full bg-emerald-50 px-2.5 py-1 dark:bg-emerald-950/30" />
           ) : (
-            <Badge variant="secondary">{fixture.state?.name ?? 'Scheduled'}</Badge>
+            <Badge className="font-mono" variant="secondary">
+              {fixture.state?.name ?? 'Scheduled'}
+            </Badge>
           )}
         </div>
 
@@ -473,7 +475,7 @@ function FixtureTimeline({
                 className="grid min-h-16 grid-cols-[1fr_4rem_1fr] items-center gap-3 px-4 py-3"
               >
                 <div className="min-w-0 text-right">{homeEvent && content}</div>
-                <span className="text-center text-sm font-semibold tabular-nums">
+                <span className="text-center font-mono text-sm font-semibold tabular-nums">
                   {formatEventMinute(event)}
                 </span>
                 <div className="min-w-0">{!homeEvent && content}</div>
@@ -657,7 +659,7 @@ function LineupGroup({
             className="grid grid-cols-[2rem_1fr] items-center gap-2 px-4 py-2 text-sm outline-none hover:bg-muted/45 focus-visible:bg-muted/45"
             {...intentPrefetchProps(online, () => prefetchPlayerEntity(entry.player_id))}
           >
-            <span className="text-center font-medium tabular-nums text-muted-foreground">
+            <span className="text-center font-mono font-medium tabular-nums text-muted-foreground">
               {entry.jersey_number ?? '–'}
             </span>
             <span className="truncate font-medium">{entry.player_name}</span>
@@ -698,11 +700,11 @@ function FixtureStats({
             return (
               <div key={row.id} className="px-4 py-4 text-sm">
                 <div className="grid grid-cols-[1fr_minmax(8rem,1.5fr)_1fr] items-center gap-4">
-                  <span className="font-semibold tabular-nums">
+                  <span className="font-mono font-semibold tabular-nums">
                     {formatStatisticValue(row.home)}
                   </span>
                   <span className="text-center text-muted-foreground">{row.label}</span>
-                  <span className="text-right font-semibold tabular-nums">
+                  <span className="text-right font-mono font-semibold tabular-nums">
                     {formatStatisticValue(row.away)}
                   </span>
                 </div>
@@ -796,7 +798,7 @@ function FixtureOdds({
                 className="flex items-center justify-between gap-4 px-4 py-3 text-sm"
               >
                 <span className="truncate">{formatOddLabel(odd)}</span>
-                <span className="font-semibold tabular-nums">{odd.value}</span>
+                <span className="font-mono font-semibold tabular-nums">{odd.value}</span>
               </div>
             ))}
           </div>
@@ -859,7 +861,7 @@ function FixtureDetails({
           </dd>
         </div>
         {startingAt !== null && (
-          <Detail label="Kickoff" value={formatFixtureDate(startingAt) ?? ''} />
+          <Detail label="Kickoff" value={formatFixtureDate(startingAt) ?? ''} mono />
         )}
         {fixture.stage?.name && <Detail label="Stage" value={fixture.stage.name} />}
         {fixture.round?.name && <Detail label="Round" value={fixture.round.name} />}
@@ -868,11 +870,19 @@ function FixtureDetails({
   )
 }
 
-function Detail({ label, value }: { label: string; value: string }): React.JSX.Element {
+function Detail({
+  label,
+  mono = false,
+  value
+}: {
+  label: string
+  mono?: boolean
+  value: string
+}): React.JSX.Element {
   return (
     <div className="px-4 py-3.5">
       <dt className="mb-1 text-xs text-muted-foreground">{label}</dt>
-      <dd className="font-medium">{value}</dd>
+      <dd className={cn('font-medium', mono && 'font-mono tabular-nums')}>{value}</dd>
     </div>
   )
 }

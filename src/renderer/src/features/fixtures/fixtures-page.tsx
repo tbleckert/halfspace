@@ -50,7 +50,7 @@ export function FixturesPage({ date }: FixturesPageProps): React.JSX.Element {
         <div className="flex items-center gap-1 rounded-lg border bg-card p-0.5 shadow-xs">
           <Input
             aria-label="Fixture date"
-            className="w-40 border-0 bg-transparent font-semibold text-brand-navy shadow-none focus-visible:ring-0"
+            className="w-40 border-0 bg-transparent font-mono font-semibold tabular-nums text-brand-navy shadow-none focus-visible:ring-0"
             type="date"
             value={date}
             onChange={(event) => {

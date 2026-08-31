@@ -282,7 +282,9 @@ function PlayerLineups({
               >
                 <div className="mb-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
                   <div className="flex min-w-0 items-center gap-2">
-                    <time className="shrink-0">{formatFixtureDate(fixture.startingAt)}</time>
+                    <time className="shrink-0 font-mono tabular-nums">
+                      {formatFixtureDate(fixture.startingAt)}
+                    </time>
                     <span>·</span>
                     <span className="truncate">
                       {fixture.raw.league?.name ?? `League ${fixture.leagueId}`}
@@ -301,7 +303,7 @@ function PlayerLineups({
                     />
                     <span className="truncate">{home?.name ?? fixture.name ?? 'Home team'}</span>
                   </span>
-                  <span className="font-semibold tabular-nums">{homeScore ?? '–'}</span>
+                  <span className="font-mono font-semibold tabular-nums">{homeScore ?? '–'}</span>
                   <span className="flex min-w-0 items-center gap-2.5 text-muted-foreground">
                     <TeamLogo
                       className="size-6 bg-background"
@@ -310,7 +312,7 @@ function PlayerLineups({
                     />
                     <span className="truncate">{away?.name ?? 'Away team'}</span>
                   </span>
-                  <span className="font-semibold tabular-nums">{awayScore ?? '–'}</span>
+                  <span className="font-mono font-semibold tabular-nums">{awayScore ?? '–'}</span>
                 </div>
               </Link>
             )

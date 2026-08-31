@@ -10,7 +10,7 @@ export function FixtureLiveIndicator({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600',
+        'inline-flex items-center gap-1.5 font-mono text-xs font-medium text-emerald-600',
         className
       )}
     >

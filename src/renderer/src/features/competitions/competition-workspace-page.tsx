@@ -484,7 +484,7 @@ function CompetitionFixtures({
           </Button>
           <Input
             aria-label="Fixture window date"
-            className="w-40 bg-card"
+            className="w-40 bg-card font-mono tabular-nums"
             type="date"
             value={date}
             min={season?.starting_at ?? undefined}
@@ -589,7 +589,7 @@ function CompetitionTeams({
               <div className="min-w-0">
                 <h3 className="truncate font-semibold">{team.name}</h3>
                 {team.position !== null && (
-                  <p className="mt-1 text-sm tabular-nums text-muted-foreground">
+                  <p className="mt-1 font-mono text-sm tabular-nums text-muted-foreground">
                     #{team.position} · {team.points} pts
                   </p>
                 )}
@@ -631,7 +631,7 @@ function StandingsTable({
         <tbody className="divide-y">
           {standings.map((standing) => (
             <tr key={standing.id}>
-              <td className="px-4 py-2.5 tabular-nums text-muted-foreground">
+              <td className="px-4 py-2.5 font-mono tabular-nums text-muted-foreground">
                 {standing.position}
               </td>
               <td className="px-2 py-2.5">
@@ -652,7 +652,7 @@ function StandingsTable({
                   </span>
                 </Link>
               </td>
-              <td className="px-4 py-2.5 text-right font-semibold tabular-nums">
+              <td className="px-4 py-2.5 text-right font-mono font-semibold tabular-nums">
                 {standing.raw.points}
               </td>
             </tr>

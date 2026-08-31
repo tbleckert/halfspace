@@ -123,7 +123,9 @@ function StatisticCard({
     <Card>
       <CardContent className="px-5 py-5">
         <p className="text-sm text-muted-foreground">{label}</p>
-        <p className="mt-2 text-3xl font-semibold tracking-tight tabular-nums">{value ?? '–'}</p>
+        <p className="mt-2 font-mono text-3xl font-semibold tracking-tight tabular-nums">
+          {value ?? '–'}
+        </p>
       </CardContent>
     </Card>
   )
@@ -140,13 +142,13 @@ function LeagueGoals({ summary }: { summary: LeagueStatisticsSummary }): React.J
       <h3 className="text-sm font-semibold">Goals</h3>
       <div className="mt-6 flex items-end justify-between gap-4">
         <div>
-          <p className="text-2xl font-semibold tabular-nums">
+          <p className="font-mono text-2xl font-semibold tabular-nums">
             {formatNumber(summary.homeGoals) ?? '–'}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">Home</p>
         </div>
         <div className="text-right">
-          <p className="text-2xl font-semibold tabular-nums">
+          <p className="font-mono text-2xl font-semibold tabular-nums">
             {formatNumber(summary.awayGoals) ?? '–'}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">Away</p>
@@ -190,7 +192,7 @@ function TeamRecord({ summary }: { summary: TeamStatisticsSummary }): React.JSX.
 function RecordValue({ label, value }: { label: string; value: number | null }): React.JSX.Element {
   return (
     <div>
-      <p className="text-2xl font-semibold tabular-nums">{formatNumber(value) ?? '–'}</p>
+      <p className="font-mono text-2xl font-semibold tabular-nums">{formatNumber(value) ?? '–'}</p>
       <p className="mt-1 text-xs text-muted-foreground">{label}</p>
     </div>
   )
@@ -215,7 +217,7 @@ function StatisticList({
         {visibleRows.map(({ label, value }) => (
           <div key={label} className="flex items-center justify-between gap-4 px-5 py-3.5 text-sm">
             <dt className="text-muted-foreground">{label}</dt>
-            <dd className="font-semibold tabular-nums">{value}</dd>
+            <dd className="font-mono font-semibold tabular-nums">{value}</dd>
           </div>
         ))}
       </dl>
