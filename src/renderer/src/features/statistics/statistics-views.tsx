@@ -1,10 +1,12 @@
 import type {
   SportmonksPlayerStatistic,
+  SportmonksSeason,
   SportmonksSeasonStatistic,
   SportmonksTeamStatistic
 } from '@shared/contracts'
 import { BarChart3 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   leagueStatisticsSummary,
@@ -64,72 +66,91 @@ export function TeamStatisticsView({
   context,
   loaded,
   loading,
+  onSeasonChange,
+  seasonId,
+  seasons,
   statistics
 }: {
   context: string | null
   loaded: boolean
   loading: boolean
+  onSeasonChange: (seasonId: number) => void
+  seasonId?: number
+  seasons: SportmonksSeason[]
   statistics: SportmonksTeamStatistic[]
 }): React.JSX.Element {
   if (!loaded || (loading && statistics.length === 0)) return <StatisticsSkeleton />
 
   const summary = teamStatisticsSummary(statistics)
-  if (!hasValues(summary)) return <StatisticsEmpty />
 
   return (
     <section className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-xl font-semibold tracking-tight">Stats</h2>
-        {context && <p className="text-sm text-muted-foreground">{context}</p>}
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatisticCard label="Matches" value={formatNumber(summary.matches)} />
-        <StatisticCard label="Goals" value={formatNumber(summary.goalsFor)} />
-        <StatisticCard label="Goals against" value={formatNumber(summary.goalsAgainst)} />
-        <StatisticCard label="Clean sheets" value={formatNumber(summary.cleanSheets)} />
-      </div>
-      <div className="grid items-start gap-5 lg:grid-cols-2">
-        <TeamRecord summary={summary} />
-        <StatisticList
-          title="Per match"
-          rows={[
-            { label: 'Goals', value: formatDecimal(summary.goalsForPerMatch) },
-            { label: 'Goals against', value: formatDecimal(summary.goalsAgainstPerMatch) },
-            {
-              label: 'Possession',
-              value:
-                summary.averagePossession === null
-                  ? null
-                  : `${formatDecimal(summary.averagePossession)}%`
-            },
-            { label: 'Shots', value: formatDecimal(summary.shotsPerMatch) },
-            { label: 'Corners', value: formatDecimal(summary.cornersPerMatch) }
-          ]}
-        />
-        <StatisticList
-          title="Discipline"
-          rows={[
-            { label: 'Yellow cards', value: formatNumber(summary.yellowCards) },
-            { label: 'Red cards', value: formatNumber(summary.redCards) }
-          ]}
-        />
-      </div>
+      <SeasonStatisticsHeader
+        context={context}
+        onSeasonChange={onSeasonChange}
+        seasonId={seasonId}
+        seasons={seasons}
+      />
+      {!hasValues(summary) ? (
+        <StatisticsEmpty />
+      ) : (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatisticCard label="Matches" value={formatNumber(summary.matches)} />
+            <StatisticCard label="Goals" value={formatNumber(summary.goalsFor)} />
+            <StatisticCard label="Goals against" value={formatNumber(summary.goalsAgainst)} />
+            <StatisticCard label="Clean sheets" value={formatNumber(summary.cleanSheets)} />
+          </div>
+          <div className="grid items-start gap-5 lg:grid-cols-2">
+            <TeamRecord summary={summary} />
+            <StatisticList
+              title="Per match"
+              rows={[
+                { label: 'Goals', value: formatDecimal(summary.goalsForPerMatch) },
+                { label: 'Goals against', value: formatDecimal(summary.goalsAgainstPerMatch) },
+                {
+                  label: 'Possession',
+                  value:
+                    summary.averagePossession === null
+                      ? null
+                      : `${formatDecimal(summary.averagePossession)}%`
+                },
+                { label: 'Shots', value: formatDecimal(summary.shotsPerMatch) },
+                { label: 'Corners', value: formatDecimal(summary.cornersPerMatch) }
+              ]}
+            />
+            <StatisticList
+              title="Discipline"
+              rows={[
+                { label: 'Yellow cards', value: formatNumber(summary.yellowCards) },
+                { label: 'Red cards', value: formatNumber(summary.redCards) }
+              ]}
+            />
+          </div>
+        </>
+      )}
     </section>
   )
 }
 
 export function PlayerStatisticsView({
-  context,
   loaded,
   loading,
+  onSeasonChange,
+  seasonId,
+  seasons,
   statistics,
-  teamId
+  teamId,
+  teamName
 }: {
-  context: string | null
   loaded: boolean
   loading: boolean
+  onSeasonChange: (seasonId: number) => void
+  seasonId?: number
+  seasons: SportmonksSeason[]
   statistics: SportmonksPlayerStatistic[]
   teamId?: number
+  teamName?: string
 }): React.JSX.Element {
   if (!loaded || (loading && statistics.length === 0)) return <StatisticsSkeleton />
 
@@ -138,62 +159,108 @@ export function PlayerStatisticsView({
     : statistics
   const summary = playerStatisticsSummary(teamStatistics.flatMap((statistic) => statistic.details))
 
-  if (!hasValues(summary)) return <StatisticsEmpty />
-
   return (
     <section className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-xl font-semibold tracking-tight">Stats</h2>
-        {context && <p className="text-sm text-muted-foreground">{context}</p>}
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatisticCard label="Appearances" value={formatNumber(summary.appearances)} />
-        <StatisticCard label="Starts" value={formatNumber(summary.starts)} />
-        <StatisticCard label="Minutes" value={formatNumber(summary.minutes)} />
-        <StatisticCard label="Rating" value={formatDecimal(summary.rating)} />
-      </div>
-      <div className="grid items-start gap-5 lg:grid-cols-2">
-        <PlayerAttacking summary={summary} />
-        <StatisticList
-          title="Passing"
-          rows={[
-            { label: 'Passes', value: formatNumber(summary.passes) },
-            { label: 'Accurate passes', value: formatNumber(summary.accuratePasses) },
-            {
-              label: 'Pass accuracy',
-              value:
-                summary.passAccuracy === null ? null : `${formatDecimal(summary.passAccuracy)}%`
-            },
-            { label: 'Key passes', value: formatNumber(summary.keyPasses) }
-          ]}
-        />
-        <StatisticList
-          title="Defending"
-          rows={[
-            { label: 'Tackles', value: formatNumber(summary.tackles) },
-            { label: 'Interceptions', value: formatNumber(summary.interceptions) },
-            { label: 'Clearances', value: formatNumber(summary.clearances) },
-            { label: 'Duels won', value: formatNumber(summary.duelsWon) }
-          ]}
-        />
-        <StatisticList
-          title="Discipline"
-          rows={[
-            { label: 'Fouls', value: formatNumber(summary.fouls) },
-            { label: 'Yellow cards', value: formatNumber(summary.yellowCards) },
-            { label: 'Red cards', value: formatNumber(summary.redCards) }
-          ]}
-        />
-        <StatisticList
-          title="Goalkeeping"
-          rows={[
-            { label: 'Saves', value: formatNumber(summary.saves) },
-            { label: 'Goals conceded', value: formatNumber(summary.goalsConceded) },
-            { label: 'Clean sheets', value: formatNumber(summary.cleanSheets) }
-          ]}
-        />
-      </div>
+      <SeasonStatisticsHeader
+        context={teamName ?? null}
+        onSeasonChange={onSeasonChange}
+        seasonId={seasonId}
+        seasons={seasons}
+      />
+      {!hasValues(summary) ? (
+        <StatisticsEmpty />
+      ) : (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatisticCard label="Appearances" value={formatNumber(summary.appearances)} />
+            <StatisticCard label="Starts" value={formatNumber(summary.starts)} />
+            <StatisticCard label="Minutes" value={formatNumber(summary.minutes)} />
+            <StatisticCard label="Rating" value={formatDecimal(summary.rating)} />
+          </div>
+          <div className="grid items-start gap-5 lg:grid-cols-2">
+            <PlayerAttacking summary={summary} />
+            <StatisticList
+              title="Passing"
+              rows={[
+                { label: 'Passes', value: formatNumber(summary.passes) },
+                { label: 'Accurate passes', value: formatNumber(summary.accuratePasses) },
+                {
+                  label: 'Pass accuracy',
+                  value:
+                    summary.passAccuracy === null ? null : `${formatDecimal(summary.passAccuracy)}%`
+                },
+                { label: 'Key passes', value: formatNumber(summary.keyPasses) }
+              ]}
+            />
+            <StatisticList
+              title="Defending"
+              rows={[
+                { label: 'Tackles', value: formatNumber(summary.tackles) },
+                { label: 'Interceptions', value: formatNumber(summary.interceptions) },
+                { label: 'Clearances', value: formatNumber(summary.clearances) },
+                { label: 'Duels won', value: formatNumber(summary.duelsWon) }
+              ]}
+            />
+            <StatisticList
+              title="Discipline"
+              rows={[
+                { label: 'Fouls', value: formatNumber(summary.fouls) },
+                { label: 'Yellow cards', value: formatNumber(summary.yellowCards) },
+                { label: 'Red cards', value: formatNumber(summary.redCards) }
+              ]}
+            />
+            <StatisticList
+              title="Goalkeeping"
+              rows={[
+                { label: 'Saves', value: formatNumber(summary.saves) },
+                { label: 'Goals conceded', value: formatNumber(summary.goalsConceded) },
+                { label: 'Clean sheets', value: formatNumber(summary.cleanSheets) }
+              ]}
+            />
+          </div>
+        </>
+      )}
     </section>
+  )
+}
+
+function SeasonStatisticsHeader({
+  context,
+  onSeasonChange,
+  seasonId,
+  seasons
+}: {
+  context: string | null
+  onSeasonChange: (seasonId: number) => void
+  seasonId?: number
+  seasons: SportmonksSeason[]
+}): React.JSX.Element {
+  return (
+    <div className="flex flex-wrap items-baseline justify-between gap-2">
+      <h2 className="text-xl font-semibold tracking-tight">Stats</h2>
+      {(context || seasons.length > 0) && (
+        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          {context && <span>{context}</span>}
+          {context && seasons.length > 0 && <span>·</span>}
+          {seasons.length > 0 && (
+            <NativeSelect
+              aria-label="Season"
+              className="has-[select:disabled]:opacity-100 [&_[data-slot=native-select-icon]]:right-1 [&_[data-slot=native-select-icon]]:size-3.5"
+              disabled={seasons.length < 2}
+              selectClassName="h-7 rounded-md border-0 py-0 pl-1 pr-6 font-medium text-foreground shadow-none hover:bg-muted focus-visible:border-transparent focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default disabled:opacity-70"
+              value={seasonId ?? ''}
+              onChange={(event) => onSeasonChange(Number(event.target.value))}
+            >
+              {seasons.map((season) => (
+                <NativeSelectOption key={season.id} value={season.id}>
+                  {season.name}
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+          )}
+        </div>
+      )}
+    </div>
   )
 }
 

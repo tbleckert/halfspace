@@ -79,15 +79,22 @@ describe('competition workspace data', () => {
     ])
   })
 
-  it('offers the current and previous seasons in recency order', () => {
-    const current = season(23614, '2026/2027', true, '2026-08-01', '2027-05-31')
-    const previous = season(21646, '2025/2026', false, '2025-08-01', '2026-05-31')
-    const older = season(19686, '2024/2025', false, '2024-08-01', '2025-05-31')
+  it('offers the ten most recent seasons in recency order', () => {
+    const seasons = Array.from({ length: 11 }, (_, index) => {
+      const year = 2026 - index
+      return season(
+        23614 - index,
+        `${year}/${year + 1}`,
+        index === 0,
+        `${year}-08-01`,
+        `${year + 1}-05-31`
+      )
+    })
 
-    const options = competitionSeasonOptions([older, current, previous], current)
+    const options = competitionSeasonOptions(seasons.toReversed(), seasons[0])
 
-    expect(options.map(({ id }) => id)).toEqual([23614, 21646])
-    expect(selectedCompetitionSeason(options, 21646)?.id).toBe(21646)
+    expect(options.map(({ id }) => id)).toEqual(seasons.slice(0, 10).map(({ id }) => id))
+    expect(selectedCompetitionSeason(options, seasons[1].id)?.id).toBe(seasons[1].id)
     expect(selectedCompetitionSeason(options, 999)?.id).toBe(23614)
   })
 

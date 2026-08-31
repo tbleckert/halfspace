@@ -109,7 +109,7 @@ export function competitionSeasonOptions(
       const rightDate = right.ending_at ?? right.starting_at ?? ''
       return rightDate.localeCompare(leftDate) || right.id - left.id
     })
-    .slice(0, 2)
+    .slice(0, 10)
 }
 
 export function selectedCompetitionSeason(

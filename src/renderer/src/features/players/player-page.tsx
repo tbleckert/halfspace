@@ -21,6 +21,11 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { db, type CachedTeam, type PlayerAppearanceRecord } from '@/data/db'
 import { prefetchFixtureEntity } from '@/features/fixtures/use-fixtures'
+import {
+  competitionSeasonOptions,
+  seasonFixtureDate
+} from '@/features/competitions/competition-workspace-data'
+import { useCompetitionSeasons } from '@/features/competitions/use-competition-workspace'
 import { PlayerStatisticsView } from '@/features/statistics/statistics-views'
 import { TeamLogo } from '@/features/teams/team-logo'
 import { prefetchTeamEntity, prefetchTeamSquad } from '@/features/teams/use-team'
@@ -61,6 +66,7 @@ export function PlayerPage({
   const parsedPlayerId = Number(playerId)
   const validPlayerId = Number.isSafeInteger(parsedPlayerId) && parsedPlayerId > 0
   const online = useOnline()
+  const navigate = useNavigate({ from: '/players/$playerId' })
   const timeZone = useMemo(() => currentTimeZone(), [])
   const today = useMemo(() => todayInTimeZone(timeZone), [timeZone])
   const matchWindowEnd = date ?? today
@@ -81,19 +87,22 @@ export function PlayerPage({
     [currentTeamId, matchWindowEnd, parsedPlayerId, timeZone, validPlayerId]
   )
   const appearances = usePlayerAppearances(appearanceInput, online && (view !== 'stats' || !season))
-  const competitionContext = useLiveQuery(async () => {
-    if (!competitionId) return { competition: null, seasons: [] }
-
-    const [competition, seasonQuery] = await Promise.all([
-      db.competitions.get(competitionId),
-      db.competitionSeasonQueries.get(competitionId)
-    ])
-
-    return {
-      competition: competition ?? null,
-      seasons: seasonQuery?.seasons ?? []
-    }
-  }, [competitionId])
+  const competition = useLiveQuery(
+    async () => (competitionId ? ((await db.competitions.get(competitionId)) ?? null) : null),
+    [competitionId]
+  )
+  const competitionSeasons = useCompetitionSeasons(
+    competitionId ?? null,
+    online && view === 'stats'
+  )
+  const seasonOptions = useMemo(
+    () =>
+      competitionSeasonOptions(
+        competitionSeasons.cached?.seasons ?? [],
+        competition?.raw.currentseason ?? null
+      ),
+    [competition?.raw.currentseason, competitionSeasons.cached?.seasons]
+  )
   const observedSeasonId = useMemo(() => {
     const target = new Date(`${matchWindowEnd}T12:00:00Z`).getTime()
     return (
@@ -106,8 +115,7 @@ export function PlayerPage({
         )[0]?.fixture.seasonId ?? null
     )
   }, [appearances.cached?.appearances, matchWindowEnd])
-  const statisticsSeasonId =
-    season ?? observedSeasonId ?? competitionContext?.competition?.currentSeasonId ?? null
+  const statisticsSeasonId = season ?? observedSeasonId ?? competition?.currentSeasonId ?? null
   const statisticsInput = useMemo(
     () =>
       validPlayerId && statisticsSeasonId
@@ -118,20 +126,18 @@ export function PlayerPage({
   const statistics = usePlayerStatistics(statisticsInput, online && view === 'stats')
   const identity = player.cached?.player?.raw
   const currentTeam = player.cached?.teams.find(({ id }) => id === currentTeamId)
-  const statisticsSeasonName =
-    competitionContext?.seasons.find(({ id }) => id === statisticsSeasonId)?.name ??
-    (competitionContext?.competition?.currentSeasonId === statisticsSeasonId
-      ? competitionContext.competition.currentSeasonName
-      : null)
-  const statisticsContext = [currentTeam?.name, statisticsSeasonName].filter(Boolean).join(' · ')
   const refreshing =
     player.refreshing ||
     (view === 'stats'
-      ? statistics.refreshing || (statisticsInput === null && appearances.refreshing)
+      ? statistics.refreshing ||
+        competitionSeasons.refreshing ||
+        (statisticsInput === null && appearances.refreshing)
       : appearances.refreshing)
   const playerDataError =
     view === 'stats'
-      ? (statistics.error ?? (statisticsInput === null ? appearances.error : null))
+      ? (statistics.error ??
+        competitionSeasons.error ??
+        (statisticsInput === null ? appearances.error : null))
       : appearances.error
   const errors = [player.error, playerDataError].filter((error): error is string => Boolean(error))
 
@@ -150,8 +156,24 @@ export function PlayerPage({
   async function refresh(): Promise<void> {
     await Promise.all([
       player.refresh(),
+      view === 'stats' ? competitionSeasons.refresh() : Promise.resolve(),
       view === 'stats' && statisticsInput ? statistics.refresh() : appearances.refresh()
     ])
+  }
+
+  function selectStatisticsSeason(nextSeasonId: number): void {
+    const nextSeason = seasonOptions.find(({ id }) => id === nextSeasonId)
+    if (!nextSeason) return
+
+    void navigate({
+      params: { playerId: String(parsedPlayerId) },
+      search: (previous) => ({
+        ...previous,
+        date: seasonFixtureDate(nextSeason, today),
+        season: nextSeason.id
+      }),
+      replace: true
+    })
   }
 
   return (
@@ -253,15 +275,18 @@ export function PlayerPage({
 
       {view === 'stats' && (
         <PlayerStatisticsView
-          context={statisticsContext || null}
           loaded={
             statisticsInput
               ? statistics.cached !== undefined
-              : appearances.cached !== undefined && competitionContext !== undefined
+              : appearances.cached !== undefined && competition !== undefined
           }
           loading={statistics.refreshing}
+          seasonId={statisticsSeasonId ?? undefined}
+          seasons={seasonOptions}
           statistics={statistics.cached?.statistics ?? []}
           teamId={currentTeamId ?? undefined}
+          teamName={currentTeam?.name}
+          onSeasonChange={selectStatisticsSeason}
         />
       )}
     </div>

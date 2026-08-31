@@ -42,7 +42,7 @@ abstractions.
 - Competition pages use horizontal local navigation for Overview, Fixtures, and Teams. Overview is
   the current-season snapshot, Fixtures browses the complete cached date window without truncating
   it, and Teams combines standings with fixture participants when a table is unavailable. Offer the
-  current and previous seasons in a compact URL-backed selector; keep standings and fixture windows
+  ten most recent seasons in a compact URL-backed selector; keep standings and fixture windows
   season-scoped, and keep the selected season when changing competition views or opening a fixture.
 - Team pages use horizontal local navigation beneath the team header and above their competition
   context. Keep Overview, Fixtures, and Squad there, and extend that menu when more team views are
@@ -54,7 +54,8 @@ abstractions.
   a hidden midpoint as the navigation date. Keep Overview centered on recent and upcoming fixtures.
 - Competition and team Stats are season-scoped entity views. Fetch league totals and team
   performance separately, cache each query locally, preserve the selected season when moving from
-  a competition to a team, and request only the statistic types shown in the UI.
+  a competition to a team, and request only the statistic types shown in the UI. Use the compact
+  URL-backed selector for the ten most recent seasons on both views.
 - Fixture pages keep Preview, Timeline, Lineups, Stats, and Odds in horizontal navigation inside
   the score hero. Preview stacks the compact venue card directly below Details.
 - Fixture Preview pairs that supporting column with season table context, each team’s five most
@@ -96,7 +97,8 @@ abstractions.
 - Player pages use a persistent horizontal workspace navigation. Overview keeps compact identity
   and team context; Matches browses confirmed team-sheet records without presenting bench selection
   as an appearance. Stats is season-scoped, requests only the player statistic types shown, and
-  keeps each player-and-season response in the local cache.
+  keeps each player-and-season response in the local cache. When competition context is available,
+  show the same compact URL-backed season selector and keep the date inside the selected season.
 - Refresh fixture pages through the fixture-by-ID endpoint. When fixture lists update shared cache
   records, preserve richer match context already fetched for the entity page.
 - Show every active subscribed competition in the sidebar when there are 10 or fewer. Above 10,
