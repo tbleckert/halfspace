@@ -320,9 +320,11 @@ export function TeamPage({
       {view === 'squad' && (
         <TeamSquad
           competitionId={competitionId}
+          date={fixtureWindowStart}
           loading={squad.refreshing}
           members={squad.cached?.members}
           online={online}
+          season={requestedSeasonId}
           teamId={parsedTeamId}
         />
       )}
@@ -519,15 +521,19 @@ function TeamFixtures({
 
 function TeamSquad({
   competitionId,
+  date,
   loading,
   members,
   online,
+  season,
   teamId
 }: {
   competitionId?: number
+  date?: string
   loading: boolean
   members: SquadMember[] | undefined
   online: boolean
+  season?: number
   teamId: number
 }): React.JSX.Element {
   if (members === undefined) return <SquadSkeleton />
@@ -558,8 +564,10 @@ function TeamSquad({
               <SquadPlayerCard
                 key={member.entry.id}
                 competitionId={competitionId}
+                date={date}
                 member={member}
                 online={online}
+                season={season}
                 teamId={teamId}
               />
             ))}
@@ -572,13 +580,17 @@ function TeamSquad({
 
 function SquadPlayerCard({
   competitionId,
+  date,
   member: { entry, player },
   online,
+  season,
   teamId
 }: {
   competitionId?: number
+  date?: string
   member: SquadMember
   online: boolean
+  season?: number
   teamId: number
 }): React.JSX.Element {
   const position =
@@ -590,7 +602,7 @@ function SquadPlayerCard({
     <Link
       to="/players/$playerId"
       params={{ playerId: String(player.id) }}
-      search={{ competition: competitionId, team: teamId }}
+      search={{ competition: competitionId, date, season, team: teamId }}
       className="group flex min-w-0 flex-col items-center rounded-xl border bg-card px-4 py-5 text-center shadow-xs outline-none transition-[border-color,transform] duration-150 hover:border-foreground/20 focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98]"
       {...intentPrefetchProps(online, () => prefetchPlayerEntity(player.id))}
     >

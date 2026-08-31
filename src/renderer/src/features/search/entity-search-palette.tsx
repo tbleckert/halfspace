@@ -79,7 +79,7 @@ export function EntitySearchPalette({ online }: { online: boolean }): React.JSX.
       await router.navigate({
         to: '/players/$playerId',
         params: { playerId: String(result.id) },
-        search: { competition: undefined, team: undefined }
+        search: { competition: undefined, date: undefined, season: undefined, team: undefined }
       })
       return
     }

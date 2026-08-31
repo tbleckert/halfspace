@@ -1,9 +1,12 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Outlet, useMatchRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 import { PlayerPage } from '@/features/players/player-page'
+import { isIsoDate } from '@/lib/date'
 
 const playerSearchSchema = z.object({
   competition: positiveIdSearch(),
+  date: z.string().refine(isIsoDate).optional().catch(undefined),
+  season: positiveIdSearch(),
   team: positiveIdSearch()
 })
 
@@ -14,8 +17,29 @@ export const Route = createFileRoute('/players_/$playerId')({
 
 function PlayerRoute(): React.JSX.Element {
   const { playerId } = Route.useParams()
-  const { competition, team } = Route.useSearch()
-  return <PlayerPage competitionId={competition} playerId={playerId} teamId={team} />
+  const { competition, date, season, team } = Route.useSearch()
+  const matchRoute = useMatchRoute()
+  const view = matchRoute({
+    to: '/players/$playerId/matches',
+    params: { playerId },
+    fuzzy: false
+  })
+    ? 'matches'
+    : 'overview'
+
+  return (
+    <>
+      <PlayerPage
+        competitionId={competition}
+        date={date}
+        playerId={playerId}
+        season={season}
+        teamId={team}
+        view={view}
+      />
+      <Outlet />
+    </>
+  )
 }
 
 function positiveIdSearch(): z.ZodType<number | undefined> {

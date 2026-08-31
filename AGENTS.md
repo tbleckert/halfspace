@@ -93,6 +93,9 @@ abstractions.
   non-paginated payload even when other Sportmonks collections paginate.
 - Do not infer player appearances from team fixtures or bench selection. Name lineup data for what
   it confirms, and reserve appearances for verified participation.
+- Player pages use a persistent horizontal workspace navigation. Overview keeps compact identity
+  and team context; Matches browses confirmed team-sheet records without presenting bench selection
+  as an appearance.
 - Refresh fixture pages through the fixture-by-ID endpoint. When fixture lists update shared cache
   records, preserve richer match context already fetched for the entity page.
 - Show every active subscribed competition in the sidebar when there are 10 or fewer. Above 10,

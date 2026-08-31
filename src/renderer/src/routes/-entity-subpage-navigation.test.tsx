@@ -8,6 +8,7 @@ import { routeTree } from '@/routeTree.gen'
 const pageInstances = vi.hoisted(() => ({
   competition: 0,
   fixture: 0,
+  player: 0,
   team: 0
 }))
 
@@ -61,9 +62,21 @@ vi.mock('@/features/teams/team-page', async () => {
   }
 })
 
+vi.mock('@/features/players/player-page', async () => {
+  const React = await import('react')
+
+  return {
+    PlayerPage: ({ view = 'overview' }: { view?: string }) => {
+      const [instance] = React.useState(() => ++pageInstances.player)
+      return React.createElement('div', { 'data-testid': 'player-page' }, `${instance}:${view}`)
+    }
+  }
+})
+
 beforeEach(() => {
   pageInstances.competition = 0
   pageInstances.fixture = 0
+  pageInstances.player = 0
   pageInstances.team = 0
 })
 
@@ -140,5 +153,27 @@ describe('entity subpage navigation', () => {
 
     expect(screen.getByTestId('fixture-page').textContent).toBe('1:stats')
     expect(pageInstances.fixture).toBe(1)
+  })
+
+  it('keeps the player page mounted while its active view changes', async () => {
+    const router = createRouter({
+      routeTree,
+      history: createMemoryHistory({ initialEntries: ['/players/6306068'] })
+    })
+
+    render(<RouterProvider router={router} />)
+
+    expect((await screen.findByTestId('player-page')).textContent).toBe('1:overview')
+
+    await act(() =>
+      router.navigate({
+        to: '/players/$playerId/matches',
+        params: { playerId: '6306068' },
+        search: { competition: undefined, date: '2026-06-02', season: undefined, team: 62 }
+      })
+    )
+
+    expect(screen.getByTestId('player-page').textContent).toBe('1:matches')
+    expect(pageInstances.player).toBe(1)
   })
 })

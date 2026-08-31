@@ -180,7 +180,11 @@ export function FixtureDetailPage({
       {view === 'lineups' && (
         <FixtureLineups
           away={away}
-          competitionId={competitionId ?? cachedFixture.leagueId}
+          context={{
+            competition: competitionId ?? cachedFixture.leagueId,
+            date,
+            season: resolvedSeasonId
+          }}
           home={home}
           lineups={match.lineups ?? []}
           online={online}
@@ -525,13 +529,17 @@ function FixtureEventContent({
 
 function FixtureLineups({
   away,
-  competitionId,
+  context,
   home,
   lineups,
   online
 }: {
   away?: SportmonksParticipant
-  competitionId: number
+  context: {
+    competition: number | undefined
+    date: string | undefined
+    season: number | undefined
+  }
   home?: SportmonksParticipant
   lineups: SportmonksLineup[]
   online: boolean
@@ -548,13 +556,13 @@ function FixtureLineups({
       ) : (
         <div className="grid divide-y lg:grid-cols-2 lg:divide-x lg:divide-y-0">
           <TeamLineup
-            competitionId={competitionId}
+            context={context}
             entries={lineups.filter(({ team_id }) => team_id === home?.id)}
             online={online}
             team={home}
           />
           <TeamLineup
-            competitionId={competitionId}
+            context={context}
             entries={lineups.filter(({ team_id }) => team_id === away?.id)}
             online={online}
             team={away}
@@ -566,12 +574,16 @@ function FixtureLineups({
 }
 
 function TeamLineup({
-  competitionId,
+  context,
   entries,
   online,
   team
 }: {
-  competitionId: number
+  context: {
+    competition: number | undefined
+    date: string | undefined
+    season: number | undefined
+  }
   entries: SportmonksLineup[]
   online: boolean
   team?: SportmonksParticipant
@@ -596,14 +608,14 @@ function TeamLineup({
       ) : (
         <div className="divide-y">
           <LineupGroup
-            competitionId={competitionId}
+            context={context}
             entries={starters}
             label="Starting XI"
             online={online}
             teamId={team?.id}
           />
           <LineupGroup
-            competitionId={competitionId}
+            context={context}
             entries={substitutes}
             label="Substitutes"
             online={online}
@@ -616,13 +628,17 @@ function TeamLineup({
 }
 
 function LineupGroup({
-  competitionId,
+  context,
   entries,
   label,
   online,
   teamId
 }: {
-  competitionId: number
+  context: {
+    competition: number | undefined
+    date: string | undefined
+    season: number | undefined
+  }
   entries: SportmonksLineup[]
   label: string
   online: boolean
@@ -639,7 +655,7 @@ function LineupGroup({
             key={entry.id}
             to="/players/$playerId"
             params={{ playerId: String(entry.player_id) }}
-            search={{ competition: competitionId, team: teamId }}
+            search={{ ...context, team: teamId }}
             className="grid grid-cols-[2rem_1fr] items-center gap-2 px-4 py-2 text-sm outline-none hover:bg-muted/45 focus-visible:bg-muted/45"
             {...intentPrefetchProps(online, () => prefetchPlayerEntity(entry.player_id))}
           >

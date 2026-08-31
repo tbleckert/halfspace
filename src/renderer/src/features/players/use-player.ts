@@ -108,6 +108,15 @@ export async function prefetchPlayerEntity(playerId: number): Promise<void> {
   await refreshPlayerEntity(playerId)
 }
 
+export async function prefetchPlayerAppearances(
+  input: RefreshPlayerAppearancesInput
+): Promise<void> {
+  const cached = await readPlayerAppearanceQuery(input)
+  if (cached.query && cached.query.staleAt > Date.now()) return
+
+  await refreshPlayerAppearanceQuery(input)
+}
+
 export async function refreshPlayerEntity(playerId: number): Promise<void> {
   const active = playerRefreshes.get(playerId)
   if (active?.generation === refreshGeneration) return active.promise
