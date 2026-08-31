@@ -12,8 +12,9 @@ import { prefetchCompetitionWorkspace } from '@/features/competitions/use-compet
 import { useCompetitions, usePinnedCompetitionIds } from '@/features/competitions/use-competitions'
 import { prefetchFixtureQuery } from '@/features/fixtures/use-fixtures'
 import { EntitySearchPalette } from '@/features/search/entity-search-palette'
-import { currentTimeZone, todayInTimeZone } from '@/lib/date'
+import { currentTimeZone } from '@/lib/date'
 import { intentPrefetchProps, startPrefetch } from '@/lib/prefetch'
+import { useTodayInTimeZone } from '@/lib/use-today'
 import { cn } from '@/lib/utils'
 import { useOnline } from '@/lib/use-online'
 
@@ -78,7 +79,7 @@ function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): Re
     }
   })
   const timeZone = useMemo(() => currentTimeZone(), [])
-  const currentDate = useMemo(() => todayInTimeZone(timeZone), [timeZone])
+  const currentDate = useTodayInTimeZone(timeZone)
   const sidebarDate = sidebarLocation.date ?? currentDate
   const matchdayActive = sidebarLocation.pathname === '/'
 

@@ -3,9 +3,11 @@ import { z } from 'zod'
 import { FixturesPage } from '@/features/fixtures/fixtures-page'
 import { currentTimeZone, isIsoDate, todayInTimeZone } from '@/lib/date'
 
-const defaultDate = todayInTimeZone(currentTimeZone())
 const fixtureSearchSchema = z.object({
-  date: z.string().refine(isIsoDate).catch(defaultDate).default(defaultDate)
+  date: z.preprocess(
+    (value) => (isIsoDate(value) ? value : todayInTimeZone(currentTimeZone())),
+    z.string()
+  )
 })
 
 export const Route = createFileRoute('/')({

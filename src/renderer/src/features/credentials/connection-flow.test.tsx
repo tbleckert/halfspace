@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import {
   createMemoryHistory,
   createRootRoute,
@@ -8,9 +8,10 @@ import {
   createRouter,
   RouterProvider
 } from '@tanstack/react-router'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppShell } from '@/components/app-shell'
 import { SettingsPage } from '@/features/settings/settings-page'
+import { currentTimeZone, isoDateInTimeZone } from '@/lib/date'
 import { ConnectionStateProvider } from './connection-state-provider'
 
 const getConnectionState = vi.fn()
@@ -56,6 +57,8 @@ beforeEach(() => {
     }
   }
 })
+
+afterEach(() => vi.restoreAllMocks())
 
 describe('Sportmonks connection flow', () => {
   it('gates the workspace until setup and returns to setup after disconnecting', async () => {
@@ -142,5 +145,59 @@ describe('Sportmonks connection flow', () => {
 
     expect(await screen.findByRole('heading', { name: 'Settings' })).toBeDefined()
     expect(screen.getByText('Fixture limit reached')).toBeDefined()
+  })
+
+  it('updates the Matchday link when the calendar date changes while the app remains open', async () => {
+    getConnectionState.mockResolvedValue({ configured: true })
+    const timeZone = currentTimeZone()
+    const firstTimestamp = Date.UTC(2026, 7, 30, 12)
+    const nextTimestamp = Date.UTC(2026, 7, 31, 12)
+    let now = firstTimestamp
+    vi.spyOn(Date, 'now').mockImplementation(() => now)
+
+    const rootRoute = createRootRoute({
+      component: () => (
+        <ConnectionStateProvider>
+          <AppShell />
+        </ConnectionStateProvider>
+      )
+    })
+    const indexRoute = createRoute({
+      getParentRoute: () => rootRoute,
+      path: '/',
+      component: () => <h1>Matchday</h1>
+    })
+    const settingsRoute = createRoute({
+      getParentRoute: () => rootRoute,
+      path: 'settings',
+      component: () => <SettingsPage />
+    })
+    const router = createRouter({
+      routeTree: rootRoute.addChildren([indexRoute, settingsRoute]),
+      history: createMemoryHistory({ initialEntries: ['/'] })
+    })
+
+    render(<RouterProvider router={router} />)
+
+    expect(await screen.findByRole('heading', { name: 'Matchday' })).toBeDefined()
+    expect(screen.getByRole('link', { name: 'Matchday' }).getAttribute('href')).toContain(
+      `date=${isoDateInTimeZone(firstTimestamp, timeZone)}`
+    )
+
+    now = nextTimestamp
+    fireEvent(window, new Event('focus'))
+
+    await waitFor(() =>
+      expect(screen.getByRole('link', { name: 'Matchday' }).getAttribute('href')).toContain(
+        `date=${isoDateInTimeZone(nextTimestamp, timeZone)}`
+      )
+    )
+
+    fireEvent.click(screen.getByRole('link', { name: 'Settings' }))
+
+    expect(await screen.findByRole('heading', { name: 'Settings' })).toBeDefined()
+    expect(screen.getByRole('link', { name: 'Matchday' }).getAttribute('href')).toContain(
+      `date=${isoDateInTimeZone(nextTimestamp, timeZone)}`
+    )
   })
 })

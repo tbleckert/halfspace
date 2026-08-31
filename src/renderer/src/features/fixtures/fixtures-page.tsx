@@ -14,8 +14,9 @@ import { prefetchCompetitionWorkspace } from '@/features/competitions/use-compet
 import { useCompetitions } from '@/features/competitions/use-competitions'
 import { TeamLogo } from '@/features/teams/team-logo'
 import { cn } from '@/lib/utils'
-import { currentTimeZone, formatFixtureTime, todayInTimeZone } from '@/lib/date'
+import { currentTimeZone, formatFixtureTime } from '@/lib/date'
 import { intentPrefetchProps } from '@/lib/prefetch'
+import { useTodayInTimeZone } from '@/lib/use-today'
 import { useOnline } from '@/lib/use-online'
 
 interface FixturesPageProps {
@@ -25,6 +26,7 @@ interface FixturesPageProps {
 export function FixturesPage({ date }: FixturesPageProps): React.JSX.Element {
   const navigate = useNavigate({ from: '/' })
   const timeZone = useMemo(() => currentTimeZone(), [])
+  const today = useTodayInTimeZone(timeZone)
   const online = useOnline()
   const { cached, refreshing, error, refresh } = useFixtures(date, timeZone, true)
   const { cached: competitionCatalog } = useCompetitions(false)
@@ -58,6 +60,19 @@ export function FixturesPage({ date }: FixturesPageProps): React.JSX.Element {
               })
             }}
           />
+          {date !== today && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() =>
+                void navigate({
+                  search: (previous) => ({ ...previous, date: today })
+                })
+              }
+            >
+              Today
+            </Button>
+          )}
           <Button
             aria-label="Refresh fixtures"
             disabled={refreshing}
@@ -116,19 +131,6 @@ export function FixturesPage({ date }: FixturesPageProps): React.JSX.Element {
             </Card>
           ))}
         </div>
-      )}
-
-      {date !== todayInTimeZone(timeZone) && (
-        <button
-          className="self-start text-sm font-medium text-primary hover:underline"
-          onClick={() =>
-            void navigate({
-              search: (previous) => ({ ...previous, date: todayInTimeZone(timeZone) })
-            })
-          }
-        >
-          Return to today
-        </button>
       )}
     </div>
   )

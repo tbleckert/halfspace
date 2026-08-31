@@ -74,6 +74,10 @@ abstractions.
   live ping beside the match minute or phase, or the scheduled kickoff time. Do not repeat the
   state in a separate badge. Use monospaced tabular typography for row status, time, minute, and
   score. The fixture hero may pair its live ping with a visible status label.
+- Treat “today” as live calendar state rather than a value captured when a module or app shell
+  mounts. Refresh it across midnight and when the app regains focus, and use the current day when
+  returning to Matchday from a page without date context. Keep the Today action beside the date
+  control.
 - Matchday competition groups use the shared `Card`, `CardHeader`, and `CardTitle` hierarchy. Keep
   headers on the normal card surface rather than filling them with solid brand color. Use a muted
   outer border and header divider, and link each competition name together with its logo. Use the
