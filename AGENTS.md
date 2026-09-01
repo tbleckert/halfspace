@@ -71,6 +71,8 @@ abstractions.
   horizontal pitch, mirrored from their own goals. Use nested lineup portraits, link every player,
   and annotate goals, assists, cards, missed penalties, and substitutions from fixture events. Keep
   both benches together below the pitch, and fall back to lists when formation data is incomplete.
+- Give lineup portraits solid warm-white circular backplates with a subtle shadow rather than
+  outline rings. Keep shirt numbers and event annotations offset as separate, smaller markers.
 - Keep provider rate limits distinct from connectivity. Show connectivity persistently in the
   upper-right app chrome and place a compact rate-limit status beside it, retain cached data, and
   remove the status automatically when the limit resets. Use Sportmonks' exact reset time when

@@ -806,7 +806,7 @@ function FormationPlayer({
     >
       <span className="relative">
         <PlayerPhoto
-          className="size-10 rounded-full border-2 border-white/85 bg-white/15 text-white/70 shadow-sm sm:size-11"
+          className="size-10 rounded-full bg-[#fffdfa] text-slate-500 shadow-sm sm:size-11"
           imagePath={entry.player?.image_path ?? null}
           online={online}
         />
@@ -893,7 +893,7 @@ function BenchPlayer({
     >
       <span className="relative">
         <PlayerPhoto
-          className="size-10 rounded-full border bg-background sm:size-11"
+          className="size-10 rounded-full bg-[#fffdfa] text-slate-500 shadow-xs sm:size-11"
           imagePath={entry.player?.image_path ?? null}
           online={online}
         />
@@ -948,7 +948,7 @@ function LineupGroup({
               </span>
               <span className="relative">
                 <PlayerPhoto
-                  className="size-8 rounded-full border bg-background"
+                  className="size-8 rounded-full bg-[#fffdfa] text-slate-500 shadow-xs"
                   imagePath={entry.player?.image_path ?? null}
                   online={online}
                 />
