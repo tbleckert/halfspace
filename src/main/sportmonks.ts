@@ -219,7 +219,8 @@ const lineupSchema = z
     formation_field: z.string().nullable().optional(),
     formation_position: z.number().int().nullable().optional(),
     player_name: z.string(),
-    jersey_number: z.number().int().nullable()
+    jersey_number: z.number().int().nullable(),
+    player: playerSchema.nullable().optional()
   })
   .passthrough()
 
@@ -258,6 +259,7 @@ const eventSchema = z
     addition: z.string().nullable().optional(),
     minute: z.number().int(),
     extra_minute: z.number().int().nullable().optional(),
+    sort_order: z.number().int().nullable().optional(),
     injured: z.boolean().nullable().optional(),
     rescinded: z.boolean().nullable().optional(),
     type: typeSchema.nullable().optional(),
@@ -952,7 +954,7 @@ export async function fetchFixtureById(
   const url = new URL(`${apiBaseUrl}/fixtures/${input.fixtureId}`)
   url.searchParams.set(
     'include',
-    'participants;league;state;scores;periods;venue;stage;round;lineups;events.type;events.player;events.relatedPlayer;statistics.type'
+    'participants;league;state;scores;periods;venue;stage;round;lineups.player;events.type;events.player;events.relatedPlayer;statistics.type'
   )
 
   let response: Response

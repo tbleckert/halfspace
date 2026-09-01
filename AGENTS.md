@@ -67,6 +67,10 @@ abstractions.
 - Sportmonks fixture detail owns events, statistics, and lineups; fixture list refreshes must
   preserve that richer cached detail. Fetch and cache the much larger odds payload only when the
   Odds view opens.
+- Render both complete starting XIs from Sportmonks `formation_field` coordinates on one shared
+  horizontal pitch, mirrored from their own goals. Use nested lineup portraits, link every player,
+  and annotate goals, assists, cards, missed penalties, and substitutions from fixture events. Keep
+  both benches together below the pitch, and fall back to lists when formation data is incomplete.
 - Keep provider rate limits distinct from connectivity. Show connectivity persistently in the
   upper-right app chrome and place a compact rate-limit status beside it, retain cached data, and
   remove the status automatically when the limit resets. Use Sportmonks' exact reset time when
@@ -93,6 +97,7 @@ abstractions.
   than giving it separate oversized brand treatment.
 - Derive live match time from Sportmonks periods rather than elapsed wall-clock time.
 - Fixture timelines include the event player relationship so player portraits can accompany events.
+  Respect Sportmonks `sort_order` when sequencing events that share a match minute.
 - Fetch fixture odds lazily from the dedicated pre-match endpoint. Its response is a single,
   non-paginated payload even when other Sportmonks collections paginate.
 - Do not infer player appearances from team fixtures or bench selection. Name lineup data for what

@@ -329,6 +329,7 @@ export interface SportmonksEvent {
   addition?: string | null
   minute: number
   extra_minute?: number | null
+  sort_order?: number | null
   injured?: boolean | null
   rescinded?: boolean | null
   type?: SportmonksType | null
@@ -421,6 +422,7 @@ export interface SportmonksLineup {
   formation_position?: number | null
   player_name: string
   jersey_number: number | null
+  player?: SportmonksPlayer | null
 }
 
 export interface SportmonksStandingContext {
