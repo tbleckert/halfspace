@@ -5,6 +5,11 @@ import { Skeleton } from '@/components/ui/skeleton'
 import type { CachedTransfer } from '@/data/db'
 import { TeamLogo } from '@/features/teams/team-logo'
 import { prefetchTeamEntity } from '@/features/teams/use-team'
+import {
+  formatTransferDate,
+  transferLabel,
+  transferTimestamp
+} from '@/features/transfers/transfer-display'
 import { intentPrefetchProps } from '@/lib/prefetch'
 
 export function PlayerCareer({
@@ -118,28 +123,6 @@ function TransferTeam({
       <span className="truncate text-sm">{team.name}</span>
     </Link>
   )
-}
-
-function transferLabel(transfer: CachedTransfer): string {
-  if (transfer.raw.career_ended) return 'Career ended'
-  return transfer.raw.type?.name ?? 'Transfer'
-}
-
-function transferTimestamp(value: string): number {
-  const timestamp = new Date(`${value}T00:00:00Z`).getTime()
-  return Number.isNaN(timestamp) ? 0 : timestamp
-}
-
-function formatTransferDate(value: string): string {
-  const timestamp = transferTimestamp(value)
-  if (timestamp === 0) return value
-
-  return new Intl.DateTimeFormat(undefined, {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'UTC'
-  }).format(timestamp)
 }
 
 function PlayerCareerSkeleton(): React.JSX.Element {

@@ -9,7 +9,7 @@ import type {
   PlayerAppearancesRefresh,
   PlayerRefresh,
   PlayerStatisticsRefresh,
-  PlayerTransfersRefresh,
+  TransfersRefresh,
   RefreshCompetitionFixturesInput,
   RefreshFixtureHeadToHeadInput,
   RefreshPlayerAppearancesInput,
@@ -42,6 +42,7 @@ import {
   readTeamIdentity,
   readTeamSquad,
   readTeamStatistics,
+  readTeamTransfers,
   readVenueIdentity,
   readVenueTeams,
   setCompetitionPinned,
@@ -63,6 +64,7 @@ import {
   writeTeamRefresh,
   writeTeamSquadRefresh,
   writeTeamStatisticsRefresh,
+  writeTeamTransfersRefresh,
   writeVenueRefresh
 } from './db'
 
@@ -96,7 +98,8 @@ beforeEach(async () => {
       db.playerAppearanceQueries,
       db.playerStatisticsQueries,
       db.transfers,
-      db.playerTransferQueries
+      db.playerTransferQueries,
+      db.teamTransferQueries
     ],
     async () => {
       await db.fixtures.clear()
@@ -124,6 +127,7 @@ beforeEach(async () => {
       await db.playerStatisticsQueries.clear()
       await db.transfers.clear()
       await db.playerTransferQueries.clear()
+      await db.teamTransferQueries.clear()
     }
   )
 })
@@ -714,7 +718,7 @@ describe('squad and player cache', () => {
   })
 
   it('stores a player career against normalized transfers and teams', async () => {
-    const refresh: PlayerTransfersRefresh = {
+    const refresh: TransfersRefresh = {
       fetchedAt: Date.UTC(2026, 8, 1, 10),
       pageCount: 1,
       transfers: [
@@ -743,6 +747,41 @@ describe('squad and player cache', () => {
 
     expect(cached.query?.transferIds).toEqual([184008])
     expect(cached.transfers[0].raw.fromTeam?.name).toBe('Feyenoord')
+    expect((await db.teams.get(2345))?.name).toBe('Feyenoord')
+  })
+
+  it('stores team transfers against normalized players and teams', async () => {
+    const refresh: TransfersRefresh = {
+      fetchedAt: Date.UTC(2026, 8, 1, 10),
+      pageCount: 1,
+      transfers: [
+        {
+          id: 184009,
+          sport_id: 1,
+          player_id: 6306068,
+          type_id: 218,
+          from_team_id: 2345,
+          to_team_id: 9,
+          position_id: 26,
+          detailed_position_id: 153,
+          date: '2024-07-30',
+          career_ended: false,
+          completed: true,
+          amount: null,
+          player: basePlayer(),
+          type: { id: 218, name: 'Transfer' },
+          fromTeam: transferTeam(2345, 'Feyenoord'),
+          toTeam: transferTeam(9, 'Manchester City')
+        }
+      ]
+    }
+
+    await writeTeamTransfersRefresh({ teamId: 9 }, refresh)
+    const cached = await readTeamTransfers({ teamId: 9 })
+
+    expect(cached.query?.transferIds).toEqual([184009])
+    expect(cached.transfers[0].raw.player?.display_name).toBe('Quinten Timber')
+    expect((await db.players.get(6306068))?.displayName).toBe('Quinten Timber')
     expect((await db.teams.get(2345))?.name).toBe('Feyenoord')
   })
 })

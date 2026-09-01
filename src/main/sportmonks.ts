@@ -10,7 +10,7 @@ import type {
   PlayerAppearancesRefresh,
   PlayerRefresh,
   PlayerStatisticsRefresh,
-  PlayerTransfersRefresh,
+  TransfersRefresh,
   RefreshCompetitionFixturesInput,
   RefreshCompetitionSeasonsInput,
   RefreshFixtureHeadToHeadInput,
@@ -26,6 +26,7 @@ import type {
   RefreshTeamInput,
   RefreshTeamSquadInput,
   RefreshTeamStatisticsInput,
+  RefreshTeamTransfersInput,
   RefreshVenueInput,
   SeasonStatisticsRefresh,
   StandingsRefresh,
@@ -142,7 +143,7 @@ const teamSchema = z
   .object({
     id: z.number().int(),
     sport_id: z.number().int(),
-    country_id: z.number().int(),
+    country_id: z.number().int().nullable(),
     venue_id: z.number().int().nullable(),
     gender: z.string().nullable(),
     name: z.string(),
@@ -248,6 +249,7 @@ const transferSchema = z
     amount: z.union([z.number(), z.string()]).nullable().optional().default(null),
     completed_at: z.string().nullable().optional(),
     type: typeSchema.nullable().optional(),
+    player: playerSchema.nullable().optional(),
     fromTeam: teamSchema.nullable().optional(),
     toTeam: teamSchema.nullable().optional(),
     fromteam: teamSchema.nullable().optional(),
@@ -949,6 +951,10 @@ export function validatePlayerTransfersInput(value: unknown): RefreshPlayerTrans
   return validatePlayerInput(value)
 }
 
+export function validateTeamTransfersInput(value: unknown): RefreshTeamTransfersInput {
+  return validateTeamInput(value)
+}
+
 export function validateEntitySearchInput(value: unknown): EntitySearchInput {
   const query =
     value && typeof value === 'object' ? (value as { query?: unknown }).query : undefined
@@ -1237,16 +1243,43 @@ export async function fetchPlayerTransfers(
   input: RefreshPlayerTransfersInput,
   token: string,
   fetcher: typeof fetch = fetch
-): Promise<PlayerTransfersRefresh> {
+): Promise<TransfersRefresh> {
+  return fetchTransfers(
+    `/transfers/players/${input.playerId}`,
+    'type;fromTeam;toTeam',
+    token,
+    fetcher
+  )
+}
+
+export async function fetchTeamTransfers(
+  input: RefreshTeamTransfersInput,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<TransfersRefresh> {
+  return fetchTransfers(
+    `/transfers/teams/${input.teamId}`,
+    'player;type;fromTeam;toTeam',
+    token,
+    fetcher
+  )
+}
+
+async function fetchTransfers(
+  path: string,
+  includes: string,
+  token: string,
+  fetcher: typeof fetch
+): Promise<TransfersRefresh> {
   const fetchedAt = Date.now()
   const transfers: SportmonksTransfer[] = []
   let page = 1
-  let rateLimit: PlayerTransfersRefresh['rateLimit']
+  let rateLimit: TransfersRefresh['rateLimit']
   let message: string | undefined
 
   while (page <= maximumPages) {
-    const url = new URL(`${apiBaseUrl}/transfers/players/${input.playerId}`)
-    url.searchParams.set('include', 'type;fromTeam;toTeam')
+    const url = new URL(`${apiBaseUrl}${path}`)
+    url.searchParams.set('include', includes)
     url.searchParams.set('order', 'desc')
     url.searchParams.set('per_page', '50')
     url.searchParams.set('page', String(page))

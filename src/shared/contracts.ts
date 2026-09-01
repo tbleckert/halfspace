@@ -15,6 +15,7 @@ export const ipcChannels = {
   refreshTeamFixtures: 'sportmonks:refresh-team-fixtures',
   refreshTeamSquad: 'sportmonks:refresh-team-squad',
   refreshTeamStatistics: 'sportmonks:refresh-team-statistics',
+  refreshTeamTransfers: 'sportmonks:refresh-team-transfers',
   refreshVenue: 'sportmonks:refresh-venue',
   refreshPlayer: 'sportmonks:refresh-player',
   refreshPlayerAppearances: 'sportmonks:refresh-player-appearances',
@@ -138,6 +139,10 @@ export interface RefreshPlayerTransfersInput {
   playerId: number
 }
 
+export interface RefreshTeamTransfersInput {
+  teamId: number
+}
+
 export interface EntitySearchInput {
   query: string
 }
@@ -203,7 +208,7 @@ export interface SportmonksVenue {
 export interface SportmonksTeam {
   id: number
   sport_id: number
-  country_id: number
+  country_id: number | null
   venue_id: number | null
   gender: string | null
   name: string
@@ -239,6 +244,7 @@ export interface SportmonksTransfer {
   amount: number | string | null
   completed_at?: string | null
   type?: SportmonksType | null
+  player?: SportmonksPlayer | null
   fromTeam?: SportmonksTeam | null
   toTeam?: SportmonksTeam | null
 }
@@ -676,7 +682,7 @@ export interface PlayerStatisticsRefresh {
   message?: string
 }
 
-export interface PlayerTransfersRefresh {
+export interface TransfersRefresh {
   transfers: SportmonksTransfer[]
   fetchedAt: number
   pageCount: number
@@ -713,6 +719,7 @@ export interface HalfspaceApi {
     refreshTeamFixtures(input: RefreshTeamFixturesInput): Promise<Result<FixtureRefresh>>
     refreshTeamSquad(input: RefreshTeamSquadInput): Promise<Result<TeamSquadRefresh>>
     refreshTeamStatistics(input: RefreshTeamStatisticsInput): Promise<Result<TeamStatisticsRefresh>>
+    refreshTeamTransfers(input: RefreshTeamTransfersInput): Promise<Result<TransfersRefresh>>
     refreshVenue(input: RefreshVenueInput): Promise<Result<VenueRefresh>>
     refreshPlayer(input: RefreshPlayerInput): Promise<Result<PlayerRefresh>>
     refreshPlayerAppearances(
@@ -721,9 +728,7 @@ export interface HalfspaceApi {
     refreshPlayerStatistics(
       input: RefreshPlayerStatisticsInput
     ): Promise<Result<PlayerStatisticsRefresh>>
-    refreshPlayerTransfers(
-      input: RefreshPlayerTransfersInput
-    ): Promise<Result<PlayerTransfersRefresh>>
+    refreshPlayerTransfers(input: RefreshPlayerTransfersInput): Promise<Result<TransfersRefresh>>
     getRateLimit(): Promise<SportmonksRateLimit | null>
     onRateLimitChange(listener: (rateLimit: SportmonksRateLimit) => void): () => void
     searchEntities(input: EntitySearchInput): Promise<Result<EntitySearchRefresh>>

@@ -6,9 +6,16 @@ import type {
   Result,
   TeamRefresh,
   TeamSquadRefresh,
-  TeamStatisticsRefresh
+  TeamStatisticsRefresh,
+  TransfersRefresh
 } from '@shared/contracts'
-import { db, readTeamFixtureQuery, readTeamIdentity, readTeamStatistics } from '@/data/db'
+import {
+  db,
+  readTeamFixtureQuery,
+  readTeamIdentity,
+  readTeamStatistics,
+  readTeamTransfers
+} from '@/data/db'
 import { currentTimeZone } from '@/lib/date'
 import {
   invalidateTeamRefreshes,
@@ -16,6 +23,7 @@ import {
   prefetchTeamFixtures,
   prefetchTeamSquad,
   prefetchTeamStatistics,
+  prefetchTeamTransfers,
   refreshTeamEntity,
   teamFixtureInput
 } from './use-team'
@@ -31,7 +39,9 @@ beforeEach(async () => {
       db.teamFixtureQueries,
       db.squadEntries,
       db.teamSquadQueries,
-      db.teamStatisticsQueries
+      db.teamStatisticsQueries,
+      db.transfers,
+      db.teamTransferQueries
     ],
     async () => {
       await db.fixtures.clear()
@@ -40,6 +50,8 @@ beforeEach(async () => {
       await db.squadEntries.clear()
       await db.teamSquadQueries.clear()
       await db.teamStatisticsQueries.clear()
+      await db.transfers.clear()
+      await db.teamTransferQueries.clear()
     }
   )
 })
@@ -102,6 +114,20 @@ describe('team refresh', () => {
 
     expect(refreshTeamStatistics).toHaveBeenCalledTimes(1)
     expect(await readTeamStatistics(input)).not.toBeNull()
+  })
+
+  it('prefetches missing team transfers without refetching fresh data', async () => {
+    const input = { teamId: 9 }
+    const refreshTeamTransfers = vi
+      .fn()
+      .mockResolvedValue({ ok: true, data: teamTransfersRefresh() })
+    installHalfspace({ refreshTeamTransfers })
+
+    await prefetchTeamTransfers(input)
+    await prefetchTeamTransfers(input)
+
+    expect(refreshTeamTransfers).toHaveBeenCalledTimes(1)
+    expect((await readTeamTransfers(input)).query).not.toBeNull()
   })
 
   it('does not restore an old team after the credential changes', async () => {
@@ -167,6 +193,14 @@ function teamStatisticsRefresh(): TeamStatisticsRefresh {
   }
 }
 
+function teamTransfersRefresh(): TransfersRefresh {
+  return {
+    fetchedAt: Date.now(),
+    pageCount: 1,
+    transfers: []
+  }
+}
+
 function deferred<T>(): {
   promise: Promise<T>
   resolve: (value: T) => void
@@ -200,6 +234,7 @@ function installHalfspace(overrides: Partial<Window['halfspace']['sportmonks']>)
       refreshTeamFixtures: vi.fn(),
       refreshTeamSquad: vi.fn(),
       refreshTeamStatistics: vi.fn(),
+      refreshTeamTransfers: vi.fn(),
       refreshVenue: vi.fn(),
       refreshPlayer: vi.fn(),
       refreshPlayerAppearances: vi.fn(),

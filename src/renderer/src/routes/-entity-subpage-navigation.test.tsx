@@ -132,6 +132,16 @@ describe('entity subpage navigation', () => {
 
     expect(screen.getByTestId('team-page').textContent).toBe('1:squad')
     expect(pageInstances.team).toBe(1)
+
+    await act(() =>
+      router.navigate({
+        to: '/teams/$teamId/transfers',
+        params: { teamId: '3603' }
+      })
+    )
+
+    expect(screen.getByTestId('team-page').textContent).toBe('1:transfers')
+    expect(pageInstances.team).toBe(1)
   })
 
   it('keeps the fixture page mounted while its active view changes', async () => {

@@ -45,16 +45,19 @@ import { intentPrefetchProps } from '@/lib/prefetch'
 import { useOnline } from '@/lib/use-online'
 import { cn } from '@/lib/utils'
 import { TeamLogo } from './team-logo'
+import { TeamTransfers } from './team-transfers'
 import {
   prefetchTeamEntity,
   prefetchTeamFixtures,
   prefetchTeamSquad,
   prefetchTeamStatistics,
+  prefetchTeamTransfers,
   teamFixtureInput,
   useTeamEntity,
   useTeamFixtures,
   useTeamSquad,
-  useTeamStatistics
+  useTeamStatistics,
+  useTeamTransfers
 } from './use-team'
 
 interface TeamCompetitionContext {
@@ -65,7 +68,7 @@ interface TeamCompetitionContext {
   standing: CachedStanding | null
 }
 
-type TeamView = 'fixtures' | 'overview' | 'squad' | 'stats'
+type TeamView = 'fixtures' | 'overview' | 'squad' | 'stats' | 'transfers'
 
 export function TeamPage({
   competitionId,
@@ -131,6 +134,7 @@ export function TeamPage({
     online &&
       view !== 'squad' &&
       view !== 'stats' &&
+      view !== 'transfers' &&
       (!requestedSeasonId || competitionContexts !== undefined)
   )
   const squad = useTeamSquad(validTeamId ? parsedTeamId : null, online && view === 'squad')
@@ -143,6 +147,11 @@ export function TeamPage({
     [parsedTeamId, statisticsSeasonId, validTeamId]
   )
   const statistics = useTeamStatistics(statisticsInput, online && view === 'stats')
+  const transferInput = useMemo(
+    () => (validTeamId ? { teamId: parsedTeamId } : null),
+    [parsedTeamId, validTeamId]
+  )
+  const transfers = useTeamTransfers(transferInput, online && view === 'transfers')
   const fixtureSections = useMemo(
     () => splitEntityFixtures(fixtures.cached?.fixtures ?? [], pageOpenedAt),
     [fixtures.cached?.fixtures, pageOpenedAt]
@@ -157,14 +166,18 @@ export function TeamPage({
       ? squad.refreshing
       : view === 'stats'
         ? statistics.refreshing || competitionSeasons.refreshing
-        : fixtures.refreshing)
+        : view === 'transfers'
+          ? transfers.refreshing
+          : fixtures.refreshing)
   const errors = [
     team.error,
     view === 'squad'
       ? squad.error
       : view === 'stats'
         ? (statistics.error ?? competitionSeasons.error)
-        : fixtures.error
+        : view === 'transfers'
+          ? transfers.error
+          : fixtures.error
   ].filter((error): error is string => Boolean(error))
   const identity = team.cached?.team?.raw ?? team.cached?.participant
 
@@ -194,7 +207,9 @@ export function TeamPage({
         ? squad.refresh()
         : view === 'stats'
           ? statistics.refresh()
-          : fixtures.refresh()
+          : view === 'transfers'
+            ? transfers.refresh()
+            : fixtures.refresh()
     ])
   }
 
@@ -288,6 +303,7 @@ export function TeamPage({
           season={requestedSeasonId}
           statisticsInput={statisticsInput}
           teamId={parsedTeamId}
+          transferInput={transferInput}
           view={view}
         />
       </div>
@@ -384,6 +400,18 @@ export function TeamPage({
           onSeasonChange={selectStatisticsSeason}
         />
       )}
+
+      {view === 'transfers' && (
+        <TeamTransfers
+          competitionId={competitionId}
+          date={fixtureWindowStart}
+          loading={transfers.refreshing}
+          online={online}
+          season={requestedSeasonId}
+          teamId={parsedTeamId}
+          transfers={transfers.cached?.transfers}
+        />
+      )}
     </div>
   )
 }
@@ -396,6 +424,7 @@ function TeamNavigation({
   season,
   statisticsInput,
   teamId,
+  transferInput,
   view
 }: {
   competitionId?: number
@@ -405,6 +434,7 @@ function TeamNavigation({
   season?: number
   statisticsInput: { seasonId: number; teamId: number } | null
   teamId: number
+  transferInput: Parameters<typeof prefetchTeamTransfers>[0] | null
   view: TeamView
 }): React.JSX.Element {
   return (
@@ -438,6 +468,18 @@ function TeamNavigation({
         {...intentPrefetchProps(online, () => prefetchTeamSquad(teamId))}
       >
         Squad
+      </Link>
+      <Link
+        aria-current={view === 'transfers' ? 'page' : undefined}
+        to="/teams/$teamId/transfers"
+        params={{ teamId: String(teamId) }}
+        search={{ competition: competitionId, date, season }}
+        className={entitySubpageNavigationItemClassName(view === 'transfers')}
+        {...intentPrefetchProps(online && transferInput !== null, () =>
+          transferInput ? prefetchTeamTransfers(transferInput) : Promise.resolve()
+        )}
+      >
+        Transfers
       </Link>
       <Link
         aria-current={view === 'stats' ? 'page' : undefined}

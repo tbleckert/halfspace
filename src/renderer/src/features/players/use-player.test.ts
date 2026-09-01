@@ -4,7 +4,7 @@ import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type {
   PlayerRefresh,
   PlayerStatisticsRefresh,
-  PlayerTransfersRefresh,
+  TransfersRefresh,
   Result
 } from '@shared/contracts'
 import { db, readPlayerIdentity, readPlayerStatistics, readPlayerTransfers } from '@/data/db'
@@ -139,7 +139,7 @@ function playerStatisticsRefresh(): PlayerStatisticsRefresh {
   }
 }
 
-function playerTransfersRefresh(): PlayerTransfersRefresh {
+function playerTransfersRefresh(): TransfersRefresh {
   return {
     fetchedAt: Date.now(),
     pageCount: 1,
@@ -195,6 +195,7 @@ function installHalfspace(overrides: Partial<Window['halfspace']['sportmonks']>)
       refreshTeamFixtures: vi.fn(),
       refreshTeamSquad: vi.fn(),
       refreshTeamStatistics: vi.fn(),
+      refreshTeamTransfers: vi.fn(),
       refreshVenue: vi.fn(),
       refreshPlayer: vi.fn(),
       refreshPlayerAppearances: vi.fn(),

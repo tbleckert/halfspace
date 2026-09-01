@@ -30,6 +30,7 @@ import { Route as PlayersPlayerIdStatsRouteImport } from './routes/players_.$pla
 import { Route as TeamsTeamIdFixturesRouteImport } from './routes/teams_.$teamId.fixtures'
 import { Route as TeamsTeamIdSquadRouteImport } from './routes/teams_.$teamId.squad'
 import { Route as TeamsTeamIdStatsRouteImport } from './routes/teams_.$teamId.stats'
+import { Route as TeamsTeamIdTransfersRouteImport } from './routes/teams_.$teamId.transfers'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -142,6 +143,11 @@ const TeamsTeamIdStatsRoute = TeamsTeamIdStatsRouteImport.update({
   path: '/stats',
   getParentRoute: () => TeamsTeamIdRoute,
 } as any)
+const TeamsTeamIdTransfersRoute = TeamsTeamIdTransfersRouteImport.update({
+  id: '/transfers',
+  path: '/transfers',
+  getParentRoute: () => TeamsTeamIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -165,6 +171,7 @@ export interface FileRoutesByFullPath {
   '/teams/$teamId/fixtures': typeof TeamsTeamIdFixturesRoute
   '/teams/$teamId/squad': typeof TeamsTeamIdSquadRoute
   '/teams/$teamId/stats': typeof TeamsTeamIdStatsRoute
+  '/teams/$teamId/transfers': typeof TeamsTeamIdTransfersRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -188,6 +195,7 @@ export interface FileRoutesByTo {
   '/teams/$teamId/fixtures': typeof TeamsTeamIdFixturesRoute
   '/teams/$teamId/squad': typeof TeamsTeamIdSquadRoute
   '/teams/$teamId/stats': typeof TeamsTeamIdStatsRoute
+  '/teams/$teamId/transfers': typeof TeamsTeamIdTransfersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -212,6 +220,7 @@ export interface FileRoutesById {
   '/teams_/$teamId/fixtures': typeof TeamsTeamIdFixturesRoute
   '/teams_/$teamId/squad': typeof TeamsTeamIdSquadRoute
   '/teams_/$teamId/stats': typeof TeamsTeamIdStatsRoute
+  '/teams_/$teamId/transfers': typeof TeamsTeamIdTransfersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -237,6 +246,7 @@ export interface FileRouteTypes {
     | '/teams/$teamId/fixtures'
     | '/teams/$teamId/squad'
     | '/teams/$teamId/stats'
+    | '/teams/$teamId/transfers'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -260,6 +270,7 @@ export interface FileRouteTypes {
     | '/teams/$teamId/fixtures'
     | '/teams/$teamId/squad'
     | '/teams/$teamId/stats'
+    | '/teams/$teamId/transfers'
   id:
     | '__root__'
     | '/'
@@ -283,6 +294,7 @@ export interface FileRouteTypes {
     | '/teams_/$teamId/fixtures'
     | '/teams_/$teamId/squad'
     | '/teams_/$teamId/stats'
+    | '/teams_/$teamId/transfers'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -445,6 +457,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeamsTeamIdStatsRouteImport
       parentRoute: typeof TeamsTeamIdRoute
     }
+    '/teams_/$teamId/transfers': {
+      id: '/teams_/$teamId/transfers'
+      path: '/transfers'
+      fullPath: '/teams/$teamId/transfers'
+      preLoaderRoute: typeof TeamsTeamIdTransfersRouteImport
+      parentRoute: typeof TeamsTeamIdRoute
+    }
   }
 }
 
@@ -504,12 +523,14 @@ interface TeamsTeamIdRouteChildren {
   TeamsTeamIdFixturesRoute: typeof TeamsTeamIdFixturesRoute
   TeamsTeamIdSquadRoute: typeof TeamsTeamIdSquadRoute
   TeamsTeamIdStatsRoute: typeof TeamsTeamIdStatsRoute
+  TeamsTeamIdTransfersRoute: typeof TeamsTeamIdTransfersRoute
 }
 
 const TeamsTeamIdRouteChildren: TeamsTeamIdRouteChildren = {
   TeamsTeamIdFixturesRoute: TeamsTeamIdFixturesRoute,
   TeamsTeamIdSquadRoute: TeamsTeamIdSquadRoute,
   TeamsTeamIdStatsRoute: TeamsTeamIdStatsRoute,
+  TeamsTeamIdTransfersRoute: TeamsTeamIdTransfersRoute,
 }
 
 const TeamsTeamIdRouteWithChildren = TeamsTeamIdRoute._addFileChildren(

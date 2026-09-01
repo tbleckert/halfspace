@@ -52,7 +52,10 @@ abstractions.
   added. Make the active item prominent with the shared active-indicator treatment.
 - Keep competition and venue context cards plus compact upcoming and recent fixture snapshots on
   the team Overview. Fixtures browses the complete cached date window across competitions. Squad
-  uses the full content width.
+  uses the full content width. Transfers shows the complete team history with player-first rows,
+  explicit incoming and outgoing direction, the counterpart club, and direct player and team links.
+  Reuse the normalized transfer records shared with Player Career and never show amounts without a
+  trustworthy currency.
 - On the team Fixtures page, the visible date is the first day of the fixture window. Do not expose
   a hidden midpoint as the navigation date. Keep Overview centered on recent and upcoming fixtures.
 - Competition and team Stats are season-scoped entity views. Fetch league totals and team

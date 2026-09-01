@@ -9,7 +9,7 @@ import type {
   PlayerAppearancesRefresh,
   PlayerRefresh,
   PlayerStatisticsRefresh,
-  PlayerTransfersRefresh,
+  TransfersRefresh,
   RefreshCompetitionFixturesInput,
   RefreshFixtureHeadToHeadInput,
   RefreshPlayerAppearancesInput,
@@ -17,6 +17,7 @@ import type {
   RefreshPlayerTransfersInput,
   RefreshTeamFixturesInput,
   RefreshTeamStatisticsInput,
+  RefreshTeamTransfersInput,
   SeasonStatisticsRefresh,
   StandingsRefresh,
   SportmonksCompetition,
@@ -49,7 +50,7 @@ const venueCacheDuration = 24 * 60 * 60 * 1000
 const teamSquadCacheDuration = 60 * 60 * 1000
 const playerCacheDuration = 24 * 60 * 60 * 1000
 const playerAppearancesCacheDuration = 15 * 60 * 1000
-const playerTransfersCacheDuration = 24 * 60 * 60 * 1000
+const transfersCacheDuration = 24 * 60 * 60 * 1000
 const fixtureDetailCacheDuration = 5 * 60 * 1000
 const fixtureOddsCacheDuration = 5 * 60 * 1000
 const fixtureHeadToHeadCacheDuration = 6 * 60 * 60 * 1000
@@ -186,7 +187,7 @@ export interface CompetitionFixtureQuery {
 
 export interface CachedTeam {
   id: number
-  countryId: number
+  countryId: number | null
   venueId: number | null
   name: string
   imagePath: string | null
@@ -356,6 +357,17 @@ export interface PlayerTransferQuery {
   message?: string
 }
 
+export interface TeamTransferQuery {
+  teamId: number
+  transferIds: number[]
+  fetchedAt: number
+  staleAt: number
+  pageCount: number
+  rateLimitRemaining?: number
+  rateLimitResetsAt?: number
+  message?: string
+}
+
 export interface CompetitionCatalog {
   key: string
   competitionIds: number[]
@@ -409,6 +421,7 @@ class HalfspaceDatabase extends Dexie {
   playerStatisticsQueries!: Table<PlayerStatisticsQuery, string>
   transfers!: Table<CachedTransfer, number>
   playerTransferQueries!: Table<PlayerTransferQuery, number>
+  teamTransferQueries!: Table<TeamTransferQuery, number>
 
   constructor() {
     super('halfspace')
@@ -617,6 +630,10 @@ class HalfspaceDatabase extends Dexie {
     this.version(12).stores({
       transfers: 'id, playerId, fromTeamId, toTeamId, date',
       playerTransferQueries: '&playerId, staleAt'
+    })
+
+    this.version(13).stores({
+      teamTransferQueries: '&teamId, staleAt'
     })
   }
 }
@@ -1389,8 +1406,85 @@ export async function readPlayerTransfers(input: RefreshPlayerTransfersInput): P
 
 export async function writePlayerTransfersRefresh(
   input: RefreshPlayerTransfersInput,
-  refresh: PlayerTransfersRefresh
+  refresh: TransfersRefresh
 ): Promise<void> {
+  const { players, teams, transfers } = await normalizeTransferRefresh(refresh)
+  const query: PlayerTransferQuery = {
+    playerId: input.playerId,
+    transferIds: transfers.map(({ id }) => id),
+    fetchedAt: refresh.fetchedAt,
+    staleAt: refresh.fetchedAt + transfersCacheDuration,
+    pageCount: refresh.pageCount,
+    rateLimitRemaining: refresh.rateLimit?.remaining,
+    rateLimitResetsAt: refresh.rateLimit?.resetsAt,
+    message: refresh.message
+  }
+
+  await db.transaction(
+    'rw',
+    db.transfers,
+    db.playerTransferQueries,
+    db.teams,
+    db.players,
+    async () => {
+      await db.transfers.bulkPut(transfers)
+      await db.playerTransferQueries.put(query)
+      await db.teams.bulkPut(teams)
+      await db.players.bulkPut(players)
+    }
+  )
+}
+
+export async function readTeamTransfers(input: RefreshTeamTransfersInput): Promise<{
+  query: TeamTransferQuery | null
+  transfers: CachedTransfer[]
+}> {
+  const query = await db.teamTransferQueries.get(input.teamId)
+  if (!query) return { query: null, transfers: [] }
+
+  const transfers = (await db.transfers.bulkGet(query.transferIds)).filter(
+    (transfer): transfer is CachedTransfer => transfer !== undefined
+  )
+
+  return { query, transfers }
+}
+
+export async function writeTeamTransfersRefresh(
+  input: RefreshTeamTransfersInput,
+  refresh: TransfersRefresh
+): Promise<void> {
+  const { players, teams, transfers } = await normalizeTransferRefresh(refresh)
+  const query: TeamTransferQuery = {
+    teamId: input.teamId,
+    transferIds: transfers.map(({ id }) => id),
+    fetchedAt: refresh.fetchedAt,
+    staleAt: refresh.fetchedAt + transfersCacheDuration,
+    pageCount: refresh.pageCount,
+    rateLimitRemaining: refresh.rateLimit?.remaining,
+    rateLimitResetsAt: refresh.rateLimit?.resetsAt,
+    message: refresh.message
+  }
+
+  await db.transaction(
+    'rw',
+    db.transfers,
+    db.teamTransferQueries,
+    db.teams,
+    db.players,
+    async () => {
+      await db.transfers.bulkPut(transfers)
+      await db.teamTransferQueries.put(query)
+      await db.teams.bulkPut(teams)
+      await db.players.bulkPut(players)
+    }
+  )
+}
+
+async function normalizeTransferRefresh(refresh: TransfersRefresh): Promise<{
+  players: CachedPlayer[]
+  teams: CachedTeam[]
+  transfers: CachedTransfer[]
+}> {
   const transfers: CachedTransfer[] = refresh.transfers.map((transfer) => ({
     id: transfer.id,
     playerId: transfer.player_id,
@@ -1400,34 +1494,29 @@ export async function writePlayerTransfersRefresh(
     raw: transfer,
     fetchedAt: refresh.fetchedAt
   }))
-  const query: PlayerTransferQuery = {
-    playerId: input.playerId,
-    transferIds: transfers.map(({ id }) => id),
-    fetchedAt: refresh.fetchedAt,
-    staleAt: refresh.fetchedAt + playerTransfersCacheDuration,
-    pageCount: refresh.pageCount,
-    rateLimitRemaining: refresh.rateLimit?.remaining,
-    rateLimitResetsAt: refresh.rateLimit?.resetsAt,
-    message: refresh.message
-  }
   const includedTeams = new Map<number, SportmonksTeam>()
+  const includedPlayers = new Map<number, SportmonksPlayer>()
 
   for (const transfer of refresh.transfers) {
     if (transfer.fromTeam) includedTeams.set(transfer.fromTeam.id, transfer.fromTeam)
     if (transfer.toTeam) includedTeams.set(transfer.toTeam.id, transfer.toTeam)
+    if (transfer.player) includedPlayers.set(transfer.player.id, transfer.player)
   }
 
   const teamValues = [...includedTeams.values()]
-  const existingTeams = await db.teams.bulkGet(teamValues.map(({ id }) => id))
+  const playerValues = [...includedPlayers.values()]
+  const [existingTeams, existingPlayers] = await Promise.all([
+    db.teams.bulkGet(teamValues.map(({ id }) => id)),
+    db.players.bulkGet(playerValues.map(({ id }) => id))
+  ])
   const teams = teamValues.map((team, index) =>
     toCachedTransferTeam(team, existingTeams[index], refresh.fetchedAt)
   )
+  const players = playerValues.map((player, index) =>
+    toCachedSquadPlayer(player, existingPlayers[index], refresh.fetchedAt)
+  )
 
-  await db.transaction('rw', db.transfers, db.playerTransferQueries, db.teams, async () => {
-    await db.transfers.bulkPut(transfers)
-    await db.playerTransferQueries.put(query)
-    await db.teams.bulkPut(teams)
-  })
+  return { players, teams, transfers }
 }
 
 export function teamFixtureQueryKey(input: RefreshTeamFixturesInput): string {
@@ -1576,7 +1665,10 @@ export async function clearSportmonksCache(): Promise<void> {
       db.teamSquadQueries,
       db.playerAppearances,
       db.playerAppearanceQueries,
-      db.playerStatisticsQueries
+      db.playerStatisticsQueries,
+      db.transfers,
+      db.playerTransferQueries,
+      db.teamTransferQueries
     ],
     async () => {
       await db.fixtures.clear()
@@ -1601,6 +1693,9 @@ export async function clearSportmonksCache(): Promise<void> {
       await db.playerAppearances.clear()
       await db.playerAppearanceQueries.clear()
       await db.playerStatisticsQueries.clear()
+      await db.transfers.clear()
+      await db.playerTransferQueries.clear()
+      await db.teamTransferQueries.clear()
     }
   )
 }

@@ -24,6 +24,7 @@ import {
   fetchTeamFixtures,
   fetchTeamSquad,
   fetchTeamStatistics,
+  fetchTeamTransfers,
   fetchVenueById,
   validateCompetitionFixturesInput,
   validateCompetitionSeasonsInput,
@@ -40,6 +41,7 @@ import {
   validateTeamFixturesInput,
   validateTeamInput,
   validateTeamStatisticsInput,
+  validateTeamTransfersInput,
   validateVenueInput,
   validateToken
 } from './sportmonks'
@@ -878,9 +880,65 @@ describe('Sportmonks client', () => {
     expect(fetcher).toHaveBeenCalledTimes(1)
   })
 
+  it('fetches a complete team transfer history with player and team context', async () => {
+    const fetcher = vi.fn<typeof fetch>(async (input) => {
+      const page = Number(new URL(input.toString()).searchParams.get('page'))
+
+      return Response.json({
+        data: [
+          {
+            id: 100 + page,
+            sport_id: 1,
+            player_id: 6306068,
+            type_id: 218,
+            from_team_id: page === 1 ? 625 : 37,
+            to_team_id: page === 1 ? 37 : 4070,
+            position_id: 26,
+            detailed_position_id: 153,
+            date: page === 1 ? '2024-07-30' : '2023-08-28',
+            career_ended: false,
+            completed: true,
+            amount: null,
+            player: makePlayer(),
+            type: { id: 218, name: 'Transfer' },
+            fromteam: transferTeam(page === 1 ? 625 : 37, page === 1 ? 'Juventus' : 'Roma'),
+            toteam: {
+              ...transferTeam(page === 1 ? 37 : 4070, page === 1 ? 'Roma' : 'Frosinone'),
+              country_id: page === 1 ? 462 : null
+            }
+          }
+        ],
+        pagination: { current_page: page, has_more: page === 1 },
+        rate_limit: { remaining: 2_990 - page, resets_in_seconds: 3_600 }
+      })
+    })
+
+    const refresh = await fetchTeamTransfers({ teamId: 37 }, 'private-token', fetcher)
+
+    expect(refresh.transfers.map(({ date }) => date)).toEqual(['2024-07-30', '2023-08-28'])
+    expect(refresh.transfers[0].player?.display_name).toBe('Quinten Timber')
+    expect(refresh.transfers[0].fromTeam?.name).toBe('Juventus')
+    expect(refresh.transfers[1].toTeam?.country_id).toBeNull()
+    expect(refresh.pageCount).toBe(2)
+    expect(fetcher).toHaveBeenCalledTimes(2)
+
+    const [input, init] = fetcher.mock.calls[0]
+    const url = new URL(input.toString())
+    expect(url.pathname).toBe('/v3/football/transfers/teams/37')
+    expect(url.searchParams.get('include')).toBe('player;type;fromTeam;toTeam')
+    expect(url.searchParams.get('order')).toBe('desc')
+    expect(url.searchParams.get('per_page')).toBe('50')
+    expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')
+  })
+
   it('validates player transfer identifiers', () => {
     expect(validatePlayerTransfersInput({ playerId: 6306068 })).toEqual({ playerId: 6306068 })
     expect(() => validatePlayerTransfersInput({ playerId: 0 })).toThrow('Choose a valid player.')
+  })
+
+  it('validates team transfer identifiers', () => {
+    expect(validateTeamTransfersInput({ teamId: 37 })).toEqual({ teamId: 37 })
+    expect(() => validateTeamTransfersInput({ teamId: 0 })).toThrow('Choose a valid team.')
   })
 
   it('validates season and player statistics identifiers', () => {

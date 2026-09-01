@@ -21,6 +21,7 @@ import {
   fetchTeamFixtures,
   fetchTeamSquad,
   fetchTeamStatistics,
+  fetchTeamTransfers,
   fetchVenueById,
   SportmonksError,
   validateCompetitionFixturesInput,
@@ -38,6 +39,7 @@ import {
   validateTeamFixturesInput,
   validateTeamInput,
   validateTeamStatisticsInput,
+  validateTeamTransfersInput,
   validateToken,
   validateVenueInput
 } from './sportmonks'
@@ -162,6 +164,12 @@ export function registerIpcHandlers(): void {
     validateTeamStatisticsInput,
     fetchTeamStatistics,
     'Could not refresh team statistics.'
+  )
+  registerSportmonksHandler(
+    ipcChannels.refreshTeamTransfers,
+    validateTeamTransfersInput,
+    fetchTeamTransfers,
+    'Could not refresh team transfers.'
   )
   registerSportmonksHandler(
     ipcChannels.refreshVenue,
