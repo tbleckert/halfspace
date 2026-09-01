@@ -71,6 +71,9 @@ abstractions.
   horizontal pitch, mirrored from their own goals. Use nested lineup portraits, link every player,
   and annotate goals, assists, cards, missed penalties, and substitutions from fixture events. Keep
   both benches together below the pitch, and fall back to lists when formation data is incomplete.
+- Fetch only the lineup-detail statistic types used by the fixture UI. Keep the pitch readable by
+  showing only each player's rating there; place minutes and position-relevant performance metrics
+  in the Fixture Stats view, grouped by team and linked to the existing player pages.
 - Give lineup portraits solid warm-white circular backplates with a subtle shadow rather than
   outline rings. Keep shirt numbers and event annotations offset as separate, smaller markers.
 - Keep provider rate limits distinct from connectivity. Show connectivity persistently in the

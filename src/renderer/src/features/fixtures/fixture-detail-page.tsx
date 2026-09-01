@@ -35,9 +35,12 @@ import {
   fixtureFormationLines,
   fixtureOddsGroups,
   fixturePlayerAnnotations,
+  fixturePlayerPerformances,
   fixtureStatisticRows,
   fixtureStatisticShare,
+  lineupPlayerRating,
   type PlayerEventAnnotation,
+  type PlayerPerformance,
   sortedFixtureEvents
 } from './fixture-detail-data'
 import { FixtureLiveIndicator } from './fixture-live-indicator'
@@ -196,7 +199,18 @@ export function FixtureDetailPage({
         />
       )}
       {view === 'stats' && (
-        <FixtureStats away={away} home={home} online={online} statistics={match.statistics ?? []} />
+        <FixtureStats
+          away={away}
+          context={{
+            competition: competitionId ?? cachedFixture.leagueId,
+            date,
+            season: resolvedSeasonId
+          }}
+          home={home}
+          lineups={match.lineups ?? []}
+          online={online}
+          statistics={match.statistics ?? []}
+        />
       )}
       {view === 'odds' && (
         <FixtureOdds
@@ -794,6 +808,7 @@ function FormationPlayer({
   teamId?: number
 }): React.JSX.Element {
   const name = entry.player_name.trim()
+  const rating = lineupPlayerRating(entry)
 
   return (
     <Link
@@ -811,6 +826,7 @@ function FormationPlayer({
           online={online}
         />
         <PlayerEventBadges annotations={annotations} />
+        <PlayerRatingBadge rating={rating} />
         {entry.jersey_number !== null && (
           <span className="absolute -bottom-1 -right-1 grid size-5 place-items-center rounded-full bg-[#071f4f] font-mono text-[10px] font-semibold tabular-nums text-white ring-1 ring-white/80">
             {entry.jersey_number}
@@ -882,6 +898,8 @@ function BenchPlayer({
   online: boolean
   teamId?: number
 }): React.JSX.Element {
+  const rating = lineupPlayerRating(entry)
+
   return (
     <Link
       aria-label={lineupPlayerLabel(entry, annotations)}
@@ -898,6 +916,7 @@ function BenchPlayer({
           online={online}
         />
         <PlayerEventBadges annotations={annotations} />
+        <PlayerRatingBadge rating={rating} />
       </span>
       <span className="mt-1.5 flex max-w-full items-baseline gap-1 text-xs">
         <span className="font-mono font-medium tabular-nums text-muted-foreground">
@@ -940,7 +959,7 @@ function LineupGroup({
               to="/players/$playerId"
               params={{ playerId: String(entry.player_id) }}
               search={{ ...context, team: teamId }}
-              className="grid grid-cols-[2rem_2rem_minmax(0,1fr)] items-center gap-2 px-4 py-2 text-sm outline-none hover:bg-muted/45 focus-visible:bg-muted/45"
+              className="grid grid-cols-[2rem_2rem_minmax(0,1fr)_2.5rem] items-center gap-2 px-4 py-2 text-sm outline-none hover:bg-muted/45 focus-visible:bg-muted/45"
               {...intentPrefetchProps(online, () => prefetchPlayerEntity(entry.player_id))}
             >
               <span className="text-center font-mono font-medium tabular-nums text-muted-foreground">
@@ -955,11 +974,33 @@ function LineupGroup({
                 <PlayerEventBadges annotations={playerAnnotations} />
               </span>
               <span className="truncate font-medium">{entry.player_name}</span>
+              <PlayerRatingValue rating={lineupPlayerRating(entry)} />
             </Link>
           )
         })}
       </div>
     </div>
+  )
+}
+
+function PlayerRatingBadge({ rating }: { rating: number | null }): React.JSX.Element | null {
+  if (rating === null) return null
+
+  return (
+    <span
+      className="absolute -bottom-1 -left-2 rounded-full bg-[#fffdfa] px-1.5 py-0.5 font-mono text-[9px] font-semibold tabular-nums text-[#071f4f] shadow-xs"
+      title={`Rating ${formatPlayerRating(rating)}`}
+    >
+      {formatPlayerRating(rating)}
+    </span>
+  )
+}
+
+function PlayerRatingValue({ rating }: { rating: number | null }): React.JSX.Element {
+  return (
+    <span className="text-right font-mono text-xs font-semibold tabular-nums text-muted-foreground">
+      {rating === null ? '–' : formatPlayerRating(rating)}
+    </span>
   )
 }
 
@@ -1038,13 +1079,18 @@ function FootballIcon(): React.JSX.Element {
 }
 
 function lineupPlayerLabel(entry: SportmonksLineup, annotations: PlayerEventAnnotation[]): string {
+  const rating = lineupPlayerRating(entry)
+
   return [
     entry.jersey_number ?? 'No number',
     entry.player_name.trim(),
+    rating === null ? null : `Rating ${formatPlayerRating(rating)}`,
     ...annotations.map(
       (annotation) => `${annotation.label} ${formatPlayerAnnotationMinute(annotation)}`
     )
-  ].join(', ')
+  ]
+    .filter(Boolean)
+    .join(', ')
 }
 
 function formatPlayerAnnotationMinute(annotation: PlayerEventAnnotation): string {
@@ -1055,59 +1101,178 @@ function formatPlayerAnnotationMinute(annotation: PlayerEventAnnotation): string
 
 function FixtureStats({
   away,
+  context,
   home,
+  lineups,
   online,
   statistics
 }: {
   away?: SportmonksParticipant
+  context: LineupContext
   home?: SportmonksParticipant
+  lineups: SportmonksLineup[]
   online: boolean
   statistics: NonNullable<SportmonksFixture['statistics']>
 }): React.JSX.Element {
   const rows = fixtureStatisticRows(statistics)
+  const performances = fixturePlayerPerformances(lineups)
+  const homePerformances = performances.filter(({ entry }) => entry.team_id === home?.id)
+  const awayPerformances = performances.filter(({ entry }) => entry.team_id === away?.id)
 
   return (
-    <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
-      <div className="grid grid-cols-[1fr_minmax(8rem,1.5fr)_1fr] items-center border-b bg-muted/25 px-4 py-3">
-        <FixtureStatTeam participant={home} online={online} align="left" />
-        <span />
-        <FixtureStatTeam participant={away} online={online} align="right" />
+    <div className="flex flex-col gap-5">
+      <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
+        <div className="grid grid-cols-[1fr_minmax(8rem,1.5fr)_1fr] items-center border-b bg-muted/25 px-4 py-3">
+          <FixtureStatTeam participant={home} online={online} align="left" />
+          <span />
+          <FixtureStatTeam participant={away} online={online} align="right" />
+        </div>
+        {rows.length === 0 ? (
+          <FixtureEmptyState>Stats not available</FixtureEmptyState>
+        ) : (
+          <div className="divide-y">
+            {rows.map((row) => {
+              const share = fixtureStatisticShare(row.home, row.away)
+
+              return (
+                <div key={row.id} className="px-4 py-4 text-sm">
+                  <div className="grid grid-cols-[1fr_minmax(8rem,1.5fr)_1fr] items-center gap-4">
+                    <span className="font-mono font-semibold tabular-nums">
+                      {formatStatisticValue(row.home)}
+                    </span>
+                    <span className="text-center text-muted-foreground">{row.label}</span>
+                    <span className="text-right font-mono font-semibold tabular-nums">
+                      {formatStatisticValue(row.away)}
+                    </span>
+                  </div>
+                  <div
+                    aria-hidden="true"
+                    className="mt-3 flex h-1.5 overflow-hidden rounded-full bg-muted"
+                  >
+                    {share && (
+                      <>
+                        <span className="bg-chart-1" style={{ width: `${share.home}%` }} />
+                        <span className="bg-chart-5" style={{ width: `${share.away}%` }} />
+                      </>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </section>
+
+      {performances.length > 0 && (
+        <section>
+          <h2 className="mb-3 text-xl font-semibold tracking-tight">Player performance</h2>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <TeamPlayerPerformance
+              context={context}
+              online={online}
+              participant={home}
+              performances={homePerformances}
+            />
+            <TeamPlayerPerformance
+              context={context}
+              online={online}
+              participant={away}
+              performances={awayPerformances}
+            />
+          </div>
+        </section>
+      )}
+    </div>
+  )
+}
+
+function TeamPlayerPerformance({
+  context,
+  online,
+  participant,
+  performances
+}: {
+  context: LineupContext
+  online: boolean
+  participant?: SportmonksParticipant
+  performances: PlayerPerformance[]
+}): React.JSX.Element {
+  return (
+    <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+      <div className="border-b bg-muted/25 px-4 py-3">
+        <FixtureStatTeam align="left" online={online} participant={participant} />
       </div>
-      {rows.length === 0 ? (
-        <FixtureEmptyState>Stats not available</FixtureEmptyState>
+      {performances.length === 0 ? (
+        <FixtureEmptyState>Player stats not available</FixtureEmptyState>
       ) : (
         <div className="divide-y">
-          {rows.map((row) => {
-            const share = fixtureStatisticShare(row.home, row.away)
-
-            return (
-              <div key={row.id} className="px-4 py-4 text-sm">
-                <div className="grid grid-cols-[1fr_minmax(8rem,1.5fr)_1fr] items-center gap-4">
-                  <span className="font-mono font-semibold tabular-nums">
-                    {formatStatisticValue(row.home)}
-                  </span>
-                  <span className="text-center text-muted-foreground">{row.label}</span>
-                  <span className="text-right font-mono font-semibold tabular-nums">
-                    {formatStatisticValue(row.away)}
-                  </span>
-                </div>
-                <div
-                  aria-hidden="true"
-                  className="mt-3 flex h-1.5 overflow-hidden rounded-full bg-muted"
-                >
-                  {share && (
-                    <>
-                      <span className="bg-chart-1" style={{ width: `${share.home}%` }} />
-                      <span className="bg-chart-5" style={{ width: `${share.away}%` }} />
-                    </>
-                  )}
-                </div>
-              </div>
-            )
-          })}
+          {performances.map((performance) => (
+            <PlayerPerformanceRow
+              key={performance.entry.id}
+              context={context}
+              online={online}
+              performance={performance}
+              teamId={participant?.id}
+            />
+          ))}
         </div>
       )}
-    </section>
+    </div>
+  )
+}
+
+function PlayerPerformanceRow({
+  context,
+  online,
+  performance,
+  teamId
+}: {
+  context: LineupContext
+  online: boolean
+  performance: PlayerPerformance
+  teamId?: number
+}): React.JSX.Element {
+  const { entry, metrics, minutes, rating } = performance
+
+  return (
+    <Link
+      to="/players/$playerId"
+      params={{ playerId: String(entry.player_id) }}
+      search={{ ...context, team: teamId }}
+      className="block px-4 py-3 outline-none hover:bg-muted/45 focus-visible:bg-muted/45"
+      {...intentPrefetchProps(online, () => prefetchPlayerEntity(entry.player_id))}
+    >
+      <div className="flex items-center gap-3">
+        <PlayerPhoto
+          className="size-10 rounded-full bg-[#fffdfa] text-slate-500 shadow-xs"
+          imagePath={entry.player?.image_path ?? null}
+          online={online}
+        />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium">{entry.player_name}</p>
+          <p className="mt-0.5 font-mono text-xs tabular-nums text-muted-foreground">
+            #{entry.jersey_number ?? '–'}
+            {minutes !== null && ` · ${minutes} min`}
+          </p>
+        </div>
+        <div className="min-w-10 text-right">
+          <p className="font-mono text-lg font-semibold tabular-nums">
+            {rating === null ? '–' : formatPlayerRating(rating)}
+          </p>
+          <p className="text-[10px] text-muted-foreground">Rating</p>
+        </div>
+      </div>
+      {metrics.length > 0 && (
+        <div className="mt-3 grid grid-cols-3 gap-2 border-t pt-2.5">
+          {metrics.map((metric) => (
+            <div key={metric.typeId} className="min-w-0">
+              <p className="font-mono text-sm font-semibold tabular-nums">{metric.value}</p>
+              <p className="truncate text-[10px] text-muted-foreground">{metric.label}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </Link>
   )
 }
 
@@ -1454,6 +1619,10 @@ function formatEventMinute(event: SportmonksEvent): string {
 
 function formatStatisticValue(value: number | string | null): string {
   return value === null ? '–' : String(value)
+}
+
+function formatPlayerRating(rating: number): string {
+  return rating.toFixed(1)
 }
 
 function formatOddLabel(odd: SportmonksOdd): string {

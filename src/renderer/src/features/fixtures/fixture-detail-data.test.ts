@@ -9,6 +9,7 @@ import {
   fixtureFormationLabel,
   fixtureFormationLines,
   fixtureOddsGroups,
+  fixturePlayerPerformances,
   fixturePlayerAnnotations,
   fixtureStatisticRows,
   fixtureStatisticShare,
@@ -66,6 +67,48 @@ describe('fixture detail data', () => {
     expect(fixtureStatisticShare('33%', '67%')).toEqual({ home: 33, away: 67 })
     expect(fixtureStatisticShare(0, 0)).toBeNull()
     expect(fixtureStatisticShare('unknown', 4)).toBeNull()
+  })
+
+  it('builds position-relevant player performance summaries', () => {
+    const defender = {
+      ...lineup(4, '2:1'),
+      position_id: 25,
+      details: [
+        detail(118, 7.46),
+        detail(119, 90),
+        detail(78, 3),
+        detail(100, 2),
+        detail(106, 7),
+        detail(42, 1)
+      ]
+    }
+    const goalkeeper = {
+      ...lineup(1, '1:1'),
+      position_id: 24,
+      details: [detail(118, 8.1), detail(119, 90), detail(57, 5), detail(80, 31)]
+    }
+
+    expect(fixturePlayerPerformances([defender, goalkeeper])).toMatchObject([
+      {
+        entry: { player_id: 1 },
+        rating: 8.1,
+        minutes: 90,
+        metrics: [
+          { label: 'Saves', value: 5 },
+          { label: 'Passes', value: 31 }
+        ]
+      },
+      {
+        entry: { player_id: 4 },
+        rating: 7.46,
+        minutes: 90,
+        metrics: [
+          { label: 'Tackles', value: 3 },
+          { label: 'Interceptions', value: 2 },
+          { label: 'Duels won', value: 7 }
+        ]
+      }
+    ])
   })
 
   it('groups odds by market and bookmaker', () => {
@@ -205,5 +248,17 @@ function lineup(id: number, formationField: string): SportmonksLineup {
     formation_field: formationField,
     player_name: `Player ${id}`,
     jersey_number: id
+  }
+}
+
+function detail(typeId: number, value: number): NonNullable<SportmonksLineup['details']>[number] {
+  return {
+    id: typeId,
+    fixture_id: 1,
+    player_id: 1,
+    team_id: 1,
+    lineup_id: 1,
+    type_id: typeId,
+    data: { value }
   }
 }

@@ -207,6 +207,28 @@ const squadEntrySchema = z
   })
   .passthrough()
 
+const lineupDetailSchema = z
+  .object({
+    id: z.number().int(),
+    fixture_id: z.number().int(),
+    player_id: z.number().int(),
+    team_id: z.number().int(),
+    lineup_id: z.number().int(),
+    type_id: z.number().int(),
+    data: z.object({ value: z.union([z.number(), z.string()]).nullable().optional() }).passthrough()
+  })
+  .passthrough()
+
+const typeSchema = z
+  .object({
+    id: z.number().int(),
+    name: z.string(),
+    code: z.string().nullable().optional(),
+    developer_name: z.string().nullable().optional(),
+    stat_group: z.string().nullable().optional()
+  })
+  .passthrough()
+
 const lineupSchema = z
   .object({
     id: z.number().int(),
@@ -220,17 +242,8 @@ const lineupSchema = z
     formation_position: z.number().int().nullable().optional(),
     player_name: z.string(),
     jersey_number: z.number().int().nullable(),
-    player: playerSchema.nullable().optional()
-  })
-  .passthrough()
-
-const typeSchema = z
-  .object({
-    id: z.number().int(),
-    name: z.string(),
-    code: z.string().nullable().optional(),
-    developer_name: z.string().nullable().optional(),
-    stat_group: z.string().nullable().optional()
+    player: playerSchema.nullable().optional(),
+    details: z.array(lineupDetailSchema).optional()
   })
   .passthrough()
 
@@ -954,8 +967,9 @@ export async function fetchFixtureById(
   const url = new URL(`${apiBaseUrl}/fixtures/${input.fixtureId}`)
   url.searchParams.set(
     'include',
-    'participants;league;state;scores;periods;venue;stage;round;lineups.player;events.type;events.player;events.relatedPlayer;statistics.type'
+    'participants;league;state;scores;periods;venue;stage;round;lineups.player;lineups.details;events.type;events.player;events.relatedPlayer;statistics.type'
   )
+  url.searchParams.set('filters', 'lineupDetailTypes:42,57,78,80,86,100,106,116,117,118,119')
 
   let response: Response
 

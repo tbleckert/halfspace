@@ -30,6 +30,40 @@ export interface FormationLine {
   entries: SportmonksLineup[]
 }
 
+export interface PlayerPerformanceMetric {
+  label: string
+  typeId: number
+  value: number | string
+}
+
+export interface PlayerPerformance {
+  entry: SportmonksLineup
+  metrics: PlayerPerformanceMetric[]
+  minutes: number | string | null
+  rating: number | null
+}
+
+const performanceMetricLabels = new Map<number, string>([
+  [42, 'Shots'],
+  [57, 'Saves'],
+  [78, 'Tackles'],
+  [80, 'Passes'],
+  [86, 'On target'],
+  [100, 'Interceptions'],
+  [106, 'Duels won'],
+  [116, 'Accurate passes'],
+  [117, 'Key passes']
+])
+
+const performanceMetricsByPosition = new Map<number, number[]>([
+  [24, [57, 80, 116]],
+  [25, [78, 100, 106]],
+  [26, [117, 116, 78]],
+  [27, [42, 86, 117]]
+])
+
+const fallbackPerformanceMetrics = [42, 86, 117, 78, 100, 106, 57, 80, 116]
+
 export type PlayerEventAnnotationKind =
   | 'goal'
   | 'assist'
@@ -167,6 +201,52 @@ export function fixtureFormationLabel(lines: FormationLine[]): string {
     .filter(({ row }) => row !== lines[0]?.row)
     .map(({ entries }) => entries.length)
     .join('-')
+}
+
+export function lineupPlayerRating(entry: SportmonksLineup): number | null {
+  const value = lineupDetailValue(entry, 118)
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null
+  if (typeof value !== 'string' || value.trim() === '') return null
+
+  const rating = Number(value)
+  return Number.isFinite(rating) ? rating : null
+}
+
+export function fixturePlayerPerformances(lineups: SportmonksLineup[]): PlayerPerformance[] {
+  return lineups
+    .filter(({ details }) => details && details.length > 0)
+    .map((entry) => {
+      const preferredMetrics = performanceMetricsByPosition.get(entry.position_id ?? 0) ?? []
+      const metricIds = [...preferredMetrics, ...fallbackPerformanceMetrics]
+      const metrics: PlayerPerformanceMetric[] = []
+
+      for (const typeId of metricIds) {
+        if (metrics.some((metric) => metric.typeId === typeId)) continue
+
+        const value = lineupDetailValue(entry, typeId)
+        const label = performanceMetricLabels.get(typeId)
+        if (value === null || label === undefined) continue
+
+        metrics.push({ label, typeId, value })
+        if (metrics.length === 3) break
+      }
+
+      return {
+        entry,
+        metrics,
+        minutes: lineupDetailValue(entry, 119),
+        rating: lineupPlayerRating(entry)
+      }
+    })
+    .toSorted(
+      (left, right) =>
+        (right.rating ?? -1) - (left.rating ?? -1) ||
+        left.entry.player_name.localeCompare(right.entry.player_name)
+    )
+}
+
+function lineupDetailValue(entry: SportmonksLineup, typeId: number): number | string | null {
+  return entry.details?.find((detail) => detail.type_id === typeId)?.data.value ?? null
 }
 
 function parseFormationField(value: string | null | undefined): {

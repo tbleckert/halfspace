@@ -95,7 +95,18 @@ describe('Sportmonks client', () => {
           type_id: 11,
           player_name: 'Quinten Timber',
           jersey_number: 8,
-          player: makePlayer()
+          player: makePlayer(),
+          details: [
+            {
+              id: 801,
+              fixture_id: baseFixture.id,
+              player_id: 6306068,
+              team_id: 11,
+              lineup_id: 91,
+              type_id: 118,
+              data: { value: 7.75 }
+            }
+          ]
         }
       ],
       events: [
@@ -141,6 +152,7 @@ describe('Sportmonks client', () => {
     expect(refresh.fixture.venue?.name).toBe('Etihad Stadium')
     expect(refresh.fixture.lineups?.[0].player_name).toBe('Quinten Timber')
     expect(refresh.fixture.lineups?.[0].player?.image_path).toContain('6306068')
+    expect(refresh.fixture.lineups?.[0].details?.[0].data.value).toBe(7.75)
     expect(refresh.fixture.events?.[0].type?.name).toBe('Goal')
     expect(refresh.fixture.events?.[0].player?.image_path).toContain('6306068')
     expect(refresh.fixture.statistics?.[0].data.value).toBe(12)
@@ -149,7 +161,10 @@ describe('Sportmonks client', () => {
     const url = new URL(input.toString())
     expect(url.pathname).toBe(`/v3/football/fixtures/${fixture.id}`)
     expect(url.searchParams.get('include')).toBe(
-      'participants;league;state;scores;periods;venue;stage;round;lineups.player;events.type;events.player;events.relatedPlayer;statistics.type'
+      'participants;league;state;scores;periods;venue;stage;round;lineups.player;lineups.details;events.type;events.player;events.relatedPlayer;statistics.type'
+    )
+    expect(url.searchParams.get('filters')).toBe(
+      'lineupDetailTypes:42,57,78,80,86,100,106,116,117,118,119'
     )
     expect(url.searchParams.has('api_token')).toBe(false)
     expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')

@@ -423,6 +423,19 @@ export interface SportmonksLineup {
   player_name: string
   jersey_number: number | null
   player?: SportmonksPlayer | null
+  details?: SportmonksLineupDetail[]
+}
+
+export interface SportmonksLineupDetail {
+  id: number
+  fixture_id: number
+  player_id: number
+  team_id: number
+  lineup_id: number
+  type_id: number
+  data: {
+    value?: number | string | null
+  }
 }
 
 export interface SportmonksStandingContext {
