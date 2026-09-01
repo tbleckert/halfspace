@@ -9,10 +9,12 @@ import type {
   PlayerAppearancesRefresh,
   PlayerRefresh,
   PlayerStatisticsRefresh,
+  PlayerTransfersRefresh,
   RefreshCompetitionFixturesInput,
   RefreshFixtureHeadToHeadInput,
   RefreshPlayerAppearancesInput,
   RefreshPlayerStatisticsInput,
+  RefreshPlayerTransfersInput,
   RefreshTeamFixturesInput,
   RefreshTeamStatisticsInput,
   SeasonStatisticsRefresh,
@@ -26,6 +28,7 @@ import type {
   SportmonksStanding,
   SportmonksTeam,
   SportmonksVenue,
+  SportmonksTransfer,
   TeamRefresh,
   TeamSquadRefresh,
   TeamStatisticsRefresh,
@@ -46,6 +49,7 @@ const venueCacheDuration = 24 * 60 * 60 * 1000
 const teamSquadCacheDuration = 60 * 60 * 1000
 const playerCacheDuration = 24 * 60 * 60 * 1000
 const playerAppearancesCacheDuration = 15 * 60 * 1000
+const playerTransfersCacheDuration = 24 * 60 * 60 * 1000
 const fixtureDetailCacheDuration = 5 * 60 * 1000
 const fixtureOddsCacheDuration = 5 * 60 * 1000
 const fixtureHeadToHeadCacheDuration = 6 * 60 * 60 * 1000
@@ -331,6 +335,27 @@ export interface PlayerStatisticsQuery {
   message?: string
 }
 
+export interface CachedTransfer {
+  id: number
+  playerId: number
+  fromTeamId: number | null
+  toTeamId: number | null
+  date: string
+  raw: SportmonksTransfer
+  fetchedAt: number
+}
+
+export interface PlayerTransferQuery {
+  playerId: number
+  transferIds: number[]
+  fetchedAt: number
+  staleAt: number
+  pageCount: number
+  rateLimitRemaining?: number
+  rateLimitResetsAt?: number
+  message?: string
+}
+
 export interface CompetitionCatalog {
   key: string
   competitionIds: number[]
@@ -382,6 +407,8 @@ class HalfspaceDatabase extends Dexie {
   playerAppearances!: Table<CachedPlayerAppearance, string>
   playerAppearanceQueries!: Table<PlayerAppearanceQuery, string>
   playerStatisticsQueries!: Table<PlayerStatisticsQuery, string>
+  transfers!: Table<CachedTransfer, number>
+  playerTransferQueries!: Table<PlayerTransferQuery, number>
 
   constructor() {
     super('halfspace')
@@ -585,6 +612,11 @@ class HalfspaceDatabase extends Dexie {
       playerAppearances: '&key, playerId, teamId, fixtureId, [playerId+fixtureId]',
       playerAppearanceQueries: '&key, playerId, teamId, staleAt',
       playerStatisticsQueries: '&key, playerId, seasonId, staleAt'
+    })
+
+    this.version(12).stores({
+      transfers: 'id, playerId, fromTeamId, toTeamId, date',
+      playerTransferQueries: '&playerId, staleAt'
     })
   }
 }
@@ -1341,6 +1373,63 @@ export async function writePlayerStatisticsRefresh(
   })
 }
 
+export async function readPlayerTransfers(input: RefreshPlayerTransfersInput): Promise<{
+  query: PlayerTransferQuery | null
+  transfers: CachedTransfer[]
+}> {
+  const query = await db.playerTransferQueries.get(input.playerId)
+  if (!query) return { query: null, transfers: [] }
+
+  const transfers = (await db.transfers.bulkGet(query.transferIds)).filter(
+    (transfer): transfer is CachedTransfer => transfer !== undefined
+  )
+
+  return { query, transfers }
+}
+
+export async function writePlayerTransfersRefresh(
+  input: RefreshPlayerTransfersInput,
+  refresh: PlayerTransfersRefresh
+): Promise<void> {
+  const transfers: CachedTransfer[] = refresh.transfers.map((transfer) => ({
+    id: transfer.id,
+    playerId: transfer.player_id,
+    fromTeamId: transfer.from_team_id,
+    toTeamId: transfer.to_team_id,
+    date: transfer.date,
+    raw: transfer,
+    fetchedAt: refresh.fetchedAt
+  }))
+  const query: PlayerTransferQuery = {
+    playerId: input.playerId,
+    transferIds: transfers.map(({ id }) => id),
+    fetchedAt: refresh.fetchedAt,
+    staleAt: refresh.fetchedAt + playerTransfersCacheDuration,
+    pageCount: refresh.pageCount,
+    rateLimitRemaining: refresh.rateLimit?.remaining,
+    rateLimitResetsAt: refresh.rateLimit?.resetsAt,
+    message: refresh.message
+  }
+  const includedTeams = new Map<number, SportmonksTeam>()
+
+  for (const transfer of refresh.transfers) {
+    if (transfer.fromTeam) includedTeams.set(transfer.fromTeam.id, transfer.fromTeam)
+    if (transfer.toTeam) includedTeams.set(transfer.toTeam.id, transfer.toTeam)
+  }
+
+  const teamValues = [...includedTeams.values()]
+  const existingTeams = await db.teams.bulkGet(teamValues.map(({ id }) => id))
+  const teams = teamValues.map((team, index) =>
+    toCachedTransferTeam(team, existingTeams[index], refresh.fetchedAt)
+  )
+
+  await db.transaction('rw', db.transfers, db.playerTransferQueries, db.teams, async () => {
+    await db.transfers.bulkPut(transfers)
+    await db.playerTransferQueries.put(query)
+    await db.teams.bulkPut(teams)
+  })
+}
+
 export function teamFixtureQueryKey(input: RefreshTeamFixturesInput): string {
   return `${input.teamId}|${input.startDate}|${input.endDate}|${input.timeZone}`
 }
@@ -1565,6 +1654,35 @@ function toCachedSquadPlayer(
     detailed: existing?.detailed ?? false,
     fetchedAt,
     staleAt: existing?.detailed ? existing.staleAt : fetchedAt,
+    rateLimitRemaining: existing?.rateLimitRemaining,
+    rateLimitResetsAt: existing?.rateLimitResetsAt,
+    message: existing?.message
+  }
+}
+
+function toCachedTransferTeam(
+  team: SportmonksTeam,
+  existing: CachedTeam | undefined,
+  fetchedAt: number
+): CachedTeam {
+  const raw = existing
+    ? {
+        ...existing.raw,
+        ...team,
+        country: team.country ?? existing.raw.country,
+        venue: team.venue ?? existing.raw.venue
+      }
+    : team
+
+  return {
+    id: team.id,
+    countryId: team.country_id,
+    venueId: team.venue_id ?? null,
+    name: team.name,
+    imagePath: team.image_path ?? null,
+    raw,
+    fetchedAt,
+    staleAt: existing?.staleAt ?? fetchedAt,
     rateLimitRemaining: existing?.rateLimitRemaining,
     rateLimitResetsAt: existing?.rateLimitResetsAt,
     message: existing?.message

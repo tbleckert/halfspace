@@ -178,6 +178,17 @@ describe('entity subpage navigation', () => {
 
     await act(() =>
       router.navigate({
+        to: '/players/$playerId/career',
+        params: { playerId: '6306068' },
+        search: { competition: undefined, date: '2026-06-02', season: undefined, team: 62 }
+      })
+    )
+
+    expect(screen.getByTestId('player-page').textContent).toBe('1:career')
+    expect(pageInstances.player).toBe(1)
+
+    await act(() =>
+      router.navigate({
         to: '/players/$playerId/stats',
         params: { playerId: '6306068' },
         search: { competition: 8, date: '2026-06-02', season: 23614, team: 62 }

@@ -10,6 +10,7 @@ import type {
   PlayerAppearancesRefresh,
   PlayerRefresh,
   PlayerStatisticsRefresh,
+  PlayerTransfersRefresh,
   RefreshCompetitionFixturesInput,
   RefreshCompetitionSeasonsInput,
   RefreshFixtureHeadToHeadInput,
@@ -18,6 +19,7 @@ import type {
   RefreshPlayerAppearancesInput,
   RefreshPlayerInput,
   RefreshPlayerStatisticsInput,
+  RefreshPlayerTransfersInput,
   RefreshSeasonStatisticsInput,
   RefreshStandingsInput,
   RefreshTeamFixturesInput,
@@ -32,6 +34,7 @@ import type {
   SportmonksOdd,
   SportmonksPlayer,
   SportmonksPlayerStatistic,
+  SportmonksTransfer,
   SportmonksRateLimit,
   SportmonksSeason,
   SportmonksSeasonStatistic,
@@ -228,6 +231,34 @@ const typeSchema = z
     stat_group: z.string().nullable().optional()
   })
   .passthrough()
+
+const transferSchema = z
+  .object({
+    id: z.number().int(),
+    sport_id: z.number().int(),
+    player_id: z.number().int(),
+    type_id: z.number().int(),
+    from_team_id: z.number().int().nullable(),
+    to_team_id: z.number().int().nullable(),
+    position_id: z.number().int().nullable(),
+    detailed_position_id: z.number().int().nullable(),
+    date: z.string(),
+    career_ended: z.union([z.boolean(), z.literal(0), z.literal(1)]).transform(Boolean),
+    completed: z.union([z.boolean(), z.literal(0), z.literal(1)]).transform(Boolean),
+    amount: z.union([z.number(), z.string()]).nullable().optional().default(null),
+    completed_at: z.string().nullable().optional(),
+    type: typeSchema.nullable().optional(),
+    fromTeam: teamSchema.nullable().optional(),
+    toTeam: teamSchema.nullable().optional(),
+    fromteam: teamSchema.nullable().optional(),
+    toteam: teamSchema.nullable().optional()
+  })
+  .passthrough()
+  .transform(({ fromteam, toteam, ...transfer }) => ({
+    ...transfer,
+    fromTeam: transfer.fromTeam ?? fromteam,
+    toTeam: transfer.toTeam ?? toteam
+  }))
 
 const lineupSchema = z
   .object({
@@ -707,6 +738,26 @@ const playerResponseSchema = z
   })
   .passthrough()
 
+const playerTransfersResponseSchema = z
+  .object({
+    data: z.array(transferSchema),
+    pagination: z
+      .object({
+        current_page: z.number().int().positive(),
+        has_more: z.boolean()
+      })
+      .optional(),
+    rate_limit: z
+      .object({
+        remaining: z.number(),
+        resets_in_seconds: z.number()
+      })
+      .passthrough()
+      .optional(),
+    message: z.string().optional()
+  })
+  .passthrough()
+
 const competitionSearchResponseSchema = z.object({ data: z.array(competitionSchema) }).passthrough()
 const teamSearchResponseSchema = z.object({ data: z.array(teamSchema) }).passthrough()
 const playerSearchResponseSchema = z.object({ data: z.array(playerSchema) }).passthrough()
@@ -892,6 +943,10 @@ export function validatePlayerStatisticsInput(value: unknown): RefreshPlayerStat
   }
 
   return { playerId: input.playerId, seasonId: input.seasonId }
+}
+
+export function validatePlayerTransfersInput(value: unknown): RefreshPlayerTransfersInput {
+  return validatePlayerInput(value)
 }
 
 export function validateEntitySearchInput(value: unknown): EntitySearchInput {
@@ -1176,6 +1231,68 @@ export async function fetchPlayerStatistics(
       : undefined,
     message: parsed.message
   }
+}
+
+export async function fetchPlayerTransfers(
+  input: RefreshPlayerTransfersInput,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<PlayerTransfersRefresh> {
+  const fetchedAt = Date.now()
+  const transfers: SportmonksTransfer[] = []
+  let page = 1
+  let rateLimit: PlayerTransfersRefresh['rateLimit']
+  let message: string | undefined
+
+  while (page <= maximumPages) {
+    const url = new URL(`${apiBaseUrl}/transfers/players/${input.playerId}`)
+    url.searchParams.set('include', 'type;fromTeam;toTeam')
+    url.searchParams.set('order', 'desc')
+    url.searchParams.set('per_page', '50')
+    url.searchParams.set('page', String(page))
+
+    let response: Response
+
+    try {
+      response = await fetcher(url, {
+        headers: {
+          Accept: 'application/json',
+          Authorization: token
+        },
+        signal: AbortSignal.timeout(20_000)
+      })
+    } catch {
+      throw new SportmonksError('network', 'Could not reach Sportmonks.')
+    }
+
+    if (!response.ok) throw await errorForResponse(response)
+
+    let parsed: z.infer<typeof playerTransfersResponseSchema>
+
+    try {
+      parsed = playerTransfersResponseSchema.parse(await response.json())
+    } catch {
+      throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
+    }
+
+    transfers.push(...(parsed.data as SportmonksTransfer[]))
+    message = parsed.message ?? message
+
+    if (parsed.rate_limit) {
+      rateLimit = {
+        remaining: parsed.rate_limit.remaining,
+        resetsAt: fetchedAt + parsed.rate_limit.resets_in_seconds * 1000
+      }
+    }
+
+    if (!parsed.pagination?.has_more) {
+      return { transfers, fetchedAt, pageCount: page, rateLimit, message }
+    }
+
+    page += 1
+  }
+
+  throw new SportmonksError('invalid_response', 'Sportmonks returned too many result pages.')
 }
 
 async function fetchFixturePages(

@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { SportmonksCompetition, SportmonksFixture, SportmonksPlayer } from '@shared/contracts'
+import type {
+  SportmonksCompetition,
+  SportmonksFixture,
+  SportmonksPlayer,
+  SportmonksTeam
+} from '@shared/contracts'
 import {
   fetchCompetitions,
   fetchCompetitionFixtures,
@@ -12,6 +17,7 @@ import {
   fetchPlayerAppearances,
   fetchPlayerById,
   fetchPlayerStatistics,
+  fetchPlayerTransfers,
   fetchSeasonStatistics,
   fetchStandingsBySeason,
   fetchTeamById,
@@ -28,6 +34,7 @@ import {
   validatePlayerAppearancesInput,
   validatePlayerInput,
   validatePlayerStatisticsInput,
+  validatePlayerTransfersInput,
   validateSeasonStatisticsInput,
   validateStandingsInput,
   validateTeamFixturesInput,
@@ -791,6 +798,91 @@ describe('Sportmonks client', () => {
     expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')
   })
 
+  it('fetches a complete player transfer history with team context', async () => {
+    const fetcher = vi.fn<typeof fetch>(async (input) => {
+      const page = Number(new URL(input.toString()).searchParams.get('page'))
+
+      return Response.json({
+        data: [
+          {
+            id: page,
+            sport_id: 1,
+            player_id: 6306068,
+            type_id: 218,
+            from_team_id: page === 1 ? 2345 : 62,
+            to_team_id: page === 1 ? 62 : 2345,
+            position_id: 26,
+            detailed_position_id: 153,
+            date: page === 1 ? '2023-07-01' : '2021-07-01',
+            career_ended: false,
+            completed: true,
+            amount: null,
+            type: { id: 218, name: 'Transfer' },
+            fromTeam: transferTeam(page === 1 ? 2345 : 62, page === 1 ? 'Feyenoord' : 'Rangers'),
+            toTeam: transferTeam(page === 1 ? 62 : 2345, page === 1 ? 'Rangers' : 'Feyenoord')
+          }
+        ],
+        pagination: { current_page: page, has_more: page === 1 },
+        rate_limit: { remaining: 2_990 - page, resets_in_seconds: 3_600 }
+      })
+    })
+
+    const refresh = await fetchPlayerTransfers({ playerId: 6306068 }, 'private-token', fetcher)
+
+    expect(refresh.transfers.map(({ date }) => date)).toEqual(['2023-07-01', '2021-07-01'])
+    expect(refresh.transfers[0].fromTeam?.name).toBe('Feyenoord')
+    expect(refresh.pageCount).toBe(2)
+    expect(fetcher).toHaveBeenCalledTimes(2)
+
+    const [input, init] = fetcher.mock.calls[0]
+    const url = new URL(input.toString())
+    expect(url.pathname).toBe('/v3/football/transfers/players/6306068')
+    expect(url.searchParams.get('include')).toBe('type;fromTeam;toTeam')
+    expect(url.searchParams.get('order')).toBe('desc')
+    expect(url.searchParams.get('per_page')).toBe('50')
+    expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')
+  })
+
+  it('accepts the unpaginated player transfer payload returned by Sportmonks', async () => {
+    const fetcher = vi.fn<typeof fetch>(async () =>
+      Response.json({
+        data: [
+          {
+            id: 91,
+            sport_id: 1,
+            player_id: 94958,
+            type_id: 218,
+            from_team_id: 62,
+            to_team_id: 2345,
+            position_id: 27,
+            detailed_position_id: null,
+            date: '2018-07-01',
+            career_ended: false,
+            completed: true,
+            amount: null,
+            type: { id: 218, name: 'Transfer' },
+            fromteam: transferTeam(62, 'Rangers'),
+            toteam: transferTeam(2345, 'Feyenoord')
+          }
+        ],
+        rate_limit: { remaining: 2_989, resets_in_seconds: 3_600 }
+      })
+    )
+
+    const refresh = await fetchPlayerTransfers({ playerId: 94958 }, 'private-token', fetcher)
+
+    expect(refresh.transfers).toHaveLength(1)
+    expect(refresh.transfers[0].fromTeam?.name).toBe('Rangers')
+    expect(refresh.transfers[0].toTeam?.name).toBe('Feyenoord')
+    expect(refresh.pageCount).toBe(1)
+    expect(fetcher).toHaveBeenCalledTimes(1)
+  })
+
+  it('validates player transfer identifiers', () => {
+    expect(validatePlayerTransfersInput({ playerId: 6306068 })).toEqual({ playerId: 6306068 })
+    expect(() => validatePlayerTransfersInput({ playerId: 0 })).toThrow('Choose a valid player.')
+  })
+
   it('validates season and player statistics identifiers', () => {
     expect(validatePlayerStatisticsInput({ playerId: 6306068, seasonId: 23614 })).toEqual({
       playerId: 6306068,
@@ -1026,5 +1118,18 @@ function makePlayer(): SportmonksPlayer {
     weight: null,
     date_of_birth: '2001-06-17',
     gender: 'male'
+  }
+}
+
+function transferTeam(id: number, name: string): SportmonksTeam {
+  return {
+    id,
+    sport_id: 1,
+    country_id: 462,
+    venue_id: null,
+    gender: 'male',
+    name,
+    founded: 1880,
+    placeholder: false
   }
 }

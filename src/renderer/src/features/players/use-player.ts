@@ -1,26 +1,34 @@
 import { useCallback, useState } from 'react'
-import type { RefreshPlayerAppearancesInput, RefreshPlayerStatisticsInput } from '@shared/contracts'
+import type {
+  RefreshPlayerAppearancesInput,
+  RefreshPlayerStatisticsInput,
+  RefreshPlayerTransfersInput
+} from '@shared/contracts'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   playerAppearanceQueryKey,
   readPlayerAppearanceQuery,
   readPlayerIdentity,
   readPlayerStatistics,
+  readPlayerTransfers,
   playerStatisticsQueryKey,
   writePlayerAppearancesRefresh,
   writePlayerRefresh,
-  writePlayerStatisticsRefresh
+  writePlayerStatisticsRefresh,
+  writePlayerTransfersRefresh
 } from '@/data/db'
 import { type RefreshableQuery, type RefreshRequest, useStaleRefresh } from '@/lib/refresh'
 
 type PlayerIdentityCache = Awaited<ReturnType<typeof readPlayerIdentity>>
 type PlayerAppearancesCache = Awaited<ReturnType<typeof readPlayerAppearanceQuery>>
 type PlayerStatisticsCache = Awaited<ReturnType<typeof readPlayerStatistics>>
+type PlayerTransfersCache = Awaited<ReturnType<typeof readPlayerTransfers>>
 
 let refreshGeneration = 0
 const playerRefreshes = new Map<number, RefreshRequest>()
 const playerAppearanceRefreshes = new Map<string, RefreshRequest>()
 const playerStatisticsRefreshes = new Map<string, RefreshRequest>()
+const playerTransferRefreshes = new Map<number, RefreshRequest>()
 
 export function usePlayerEntity(
   playerId: number | null,
@@ -136,11 +144,46 @@ export function usePlayerStatistics(
   return { cached, refreshing, error, refresh }
 }
 
+export function usePlayerTransfers(
+  input: RefreshPlayerTransfersInput | null,
+  enabled: boolean
+): RefreshableQuery<PlayerTransfersCache> {
+  const cached = useLiveQuery(
+    () =>
+      input === null ? Promise.resolve({ query: null, transfers: [] }) : readPlayerTransfers(input),
+    [input?.playerId]
+  )
+  const [refreshing, setRefreshing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const refresh = useCallback(async () => {
+    if (!enabled || input === null) return
+
+    setRefreshing(true)
+    setError(null)
+
+    try {
+      await refreshPlayerTransfers(input)
+    } catch (refreshError) {
+      setError(
+        refreshError instanceof Error ? refreshError.message : 'Could not refresh player career.'
+      )
+    } finally {
+      setRefreshing(false)
+    }
+  }, [enabled, input])
+
+  useStaleRefresh(enabled && input !== null, cached !== undefined, cached?.query?.staleAt, refresh)
+
+  return { cached, refreshing, error, refresh }
+}
+
 export function invalidatePlayerRefreshes(): void {
   refreshGeneration += 1
   playerRefreshes.clear()
   playerAppearanceRefreshes.clear()
   playerStatisticsRefreshes.clear()
+  playerTransferRefreshes.clear()
 }
 
 export async function prefetchPlayerEntity(playerId: number): Promise<void> {
@@ -164,6 +207,13 @@ export async function prefetchPlayerStatistics(input: RefreshPlayerStatisticsInp
   if (cached && cached.staleAt > Date.now()) return
 
   await refreshPlayerStatisticsQuery(input)
+}
+
+export async function prefetchPlayerTransfers(input: RefreshPlayerTransfersInput): Promise<void> {
+  const cached = await readPlayerTransfers(input)
+  if (cached.query && cached.query.staleAt > Date.now()) return
+
+  await refreshPlayerTransfers(input)
 }
 
 export async function refreshPlayerEntity(playerId: number): Promise<void> {
@@ -231,6 +281,29 @@ async function refreshPlayerStatisticsQuery(input: RefreshPlayerStatisticsInput)
   } finally {
     if (playerStatisticsRefreshes.get(key)?.promise === promise) {
       playerStatisticsRefreshes.delete(key)
+    }
+  }
+}
+
+async function refreshPlayerTransfers(input: RefreshPlayerTransfersInput): Promise<void> {
+  const active = playerTransferRefreshes.get(input.playerId)
+  if (active?.generation === refreshGeneration) return active.promise
+
+  const generation = refreshGeneration
+  const promise = (async () => {
+    const result = await window.halfspace.sportmonks.refreshPlayerTransfers(input)
+    if (generation !== refreshGeneration) return
+    if (!result.ok) throw new Error(result.error.message)
+    await writePlayerTransfersRefresh(input, result.data)
+  })()
+
+  playerTransferRefreshes.set(input.playerId, { generation, promise })
+
+  try {
+    await promise
+  } finally {
+    if (playerTransferRefreshes.get(input.playerId)?.promise === promise) {
+      playerTransferRefreshes.delete(input.playerId)
     }
   }
 }

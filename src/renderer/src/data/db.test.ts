@@ -9,6 +9,7 @@ import type {
   PlayerAppearancesRefresh,
   PlayerRefresh,
   PlayerStatisticsRefresh,
+  PlayerTransfersRefresh,
   RefreshCompetitionFixturesInput,
   RefreshFixtureHeadToHeadInput,
   RefreshPlayerAppearancesInput,
@@ -16,6 +17,7 @@ import type {
   SeasonStatisticsRefresh,
   StandingsRefresh,
   SportmonksPlayer,
+  SportmonksTeam,
   TeamRefresh,
   TeamSquadRefresh,
   TeamStatisticsRefresh,
@@ -33,6 +35,7 @@ import {
   readPlayerAppearanceQuery,
   readPlayerIdentity,
   readPlayerStatistics,
+  readPlayerTransfers,
   readSeasonStatistics,
   readStandingsQuery,
   readTeamFixtureQuery,
@@ -53,6 +56,7 @@ import {
   writePlayerAppearancesRefresh,
   writePlayerRefresh,
   writePlayerStatisticsRefresh,
+  writePlayerTransfersRefresh,
   writeSeasonStatisticsRefresh,
   writeStandingsRefresh,
   writeTeamFixtureRefresh,
@@ -90,7 +94,9 @@ beforeEach(async () => {
       db.teamSquadQueries,
       db.playerAppearances,
       db.playerAppearanceQueries,
-      db.playerStatisticsQueries
+      db.playerStatisticsQueries,
+      db.transfers,
+      db.playerTransferQueries
     ],
     async () => {
       await db.fixtures.clear()
@@ -116,6 +122,8 @@ beforeEach(async () => {
       await db.playerAppearances.clear()
       await db.playerAppearanceQueries.clear()
       await db.playerStatisticsQueries.clear()
+      await db.transfers.clear()
+      await db.playerTransferQueries.clear()
     }
   )
 })
@@ -704,6 +712,39 @@ describe('squad and player cache', () => {
         .value
     ).toEqual({ total: 9 })
   })
+
+  it('stores a player career against normalized transfers and teams', async () => {
+    const refresh: PlayerTransfersRefresh = {
+      fetchedAt: Date.UTC(2026, 8, 1, 10),
+      pageCount: 1,
+      transfers: [
+        {
+          id: 184008,
+          sport_id: 1,
+          player_id: 6306068,
+          type_id: 218,
+          from_team_id: 2345,
+          to_team_id: 9,
+          position_id: 26,
+          detailed_position_id: 153,
+          date: '2023-07-01',
+          career_ended: false,
+          completed: true,
+          amount: null,
+          type: { id: 218, name: 'Transfer' },
+          fromTeam: transferTeam(2345, 'Feyenoord'),
+          toTeam: transferTeam(9, 'Manchester City')
+        }
+      ]
+    }
+
+    await writePlayerTransfersRefresh({ playerId: 6306068 }, refresh)
+    const cached = await readPlayerTransfers({ playerId: 6306068 })
+
+    expect(cached.query?.transferIds).toEqual([184008])
+    expect(cached.transfers[0].raw.fromTeam?.name).toBe('Feyenoord')
+    expect((await db.teams.get(2345))?.name).toBe('Feyenoord')
+  })
 })
 
 describe('venue entity cache', () => {
@@ -803,6 +844,19 @@ function teamRefresh(): TeamRefresh {
       founded: 1880,
       placeholder: false
     }
+  }
+}
+
+function transferTeam(id: number, name: string): SportmonksTeam {
+  return {
+    id,
+    sport_id: 1,
+    country_id: 462,
+    venue_id: null,
+    gender: 'male',
+    name,
+    founded: 1880,
+    placeholder: false
   }
 }
 

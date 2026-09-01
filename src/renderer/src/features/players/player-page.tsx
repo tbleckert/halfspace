@@ -34,17 +34,20 @@ import { currentFixtureScore, fixtureParticipantAt } from '@/lib/fixture'
 import { useOnline } from '@/lib/use-online'
 import { intentPrefetchProps } from '@/lib/prefetch'
 import { cn } from '@/lib/utils'
+import { PlayerCareer } from './player-career'
 import { PlayerPhoto } from './player-photo'
 import {
   prefetchPlayerAppearances,
   prefetchPlayerEntity,
   prefetchPlayerStatistics,
+  prefetchPlayerTransfers,
   usePlayerAppearances,
   usePlayerEntity,
-  usePlayerStatistics
+  usePlayerStatistics,
+  usePlayerTransfers
 } from './use-player'
 
-type PlayerView = 'matches' | 'overview' | 'stats'
+type PlayerView = 'career' | 'matches' | 'overview' | 'stats'
 
 const playerMatchWindowDays = 90
 
@@ -86,7 +89,15 @@ export function PlayerPage({
         : null,
     [currentTeamId, matchWindowEnd, parsedPlayerId, timeZone, validPlayerId]
   )
-  const appearances = usePlayerAppearances(appearanceInput, online && (view !== 'stats' || !season))
+  const appearances = usePlayerAppearances(
+    appearanceInput,
+    online && (view === 'overview' || view === 'matches' || (view === 'stats' && !season))
+  )
+  const transferInput = useMemo(
+    () => (validPlayerId ? { playerId: parsedPlayerId } : null),
+    [parsedPlayerId, validPlayerId]
+  )
+  const transfers = usePlayerTransfers(transferInput, online && view === 'career')
   const competition = useLiveQuery(
     async () => (competitionId ? ((await db.competitions.get(competitionId)) ?? null) : null),
     [competitionId]
@@ -132,13 +143,17 @@ export function PlayerPage({
       ? statistics.refreshing ||
         competitionSeasons.refreshing ||
         (statisticsInput === null && appearances.refreshing)
-      : appearances.refreshing)
+      : view === 'career'
+        ? transfers.refreshing
+        : appearances.refreshing)
   const playerDataError =
     view === 'stats'
       ? (statistics.error ??
         competitionSeasons.error ??
         (statisticsInput === null ? appearances.error : null))
-      : appearances.error
+      : view === 'career'
+        ? transfers.error
+        : appearances.error
   const errors = [player.error, playerDataError].filter((error): error is string => Boolean(error))
 
   if (!validPlayerId) return <MissingPlayer />
@@ -157,7 +172,11 @@ export function PlayerPage({
     await Promise.all([
       player.refresh(),
       view === 'stats' ? competitionSeasons.refresh() : Promise.resolve(),
-      view === 'stats' && statisticsInput ? statistics.refresh() : appearances.refresh()
+      view === 'stats' && statisticsInput
+        ? statistics.refresh()
+        : view === 'career'
+          ? transfers.refresh()
+          : appearances.refresh()
     ])
   }
 
@@ -227,6 +246,7 @@ export function PlayerPage({
           season={season}
           statisticsInput={statisticsInput}
           teamId={currentTeamId ?? undefined}
+          transferInput={transferInput}
           view={view}
         />
       </div>
@@ -270,6 +290,17 @@ export function PlayerPage({
           season={season}
           teamId={currentTeamId ?? undefined}
           timeZone={timeZone}
+        />
+      )}
+
+      {view === 'career' && (
+        <PlayerCareer
+          competitionId={competitionId}
+          date={matchWindowEnd}
+          loading={transfers.refreshing}
+          online={online}
+          season={season}
+          transfers={transfers.cached?.transfers}
         />
       )}
 
@@ -386,6 +417,7 @@ function PlayerNavigation({
   season,
   statisticsInput,
   teamId,
+  transferInput,
   view
 }: {
   appearanceInput: Parameters<typeof prefetchPlayerAppearances>[0] | null
@@ -396,6 +428,7 @@ function PlayerNavigation({
   season?: number
   statisticsInput: Parameters<typeof prefetchPlayerStatistics>[0] | null
   teamId?: number
+  transferInput: Parameters<typeof prefetchPlayerTransfers>[0] | null
   view: PlayerView
 }): React.JSX.Element {
   const search = { competition: competitionId, date, season, team: teamId }
@@ -423,6 +456,18 @@ function PlayerNavigation({
         )}
       >
         Matches
+      </Link>
+      <Link
+        aria-current={view === 'career' ? 'page' : undefined}
+        to="/players/$playerId/career"
+        params={{ playerId: String(playerId) }}
+        search={search}
+        className={entitySubpageNavigationItemClassName(view === 'career')}
+        {...intentPrefetchProps(online && transferInput !== null, () =>
+          transferInput ? prefetchPlayerTransfers(transferInput) : Promise.resolve()
+        )}
+      >
+        Career
       </Link>
       <Link
         aria-current={view === 'stats' ? 'page' : undefined}

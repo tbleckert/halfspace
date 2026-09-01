@@ -19,6 +19,7 @@ export const ipcChannels = {
   refreshPlayer: 'sportmonks:refresh-player',
   refreshPlayerAppearances: 'sportmonks:refresh-player-appearances',
   refreshPlayerStatistics: 'sportmonks:refresh-player-statistics',
+  refreshPlayerTransfers: 'sportmonks:refresh-player-transfers',
   searchEntities: 'sportmonks:search-entities',
   rateLimitState: 'sportmonks:rate-limit-state',
   rateLimitChanged: 'sportmonks:rate-limit-changed'
@@ -133,6 +134,10 @@ export interface RefreshPlayerStatisticsInput {
   seasonId: number
 }
 
+export interface RefreshPlayerTransfersInput {
+  playerId: number
+}
+
 export interface EntitySearchInput {
   query: string
 }
@@ -217,6 +222,25 @@ export interface SportmonksPosition {
   name: string
   code?: string | null
   developer_name?: string | null
+}
+
+export interface SportmonksTransfer {
+  id: number
+  sport_id: number
+  player_id: number
+  type_id: number
+  from_team_id: number | null
+  to_team_id: number | null
+  position_id: number | null
+  detailed_position_id: number | null
+  date: string
+  career_ended: boolean
+  completed: boolean
+  amount: number | string | null
+  completed_at?: string | null
+  type?: SportmonksType | null
+  fromTeam?: SportmonksTeam | null
+  toTeam?: SportmonksTeam | null
 }
 
 export interface SportmonksPlayer {
@@ -652,6 +676,17 @@ export interface PlayerStatisticsRefresh {
   message?: string
 }
 
+export interface PlayerTransfersRefresh {
+  transfers: SportmonksTransfer[]
+  fetchedAt: number
+  pageCount: number
+  rateLimit?: {
+    remaining: number
+    resetsAt: number
+  }
+  message?: string
+}
+
 export interface HalfspaceApi {
   credentials: {
     getConnectionState(): Promise<ConnectionState>
@@ -686,6 +721,9 @@ export interface HalfspaceApi {
     refreshPlayerStatistics(
       input: RefreshPlayerStatisticsInput
     ): Promise<Result<PlayerStatisticsRefresh>>
+    refreshPlayerTransfers(
+      input: RefreshPlayerTransfersInput
+    ): Promise<Result<PlayerTransfersRefresh>>
     getRateLimit(): Promise<SportmonksRateLimit | null>
     onRateLimitChange(listener: (rateLimit: SportmonksRateLimit) => void): () => void
     searchEntities(input: EntitySearchInput): Promise<Result<EntitySearchRefresh>>

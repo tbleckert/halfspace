@@ -1,12 +1,18 @@
 // @vitest-environment jsdom
 
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { PlayerRefresh, PlayerStatisticsRefresh, Result } from '@shared/contracts'
-import { db, readPlayerIdentity, readPlayerStatistics } from '@/data/db'
+import type {
+  PlayerRefresh,
+  PlayerStatisticsRefresh,
+  PlayerTransfersRefresh,
+  Result
+} from '@shared/contracts'
+import { db, readPlayerIdentity, readPlayerStatistics, readPlayerTransfers } from '@/data/db'
 import {
   invalidatePlayerRefreshes,
   prefetchPlayerEntity,
   prefetchPlayerStatistics,
+  prefetchPlayerTransfers,
   refreshPlayerEntity
 } from './use-player'
 
@@ -15,6 +21,8 @@ beforeEach(async () => {
   if (!db.isOpen()) await db.open()
   await db.players.clear()
   await db.playerStatisticsQueries.clear()
+  await db.transfers.clear()
+  await db.playerTransferQueries.clear()
 })
 
 afterAll(() => db.close())
@@ -68,6 +76,20 @@ describe('player refresh', () => {
     expect(refreshPlayerStatistics).toHaveBeenCalledTimes(1)
     expect(await readPlayerStatistics(input)).not.toBeNull()
   })
+
+  it('prefetches a missing player career without refetching fresh data', async () => {
+    const refreshPlayerTransfers = vi
+      .fn()
+      .mockResolvedValue({ ok: true, data: playerTransfersRefresh() })
+    installHalfspace({ refreshPlayerTransfers })
+    const input = { playerId: 6306068 }
+
+    await prefetchPlayerTransfers(input)
+    await prefetchPlayerTransfers(input)
+
+    expect(refreshPlayerTransfers).toHaveBeenCalledTimes(1)
+    expect((await readPlayerTransfers(input)).transfers).toHaveLength(1)
+  })
 })
 
 function playerRefresh(displayName: string, fetchedAt = Date.UTC(2026, 7, 28, 10)): PlayerRefresh {
@@ -117,6 +139,29 @@ function playerStatisticsRefresh(): PlayerStatisticsRefresh {
   }
 }
 
+function playerTransfersRefresh(): PlayerTransfersRefresh {
+  return {
+    fetchedAt: Date.now(),
+    pageCount: 1,
+    transfers: [
+      {
+        id: 184008,
+        sport_id: 1,
+        player_id: 6306068,
+        type_id: 218,
+        from_team_id: 2345,
+        to_team_id: 62,
+        position_id: 26,
+        detailed_position_id: 153,
+        date: '2023-07-01',
+        career_ended: false,
+        completed: true,
+        amount: null
+      }
+    ]
+  }
+}
+
 function deferred<T>(): {
   promise: Promise<T>
   resolve: (value: T) => void
@@ -154,6 +199,7 @@ function installHalfspace(overrides: Partial<Window['halfspace']['sportmonks']>)
       refreshPlayer: vi.fn(),
       refreshPlayerAppearances: vi.fn(),
       refreshPlayerStatistics: vi.fn(),
+      refreshPlayerTransfers: vi.fn(),
       getRateLimit: vi.fn(),
       onRateLimitChange: vi.fn(() => vi.fn()),
       searchEntities: vi.fn(),

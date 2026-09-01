@@ -32,6 +32,8 @@ const halfspaceApi: HalfspaceApi = {
       ipcRenderer.invoke(ipcChannels.refreshPlayerAppearances, input),
     refreshPlayerStatistics: (input) =>
       ipcRenderer.invoke(ipcChannels.refreshPlayerStatistics, input),
+    refreshPlayerTransfers: (input) =>
+      ipcRenderer.invoke(ipcChannels.refreshPlayerTransfers, input),
     getRateLimit: () => ipcRenderer.invoke(ipcChannels.rateLimitState),
     onRateLimitChange: (listener) => {
       const handleRateLimitChange = (

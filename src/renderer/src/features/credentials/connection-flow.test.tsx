@@ -52,6 +52,7 @@ beforeEach(() => {
       refreshPlayer: vi.fn(),
       refreshPlayerAppearances: vi.fn(),
       refreshPlayerStatistics: vi.fn(),
+      refreshPlayerTransfers: vi.fn(),
       getRateLimit,
       onRateLimitChange,
       searchEntities: vi.fn()

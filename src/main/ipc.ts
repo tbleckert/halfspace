@@ -14,6 +14,7 @@ import {
   fetchPlayerAppearances,
   fetchPlayerById,
   fetchPlayerStatistics,
+  fetchPlayerTransfers,
   fetchSeasonStatistics,
   fetchStandingsBySeason,
   fetchTeamById,
@@ -30,6 +31,7 @@ import {
   validatePlayerAppearancesInput,
   validatePlayerInput,
   validatePlayerStatisticsInput,
+  validatePlayerTransfersInput,
   validateRefreshInput,
   validateSeasonStatisticsInput,
   validateStandingsInput,
@@ -184,6 +186,12 @@ export function registerIpcHandlers(): void {
     validatePlayerStatisticsInput,
     fetchPlayerStatistics,
     'Could not refresh player statistics.'
+  )
+  registerSportmonksHandler(
+    ipcChannels.refreshPlayerTransfers,
+    validatePlayerTransfersInput,
+    fetchPlayerTransfers,
+    'Could not refresh player career.'
   )
   registerSportmonksHandler(
     ipcChannels.searchEntities,

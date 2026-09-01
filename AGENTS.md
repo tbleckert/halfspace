@@ -112,6 +112,9 @@ abstractions.
   as an appearance. Stats is season-scoped, requests only the player statistic types shown, and
   keeps each player-and-season response in the local cache. When competition context is available,
   show the same compact URL-backed season selector and keep the date inside the selected season.
+- Player Career shows the complete Sportmonks transfer history as a compact chronological list with
+  direct links to both teams. Cache transfers as normalized records so the same foundation can power
+  Team Transfers later. Do not display a transfer amount without a trustworthy currency.
 - Refresh fixture pages through the fixture-by-ID endpoint. When fixture lists update shared cache
   records, preserve richer match context already fetched for the entity page.
 - Show every active subscribed competition in the sidebar when there are 10 or fewer. Above 10,
