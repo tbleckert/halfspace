@@ -13,6 +13,7 @@ import {
   invalidateFixtureRefreshes,
   prefetchFixtureEntity,
   prefetchFixtureHeadToHead,
+  prefetchMatchdayWindow,
   prefetchFixtureQuery,
   refreshFixtureEntity
 } from './use-fixtures'
@@ -46,6 +47,29 @@ describe('fixture refresh', () => {
 
     expect(refreshFixtures).toHaveBeenCalledTimes(1)
     expect((await readFixtureQuery(date, currentTimeZone())).fixtures).toHaveLength(1)
+  })
+
+  it('prefetches the rolling matchday window once and hydrates each date', async () => {
+    const refresh = fixtureListRefresh()
+    refresh.fixtures[0].starting_at_timestamp = Date.UTC(2026, 7, 28, 18) / 1_000
+    const refreshFixtureWindow = vi.fn().mockResolvedValue({
+      ok: true,
+      data: refresh
+    })
+    installHalfspace({ refreshFixtureWindow })
+
+    await prefetchMatchdayWindow('2026-08-28', currentTimeZone())
+    await prefetchMatchdayWindow('2026-08-28', currentTimeZone())
+
+    expect(refreshFixtureWindow).toHaveBeenCalledTimes(1)
+    expect(refreshFixtureWindow).toHaveBeenCalledWith({
+      startDate: '2026-08-24',
+      endDate: '2026-09-04',
+      timeZone: currentTimeZone()
+    })
+    expect((await readFixtureQuery('2026-08-24', currentTimeZone())).query).not.toBeNull()
+    expect((await readFixtureQuery('2026-08-28', currentTimeZone())).fixtures).toHaveLength(1)
+    expect((await readFixtureQuery('2026-08-29', currentTimeZone())).query).not.toBeNull()
   })
 
   it('prefetches missing fixture detail without refetching fresh data', async () => {
@@ -151,6 +175,7 @@ function installHalfspace(overrides: Partial<Window['halfspace']['sportmonks']>)
     },
     sportmonks: {
       refreshFixtures: vi.fn(),
+      refreshFixtureWindow: vi.fn(),
       refreshFixture: vi.fn(),
       refreshFixtureHeadToHead: vi.fn(),
       refreshFixtureOdds: vi.fn(),

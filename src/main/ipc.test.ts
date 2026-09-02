@@ -17,7 +17,8 @@ const tokenMocks = vi.hoisted(() => ({
 }))
 
 const sportmonksMocks = vi.hoisted(() => ({
-  fetchFixturesByDate: vi.fn()
+  fetchFixturesByDate: vi.fn(),
+  fetchFixturesByDateRange: vi.fn()
 }))
 
 vi.mock('electron', () => ({
@@ -34,7 +35,8 @@ vi.mock('./token-store', () => tokenMocks)
 
 vi.mock('./sportmonks', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./sportmonks')>()),
-  fetchFixturesByDate: sportmonksMocks.fetchFixturesByDate
+  fetchFixturesByDate: sportmonksMocks.fetchFixturesByDate,
+  fetchFixturesByDateRange: sportmonksMocks.fetchFixturesByDateRange
 }))
 
 import { registerIpcHandlers } from './ipc'
@@ -80,6 +82,21 @@ describe('IPC handlers', () => {
       }
     })
     expect(sportmonksMocks.fetchFixturesByDate).not.toHaveBeenCalled()
+  })
+
+  it('validates and forwards rolling fixture-window requests', async () => {
+    const refresh = { fixtures: [] }
+    sportmonksMocks.fetchFixturesByDateRange.mockResolvedValue(refresh)
+
+    const input = {
+      startDate: '2026-08-30',
+      endDate: '2026-09-09',
+      timeZone: 'Europe/Stockholm'
+    }
+    const result = await invokeTrusted(ipcChannels.refreshFixtureWindow, input)
+
+    expect(result).toEqual({ ok: true, data: refresh })
+    expect(sportmonksMocks.fetchFixturesByDateRange).toHaveBeenCalledWith(input, 'private-token')
   })
 
   it('rejects untrusted senders outside the recoverable request boundary', async () => {

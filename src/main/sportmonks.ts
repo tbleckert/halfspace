@@ -17,6 +17,7 @@ import type {
   RefreshFixtureHeadToHeadInput,
   RefreshFixtureInput,
   RefreshFixturesInput,
+  RefreshFixtureWindowInput,
   RefreshPlayerAppearancesInput,
   RefreshCoachInput,
   RefreshPlayerInput,
@@ -891,6 +892,10 @@ export function validateRefreshInput(value: unknown): RefreshFixturesInput {
   return { date: input.date, timeZone: input.timeZone }
 }
 
+export function validateFixtureWindowInput(value: unknown): RefreshFixtureWindowInput {
+  return validateDateRange(value)
+}
+
 export function validateFixtureInput(value: unknown): RefreshFixtureInput {
   const fixtureId =
     value && typeof value === 'object' ? (value as { fixtureId?: unknown }).fixtureId : 0
@@ -1099,6 +1104,19 @@ export async function fetchFixturesByDate(
   fetcher: typeof fetch = fetch
 ): Promise<FixtureRefresh> {
   return fetchFixturePages(`fixtures/date/${input.date}`, input.timeZone, token, fetcher)
+}
+
+export async function fetchFixturesByDateRange(
+  input: RefreshFixtureWindowInput,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<FixtureRefresh> {
+  return fetchFixturePages(
+    `fixtures/between/${input.startDate}/${input.endDate}`,
+    input.timeZone,
+    token,
+    fetcher
+  )
 }
 
 export async function fetchFixtureById(
@@ -2093,15 +2111,24 @@ function validateFixtureRange(
   value: unknown,
   entityIdKey: 'competitionId' | 'teamId'
 ): { entityId: number; startDate: string; endDate: string; timeZone: string } {
+  const range = validateDateRange(value)
+  const entityId = (value as Record<string, unknown>)[entityIdKey]
+
+  if (!isPositiveId(entityId)) {
+    throw new SportmonksError('invalid_input', 'Choose a valid fixture range.')
+  }
+
+  return { entityId, ...range }
+}
+
+function validateDateRange(value: unknown): RefreshFixtureWindowInput {
   if (!value || typeof value !== 'object') {
     throw new SportmonksError('invalid_input', 'Choose a valid fixture range.')
   }
 
   const input = value as Record<string, unknown>
-  const entityId = input[entityIdKey]
 
   if (
-    !isPositiveId(entityId) ||
     typeof input.startDate !== 'string' ||
     typeof input.endDate !== 'string' ||
     !isValidIsoDate(input.startDate) ||
@@ -2124,7 +2151,6 @@ function validateFixtureRange(
   }
 
   return {
-    entityId,
     startDate: input.startDate,
     endDate: input.endDate,
     timeZone: input.timeZone

@@ -3,6 +3,7 @@ export const ipcChannels = {
   saveToken: 'credentials:save-token',
   clearToken: 'credentials:clear-token',
   refreshFixtures: 'sportmonks:refresh-fixtures',
+  refreshFixtureWindow: 'sportmonks:refresh-fixture-window',
   refreshFixture: 'sportmonks:refresh-fixture',
   refreshFixtureHeadToHead: 'sportmonks:refresh-fixture-head-to-head',
   refreshFixtureOdds: 'sportmonks:refresh-fixture-odds',
@@ -63,6 +64,12 @@ export interface SaveTokenInput {
 
 export interface RefreshFixturesInput {
   date: string
+  timeZone: string
+}
+
+export interface RefreshFixtureWindowInput {
+  startDate: string
+  endDate: string
   timeZone: string
 }
 
@@ -758,6 +765,7 @@ export interface HalfspaceApi {
   }
   sportmonks: {
     refreshFixtures(input: RefreshFixturesInput): Promise<Result<FixtureRefresh>>
+    refreshFixtureWindow(input: RefreshFixtureWindowInput): Promise<Result<FixtureRefresh>>
     refreshFixture(input: RefreshFixtureInput): Promise<Result<FixtureDetailRefresh>>
     refreshFixtureHeadToHead(input: RefreshFixtureHeadToHeadInput): Promise<Result<FixtureRefresh>>
     refreshFixtureOdds(input: RefreshFixtureInput): Promise<Result<FixtureOddsRefresh>>

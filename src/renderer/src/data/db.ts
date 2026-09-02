@@ -37,7 +37,7 @@ import type {
   TeamStatisticsRefresh,
   VenueRefresh
 } from '@shared/contracts'
-import { fixtureCacheExpiry } from '@/lib/date'
+import { fixtureCacheExpiry, isoDateInTimeZone } from '@/lib/date'
 import { isFixtureOngoing } from '@/lib/fixture-state'
 
 const subscribedCompetitionCatalog = 'subscribed'
@@ -727,6 +727,47 @@ export async function writeFixtureRefresh(
     const fixtures = await toCachedFixtures(refresh.fixtures, refresh.fetchedAt, staleAt)
     await db.fixtures.bulkPut(fixtures)
     await db.fixtureQueries.put(query)
+  })
+}
+
+export async function writeFixtureWindowRefresh(
+  dates: string[],
+  timeZone: string,
+  refresh: FixtureRefresh
+): Promise<void> {
+  const fixturesByDate = new Map(dates.map((date) => [date, [] as SportmonksFixture[]]))
+
+  for (const fixture of refresh.fixtures) {
+    if (typeof fixture.starting_at_timestamp !== 'number') continue
+
+    const date = isoDateInTimeZone(fixture.starting_at_timestamp * 1_000, timeZone)
+    fixturesByDate.get(date)?.push(fixture)
+  }
+
+  await db.transaction('rw', db.fixtures, db.fixtureQueries, async () => {
+    for (const date of dates) {
+      const fixtures = fixturesByDate.get(date) ?? []
+      const staleAt = fixtureRefreshExpiry(
+        fixtures,
+        refresh.fetchedAt,
+        fixtureCacheExpiry(date, timeZone, refresh.fetchedAt)
+      )
+      const cachedFixtures = await toCachedFixtures(fixtures, refresh.fetchedAt, staleAt)
+
+      await db.fixtures.bulkPut(cachedFixtures)
+      await db.fixtureQueries.put({
+        key: fixtureQueryKey(date, timeZone),
+        date,
+        timeZone,
+        fixtureIds: fixtures.map(({ id }) => id),
+        fetchedAt: refresh.fetchedAt,
+        staleAt,
+        pageCount: refresh.pageCount,
+        rateLimitRemaining: refresh.rateLimit?.remaining,
+        rateLimitResetsAt: refresh.rateLimit?.resetsAt,
+        message: refresh.message
+      })
+    }
   })
 }
 

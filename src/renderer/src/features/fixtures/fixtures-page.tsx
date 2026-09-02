@@ -1,13 +1,14 @@
 import { useMemo } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { CalendarDays, RefreshCw } from 'lucide-react'
-import type { CachedFixture } from '@/data/db'
-import { prefetchFixtureEntity, useFixtures } from './use-fixtures'
+import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
+import type { CachedFixture, FixtureQuery } from '@/data/db'
+import { prefetchFixtureEntity, useMatchdayWindow } from './use-fixtures'
+import { buildMatchdaySections, matchdayWindow, type MatchdayFixturesDay } from './matchday-hub'
 import { FixtureLiveIndicator } from './fixture-live-indicator'
 import { fixtureRowStatus } from '@/lib/fixture-state'
 import { Button } from '@/components/ui/button'
 import { ErrorAlert } from '@/components/error-alert'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CompetitionLogo } from '@/features/competitions/competition-logo'
@@ -25,14 +26,20 @@ interface FixturesPageProps {
   date: string
 }
 
+const fixtureDayPreviewLimit = 8
+
 export function FixturesPage({ date }: FixturesPageProps): React.JSX.Element {
   const navigate = useNavigate({ from: '/' })
   const timeZone = useMemo(() => currentTimeZone(), [])
   const today = useTodayInTimeZone(timeZone)
   const online = useOnline()
-  const { cached, refreshing, error, refresh } = useFixtures(date, timeZone, true)
+  const { cached, refreshing, error, refresh } = useMatchdayWindow(date, timeZone, true)
   const { cached: competitionCatalog } = useCompetitions(false)
-  const groupedFixtures = useMemo(() => groupFixtures(cached?.fixtures ?? []), [cached?.fixtures])
+  const sections = useMemo(
+    () => buildMatchdaySections(cached?.days ?? [], date, today),
+    [cached?.days, date, today]
+  )
+  const navigationDates = useMemo(() => matchdayWindow(date).navigationDates, [date])
   const competitionImagePaths = useMemo(
     () =>
       new Map(
@@ -46,8 +53,19 @@ export function FixturesPage({ date }: FixturesPageProps): React.JSX.Element {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 p-6 lg:p-8">
-      <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+      <header className="flex flex-col gap-3 lg:grid lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center lg:gap-6">
         <h1 className="text-3xl font-semibold tracking-tight">Matchday</h1>
+
+        <WeekNavigator
+          date={date}
+          navigationDates={navigationDates}
+          onSelect={(nextDate) =>
+            void navigate({
+              search: (previous) => ({ ...previous, date: nextDate }),
+              replace: true
+            })
+          }
+        />
 
         <div className="flex items-center gap-1 rounded-lg border bg-card p-0.5 shadow-xs">
           <Input
@@ -89,44 +107,55 @@ export function FixturesPage({ date }: FixturesPageProps): React.JSX.Element {
 
       {error && <ErrorAlert>{error}</ErrorAlert>}
 
-      {cached === undefined ? (
+      {cached === undefined || (!cached.complete && refreshing && !hasAnyCachedDay(cached.days)) ? (
         <FixtureListSkeleton />
-      ) : groupedFixtures.length === 0 ? (
-        <Card>
-          <CardContent className="flex min-h-48 flex-col items-center justify-center text-center">
-            <CalendarDays className="mb-3 size-7 text-muted-foreground" />
-            <p className="font-medium">{refreshing ? 'Loading fixtures…' : 'No fixtures'}</p>
-          </CardContent>
-        </Card>
       ) : (
-        <div className="flex flex-col gap-4">
-          {groupedFixtures.map(([league, fixtures]) => (
-            <Card key={league} className="overflow-hidden border-border/60 shadow-none">
-              <CardHeader className="border-b px-4 py-3">
-                <Link
-                  to="/competitions/$competitionId"
-                  params={{ competitionId: String(fixtures[0].leagueId) }}
-                  search={{ date, season: fixtures[0].seasonId }}
-                  className="flex w-fit items-center gap-2.5 rounded-md outline-none transition-colors hover:text-brand-blue focus-visible:ring-2 focus-visible:ring-brand-blue"
-                  {...intentPrefetchProps(online, () =>
-                    prefetchCompetitionWorkspace(fixtures[0].leagueId)
-                  )}
-                >
-                  <CompetitionLogo
-                    className="size-6 bg-background"
-                    imagePath={competitionImagePaths.get(fixtures[0].leagueId) ?? null}
-                    online={online}
-                  />
-                  <CardTitle>{league}</CardTitle>
-                </Link>
-              </CardHeader>
-              <div className="divide-y">
-                {fixtures.map((fixture) => (
-                  <FixtureRow key={fixture.id} fixture={fixture} online={online} />
-                ))}
-              </div>
-            </Card>
-          ))}
+        <div className="flex flex-col gap-7">
+          {sections.live.length > 0 && (
+            <FixtureSection title="Live now">
+              <FixtureGroups
+                competitionImagePaths={competitionImagePaths}
+                date={date}
+                fixtures={sections.live}
+                online={online}
+              />
+            </FixtureSection>
+          )}
+
+          {(sections.selected.length > 0 || sections.live.length === 0) && (
+            <FixtureSection title={formatHubDate(date, today)}>
+              {sections.selected.length > 0 ? (
+                <FixtureGroups
+                  competitionImagePaths={competitionImagePaths}
+                  date={date}
+                  fixtures={sections.selected}
+                  online={online}
+                />
+              ) : (
+                <p className="py-2 text-sm text-muted-foreground">{emptyDateLabel(date, today)}</p>
+              )}
+            </FixtureSection>
+          )}
+
+          {sections.following.length > 0 && (
+            <FixtureDayCollection
+              competitionImagePaths={competitionImagePaths}
+              days={sections.following}
+              online={online}
+              title={date === today ? 'Up next' : 'Following'}
+              today={today}
+            />
+          )}
+
+          {sections.earlier.length > 0 && (
+            <FixtureDayCollection
+              competitionImagePaths={competitionImagePaths}
+              days={sections.earlier}
+              online={online}
+              title={date === today ? 'Latest results' : 'Earlier'}
+              today={today}
+            />
+          )}
         </div>
       )}
     </div>
@@ -135,9 +164,11 @@ export function FixturesPage({ date }: FixturesPageProps): React.JSX.Element {
 
 function FixtureRow({
   fixture,
+  date,
   online
 }: {
   fixture: CachedFixture
+  date: string
   online: boolean
 }): React.JSX.Element {
   const home = fixtureParticipantAt(fixture.raw, 'home')
@@ -149,7 +180,7 @@ function FixtureRow({
     <Link
       to="/fixtures/$fixtureId"
       params={{ fixtureId: String(fixture.id) }}
-      search={true}
+      search={{ date }}
       className="grid grid-cols-[4rem_minmax(0,1fr)_2rem] items-center gap-4 px-4 py-3 outline-none transition-colors hover:bg-brand-blue/[0.08] focus-visible:bg-brand-blue/[0.08]"
       {...intentPrefetchProps(online, () => prefetchFixtureEntity(fixture.id))}
     >
@@ -185,6 +216,171 @@ function FixtureRow({
         )}
       </div>
     </Link>
+  )
+}
+
+function WeekNavigator({
+  date,
+  navigationDates,
+  onSelect
+}: {
+  date: string
+  navigationDates: string[]
+  onSelect: (date: string) => void
+}): React.JSX.Element {
+  return (
+    <nav aria-label="Matchday week" className="mx-auto flex w-full max-w-lg items-center gap-1">
+      <Button
+        aria-label="Previous week"
+        className="size-7 text-muted-foreground"
+        size="icon"
+        variant="ghost"
+        onClick={() => onSelect(addDate(date, -7))}
+      >
+        <ChevronLeft className="size-3.5" />
+      </Button>
+
+      <div className="grid min-w-0 flex-1 grid-cols-7">
+        {navigationDates.map((navigationDate) => {
+          const active = navigationDate === date
+          const outsideSelectedMonth = navigationDate.slice(0, 7) !== date.slice(0, 7)
+
+          return (
+            <button
+              key={navigationDate}
+              aria-current={active ? 'date' : undefined}
+              aria-label={weekDateAriaLabel(navigationDate)}
+              className={cn(
+                'flex min-w-0 flex-col items-center rounded-md px-1 py-0.5 text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand-blue',
+                outsideSelectedMonth && 'text-muted-foreground/55',
+                active && 'text-foreground'
+              )}
+              type="button"
+              onClick={() => onSelect(navigationDate)}
+            >
+              <span className={cn('text-xs', active && 'font-medium')}>
+                {formatWeekday(navigationDate)}
+              </span>
+              <span className={cn('text-sm tabular-nums', active && 'font-semibold')}>
+                {formatCompactDate(navigationDate)}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
+      <Button
+        aria-label="Next week"
+        className="size-7 text-muted-foreground"
+        size="icon"
+        variant="ghost"
+        onClick={() => onSelect(addDate(date, 7))}
+      >
+        <ChevronRight className="size-3.5" />
+      </Button>
+    </nav>
+  )
+}
+
+function FixtureSection({
+  children,
+  title
+}: {
+  children: React.ReactNode
+  title: string
+}): React.JSX.Element {
+  return (
+    <section className="space-y-3">
+      <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+      {children}
+    </section>
+  )
+}
+
+function FixtureDayCollection({
+  competitionImagePaths,
+  days,
+  online,
+  title,
+  today
+}: {
+  competitionImagePaths: Map<number, string | null>
+  days: MatchdayFixturesDay[]
+  online: boolean
+  title: string
+  today: string
+}): React.JSX.Element {
+  return (
+    <FixtureSection title={title}>
+      <div className="space-y-5">
+        {days.map((day) => (
+          <div key={day.date} className="space-y-2.5">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-sm font-medium text-muted-foreground">
+                {formatHubDate(day.date, today)}
+              </h3>
+              {day.fixtures.length > fixtureDayPreviewLimit && (
+                <Link
+                  to="/"
+                  search={{ date: day.date }}
+                  className="rounded-md px-2 py-1 text-xs font-medium text-brand-blue outline-none transition-colors hover:bg-brand-blue/[0.08] focus-visible:ring-2 focus-visible:ring-brand-blue"
+                >
+                  View all {day.fixtures.length}
+                </Link>
+              )}
+            </div>
+            <FixtureGroups
+              competitionImagePaths={competitionImagePaths}
+              date={day.date}
+              fixtures={fixtureDayPreview(day.fixtures)}
+              online={online}
+            />
+          </div>
+        ))}
+      </div>
+    </FixtureSection>
+  )
+}
+
+function FixtureGroups({
+  competitionImagePaths,
+  date,
+  fixtures,
+  online
+}: {
+  competitionImagePaths: Map<number, string | null>
+  date: string
+  fixtures: CachedFixture[]
+  online: boolean
+}): React.JSX.Element {
+  return (
+    <div className="flex flex-col gap-3">
+      {groupFixtures(fixtures).map(({ leagueId, leagueName, fixtures: leagueFixtures }) => (
+        <Card key={leagueId} className="overflow-hidden border-border/60 shadow-none">
+          <CardHeader className="border-b px-4 py-3">
+            <Link
+              to="/competitions/$competitionId"
+              params={{ competitionId: String(leagueId) }}
+              search={{ date, season: leagueFixtures[0].seasonId }}
+              className="flex w-fit items-center gap-2.5 rounded-md outline-none transition-colors hover:text-brand-blue focus-visible:ring-2 focus-visible:ring-brand-blue"
+              {...intentPrefetchProps(online, () => prefetchCompetitionWorkspace(leagueId))}
+            >
+              <CompetitionLogo
+                className="size-6 bg-background"
+                imagePath={competitionImagePaths.get(leagueId) ?? null}
+                online={online}
+              />
+              <CardTitle>{leagueName}</CardTitle>
+            </Link>
+          </CardHeader>
+          <div className="divide-y">
+            {leagueFixtures.map((fixture) => (
+              <FixtureRow key={fixture.id} date={date} fixture={fixture} online={online} />
+            ))}
+          </div>
+        </Card>
+      ))}
+    </div>
   )
 }
 
@@ -243,15 +439,94 @@ function FixtureListSkeleton(): React.JSX.Element {
   )
 }
 
-function groupFixtures(fixtures: CachedFixture[]): Array<[string, CachedFixture[]]> {
-  const groups = new Map<string, CachedFixture[]>()
+function groupFixtures(fixtures: CachedFixture[]): Array<{
+  leagueId: number
+  leagueName: string
+  fixtures: CachedFixture[]
+}> {
+  const groups = new Map<
+    number,
+    { leagueId: number; leagueName: string; fixtures: CachedFixture[] }
+  >()
 
   for (const fixture of fixtures) {
-    const league = fixture.raw.league?.name ?? `League ${fixture.leagueId}`
-    const group = groups.get(league) ?? []
-    group.push(fixture)
-    groups.set(league, group)
+    const group = groups.get(fixture.leagueId) ?? {
+      leagueId: fixture.leagueId,
+      leagueName: fixture.raw.league?.name ?? `League ${fixture.leagueId}`,
+      fixtures: []
+    }
+    group.fixtures.push(fixture)
+    groups.set(fixture.leagueId, group)
   }
 
-  return [...groups.entries()]
+  return [...groups.values()]
+}
+
+function hasAnyCachedDay(days: Array<{ query: FixtureQuery | null }>): boolean {
+  return days.some(({ query }) => query !== null)
+}
+
+function fixtureDayPreview(fixtures: CachedFixture[]): CachedFixture[] {
+  return [...fixtures]
+    .sort(
+      (first, second) =>
+        (first.startingAt ?? Number.MAX_SAFE_INTEGER) -
+          (second.startingAt ?? Number.MAX_SAFE_INTEGER) || first.id - second.id
+    )
+    .slice(0, fixtureDayPreviewLimit)
+}
+
+function isoDateValue(date: string): Date {
+  return new Date(`${date}T12:00:00Z`)
+}
+
+function formatWeekday(date: string): string {
+  return new Intl.DateTimeFormat(undefined, { weekday: 'short', timeZone: 'UTC' }).format(
+    isoDateValue(date)
+  )
+}
+
+function formatCompactDate(date: string): string {
+  return date.slice(-2)
+}
+
+function formatHubDate(date: string, today: string): string {
+  if (date === today) return 'Today'
+  if (date === addDate(today, 1)) return 'Tomorrow'
+  if (date === addDate(today, -1)) return 'Yesterday'
+
+  return new Intl.DateTimeFormat(undefined, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC'
+  }).format(isoDateValue(date))
+}
+
+function emptyDateLabel(date: string, today: string): string {
+  if (date === today) return 'No fixtures today.'
+
+  const weekday = new Intl.DateTimeFormat(undefined, {
+    weekday: 'long',
+    timeZone: 'UTC'
+  })
+    .format(isoDateValue(date))
+    .toLocaleLowerCase()
+
+  return `No fixtures on ${weekday}.`
+}
+
+function weekDateAriaLabel(date: string): string {
+  return new Intl.DateTimeFormat(undefined, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC'
+  }).format(isoDateValue(date))
+}
+
+function addDate(date: string, days: number): string {
+  const value = isoDateValue(date)
+  value.setUTCDate(value.getUTCDate() + days)
+  return value.toISOString().slice(0, 10)
 }

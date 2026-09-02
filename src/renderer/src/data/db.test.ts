@@ -57,6 +57,7 @@ import {
   writeFixtureOddsRefresh,
   writeFixtureHeadToHeadRefresh,
   writeFixtureRefresh,
+  writeFixtureWindowRefresh,
   writePlayerAppearancesRefresh,
   writePlayerRefresh,
   writePlayerStatisticsRefresh,
@@ -291,6 +292,26 @@ describe('fixture cache', () => {
     const cached = await readFixtureQuery('2026-08-28', 'UTC')
     expect(cached.query).not.toBeNull()
     expect(cached.fixtures).toEqual([])
+  })
+
+  it('splits one fixture-window response into the existing daily cache', async () => {
+    const refresh = fixtureRefresh(19425456, 'Manchester City vs Arsenal')
+    refresh.fixtures[0].starting_at_timestamp = Date.UTC(2026, 7, 28, 18) / 1_000
+    refresh.fixtures.push({
+      ...refresh.fixtures[0],
+      id: 19425457,
+      starting_at_timestamp: Date.UTC(2026, 7, 29, 18) / 1_000
+    })
+
+    await writeFixtureWindowRefresh(
+      ['2026-08-28', '2026-08-29', '2026-08-30'],
+      'Europe/Stockholm',
+      refresh
+    )
+
+    expect((await readFixtureQuery('2026-08-28', 'Europe/Stockholm')).fixtures).toHaveLength(1)
+    expect((await readFixtureQuery('2026-08-29', 'Europe/Stockholm')).fixtures).toHaveLength(1)
+    expect((await readFixtureQuery('2026-08-30', 'Europe/Stockholm')).query).not.toBeNull()
   })
 
   it('keeps detailed match context when a fixture list refreshes', async () => {

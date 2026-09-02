@@ -12,6 +12,7 @@ import {
   fetchFixtureHeadToHead,
   fetchFixtureOdds,
   fetchFixturesByDate,
+  fetchFixturesByDateRange,
   fetchPlayerAppearances,
   fetchPlayerById,
   fetchPlayerStatistics,
@@ -31,6 +32,7 @@ import {
   validateEntitySearchInput,
   validateFixtureInput,
   validateFixtureHeadToHeadInput,
+  validateFixtureWindowInput,
   validatePlayerAppearancesInput,
   validatePlayerInput,
   validatePlayerStatisticsInput,
@@ -95,6 +97,12 @@ export function registerIpcHandlers(): void {
     validateRefreshInput,
     fetchFixturesByDate,
     'Could not refresh fixtures.'
+  )
+  registerSportmonksHandler(
+    ipcChannels.refreshFixtureWindow,
+    validateFixtureWindowInput,
+    fetchFixturesByDateRange,
+    'Could not refresh the fixture window.'
   )
   registerSportmonksHandler(
     ipcChannels.refreshFixture,

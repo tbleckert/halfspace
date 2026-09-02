@@ -103,6 +103,16 @@ abstractions.
   sidebar active-item background for fixture-row hover and separators between rows. Keep header and
   row padding compact. Keep the Matchday heading consistent with the other page headings rather
   than giving it separate oversized brand treatment.
+- Treat Matchday as a rolling fixture hub around the selected date. Use a compact seven-day
+  Monday-to-Sunday navigator with only a small weekday and a two-digit day in the interface font,
+  no fixture counts or container chrome, and place it in the page header between Matchday and the
+  date and refresh controls. Put previous- and next-week chevrons on its edges. Distinguish the
+  selected day through text emphasis. When the week spans months, mute dates outside the selected
+  month slightly. Separate current live fixtures, keep an empty selected day quiet, and surface the
+  next three fixture days plus the two latest result days as compact previews linking to the
+  complete day. Fetch the wider window in one Sportmonks date-range request, split it into the
+  existing daily Dexie queries, and refresh the selected day separately so live updates do not
+  refetch the full window.
 - Derive live match time from Sportmonks periods rather than elapsed wall-clock time.
 - Fixture timelines include the event player relationship so player portraits can accompany events.
   Respect Sportmonks `sort_order` when sequencing events that share a match minute.

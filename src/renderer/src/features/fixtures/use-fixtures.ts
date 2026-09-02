@@ -10,12 +10,16 @@ import {
   writeFixtureDetailRefresh,
   writeFixtureHeadToHeadRefresh,
   writeFixtureOddsRefresh,
-  writeFixtureRefresh
+  writeFixtureRefresh,
+  writeFixtureWindowRefresh
 } from '@/data/db'
+import { matchdayWindow } from './matchday-hub'
+import { isFixtureOngoing } from '@/lib/fixture-state'
 import { type RefreshableQuery, type RefreshRequest, useStaleRefresh } from '@/lib/refresh'
 
 let refreshGeneration = 0
 const refreshes = new Map<string, RefreshRequest>()
+const windowRefreshes = new Map<string, RefreshRequest>()
 const entityRefreshes = new Map<number, RefreshRequest>()
 const oddsRefreshes = new Map<number, RefreshRequest>()
 const headToHeadRefreshes = new Map<string, RefreshRequest>()
@@ -25,6 +29,17 @@ type FixtureCache = Awaited<ReturnType<typeof readFixtureQuery>>
 type FixtureIdentityCache = Awaited<ReturnType<typeof readFixtureIdentity>>
 type FixtureOddsCache = Awaited<ReturnType<typeof readFixtureOdds>>
 type FixtureHeadToHeadCache = Awaited<ReturnType<typeof readFixtureHeadToHead>>
+
+interface MatchdayWindowDay extends FixtureCache {
+  date: string
+}
+
+interface MatchdayWindowCache {
+  days: MatchdayWindowDay[]
+  complete: boolean
+  selectedStaleAt?: number
+  windowStaleAt?: number
+}
 
 export function useFixtures(
   date: string,
@@ -53,6 +68,89 @@ export function useFixtures(
   useStaleRefresh(enabled, cached !== undefined, cached?.query?.staleAt, refresh)
 
   return { cached, refreshing, error, refresh }
+}
+
+export function useMatchdayWindow(
+  date: string,
+  timeZone: string,
+  enabled: boolean
+): RefreshableQuery<MatchdayWindowCache> {
+  const fixtureWindow = matchdayWindow(date)
+  const cached = useLiveQuery(async () => {
+    const days = await Promise.all(
+      fixtureWindow.dates.map(async (windowDate) => ({
+        date: windowDate,
+        ...(await readFixtureQuery(windowDate, timeZone))
+      }))
+    )
+    const selectedQuery = days.find((day) => day.date === date)?.query
+    const surroundingQueries = days
+      .filter(
+        (day) => day.date !== date && !day.fixtures.some(({ stateId }) => isFixtureOngoing(stateId))
+      )
+      .map(({ query }) => query)
+
+    return {
+      days,
+      complete: days.every(({ query }) => query !== null),
+      selectedStaleAt: selectedQuery?.staleAt,
+      windowStaleAt:
+        surroundingQueries.every((query) => query !== null) && surroundingQueries.length > 0
+          ? Math.min(...surroundingQueries.map((query) => query.staleAt))
+          : undefined
+    }
+  }, [date, timeZone])
+  const [windowRefreshing, setWindowRefreshing] = useState(false)
+  const [selectedRefreshing, setSelectedRefreshing] = useState(false)
+  const [windowError, setWindowError] = useState<string | null>(null)
+  const [selectedError, setSelectedError] = useState<string | null>(null)
+
+  const refresh = useCallback(async () => {
+    if (!enabled) return
+
+    setWindowRefreshing(true)
+    setWindowError(null)
+    try {
+      await refreshMatchdayWindow(date, timeZone)
+    } catch (refreshError) {
+      setWindowError(
+        refreshError instanceof Error ? refreshError.message : 'Could not refresh fixtures.'
+      )
+    } finally {
+      setWindowRefreshing(false)
+    }
+  }, [date, enabled, timeZone])
+
+  const refreshSelected = useCallback(async () => {
+    if (!enabled) return
+
+    setSelectedRefreshing(true)
+    setSelectedError(null)
+    try {
+      await refreshFixtureQuery(date, timeZone)
+    } catch (refreshError) {
+      setSelectedError(
+        refreshError instanceof Error ? refreshError.message : 'Could not refresh fixtures.'
+      )
+    } finally {
+      setSelectedRefreshing(false)
+    }
+  }, [date, enabled, timeZone])
+
+  useStaleRefresh(enabled, cached !== undefined, cached?.windowStaleAt, refresh)
+  useStaleRefresh(
+    enabled && cached?.days.find((day) => day.date === date)?.query !== null,
+    cached !== undefined,
+    cached?.selectedStaleAt,
+    refreshSelected
+  )
+
+  return {
+    cached,
+    refreshing: windowRefreshing || selectedRefreshing,
+    error: windowError ?? selectedError,
+    refresh
+  }
 }
 
 export function useFixtureEntity(
@@ -179,6 +277,16 @@ export async function prefetchFixtureQuery(date: string, timeZone: string): Prom
   await refreshFixtureQuery(date, timeZone)
 }
 
+export async function prefetchMatchdayWindow(date: string, timeZone: string): Promise<void> {
+  const fixtureWindow = matchdayWindow(date)
+  const cached = await Promise.all(
+    fixtureWindow.dates.map((windowDate) => readFixtureQuery(windowDate, timeZone))
+  )
+  if (cached.every(({ query }) => query && query.staleAt > Date.now())) return
+
+  await refreshMatchdayWindow(date, timeZone)
+}
+
 export async function prefetchFixtureEntity(fixtureId: number): Promise<void> {
   const cached = await readFixtureIdentity(fixtureId)
   if (cached.fixture?.detailStaleAt && cached.fixture.detailStaleAt > Date.now()) return
@@ -195,7 +303,7 @@ export async function prefetchFixtureHeadToHead(
   await refreshFixtureHeadToHead(input)
 }
 
-async function refreshFixtureQuery(date: string, timeZone: string): Promise<void> {
+export async function refreshFixtureQuery(date: string, timeZone: string): Promise<void> {
   const key = `${date}|${timeZone}`
   const existing = refreshes.get(key)
   if (existing?.generation === refreshGeneration) return existing.promise
@@ -220,6 +328,34 @@ async function refreshFixtureQuery(date: string, timeZone: string): Promise<void
     await refresh
   } finally {
     if (refreshes.get(key)?.promise === refresh) refreshes.delete(key)
+  }
+}
+
+async function refreshMatchdayWindow(date: string, timeZone: string): Promise<void> {
+  const fixtureWindow = matchdayWindow(date)
+  const key = `${fixtureWindow.startDate}|${fixtureWindow.endDate}|${timeZone}`
+  const existing = windowRefreshes.get(key)
+  if (existing?.generation === refreshGeneration) return existing.promise
+
+  const generation = refreshGeneration
+  const promise = (async () => {
+    const result = await window.halfspace.sportmonks.refreshFixtureWindow({
+      startDate: fixtureWindow.startDate,
+      endDate: fixtureWindow.endDate,
+      timeZone
+    })
+    if (generation !== refreshGeneration) return
+    if (!result.ok) throw new Error(result.error.message)
+
+    await writeFixtureWindowRefresh(fixtureWindow.dates, timeZone, result.data)
+  })()
+
+  windowRefreshes.set(key, { generation, promise })
+
+  try {
+    await promise
+  } finally {
+    if (windowRefreshes.get(key)?.promise === promise) windowRefreshes.delete(key)
   }
 }
 
@@ -290,6 +426,7 @@ async function refreshFixtureHeadToHead(input: RefreshFixtureHeadToHeadInput): P
 export function invalidateFixtureRefreshes(): void {
   refreshGeneration += 1
   refreshes.clear()
+  windowRefreshes.clear()
   entityRefreshes.clear()
   oddsRefreshes.clear()
   headToHeadRefreshes.clear()

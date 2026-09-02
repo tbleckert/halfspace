@@ -16,6 +16,7 @@ import {
   fetchFixtureHeadToHead,
   fetchFixtureOdds,
   fetchFixturesByDate,
+  fetchFixturesByDateRange,
   fetchPlayerAppearances,
   fetchPlayerById,
   fetchPlayerStatistics,
@@ -34,6 +35,7 @@ import {
   validateEntitySearchInput,
   validateFixtureInput,
   validateFixtureHeadToHeadInput,
+  validateFixtureWindowInput,
   validateRefreshInput,
   validatePlayerAppearancesInput,
   validatePlayerInput,
@@ -85,6 +87,30 @@ describe('Sportmonks client', () => {
     expect(firstUrl.searchParams.has('api_token')).toBe(false)
     expect(firstUrl.searchParams.get('include')).toBe('participants;league;state;scores;periods')
     expect(new Headers(firstInit?.headers).get('Authorization')).toBe('private-token')
+  })
+
+  it('fetches a rolling fixture window in one date-range query', async () => {
+    const fetcher = vi.fn<typeof fetch>(async () =>
+      Response.json({
+        data: [makeFixture()],
+        pagination: { current_page: 1, has_more: false },
+        timezone: 'Europe/Stockholm'
+      })
+    )
+
+    await fetchFixturesByDateRange(
+      {
+        startDate: '2026-08-30',
+        endDate: '2026-09-09',
+        timeZone: 'Europe/Stockholm'
+      },
+      'private-token',
+      fetcher
+    )
+
+    const url = new URL(fetcher.mock.calls[0][0].toString())
+    expect(url.pathname).toBe('/v3/football/fixtures/between/2026-08-30/2026-09-09')
+    expect(url.searchParams.has('filters')).toBe(false)
   })
 
   it('fetches a fixture entity with match context and workspace data', async () => {
@@ -1119,6 +1145,17 @@ describe('Sportmonks client', () => {
     expect(() => validateRefreshInput({ date: '2026-02-30', timeZone: 'UTC' })).toThrow(
       'Choose a valid date.'
     )
+    expect(
+      validateFixtureWindowInput({
+        startDate: '2026-08-30',
+        endDate: '2026-09-09',
+        timeZone: 'Europe/Stockholm'
+      })
+    ).toEqual({
+      startDate: '2026-08-30',
+      endDate: '2026-09-09',
+      timeZone: 'Europe/Stockholm'
+    })
     expect(() => validateFixtureInput({ fixtureId: 0 })).toThrow('Choose a valid fixture.')
     expect(() =>
       validateFixtureHeadToHeadInput({ firstTeamId: 11, secondTeamId: 11, timeZone: 'UTC' })
