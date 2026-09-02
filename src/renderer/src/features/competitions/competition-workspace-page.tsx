@@ -41,6 +41,7 @@ import { intentPrefetchProps } from '@/lib/prefetch'
 import { cn } from '@/lib/utils'
 import { useOnline } from '@/lib/use-online'
 import { CompetitionLogo } from './competition-logo'
+import { PlayerLeaders } from './player-leaders'
 import {
   competitionSeasonOptions,
   competitionTeams,
@@ -53,9 +54,11 @@ import {
   competitionWorkspaceFixtureInput,
   prefetchCompetitionWorkspace,
   prefetchSeasonStatistics,
+  prefetchSeasonTopscorers,
   useCompetitionFixtures,
   useCompetitionSeasons,
   useSeasonStatistics,
+  useSeasonTopscorers,
   useStandings
 } from './use-competition-workspace'
 
@@ -116,6 +119,7 @@ export function CompetitionWorkspacePage({
     observedSeasonId
   const standings = useStandings(seasonId, online && view !== 'fixtures' && view !== 'stats')
   const statistics = useSeasonStatistics(seasonId, online && view === 'stats')
+  const topscorers = useSeasonTopscorers(seasonId, online && view === 'stats')
   const seasonFixtures = useMemo(() => {
     const cachedFixtures = fixtures.cached?.fixtures ?? []
     return seasonId === null
@@ -140,11 +144,12 @@ export function CompetitionWorkspacePage({
   )
   const refreshing =
     seasons.refreshing ||
-    (view === 'stats' ? statistics.refreshing : fixtures.refreshing) ||
+    (view === 'stats' ? statistics.refreshing || topscorers.refreshing : fixtures.refreshing) ||
     (view !== 'fixtures' && view !== 'stats' && standings.refreshing)
   const errors = [
     seasons.error,
     view === 'stats' ? statistics.error : fixtures.error,
+    view === 'stats' ? topscorers.error : null,
     view === 'overview' || view === 'teams' ? standings.error : null
   ].filter((error): error is string => Boolean(error))
 
@@ -155,6 +160,7 @@ export function CompetitionWorkspacePage({
     await Promise.all([
       seasons.refresh(),
       view === 'stats' ? statistics.refresh() : fixtures.refresh(),
+      view === 'stats' ? topscorers.refresh() : Promise.resolve(),
       view === 'overview' || view === 'teams' ? standings.refresh() : Promise.resolve()
     ])
   }
@@ -164,6 +170,10 @@ export function CompetitionWorkspacePage({
     if (!nextSeason) return
 
     void navigate({
+      to:
+        view === 'overview'
+          ? '/competitions/$competitionId'
+          : `/competitions/$competitionId/${view}`,
       search: (previous) => ({
         ...previous,
         date: seasonFixtureDate(nextSeason, today),
@@ -271,11 +281,27 @@ export function CompetitionWorkspacePage({
       )}
 
       {view === 'stats' && (
-        <LeagueStatisticsView
-          loaded={statistics.cached !== undefined}
-          loading={statistics.refreshing}
-          statistics={statistics.cached?.statistics ?? []}
-        />
+        <>
+          <LeagueStatisticsView
+            loaded={statistics.cached !== undefined}
+            loading={statistics.refreshing}
+            statistics={statistics.cached?.statistics ?? []}
+          />
+          <PlayerLeaders
+            competitionId={competition.id}
+            date={fixtureDate}
+            seasonId={seasonId}
+            online={online}
+            loaded={
+              topscorers.cached !== undefined &&
+              (!topscorers.cached || topscorers.cached.seasonId === seasonId)
+            }
+            loading={topscorers.refreshing}
+            topscorers={
+              topscorers.cached?.seasonId === seasonId ? topscorers.cached.topscorers : null
+            }
+          />
+        </>
       )}
     </div>
   )
@@ -298,7 +324,11 @@ function CompetitionNavigation({
     prefetchCompetitionWorkspace(competitionId)
   )
   const statisticsPrefetch = intentPrefetchProps(online && season !== undefined, () =>
-    season === undefined ? Promise.resolve() : prefetchSeasonStatistics(season)
+    season === undefined
+      ? Promise.resolve()
+      : Promise.all([prefetchSeasonStatistics(season), prefetchSeasonTopscorers(season)]).then(
+          () => undefined
+        )
   )
 
   return (

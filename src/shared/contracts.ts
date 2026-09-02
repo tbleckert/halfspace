@@ -11,6 +11,7 @@ export const ipcChannels = {
   refreshCompetitionSeasons: 'sportmonks:refresh-competition-seasons',
   refreshStandings: 'sportmonks:refresh-standings',
   refreshSeasonStatistics: 'sportmonks:refresh-season-statistics',
+  refreshSeasonTopscorers: 'sportmonks:refresh-season-topscorers',
   refreshCompetitionFixtures: 'sportmonks:refresh-competition-fixtures',
   refreshTeam: 'sportmonks:refresh-team',
   refreshTeamFixtures: 'sportmonks:refresh-team-fixtures',
@@ -88,6 +89,10 @@ export interface RefreshStandingsInput {
 }
 
 export interface RefreshSeasonStatisticsInput {
+  seasonId: number
+}
+
+export interface RefreshSeasonTopscorersInput {
   seasonId: number
 }
 
@@ -650,6 +655,30 @@ export interface SeasonStatisticsRefresh {
   message?: string
 }
 
+export interface SportmonksTopscorer {
+  id: number
+  season_id: number
+  player_id: number
+  participant_id: number | null
+  type_id: number
+  position: number
+  total: number
+  player?: SportmonksPlayer | null
+  participant?: SportmonksTeam | null
+  type?: SportmonksType | null
+}
+
+export interface SeasonTopscorersRefresh {
+  topscorers: SportmonksTopscorer[]
+  fetchedAt: number
+  pageCount: number
+  rateLimit?: {
+    remaining: number
+    resetsAt: number
+  }
+  message?: string
+}
+
 export interface TeamRefresh {
   team: SportmonksTeam
   fetchedAt: number
@@ -777,6 +806,9 @@ export interface HalfspaceApi {
     refreshSeasonStatistics(
       input: RefreshSeasonStatisticsInput
     ): Promise<Result<SeasonStatisticsRefresh>>
+    refreshSeasonTopscorers(
+      input: RefreshSeasonTopscorersInput
+    ): Promise<Result<SeasonTopscorersRefresh>>
     refreshCompetitionFixtures(
       input: RefreshCompetitionFixturesInput
     ): Promise<Result<FixtureRefresh>>

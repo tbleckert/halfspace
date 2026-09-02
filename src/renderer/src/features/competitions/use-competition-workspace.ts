@@ -7,10 +7,12 @@ import {
   readCompetitionFixtureQuery,
   readCompetitionSeasons,
   readSeasonStatistics,
+  readSeasonTopscorers,
   readStandingsQuery,
   writeCompetitionFixtureRefresh,
   writeCompetitionSeasonsRefresh,
   writeSeasonStatisticsRefresh,
+  writeSeasonTopscorersRefresh,
   writeStandingsRefresh
 } from '@/data/db'
 import { addDaysToIsoDate, currentTimeZone, todayInTimeZone } from '@/lib/date'
@@ -20,11 +22,13 @@ type StandingsCache = Awaited<ReturnType<typeof readStandingsQuery>>
 type CompetitionSeasonsCache = Awaited<ReturnType<typeof readCompetitionSeasons>>
 type CompetitionFixturesCache = Awaited<ReturnType<typeof readCompetitionFixtureQuery>>
 type SeasonStatisticsCache = Awaited<ReturnType<typeof readSeasonStatistics>>
+type SeasonTopscorersCache = Awaited<ReturnType<typeof readSeasonTopscorers>>
 
 let refreshGeneration = 0
 const standingRefreshes = new Map<number, RefreshRequest>()
 const seasonRefreshes = new Map<number, RefreshRequest>()
 const seasonStatisticsRefreshes = new Map<number, RefreshRequest>()
+const seasonTopscorersRefreshes = new Map<number, RefreshRequest>()
 const fixtureRefreshes = new Map<string, RefreshRequest>()
 
 export function useStandings(
@@ -177,11 +181,70 @@ export function useSeasonStatistics(
   return { cached, refreshing, error, refresh }
 }
 
+export function useSeasonTopscorers(
+  seasonId: number | null,
+  enabled: boolean
+): RefreshableQuery<SeasonTopscorersCache> {
+  const cached = useLiveQuery(
+    () => (seasonId === null ? Promise.resolve(null) : readSeasonTopscorers(seasonId)),
+    [seasonId]
+  )
+  const [refreshing, setRefreshing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const refresh = useCallback(async () => {
+    if (!enabled || seasonId === null) return
+    setRefreshing(true)
+    setError(null)
+    try {
+      await refreshSeasonTopscorersQuery(seasonId)
+    } catch (refreshError) {
+      setError(
+        refreshError instanceof Error ? refreshError.message : 'Could not refresh player leaders.'
+      )
+    } finally {
+      setRefreshing(false)
+    }
+  }, [enabled, seasonId])
+
+  useStaleRefresh(enabled && seasonId !== null, cached !== undefined, cached?.staleAt, refresh)
+  return { cached, refreshing, error, refresh }
+}
+
+export async function prefetchSeasonTopscorers(seasonId: number): Promise<void> {
+  const cached = await readSeasonTopscorers(seasonId)
+  if (cached && cached.staleAt > Date.now()) return
+  await refreshSeasonTopscorersQuery(seasonId)
+}
+
+async function refreshSeasonTopscorersQuery(seasonId: number): Promise<void> {
+  const active = seasonTopscorersRefreshes.get(seasonId)
+  if (active?.generation === refreshGeneration) return active.promise
+
+  const generation = refreshGeneration
+  const promise = (async () => {
+    const result = await window.halfspace.sportmonks.refreshSeasonTopscorers({ seasonId })
+    if (generation !== refreshGeneration) return
+    if (!result.ok) throw new Error(result.error.message)
+    await writeSeasonTopscorersRefresh(seasonId, result.data)
+  })()
+  seasonTopscorersRefreshes.set(seasonId, { generation, promise })
+
+  try {
+    await promise
+  } finally {
+    if (seasonTopscorersRefreshes.get(seasonId)?.promise === promise) {
+      seasonTopscorersRefreshes.delete(seasonId)
+    }
+  }
+}
+
 export function invalidateCompetitionWorkspaceRefreshes(): void {
   refreshGeneration += 1
   standingRefreshes.clear()
   seasonRefreshes.clear()
   seasonStatisticsRefreshes.clear()
+  seasonTopscorersRefreshes.clear()
   fixtureRefreshes.clear()
 }
 

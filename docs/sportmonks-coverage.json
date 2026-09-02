@@ -38,6 +38,7 @@
     "seasons/get-all-seasons": [],
     "seasons/get-seasons-by-id": ["statistics"],
     "standings/get-standings-by-season-id": ["participant", "stage", "group"],
+    "topscorers/get-topscorers-by-season-id": ["player", "participant", "type"],
     "teams/get-team-by-id": ["country", "venue", "coaches", "statistics"],
     "teams/get-teams-by-search-by-name": ["country", "venue"],
     "players/get-player-by-id": ["nationality", "position", "detailedPosition", "statistics"],

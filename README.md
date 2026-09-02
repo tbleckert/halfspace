@@ -20,13 +20,14 @@ include should have a useful place in Halfspace.
 - [x] Team pages with fixtures, squad profiles, and transfer history.
 - [x] Player pages with match records and career history, plus coach and venue profiles.
 - [x] Season statistics for competitions, teams, and players.
+- [x] Season player leaderboards for goals, assists, yellow cards, and red cards.
 - [x] Fixture previews, event timelines, pitch lineups, match statistics, and pre-match odds.
 - [x] Global entity search, competition quick access, and navigation prefetching.
 
 ### Ahead
 
 - [ ] Competition stages, rounds, and knockout brackets.
-- [ ] Player leaderboards, team rankings, and teams of the week.
+- [ ] Team rankings and teams of the week.
 - [ ] Injuries, suspensions, and historical squads.
 - [ ] Referee profiles and match history.
 - [ ] Transfer rumours and pending transfers.

@@ -24,6 +24,7 @@ import type {
   RefreshPlayerStatisticsInput,
   RefreshPlayerTransfersInput,
   RefreshSeasonStatisticsInput,
+  RefreshSeasonTopscorersInput,
   RefreshStandingsInput,
   RefreshTeamFixturesInput,
   RefreshTeamInput,
@@ -32,6 +33,8 @@ import type {
   RefreshTeamTransfersInput,
   RefreshVenueInput,
   SeasonStatisticsRefresh,
+  SeasonTopscorersRefresh,
+  SportmonksTopscorer,
   StandingsRefresh,
   SportmonksCompetition,
   SportmonksCoach,
@@ -602,6 +605,38 @@ const seasonStatisticSchema = z
   })
   .passthrough()
 
+const seasonTopscorersResponseSchema = z.object({
+  data: z.array(
+    z
+      .object({
+        id: z.number().int(),
+        season_id: z.number().int(),
+        player_id: z.number().int(),
+        participant_id: z.number().int().nullable(),
+        type_id: z.number().int(),
+        position: z.number().int().positive(),
+        total: z.number().int().nonnegative(),
+        player: playerSchema.nullable().optional(),
+        participant: teamSchema.nullable().optional(),
+        type: typeSchema.nullable().optional()
+      })
+      .passthrough()
+  ),
+  pagination: z
+    .object({
+      current_page: z.number().int().positive(),
+      has_more: z.boolean()
+    })
+    .optional(),
+  rate_limit: z
+    .object({
+      remaining: z.number(),
+      resets_in_seconds: z.number()
+    })
+    .optional(),
+  message: z.string().optional()
+})
+
 const seasonStatisticsResponseSchema = z
   .object({
     data: z
@@ -952,6 +987,10 @@ export function validateSeasonStatisticsInput(value: unknown): RefreshSeasonStat
   }
 
   return { seasonId }
+}
+
+export function validateSeasonTopscorersInput(value: unknown): RefreshSeasonTopscorersInput {
+  return validateSeasonStatisticsInput(value)
 }
 
 export function validateCompetitionSeasonsInput(value: unknown): RefreshCompetitionSeasonsInput {
@@ -1668,6 +1707,58 @@ export async function fetchSeasonStatistics(
       : undefined,
     message: parsed.message
   }
+}
+
+export async function fetchSeasonTopscorers(
+  input: RefreshSeasonTopscorersInput,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<SeasonTopscorersRefresh> {
+  const fetchedAt = Date.now()
+  const topscorers: SportmonksTopscorer[] = []
+  let rateLimit: SeasonTopscorersRefresh['rateLimit']
+  let message: string | undefined
+
+  for (let page = 1; page <= maximumPages; page += 1) {
+    const url = new URL(`${apiBaseUrl}/topscorers/seasons/${input.seasonId}`)
+    url.searchParams.set('include', 'player;participant;type')
+    url.searchParams.set('filters', 'seasonTopscorerTypes:208,209,84,83')
+    url.searchParams.set('order', 'asc')
+    url.searchParams.set('per_page', '50')
+    url.searchParams.set('page', String(page))
+
+    let response: Response
+    try {
+      response = await fetcher(url, {
+        headers: { Accept: 'application/json', Authorization: token },
+        signal: AbortSignal.timeout(20_000)
+      })
+    } catch {
+      throw new SportmonksError('network', 'Could not reach Sportmonks.')
+    }
+    if (!response.ok) throw await errorForResponse(response)
+
+    let parsed: z.infer<typeof seasonTopscorersResponseSchema>
+    try {
+      parsed = seasonTopscorersResponseSchema.parse(await response.json())
+    } catch {
+      throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
+    }
+
+    topscorers.push(...(parsed.data as SportmonksTopscorer[]))
+    message = parsed.message ?? message
+    if (parsed.rate_limit) {
+      rateLimit = {
+        remaining: parsed.rate_limit.remaining,
+        resetsAt: fetchedAt + parsed.rate_limit.resets_in_seconds * 1000
+      }
+    }
+    if (!parsed.pagination?.has_more) {
+      return { topscorers, fetchedAt, pageCount: page, rateLimit, message }
+    }
+  }
+
+  throw new SportmonksError('invalid_response', 'Sportmonks returned too many result pages.')
 }
 
 export async function fetchCompetitionSeasons(

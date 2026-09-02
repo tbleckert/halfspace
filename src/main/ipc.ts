@@ -18,6 +18,7 @@ import {
   fetchPlayerStatistics,
   fetchPlayerTransfers,
   fetchSeasonStatistics,
+  fetchSeasonTopscorers,
   fetchStandingsBySeason,
   fetchTeamById,
   fetchTeamFixtures,
@@ -39,6 +40,7 @@ import {
   validatePlayerTransfersInput,
   validateRefreshInput,
   validateSeasonStatisticsInput,
+  validateSeasonTopscorersInput,
   validateStandingsInput,
   validateTeamFixturesInput,
   validateTeamInput,
@@ -144,6 +146,12 @@ export function registerIpcHandlers(): void {
     validateCompetitionSeasonsInput,
     fetchCompetitionSeasons,
     'Could not refresh competition seasons.'
+  )
+  registerSportmonksHandler(
+    ipcChannels.refreshSeasonTopscorers,
+    validateSeasonTopscorersInput,
+    fetchSeasonTopscorers,
+    'Could not refresh player leaders.'
   )
   registerSportmonksHandler(
     ipcChannels.refreshCompetitionFixtures,

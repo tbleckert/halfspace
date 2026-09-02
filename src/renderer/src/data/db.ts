@@ -20,6 +20,7 @@ import type {
   RefreshTeamStatisticsInput,
   RefreshTeamTransfersInput,
   SeasonStatisticsRefresh,
+  SeasonTopscorersRefresh,
   StandingsRefresh,
   SportmonksCompetition,
   SportmonksCoach,
@@ -172,6 +173,11 @@ export interface SeasonStatisticsQuery {
   rateLimitRemaining?: number
   rateLimitResetsAt?: number
   message?: string
+}
+
+export interface SeasonTopscorersQuery extends SeasonTopscorersRefresh {
+  seasonId: number
+  staleAt: number
 }
 
 export interface CompetitionFixtureQuery {
@@ -432,6 +438,7 @@ class HalfspaceDatabase extends Dexie {
   standings!: Table<CachedStanding, number>
   standingQueries!: Table<StandingQuery, number>
   seasonStatisticsQueries!: Table<SeasonStatisticsQuery, number>
+  seasonTopscorersQueries!: Table<SeasonTopscorersQuery, number>
   competitionFixtureQueries!: Table<CompetitionFixtureQuery, string>
   teams!: Table<CachedTeam, number>
   teamFixtureQueries!: Table<TeamFixtureQuery, string>
@@ -663,6 +670,10 @@ class HalfspaceDatabase extends Dexie {
 
     this.version(14).stores({
       coaches: 'id, name, displayName, nationalityId, staleAt'
+    })
+
+    this.version(15).stores({
+      seasonTopscorersQueries: '&seasonId, staleAt'
     })
   }
 }
@@ -1201,6 +1212,45 @@ export function competitionFixtureQueryKey(input: RefreshCompetitionFixturesInpu
   return `${input.competitionId}|${input.startDate}|${input.endDate}|${input.timeZone}`
 }
 
+export async function readSeasonTopscorers(
+  seasonId: number
+): Promise<SeasonTopscorersQuery | null> {
+  return (await db.seasonTopscorersQueries.get(seasonId)) ?? null
+}
+
+export async function writeSeasonTopscorersRefresh(
+  seasonId: number,
+  refresh: SeasonTopscorersRefresh
+): Promise<void> {
+  await db.transaction('rw', db.seasonTopscorersQueries, db.players, db.teams, async () => {
+    const players = new Map<number, SportmonksPlayer>()
+    const teams = new Map<number, SportmonksTeam>()
+    for (const row of refresh.topscorers) {
+      if (row.player) players.set(row.player.id, row.player)
+      if (row.participant) teams.set(row.participant.id, row.participant)
+    }
+    const playerValues = [...players.values()]
+    const teamValues = [...teams.values()]
+    const existingPlayers = await db.players.bulkGet([...players.keys()])
+    const existingTeams = await db.teams.bulkGet([...teams.keys()])
+    await db.players.bulkPut(
+      playerValues.map((player, index) =>
+        toCachedIncludedPlayer(player, existingPlayers[index], refresh.fetchedAt)
+      )
+    )
+    await db.teams.bulkPut(
+      teamValues.map((team, index) =>
+        toCachedIncludedTeam(team, existingTeams[index], refresh.fetchedAt)
+      )
+    )
+    await db.seasonTopscorersQueries.put({
+      ...refresh,
+      seasonId,
+      staleAt: refresh.fetchedAt + statisticsCacheDuration
+    })
+  })
+}
+
 export async function readCompetitionFixtureQuery(
   input: RefreshCompetitionFixturesInput
 ): Promise<{ query: CompetitionFixtureQuery | null; fixtures: CachedFixture[] }> {
@@ -1333,7 +1383,7 @@ export async function writeCoachRefresh(refresh: CoachRefresh): Promise<void> {
   const existingTeams = await db.teams.bulkGet(includedTeams.map(({ id }) => id))
   const coach = toCachedCoach(refresh.coach, existingCoach, refresh.fetchedAt, true, refresh)
   const teams = includedTeams.map((team, index) =>
-    toCachedTransferTeam(team, existingTeams[index], refresh.fetchedAt)
+    toCachedIncludedTeam(team, existingTeams[index], refresh.fetchedAt)
   )
 
   await db.transaction('rw', db.coaches, db.teams, async () => {
@@ -1371,7 +1421,7 @@ export async function writeTeamSquadRefresh(
   )
   const existingPlayers = await db.players.bulkGet(squad.map(({ player_id }) => player_id))
   const players = squad.map(({ player }, index) =>
-    toCachedSquadPlayer(player, existingPlayers[index], refresh.fetchedAt)
+    toCachedIncludedPlayer(player, existingPlayers[index], refresh.fetchedAt)
   )
   const entries: CachedSquadEntry[] = squad.map((entry) => ({
     id: entry.id,
@@ -1660,10 +1710,10 @@ async function normalizeTransferRefresh(refresh: TransfersRefresh): Promise<{
     db.players.bulkGet(playerValues.map(({ id }) => id))
   ])
   const teams = teamValues.map((team, index) =>
-    toCachedTransferTeam(team, existingTeams[index], refresh.fetchedAt)
+    toCachedIncludedTeam(team, existingTeams[index], refresh.fetchedAt)
   )
   const players = playerValues.map((player, index) =>
-    toCachedSquadPlayer(player, existingPlayers[index], refresh.fetchedAt)
+    toCachedIncludedPlayer(player, existingPlayers[index], refresh.fetchedAt)
   )
 
   return { players, teams, transfers }
@@ -1805,6 +1855,7 @@ export async function clearSportmonksCache(): Promise<void> {
       db.standings,
       db.standingQueries,
       db.seasonStatisticsQueries,
+      db.seasonTopscorersQueries,
       db.competitionFixtureQueries,
       db.teams,
       db.teamFixtureQueries,
@@ -1833,6 +1884,7 @@ export async function clearSportmonksCache(): Promise<void> {
       await db.standings.clear()
       await db.standingQueries.clear()
       await db.seasonStatisticsQueries.clear()
+      await db.seasonTopscorersQueries.clear()
       await db.competitionFixtureQueries.clear()
       await db.teams.clear()
       await db.teamFixtureQueries.clear()
@@ -1874,7 +1926,7 @@ function normalizeSearchText(value: string): string {
     .toLocaleLowerCase()
 }
 
-function toCachedSquadPlayer(
+function toCachedIncludedPlayer(
   player: SportmonksPlayer,
   existing: CachedPlayer | undefined,
   fetchedAt: number
@@ -1951,7 +2003,7 @@ function toCachedCoach(
   }
 }
 
-function toCachedTransferTeam(
+function toCachedIncludedTeam(
   team: SportmonksTeam,
   existing: CachedTeam | undefined,
   fetchedAt: number

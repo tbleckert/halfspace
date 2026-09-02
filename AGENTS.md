@@ -47,6 +47,7 @@ abstractions.
   it, and Teams combines standings with fixture participants when a table is unavailable. Offer the
   ten most recent seasons in a compact URL-backed selector; keep standings and fixture windows
   season-scoped, and keep the selected season when changing competition views or opening a fixture.
+  Changing the selected season must retain the active competition subpage.
 - Team pages use horizontal local navigation beneath the team header and above their competition
   context. Keep Overview, Fixtures, and Squad there, and extend that menu when more team views are
   added. Make the active item prominent with the shared active-indicator treatment.
@@ -62,6 +63,10 @@ abstractions.
   performance separately, cache each query locally, preserve the selected season when moving from
   a competition to a team, and request only the statistic types shown in the UI. Use the compact
   URL-backed selector for the ten most recent seasons on both views.
+- Competition Stats includes player leaders for goals, assists, yellow cards, and red cards.
+  Fetch all pages from the season topscorers endpoint with player, participant, and type includes;
+  cache the four categories together per season. Preserve provider ranks and totals, keep card
+  types separate, and retain competition and season context in player and team links.
 - Fixture pages keep Preview, Timeline, Lineups, Stats, and Odds in horizontal navigation inside
   the score hero. Preview stacks the compact venue card directly below Details.
 - Fixture Preview pairs that supporting column with season table context, each team’s five most
