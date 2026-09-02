@@ -8,6 +8,7 @@ import {
   db,
   writeCompetitionSeasonsRefresh,
   writeSeasonTopscorersRefresh,
+  writeSeasonScheduleRefresh,
   writeTeamRefresh,
   writeTeamSquadRefresh
 } from '@/data/db'
@@ -86,6 +87,66 @@ beforeEach(async () => {
 afterAll(() => db.close())
 
 describe('competition season navigation', () => {
+  it('browses rounds offline and clears stage selections when switching seasons', async () => {
+    for (const seasonId of [25591, 25590]) {
+      await writeSeasonScheduleRefresh(seasonId, {
+        fetchedAt: Date.now(),
+        stages: [
+          {
+            id: seasonId,
+            season_id: seasonId,
+            name: 'Regular season',
+            sort_order: 1,
+            is_current: true,
+            finished: false,
+            fixtures: [],
+            rounds: [1, 2].map((number) => ({
+              id: seasonId * 10 + number,
+              name: String(number),
+              is_current: number === 2,
+              finished: number === 1,
+              fixtures: [
+                {
+                  id: seasonId * 10 + number,
+                  league_id: 271,
+                  season_id: seasonId,
+                  state_id: 5,
+                  placeholder: false,
+                  has_odds: false,
+                  participants: [],
+                  scores: []
+                }
+              ]
+            }))
+          }
+        ]
+      })
+    }
+    const router = createRouter({
+      routeTree,
+      history: createMemoryHistory({ initialEntries: ['/competitions/271/schedule?season=25591'] })
+    })
+    render(<RouterProvider router={router} />)
+    await screen.findByRole('heading', { name: 'Regular season · Round 2' })
+    fireEvent.click(screen.getByRole('button', { name: 'Previous round' }))
+    await screen.findByRole('heading', { name: 'Regular season · Round 1' })
+    expect(router.state.location.search.round).toBe(255911)
+    expect(
+      screen
+        .getAllByRole('link')
+        .some((link) =>
+          link.getAttribute('href')?.includes('/fixtures/255911?competition=271&season=25591')
+        )
+    ).toBe(true)
+    fireEvent.change(screen.getByRole('combobox', { name: 'Season' }), {
+      target: { value: '25590' }
+    })
+    await waitFor(() => expect(router.state.location.search.season).toBe(25590))
+    expect(router.state.location.pathname).toBe('/competitions/271/schedule')
+    expect(router.state.location.search.round).toBeUndefined()
+    await screen.findByRole('heading', { name: 'Regular season · Round 2' })
+  })
+
   it('switches historical squads offline while retaining team navigation and player context', async () => {
     await writeTeamRefresh({
       fetchedAt: Date.now(),

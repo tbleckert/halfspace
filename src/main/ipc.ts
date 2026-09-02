@@ -3,6 +3,8 @@ import { BrowserWindow, ipcMain } from 'electron'
 import type { ApiErrorCode, Result, SportmonksRateLimit } from '@shared/contracts'
 import { ipcChannels } from '@shared/contracts'
 import {
+  fetchSeasonSchedule,
+  validateSeasonScheduleInput,
   fetchCompetitions,
   fetchCoachById,
   fetchRefereeById,
@@ -155,6 +157,12 @@ export function registerIpcHandlers(): void {
     validateSeasonTopscorersInput,
     fetchSeasonTopscorers,
     'Could not refresh player leaders.'
+  )
+  registerSportmonksHandler(
+    ipcChannels.refreshSeasonSchedule,
+    validateSeasonScheduleInput,
+    fetchSeasonSchedule,
+    'Could not refresh season schedule.'
   )
   registerSportmonksHandler(
     ipcChannels.refreshCompetitionFixtures,

@@ -1,5 +1,8 @@
 import Dexie, { type Table } from 'dexie'
 import type {
+  SeasonScheduleRefresh,
+  SportmonksScheduleStage,
+  SportmonksScheduleRound,
   RefereeRefresh,
   SportmonksReferee,
   CoachRefresh,
@@ -443,7 +446,24 @@ export interface CompetitionPin {
   pinnedAt: number
 }
 
+export interface CachedScheduleRound extends Omit<SportmonksScheduleRound, 'fixtures'> {
+  fixtureIds: number[]
+}
+
+export interface CachedScheduleStage extends Omit<SportmonksScheduleStage, 'fixtures' | 'rounds'> {
+  fixtureIds: number[]
+  rounds: CachedScheduleRound[]
+}
+
+export interface SeasonScheduleQuery {
+  seasonId: number
+  stages: CachedScheduleStage[]
+  fetchedAt: number
+  staleAt: number
+}
+
 class HalfspaceDatabase extends Dexie {
+  seasonScheduleQueries!: Table<SeasonScheduleQuery, number>
   fixtures!: Table<CachedFixture, number>
   fixtureQueries!: Table<FixtureQuery, string>
   fixtureOdds!: Table<CachedFixtureOdd, number>
@@ -702,10 +722,65 @@ class HalfspaceDatabase extends Dexie {
     this.version(17).stores({
       referees: 'id, staleAt'
     })
+    this.version(18).stores({
+      seasonScheduleQueries: '&seasonId, staleAt'
+    })
   }
 }
 
 export const db = new HalfspaceDatabase()
+
+export async function readSeasonSchedule(
+  seasonId: number
+): Promise<(SeasonScheduleQuery & { fixtures: CachedFixture[] }) | null> {
+  const query = await db.seasonScheduleQueries.get(seasonId)
+  if (!query) return null
+  const ids = [
+    ...new Set(
+      query.stages.flatMap((stage) => [
+        ...stage.fixtureIds,
+        ...stage.rounds.flatMap((round) => round.fixtureIds)
+      ])
+    )
+  ]
+  const fixtures = (await db.fixtures.bulkGet(ids)).filter(
+    (fixture): fixture is CachedFixture => fixture !== undefined
+  )
+  return { ...query, fixtures }
+}
+
+export async function writeSeasonScheduleRefresh(
+  seasonId: number,
+  refresh: SeasonScheduleRefresh
+): Promise<void> {
+  const allFixtures = refresh.stages.flatMap((stage) => [
+    ...stage.fixtures,
+    ...stage.rounds.flatMap((round) => round.fixtures)
+  ])
+  const uniqueFixtures = [...new Map(allFixtures.map((fixture) => [fixture.id, fixture])).values()]
+  const staleAt = fixtureRefreshExpiry(
+    uniqueFixtures,
+    refresh.fetchedAt,
+    refresh.fetchedAt + competitionFixturesCacheDuration
+  )
+  const stages = refresh.stages.map(({ fixtures, rounds, ...stage }) => ({
+    ...stage,
+    fixtureIds: fixtures.map((fixture) => fixture.id),
+    rounds: rounds.map(({ fixtures, ...round }) => ({
+      ...round,
+      fixtureIds: fixtures.map((fixture) => fixture.id)
+    }))
+  }))
+  await db.transaction('rw', db.seasonScheduleQueries, db.fixtures, async () => {
+    await db.fixtures.bulkPut(await toCachedFixtures(uniqueFixtures, refresh.fetchedAt, staleAt))
+    await db.seasonScheduleQueries.put({
+      seasonId,
+      stages,
+      fetchedAt: refresh.fetchedAt,
+      staleAt
+    })
+  })
+}
 
 export function fixtureQueryKey(date: string, timeZone: string): string {
   return `${date}|${timeZone}`
@@ -1975,6 +2050,7 @@ export async function clearSportmonksCache(): Promise<void> {
       db.standingQueries,
       db.seasonStatisticsQueries,
       db.seasonTopscorersQueries,
+      db.seasonScheduleQueries,
       db.competitionFixtureQueries,
       db.teams,
       db.teamFixtureQueries,
@@ -2006,6 +2082,7 @@ export async function clearSportmonksCache(): Promise<void> {
       await db.standingQueries.clear()
       await db.seasonStatisticsQueries.clear()
       await db.seasonTopscorersQueries.clear()
+      await db.seasonScheduleQueries.clear()
       await db.competitionFixtureQueries.clear()
       await db.teams.clear()
       await db.teamFixtureQueries.clear()

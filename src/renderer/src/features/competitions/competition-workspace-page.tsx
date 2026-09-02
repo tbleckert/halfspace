@@ -43,6 +43,8 @@ import { useOnline } from '@/lib/use-online'
 import { CompetitionLogo } from './competition-logo'
 import { CompetitionLeaderCards } from './competition-leader-cards'
 import { PlayerLeaders } from './player-leaders'
+import { SeasonSchedule } from './season-schedule'
+import { prefetchSeasonSchedule, useSeasonSchedule } from './use-season-schedule'
 import type { PlayerLeaderboardCategory } from './player-leaders-data'
 import {
   competitionSeasonOptions,
@@ -64,19 +66,23 @@ import {
   useStandings
 } from './use-competition-workspace'
 
-type CompetitionView = 'overview' | 'fixtures' | 'stats' | 'teams'
+type CompetitionView = 'overview' | 'fixtures' | 'stats' | 'teams' | 'schedule'
 
 export function CompetitionWorkspacePage({
   competitionId,
   date,
   season: requestedSeasonId,
   leaderboard = 'goals',
+  stage,
+  round,
   view = 'overview'
 }: {
   competitionId: string
   date?: string
   season?: number
   leaderboard?: PlayerLeaderboardCategory
+  stage?: number
+  round?: number
   view?: CompetitionView
 }): React.JSX.Element {
   const parsedCompetitionId = Number(competitionId)
@@ -112,7 +118,10 @@ export function CompetitionWorkspacePage({
     [fixtureDate, parsedCompetitionId, timeZone, validCompetitionId]
   )
   const [workspaceOpenedAt] = useState(() => Date.now())
-  const fixtures = useCompetitionFixtures(fixtureInput, online && view !== 'stats')
+  const fixtures = useCompetitionFixtures(
+    fixtureInput,
+    online && view !== 'stats' && view !== 'schedule'
+  )
   const observedSeasonId = useMemo(
     () => nearestFixtureSeasonId(fixtures.cached?.fixtures ?? [], workspaceOpenedAt),
     [fixtures.cached?.fixtures, workspaceOpenedAt]
@@ -121,7 +130,8 @@ export function CompetitionWorkspacePage({
     (requestedSeasonId && !seasons.cached ? requestedSeasonId : selectedSeason?.id) ??
     competition?.currentSeasonId ??
     observedSeasonId
-  const standings = useStandings(seasonId, online && view !== 'fixtures' && view !== 'stats')
+  const standings = useStandings(seasonId, online && (view === 'overview' || view === 'teams'))
+  const schedule = useSeasonSchedule(seasonId, online && view === 'schedule')
   const statistics = useSeasonStatistics(seasonId, online && view === 'stats')
   const showPlayerLeaders = view === 'overview' || view === 'stats'
   const topscorers = useSeasonTopscorers(seasonId, online && showPlayerLeaders)
@@ -154,12 +164,16 @@ export function CompetitionWorkspacePage({
   )
   const refreshing =
     seasons.refreshing ||
-    (view === 'stats' ? statistics.refreshing : fixtures.refreshing) ||
+    (view === 'schedule'
+      ? schedule.refreshing
+      : view === 'stats'
+        ? statistics.refreshing
+        : fixtures.refreshing) ||
     (showPlayerLeaders && topscorers.refreshing) ||
-    (view !== 'fixtures' && view !== 'stats' && standings.refreshing)
+    ((view === 'overview' || view === 'teams') && standings.refreshing)
   const errors = [
     seasons.error,
-    view === 'stats' ? statistics.error : fixtures.error,
+    view === 'schedule' ? schedule.error : view === 'stats' ? statistics.error : fixtures.error,
     showPlayerLeaders ? topscorers.error : null,
     view === 'overview' || view === 'teams' ? standings.error : null
   ].filter((error): error is string => Boolean(error))
@@ -170,7 +184,11 @@ export function CompetitionWorkspacePage({
   async function refresh(): Promise<void> {
     await Promise.all([
       seasons.refresh(),
-      view === 'stats' ? statistics.refresh() : fixtures.refresh(),
+      view === 'schedule'
+        ? schedule.refresh()
+        : view === 'stats'
+          ? statistics.refresh()
+          : fixtures.refresh(),
       showPlayerLeaders ? topscorers.refresh() : Promise.resolve(),
       view === 'overview' || view === 'teams' ? standings.refresh() : Promise.resolve()
     ])
@@ -188,7 +206,9 @@ export function CompetitionWorkspacePage({
       search: (previous) => ({
         ...previous,
         date: seasonFixtureDate(nextSeason, today),
-        season: nextSeason.id
+        season: nextSeason.id,
+        stage: undefined,
+        round: undefined
       }),
       replace: true
     })
@@ -258,6 +278,25 @@ export function CompetitionWorkspacePage({
       </div>
 
       {errors.length > 0 && <ErrorAlert>{errors.join(' ')}</ErrorAlert>}
+
+      {view === 'schedule' && (
+        <SeasonSchedule
+          cached={schedule.cached}
+          loading={schedule.refreshing}
+          online={online}
+          competitionId={competition.id}
+          seasonId={seasonId}
+          stageId={stage}
+          roundId={round}
+          onSelect={(stage, round) =>
+            void navigate({
+              to: '/competitions/$competitionId/schedule',
+              search: (previous) => ({ ...previous, stage, round }),
+              resetScroll: false
+            })
+          }
+        />
+      )}
 
       {view === 'overview' && (
         <CompetitionOverview
@@ -384,6 +423,18 @@ function CompetitionNavigation({
         {...workspacePrefetch}
       >
         Fixtures
+      </Link>
+      <Link
+        to="/competitions/$competitionId/schedule"
+        params={{ competitionId: String(competitionId) }}
+        search={{ date, season }}
+        aria-current={view === 'schedule' ? 'page' : undefined}
+        className={entitySubpageNavigationItemClassName(view === 'schedule')}
+        {...intentPrefetchProps(online && season !== undefined, () =>
+          season === undefined ? Promise.resolve() : prefetchSeasonSchedule(season)
+        )}
+      >
+        Schedule
       </Link>
       <Link
         aria-current={view === 'teams' ? 'page' : undefined}

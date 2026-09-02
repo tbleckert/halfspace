@@ -37,6 +37,7 @@
     "leagues/get-all-leagues": ["country", "currentSeason"],
     "leagues/get-leagues-search-by-name": ["country", "currentSeason"],
     "seasons/get-all-seasons": [],
+    "schedules/get-schedules-by-season-id": [],
     "seasons/get-seasons-by-id": ["statistics"],
     "standings/get-standings-by-season-id": ["participant", "stage", "group"],
     "topscorers/get-topscorers-by-season-id": ["player", "participant", "type"],

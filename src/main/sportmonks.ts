@@ -1,4 +1,6 @@
 import type {
+  RefreshSeasonScheduleInput,
+  SeasonScheduleRefresh,
   RefereeRefresh,
   RefreshRefereeInput,
   ApiErrorCode,
@@ -1932,6 +1934,67 @@ export async function fetchTeamById(
         }
       : undefined,
     message: parsed.message
+  }
+}
+
+export function validateSeasonScheduleInput(value: unknown): RefreshSeasonScheduleInput {
+  const seasonId =
+    value && typeof value === 'object' ? (value as { seasonId?: unknown }).seasonId : undefined
+  if (!isPositiveId(seasonId)) throw new SportmonksError('invalid_input', 'Choose a valid season.')
+  return { seasonId }
+}
+
+export async function fetchSeasonSchedule(
+  input: RefreshSeasonScheduleInput,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<SeasonScheduleRefresh> {
+  const fetchedAt = Date.now()
+  const url = new URL(`${apiBaseUrl}/schedules/seasons/${input.seasonId}`)
+  let response: Response
+  try {
+    response = await fetcher(url, {
+      headers: { Accept: 'application/json', Authorization: token },
+      signal: AbortSignal.timeout(20_000)
+    })
+  } catch {
+    throw new SportmonksError('network', 'Could not reach Sportmonks.')
+  }
+  if (!response.ok) throw await errorForResponse(response)
+  const round = z.object({
+    id: z.number().int(),
+    name: z.string(),
+    finished: z.union([z.boolean(), z.literal(0), z.literal(1)]).transform(Boolean),
+    is_current: z.union([z.boolean(), z.literal(0), z.literal(1)]).transform(Boolean),
+    starting_at: z.string().nullable().optional(),
+    ending_at: z.string().nullable().optional(),
+    fixtures: z.array(fixtureSchema).default([])
+  })
+  const schema = fixtureDetailResponseSchema.extend({
+    data: z.array(
+      round.extend({
+        season_id: z.number().int(),
+        sort_order: z.number().int(),
+        rounds: z.array(round).default([])
+      })
+    )
+  })
+  let parsed: z.infer<typeof schema>
+  try {
+    parsed = schema.parse(await response.json())
+  } catch {
+    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
+  }
+  return {
+    stages: parsed.data,
+    fetchedAt,
+    message: parsed.message,
+    rateLimit: parsed.rate_limit
+      ? {
+          remaining: parsed.rate_limit.remaining,
+          resetsAt: fetchedAt + parsed.rate_limit.resets_in_seconds * 1000
+        }
+      : undefined
   }
 }
 

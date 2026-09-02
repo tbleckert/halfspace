@@ -1,6 +1,6 @@
 # Sportmonks API coverage
 
-Halfspace currently covers **25 of 153 endpoints** and **80 of 1320 documented endpoint includes**.
+Halfspace currently covers **26 of 153 endpoints** and **80 of 1320 documented endpoint includes**.
 
 Overall coverage: **7%**
 
@@ -77,7 +77,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 
 ### Schedules
 
-- [ ] [Schedules by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/schedules/get-schedules-by-season-id)
+- [x] [Schedules by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/schedules/get-schedules-by-season-id) — includes 0/0
 - [ ] [Schedules by Team ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/schedules/get-schedules-by-team-id)
 - [ ] [Schedules by Season ID and Team ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/schedules/get-schedules-by-season-id-and-team-id)
 

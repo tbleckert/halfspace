@@ -48,6 +48,11 @@ abstractions.
   ten most recent seasons in a compact URL-backed selector; keep standings and fixture windows
   season-scoped, and keep the selected season when changing competition views or opening a fixture.
   Changing the selected season must retain the active competition subpage.
+- Competition Schedule browses the complete season by stage and round. Fetch the schedule once per
+  cache window, normalize its fixtures into the shared cache, and keep stage and round selections
+  in the URL. Default to the current stage and round; clear those selections when switching seasons.
+  The schedules endpoint is non-paginated and does not accept includes.
+  While a schedule contains ongoing matches, shorten its cache window to 30 seconds.
 - Team pages use horizontal local navigation beneath the team header and above their competition
   context. Keep Overview, Fixtures, and Squad there, and extend that menu when more team views are
   added. Make the active item prominent with the shared active-indicator treatment.
