@@ -1,4 +1,5 @@
 import type {
+  FixtureCommentaryRefresh,
   RefreshSeasonScheduleInput,
   SeasonScheduleRefresh,
   RefereeRefresh,
@@ -1288,6 +1289,59 @@ export async function fetchFixtureHeadToHead(
     'participants;league;state;scores;periods',
     { order: 'desc', pageLimit: 1, perPage: 10 }
   )
+}
+
+export async function fetchFixtureCommentary(
+  input: RefreshFixtureInput,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<FixtureCommentaryRefresh> {
+  const fetchedAt = Date.now()
+  const url = new URL(`${apiBaseUrl}/commentaries/fixtures/${input.fixtureId}`)
+  url.searchParams.set('include', 'player;relatedPlayer')
+  let response: Response
+  try {
+    response = await fetcher(url, {
+      headers: { Accept: 'application/json', Authorization: token },
+      signal: AbortSignal.timeout(20_000)
+    })
+  } catch {
+    throw new SportmonksError('network', 'Could not reach Sportmonks.')
+  }
+  if (!response.ok) throw await errorForResponse(response)
+  const schema = fixtureDetailResponseSchema.extend({
+    data: z.array(
+      z.object({
+        id: z.number().int(),
+        fixture_id: z.number().int(),
+        comment: z.string(),
+        minute: z.number().nullable(),
+        extra_minute: z.number().nullable(),
+        order: z.number(),
+        is_goal: z.union([z.boolean(), z.literal(0), z.literal(1)]).transform(Boolean),
+        is_important: z.union([z.boolean(), z.literal(0), z.literal(1)]).transform(Boolean),
+        player: playerSchema.nullable().optional(),
+        relatedPlayer: playerSchema.nullable().optional()
+      })
+    )
+  })
+  let parsed: z.infer<typeof schema>
+  try {
+    parsed = schema.parse(await response.json())
+  } catch {
+    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
+  }
+  return {
+    commentaries: parsed.data,
+    fetchedAt,
+    message: parsed.message,
+    rateLimit: parsed.rate_limit
+      ? {
+          remaining: parsed.rate_limit.remaining,
+          resetsAt: fetchedAt + parsed.rate_limit.resets_in_seconds * 1000
+        }
+      : undefined
+  }
 }
 
 export async function fetchFixtureOdds(

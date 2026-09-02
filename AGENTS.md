@@ -137,6 +137,9 @@ abstractions.
 - Derive live match time from Sportmonks periods rather than elapsed wall-clock time.
 - Fixture timelines include the event player relationship so player portraits can accompany events.
   Respect Sportmonks `sort_order` when sequencing events that share a match minute.
+- Fixture Commentary is lazy-loaded from the dedicated non-paginated endpoint. Keep it cached per
+  fixture, newest first by provider `order`, with an All updates / Key events filter and linked
+  player identities. Refresh every 30 seconds only while an ongoing match's Commentary tab is open.
 - Fetch fixture odds lazily from the dedicated pre-match endpoint. Its response is a single,
   non-paginated payload even when other Sportmonks collections paginate.
 - Do not infer player appearances from team fixtures or bench selection. Name lineup data for what

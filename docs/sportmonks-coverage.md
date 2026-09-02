@@ -1,6 +1,6 @@
 # Sportmonks API coverage
 
-Halfspace currently covers **26 of 153 endpoints** and **80 of 1320 documented endpoint includes**.
+Halfspace currently covers **27 of 153 endpoints** and **82 of 1320 documented endpoint includes**.
 
 Overall coverage: **7%**
 
@@ -274,4 +274,4 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 ### Commentaries
 
 - [ ] [All Commentaries](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/commentaries/get-all-commentaries)
-- [ ] [Commentaries by Fixture ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/commentaries/get-commentaries-by-fixture-id)
+- [x] [Commentaries by Fixture ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/commentaries/get-commentaries-by-fixture-id) — includes 2/3

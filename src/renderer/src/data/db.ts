@@ -1,5 +1,6 @@
 import Dexie, { type Table } from 'dexie'
 import type {
+  FixtureCommentaryRefresh,
   SeasonScheduleRefresh,
   SportmonksScheduleStage,
   SportmonksScheduleRound,
@@ -462,7 +463,13 @@ export interface SeasonScheduleQuery {
   staleAt: number
 }
 
+export interface FixtureCommentaryQuery extends FixtureCommentaryRefresh {
+  fixtureId: number
+  staleAt: number
+}
+
 class HalfspaceDatabase extends Dexie {
+  fixtureCommentaryQueries!: Table<FixtureCommentaryQuery, number>
   seasonScheduleQueries!: Table<SeasonScheduleQuery, number>
   fixtures!: Table<CachedFixture, number>
   fixtureQueries!: Table<FixtureQuery, string>
@@ -725,10 +732,51 @@ class HalfspaceDatabase extends Dexie {
     this.version(18).stores({
       seasonScheduleQueries: '&seasonId, staleAt'
     })
+    this.version(19).stores({
+      fixtureCommentaryQueries: '&fixtureId, staleAt'
+    })
   }
 }
 
 export const db = new HalfspaceDatabase()
+
+export async function readFixtureCommentary(
+  fixtureId: number
+): Promise<FixtureCommentaryQuery | null> {
+  return (await db.fixtureCommentaryQueries.get(fixtureId)) ?? null
+}
+
+export async function writeFixtureCommentaryRefresh(
+  fixtureId: number,
+  refresh: FixtureCommentaryRefresh
+): Promise<void> {
+  await db.transaction('rw', db.fixtureCommentaryQueries, db.fixtures, db.players, async () => {
+    const fixture = await db.fixtures.get(fixtureId)
+    const players = [
+      ...new Map(
+        refresh.commentaries
+          .flatMap((item) => [item.player, item.relatedPlayer])
+          .filter((player): player is SportmonksPlayer => Boolean(player))
+          .map((player) => [player.id, player])
+      ).values()
+    ]
+    const existing = await db.players.bulkGet(players.map((player) => player.id))
+    await db.players.bulkPut(
+      players.map((player, index) =>
+        toCachedIncludedPlayer(player, existing[index], refresh.fetchedAt)
+      )
+    )
+    await db.fixtureCommentaryQueries.put({
+      ...refresh,
+      fixtureId,
+      staleAt:
+        refresh.fetchedAt +
+        (fixture && isFixtureOngoing(fixture.stateId)
+          ? liveFixtureCacheDuration
+          : fixtureDetailCacheDuration)
+    })
+  })
+}
 
 export async function readSeasonSchedule(
   seasonId: number
@@ -2042,6 +2090,7 @@ export async function clearSportmonksCache(): Promise<void> {
       db.fixtureQueries,
       db.fixtureOdds,
       db.fixtureOddsQueries,
+      db.fixtureCommentaryQueries,
       db.fixtureHeadToHeadQueries,
       db.competitions,
       db.competitionCatalogs,
@@ -2074,6 +2123,7 @@ export async function clearSportmonksCache(): Promise<void> {
       await db.fixtureQueries.clear()
       await db.fixtureOdds.clear()
       await db.fixtureOddsQueries.clear()
+      await db.fixtureCommentaryQueries.clear()
       await db.fixtureHeadToHeadQueries.clear()
       await db.competitions.clear()
       await db.competitionCatalogs.clear()

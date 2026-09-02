@@ -26,6 +26,7 @@ include should have a useful place in Halfspace.
 - [x] Season statistics for competitions, teams, and players.
 - [x] Season player leaderboards for goals, assists, yellow cards, and red cards.
 - [x] Fixture previews, event timelines, pitch lineups, match statistics, and pre-match odds.
+- [x] Live match commentary with key-event filtering and offline history.
 - [x] Global entity search, competition quick access, and navigation prefetching.
 
 ### Ahead
@@ -35,7 +36,7 @@ include should have a useful place in Halfspace.
 - [ ] Referee season statistics and deeper match history.
 - [ ] Transfer rumours and pending transfers.
 - [ ] Expected goals, predictions, and expected lineups.
-- [ ] Match facts, commentary, and deeper in-play analysis.
+- [ ] Match facts and deeper in-play analysis.
 - [ ] Football news, rivalries, and TV listings.
 - [ ] In-play and premium odds, market exploration, and bookmaker coverage.
 - [ ] Comparison and analysis tools built on the local data foundation.

@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, useMatchRoute } from '@tanstack/react-router'
-import { FixtureDetailPage } from '@/features/fixtures/fixture-detail-page'
+import { FixtureDetailPage, type FixtureView } from '@/features/fixtures/fixture-detail-page'
 import { fixtureDetailSearchSchema } from '@/features/fixtures/fixture-route'
 
 export const Route = createFileRoute('/fixtures/$fixtureId')({
@@ -11,9 +11,11 @@ function FixtureDetailRoute(): React.JSX.Element {
   const { fixtureId } = Route.useParams()
   const { competition, date, season, team } = Route.useSearch()
   const matchRoute = useMatchRoute()
-  let view: 'lineups' | 'odds' | 'preview' | 'stats' | 'timeline' = 'preview'
+  let view: FixtureView = 'preview'
 
-  if (
+  if (matchRoute({ to: '/fixtures/$fixtureId/commentary', params: { fixtureId }, fuzzy: false })) {
+    view = 'commentary'
+  } else if (
     matchRoute({
       to: '/fixtures/$fixtureId/timeline',
       params: { fixtureId },

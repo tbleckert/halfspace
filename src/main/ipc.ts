@@ -14,6 +14,7 @@ import {
   fetchFixtureById,
   fetchFixtureHeadToHead,
   fetchFixtureOdds,
+  fetchFixtureCommentary,
   fetchFixturesByDate,
   fetchFixturesByDateRange,
   fetchPlayerAppearances,
@@ -128,6 +129,12 @@ export function registerIpcHandlers(): void {
     validateFixtureInput,
     fetchFixtureOdds,
     'Could not refresh fixture odds.'
+  )
+  registerSportmonksHandler(
+    ipcChannels.refreshFixtureCommentary,
+    validateFixtureInput,
+    fetchFixtureCommentary,
+    'Could not refresh commentary.'
   )
   registerSportmonksHandlerWithoutInput(
     ipcChannels.refreshCompetitions,

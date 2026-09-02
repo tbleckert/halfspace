@@ -29,7 +29,7 @@ import { TeamLogo } from '@/features/teams/team-logo'
 import { prefetchTeamEntity } from '@/features/teams/use-team'
 import { VenueCard } from '@/features/venues/venue-card'
 import { currentTimeZone } from '@/lib/date'
-import { isFixtureLive } from '@/lib/fixture-state'
+import { isFixtureLive, isFixtureOngoing } from '@/lib/fixture-state'
 import { currentFixtureScore, fixtureParticipantAt } from '@/lib/fixture'
 import { useOnline } from '@/lib/use-online'
 import { intentPrefetchProps } from '@/lib/prefetch'
@@ -52,8 +52,10 @@ import { FixturePreviewWorkspace } from './fixture-preview'
 import type { FixtureDetailSearch } from './fixture-route'
 import { prefetchFixturePreview, type FixturePreviewInput } from './use-fixture-preview'
 import { useFixtureEntity, useFixtureOdds } from './use-fixtures'
+import { useCommentary } from './use-commentary'
+import { FixtureCommentary } from './fixture-commentary'
 
-export type FixtureView = 'preview' | 'timeline' | 'lineups' | 'stats' | 'odds'
+export type FixtureView = 'preview' | 'timeline' | 'lineups' | 'stats' | 'odds' | 'commentary'
 
 interface FixtureDetailPageProps {
   competitionId?: number
@@ -76,6 +78,11 @@ export function FixtureDetailPage({
   const validFixtureId = Number.isSafeInteger(parsedFixtureId) && parsedFixtureId > 0
   const online = useOnline()
   const fixture = useFixtureEntity(validFixtureId ? parsedFixtureId : null, online)
+  const commentary = useCommentary(
+    validFixtureId && view === 'commentary' ? parsedFixtureId : null,
+    online && view === 'commentary',
+    isFixtureOngoing(fixture.cached?.fixture?.stateId ?? 0)
+  )
   const odds = useFixtureOdds(
     validFixtureId && view === 'odds' ? parsedFixtureId : null,
     online && view === 'odds'
@@ -117,10 +124,14 @@ export function FixtureDetailPage({
   const away = fixtureParticipantAt(match, 'away')
   const heading = `${home?.name ?? 'Home'} vs ${away?.name ?? 'Away'}`
   const teamParticipant = match.participants.find(({ id }) => id === teamId)
-  const refreshing = fixture.refreshing || odds.refreshing
+  const refreshing = fixture.refreshing || odds.refreshing || commentary.refreshing
 
   async function refresh(): Promise<void> {
-    await Promise.all([fixture.refresh(), view === 'odds' ? odds.refresh() : Promise.resolve()])
+    await Promise.all([
+      fixture.refresh(),
+      view === 'odds' ? odds.refresh() : Promise.resolve(),
+      view === 'commentary' ? commentary.refresh() : Promise.resolve()
+    ])
   }
 
   return (
@@ -162,6 +173,7 @@ export function FixtureDetailPage({
 
       {fixture.error && <ErrorAlert>{fixture.error}</ErrorAlert>}
       {odds.error && <ErrorAlert>{odds.error}</ErrorAlert>}
+      {view === 'commentary' && commentary.error && <ErrorAlert>{commentary.error}</ErrorAlert>}
 
       <MatchScore
         competitionId={competitionId ?? cachedFixture.leagueId}
@@ -187,6 +199,19 @@ export function FixtureDetailPage({
       )}
       {view === 'timeline' && (
         <FixtureTimeline away={away} events={match.events ?? []} home={home} online={online} />
+      )}
+      {view === 'commentary' && (
+        <FixtureCommentary
+          key={parsedFixtureId}
+          cached={commentary.cached}
+          loading={commentary.refreshing}
+          online={online}
+          context={{
+            competition: competitionId ?? cachedFixture.leagueId,
+            date,
+            season: resolvedSeasonId
+          }}
+        />
       )}
       {view === 'lineups' && (
         <FixtureLineups
@@ -355,6 +380,7 @@ function FixtureNavigation({
   const items: Array<{ label: string; to: string; view: FixtureView }> = [
     { label: 'Preview', to: '/fixtures/$fixtureId', view: 'preview' },
     { label: 'Timeline', to: '/fixtures/$fixtureId/timeline', view: 'timeline' },
+    { label: 'Commentary', to: '/fixtures/$fixtureId/commentary', view: 'commentary' },
     { label: 'Lineups', to: '/fixtures/$fixtureId/lineups', view: 'lineups' },
     { label: 'Stats', to: '/fixtures/$fixtureId/stats', view: 'stats' },
     { label: 'Odds', to: '/fixtures/$fixtureId/odds', view: 'odds' }

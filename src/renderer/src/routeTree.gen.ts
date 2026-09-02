@@ -23,6 +23,7 @@ import { Route as CompetitionsCompetitionIdFixturesRouteImport } from './routes/
 import { Route as CompetitionsCompetitionIdScheduleRouteImport } from './routes/competitions_.$competitionId.schedule'
 import { Route as CompetitionsCompetitionIdStatsRouteImport } from './routes/competitions_.$competitionId.stats'
 import { Route as CompetitionsCompetitionIdTeamsRouteImport } from './routes/competitions_.$competitionId.teams'
+import { Route as FixturesFixtureIdCommentaryRouteImport } from './routes/fixtures.$fixtureId.commentary'
 import { Route as FixturesFixtureIdLineupsRouteImport } from './routes/fixtures.$fixtureId.lineups'
 import { Route as FixturesFixtureIdOddsRouteImport } from './routes/fixtures.$fixtureId.odds'
 import { Route as FixturesFixtureIdStatsRouteImport } from './routes/fixtures.$fixtureId.stats'
@@ -110,6 +111,12 @@ const CompetitionsCompetitionIdTeamsRoute =
     path: '/teams',
     getParentRoute: () => CompetitionsCompetitionIdRoute,
   } as any)
+const FixturesFixtureIdCommentaryRoute =
+  FixturesFixtureIdCommentaryRouteImport.update({
+    id: '/commentary',
+    path: '/commentary',
+    getParentRoute: () => FixturesFixtureIdRoute,
+  } as any)
 const FixturesFixtureIdLineupsRoute =
   FixturesFixtureIdLineupsRouteImport.update({
     id: '/lineups',
@@ -183,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/competitions/$competitionId/schedule': typeof CompetitionsCompetitionIdScheduleRoute
   '/competitions/$competitionId/stats': typeof CompetitionsCompetitionIdStatsRoute
   '/competitions/$competitionId/teams': typeof CompetitionsCompetitionIdTeamsRoute
+  '/fixtures/$fixtureId/commentary': typeof FixturesFixtureIdCommentaryRoute
   '/fixtures/$fixtureId/lineups': typeof FixturesFixtureIdLineupsRoute
   '/fixtures/$fixtureId/odds': typeof FixturesFixtureIdOddsRoute
   '/fixtures/$fixtureId/stats': typeof FixturesFixtureIdStatsRoute
@@ -210,6 +218,7 @@ export interface FileRoutesByTo {
   '/competitions/$competitionId/schedule': typeof CompetitionsCompetitionIdScheduleRoute
   '/competitions/$competitionId/stats': typeof CompetitionsCompetitionIdStatsRoute
   '/competitions/$competitionId/teams': typeof CompetitionsCompetitionIdTeamsRoute
+  '/fixtures/$fixtureId/commentary': typeof FixturesFixtureIdCommentaryRoute
   '/fixtures/$fixtureId/lineups': typeof FixturesFixtureIdLineupsRoute
   '/fixtures/$fixtureId/odds': typeof FixturesFixtureIdOddsRoute
   '/fixtures/$fixtureId/stats': typeof FixturesFixtureIdStatsRoute
@@ -238,6 +247,7 @@ export interface FileRoutesById {
   '/competitions_/$competitionId/schedule': typeof CompetitionsCompetitionIdScheduleRoute
   '/competitions_/$competitionId/stats': typeof CompetitionsCompetitionIdStatsRoute
   '/competitions_/$competitionId/teams': typeof CompetitionsCompetitionIdTeamsRoute
+  '/fixtures/$fixtureId/commentary': typeof FixturesFixtureIdCommentaryRoute
   '/fixtures/$fixtureId/lineups': typeof FixturesFixtureIdLineupsRoute
   '/fixtures/$fixtureId/odds': typeof FixturesFixtureIdOddsRoute
   '/fixtures/$fixtureId/stats': typeof FixturesFixtureIdStatsRoute
@@ -267,6 +277,7 @@ export interface FileRouteTypes {
     | '/competitions/$competitionId/schedule'
     | '/competitions/$competitionId/stats'
     | '/competitions/$competitionId/teams'
+    | '/fixtures/$fixtureId/commentary'
     | '/fixtures/$fixtureId/lineups'
     | '/fixtures/$fixtureId/odds'
     | '/fixtures/$fixtureId/stats'
@@ -294,6 +305,7 @@ export interface FileRouteTypes {
     | '/competitions/$competitionId/schedule'
     | '/competitions/$competitionId/stats'
     | '/competitions/$competitionId/teams'
+    | '/fixtures/$fixtureId/commentary'
     | '/fixtures/$fixtureId/lineups'
     | '/fixtures/$fixtureId/odds'
     | '/fixtures/$fixtureId/stats'
@@ -321,6 +333,7 @@ export interface FileRouteTypes {
     | '/competitions_/$competitionId/schedule'
     | '/competitions_/$competitionId/stats'
     | '/competitions_/$competitionId/teams'
+    | '/fixtures/$fixtureId/commentary'
     | '/fixtures/$fixtureId/lineups'
     | '/fixtures/$fixtureId/odds'
     | '/fixtures/$fixtureId/stats'
@@ -447,6 +460,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompetitionsCompetitionIdTeamsRouteImport
       parentRoute: typeof CompetitionsCompetitionIdRoute
     }
+    '/fixtures/$fixtureId/commentary': {
+      id: '/fixtures/$fixtureId/commentary'
+      path: '/commentary'
+      fullPath: '/fixtures/$fixtureId/commentary'
+      preLoaderRoute: typeof FixturesFixtureIdCommentaryRouteImport
+      parentRoute: typeof FixturesFixtureIdRoute
+    }
     '/fixtures/$fixtureId/lineups': {
       id: '/fixtures/$fixtureId/lineups'
       path: '/lineups'
@@ -550,6 +570,7 @@ const CompetitionsCompetitionIdRouteWithChildren =
   )
 
 interface FixturesFixtureIdRouteChildren {
+  FixturesFixtureIdCommentaryRoute: typeof FixturesFixtureIdCommentaryRoute
   FixturesFixtureIdLineupsRoute: typeof FixturesFixtureIdLineupsRoute
   FixturesFixtureIdOddsRoute: typeof FixturesFixtureIdOddsRoute
   FixturesFixtureIdStatsRoute: typeof FixturesFixtureIdStatsRoute
@@ -557,6 +578,7 @@ interface FixturesFixtureIdRouteChildren {
 }
 
 const FixturesFixtureIdRouteChildren: FixturesFixtureIdRouteChildren = {
+  FixturesFixtureIdCommentaryRoute: FixturesFixtureIdCommentaryRoute,
   FixturesFixtureIdLineupsRoute: FixturesFixtureIdLineupsRoute,
   FixturesFixtureIdOddsRoute: FixturesFixtureIdOddsRoute,
   FixturesFixtureIdStatsRoute: FixturesFixtureIdStatsRoute,

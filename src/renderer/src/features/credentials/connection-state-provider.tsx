@@ -7,6 +7,7 @@ import { invalidateCoachRefreshes } from '@/features/coaches/use-coach'
 import { invalidateRefereeRefreshes } from '@/features/referees/use-referee'
 import { invalidateCompetitionWorkspaceRefreshes } from '@/features/competitions/use-competition-workspace'
 import { invalidateFixtureRefreshes } from '@/features/fixtures/use-fixtures'
+import { invalidateCommentaryRefreshes } from '@/features/fixtures/use-commentary'
 import { invalidatePlayerRefreshes } from '@/features/players/use-player'
 import { invalidateTeamRefreshes } from '@/features/teams/use-team'
 import { invalidateVenueRefreshes } from '@/features/venues/use-venue'
@@ -38,6 +39,7 @@ export function ConnectionStateProvider({ children }: { children: ReactNode }): 
         invalidateRefereeRefreshes()
         invalidateCompetitionWorkspaceRefreshes()
         invalidateFixtureRefreshes()
+        invalidateCommentaryRefreshes()
         invalidatePlayerRefreshes()
         invalidateTeamRefreshes()
         invalidateVenueRefreshes()
@@ -67,6 +69,7 @@ export function ConnectionStateProvider({ children }: { children: ReactNode }): 
         invalidateRefereeRefreshes()
         invalidateCompetitionWorkspaceRefreshes()
         invalidateFixtureRefreshes()
+        invalidateCommentaryRefreshes()
         invalidatePlayerRefreshes()
         invalidateTeamRefreshes()
         invalidateVenueRefreshes()

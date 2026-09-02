@@ -7,6 +7,7 @@ export const ipcChannels = {
   refreshFixture: 'sportmonks:refresh-fixture',
   refreshFixtureHeadToHead: 'sportmonks:refresh-fixture-head-to-head',
   refreshFixtureOdds: 'sportmonks:refresh-fixture-odds',
+  refreshFixtureCommentary: 'sportmonks:refresh-fixture-commentary',
   refreshCompetitions: 'sportmonks:refresh-competitions',
   refreshCompetitionSeasons: 'sportmonks:refresh-competition-seasons',
   refreshStandings: 'sportmonks:refresh-standings',
@@ -78,6 +79,26 @@ export interface RefreshFixtureWindowInput {
 
 export interface RefreshFixtureInput {
   fixtureId: number
+}
+
+export interface SportmonksCommentary {
+  id: number
+  fixture_id: number
+  comment: string
+  minute: number | null
+  extra_minute: number | null
+  is_goal: boolean
+  is_important: boolean
+  order: number
+  player?: SportmonksPlayer | null
+  relatedPlayer?: SportmonksPlayer | null
+}
+
+export interface FixtureCommentaryRefresh {
+  commentaries: SportmonksCommentary[]
+  fetchedAt: number
+  rateLimit?: SportmonksRateLimit
+  message?: string
 }
 
 export interface RefreshFixtureHeadToHeadInput {
@@ -872,6 +893,9 @@ export interface HalfspaceApi {
     clearToken(): Promise<Result<null>>
   }
   sportmonks: {
+    refreshFixtureCommentary: (
+      input: RefreshFixtureInput
+    ) => Promise<Result<FixtureCommentaryRefresh>>
     refreshSeasonSchedule: (
       input: RefreshSeasonScheduleInput
     ) => Promise<Result<SeasonScheduleRefresh>>
