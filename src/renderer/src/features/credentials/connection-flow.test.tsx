@@ -57,6 +57,7 @@ beforeEach(() => {
       refreshReferee: vi.fn(),
       refreshSeasonSchedule: vi.fn(),
       refreshFixtureCommentary: vi.fn(),
+      refreshTeamRivals: vi.fn(),
       refreshPlayerAppearances: vi.fn(),
       refreshPlayerStatistics: vi.fn(),
       refreshPlayerTransfers: vi.fn(),

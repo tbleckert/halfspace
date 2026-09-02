@@ -10,6 +10,7 @@ import { invalidateFixtureRefreshes } from '@/features/fixtures/use-fixtures'
 import { invalidateCommentaryRefreshes } from '@/features/fixtures/use-commentary'
 import { invalidatePlayerRefreshes } from '@/features/players/use-player'
 import { invalidateTeamRefreshes } from '@/features/teams/use-team'
+import { invalidateRivalRefreshes } from '@/features/teams/use-team-rivals'
 import { invalidateVenueRefreshes } from '@/features/venues/use-venue'
 import { ConnectionStateContext } from './connection-state-context'
 
@@ -42,6 +43,7 @@ export function ConnectionStateProvider({ children }: { children: ReactNode }): 
         invalidateCommentaryRefreshes()
         invalidatePlayerRefreshes()
         invalidateTeamRefreshes()
+        invalidateRivalRefreshes()
         invalidateVenueRefreshes()
         await clearSportmonksCache().catch(() => undefined)
         setConnection(result.data)
@@ -72,6 +74,7 @@ export function ConnectionStateProvider({ children }: { children: ReactNode }): 
         invalidateCommentaryRefreshes()
         invalidatePlayerRefreshes()
         invalidateTeamRefreshes()
+        invalidateRivalRefreshes()
         invalidateVenueRefreshes()
         await clearSportmonksCache().catch(() => undefined)
         setConnection({ configured: false })

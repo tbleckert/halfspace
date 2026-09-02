@@ -21,6 +21,7 @@ include should have a useful place in Halfspace.
 - [x] Team pages with fixtures, squad profiles, and transfer history.
 - [x] Historical team squads with season selection and offline browsing.
 - [x] Current team injuries and suspensions with linked player profiles.
+- [x] Team rivalries with direct links to rival clubs.
 - [x] Referee profiles and recent match appointments, linked from fixture officials.
 - [x] Player pages with match records and career history, plus coach and venue profiles.
 - [x] Season statistics for competitions, teams, and players.
@@ -37,7 +38,7 @@ include should have a useful place in Halfspace.
 - [ ] Transfer rumours and pending transfers.
 - [ ] Expected goals, predictions, and expected lineups.
 - [ ] Match facts and deeper in-play analysis.
-- [ ] Football news, rivalries, and TV listings.
+- [ ] Football news and TV listings.
 - [ ] In-play and premium odds, market exploration, and bookmaker coverage.
 - [ ] Comparison and analysis tools built on the local data foundation.
 - [ ] Complete Sportmonks endpoint and include coverage.

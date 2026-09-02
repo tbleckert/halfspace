@@ -1,5 +1,6 @@
 import Dexie, { type Table } from 'dexie'
 import type {
+  TeamRivalsRefresh,
   FixtureCommentaryRefresh,
   SeasonScheduleRefresh,
   SportmonksScheduleStage,
@@ -468,7 +469,15 @@ export interface FixtureCommentaryQuery extends FixtureCommentaryRefresh {
   staleAt: number
 }
 
+export interface TeamRivalsQuery {
+  teamId: number
+  rivalIds: number[]
+  fetchedAt: number
+  staleAt: number
+}
+
 class HalfspaceDatabase extends Dexie {
+  teamRivalsQueries!: Table<TeamRivalsQuery, number>
   fixtureCommentaryQueries!: Table<FixtureCommentaryQuery, number>
   seasonScheduleQueries!: Table<SeasonScheduleQuery, number>
   fixtures!: Table<CachedFixture, number>
@@ -735,10 +744,57 @@ class HalfspaceDatabase extends Dexie {
     this.version(19).stores({
       fixtureCommentaryQueries: '&fixtureId, staleAt'
     })
+    this.version(20).stores({
+      teamRivalsQueries: '&teamId, staleAt'
+    })
   }
 }
 
 export const db = new HalfspaceDatabase()
+
+export async function readTeamRivals(
+  teamId: number
+): Promise<(TeamRivalsQuery & { rivals: { id: number; team: CachedTeam | null }[] }) | null> {
+  const query = await db.teamRivalsQueries.get(teamId)
+  if (!query) return null
+  const teams = await db.teams.bulkGet(query.rivalIds)
+  return {
+    ...query,
+    rivals: query.rivalIds.map((id, index) => ({ id, team: teams[index] ?? null }))
+  }
+}
+
+export async function writeTeamRivalsRefresh(
+  teamId: number,
+  refresh: TeamRivalsRefresh
+): Promise<void> {
+  const relevant = refresh.rivals.filter(
+    (rival) => rival.team_id === teamId || rival.rival_id === teamId
+  )
+  const rivalIds = [
+    ...new Set(relevant.map((rival) => (rival.team_id === teamId ? rival.rival_id : rival.team_id)))
+  ].filter((id) => id !== teamId)
+  const teams = [
+    ...new Map(
+      relevant
+        .flatMap((rival) => [rival.team, rival.rival])
+        .filter((team): team is SportmonksTeam => Boolean(team))
+        .map((team) => [team.id, team])
+    ).values()
+  ]
+  await db.transaction('rw', db.teams, db.teamRivalsQueries, async () => {
+    const existing = await db.teams.bulkGet(teams.map((team) => team.id))
+    await db.teams.bulkPut(
+      teams.map((team, index) => toCachedIncludedTeam(team, existing[index], refresh.fetchedAt))
+    )
+    await db.teamRivalsQueries.put({
+      teamId,
+      rivalIds,
+      fetchedAt: refresh.fetchedAt,
+      staleAt: refresh.fetchedAt + 24 * 60 * 60 * 1000
+    })
+  })
+}
 
 export async function readFixtureCommentary(
   fixtureId: number
@@ -2103,6 +2159,7 @@ export async function clearSportmonksCache(): Promise<void> {
       db.competitionFixtureQueries,
       db.teams,
       db.teamFixtureQueries,
+      db.teamRivalsQueries,
       db.teamStatisticsQueries,
       db.venues,
       db.players,
@@ -2136,6 +2193,7 @@ export async function clearSportmonksCache(): Promise<void> {
       await db.competitionFixtureQueries.clear()
       await db.teams.clear()
       await db.teamFixtureQueries.clear()
+      await db.teamRivalsQueries.clear()
       await db.teamStatisticsQueries.clear()
       await db.venues.clear()
       await db.players.clear()

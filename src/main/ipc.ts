@@ -25,6 +25,7 @@ import {
   fetchSeasonTopscorers,
   fetchStandingsBySeason,
   fetchTeamById,
+  fetchTeamRivals,
   fetchTeamFixtures,
   fetchTeamSquad,
   fetchTeamStatistics,
@@ -182,6 +183,12 @@ export function registerIpcHandlers(): void {
     validateTeamInput,
     fetchTeamById,
     'Could not refresh team.'
+  )
+  registerSportmonksHandler(
+    ipcChannels.refreshTeamRivals,
+    validateTeamInput,
+    fetchTeamRivals,
+    'Could not refresh rivals.'
   )
   registerSportmonksHandler(
     ipcChannels.refreshTeamFixtures,

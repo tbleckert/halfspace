@@ -1,8 +1,8 @@
 # Sportmonks API coverage
 
-Halfspace currently covers **27 of 153 endpoints** and **82 of 1320 documented endpoint includes**.
+Halfspace currently covers **28 of 153 endpoints** and **84 of 1320 documented endpoint includes**.
 
-Overall coverage: **7%**
+Overall coverage: **8%**
 
 Source: [Sportmonks Football API 3.0 documentation index](https://docs.sportmonks.com/v3/sitemap.md)
 
@@ -269,7 +269,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 ### Rivals
 
 - [ ] [All Rivals](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/rivals/get-all-rivals)
-- [ ] [Rivals by Team ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/rivals/get-rivals-by-team-id)
+- [x] [Rivals by Team ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/rivals/get-rivals-by-team-id) — includes 2/2
 
 ### Commentaries
 

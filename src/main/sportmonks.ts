@@ -1,4 +1,5 @@
 import type {
+  TeamRivalsRefresh,
   FixtureCommentaryRefresh,
   RefreshSeasonScheduleInput,
   SeasonScheduleRefresh,
@@ -1941,6 +1942,53 @@ export async function fetchCompetitionSeasons(
   }
 
   throw new SportmonksError('invalid_response', 'Sportmonks returned too many result pages.')
+}
+
+export async function fetchTeamRivals(
+  input: RefreshTeamInput,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<TeamRivalsRefresh> {
+  const fetchedAt = Date.now()
+  const url = new URL(`${apiBaseUrl}/rivals/teams/${input.teamId}`)
+  url.searchParams.set('include', 'team;rival')
+  let response: Response
+  try {
+    response = await fetcher(url, {
+      headers: { Accept: 'application/json', Authorization: token },
+      signal: AbortSignal.timeout(20_000)
+    })
+  } catch {
+    throw new SportmonksError('network', 'Could not reach Sportmonks.')
+  }
+  if (!response.ok) throw await errorForResponse(response)
+  const schema = fixtureDetailResponseSchema.extend({
+    data: z.array(
+      z.object({
+        team_id: z.number().int(),
+        rival_id: z.number().int(),
+        team: teamSchema.nullable().optional(),
+        rival: teamSchema.nullable().optional()
+      })
+    )
+  })
+  let parsed: z.infer<typeof schema>
+  try {
+    parsed = schema.parse(await response.json())
+  } catch {
+    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
+  }
+  return {
+    rivals: parsed.data,
+    fetchedAt,
+    message: parsed.message,
+    rateLimit: parsed.rate_limit
+      ? {
+          remaining: parsed.rate_limit.remaining,
+          resetsAt: fetchedAt + parsed.rate_limit.resets_in_seconds * 1000
+        }
+      : undefined
+  }
 }
 
 export async function fetchTeamById(

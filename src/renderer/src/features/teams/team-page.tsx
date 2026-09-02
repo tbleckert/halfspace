@@ -49,6 +49,8 @@ import { useOnline } from '@/lib/use-online'
 import { cn } from '@/lib/utils'
 import { TeamLogo } from './team-logo'
 import { TeamAvailability } from './team-availability'
+import { TeamRivals } from './team-rivals'
+import { useTeamRivals } from './use-team-rivals'
 import { TeamTransfers } from './team-transfers'
 import {
   prefetchTeamEntity,
@@ -94,6 +96,7 @@ export function TeamPage({
   const timeZone = useMemo(() => currentTimeZone(), [])
   const today = useMemo(() => todayInTimeZone(timeZone), [timeZone])
   const team = useTeamEntity(validTeamId ? parsedTeamId : null, online)
+  const rivals = useTeamRivals(validTeamId ? parsedTeamId : null, online && view === 'overview')
   const competitionContexts = useLiveQuery(
     () =>
       validTeamId
@@ -170,6 +173,7 @@ export function TeamPage({
   )
   const refreshing =
     team.refreshing ||
+    (view === 'overview' && rivals.refreshing) ||
     (view === 'squad'
       ? squad.refreshing || competitionSeasons.refreshing
       : view === 'stats'
@@ -210,6 +214,7 @@ export function TeamPage({
   async function refresh(): Promise<void> {
     await Promise.all([
       team.refresh(),
+      view === 'overview' ? rivals.refresh() : Promise.resolve(),
       view === 'stats' || view === 'squad' ? competitionSeasons.refresh() : Promise.resolve(),
       view === 'squad'
         ? squad.refresh()
@@ -323,6 +328,13 @@ export function TeamPage({
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(16rem,0.65fr)_minmax(24rem,1.35fr)]">
           <div className="flex flex-col gap-5">
             <TeamCompetitions contexts={competitionContexts} online={online} />
+            <TeamRivals
+              cached={rivals.cached}
+              loading={rivals.refreshing}
+              error={rivals.error}
+              online={online}
+              date={fixtureWindowStart}
+            />
             <TeamAvailability
               absences={detailedTeam?.sidelined}
               competitionId={competitionId}

@@ -108,6 +108,9 @@ abstractions.
   the selected historical season. Respect the provider's completed flag, distinguish missing data
   from no reported absences, and never invent return dates or infer availability from season IDs.
   Refresh team detail hourly and retain it when basic search results update team identity.
+- Team Overview links provider-reported rival clubs in a compact card. Cache rival relationships
+  per team for a day, deduplicate both directions, and hydrate the shared team cache without
+  replacing richer detail. Rival links keep the date but resolve their own competition and season.
 - Keep low-resolution provider imagery in compact supporting cards. Do not stretch it into hero
   treatment that exposes its limitations.
 - Matchday fixture rows use one centered status column: a short terminal state such as FT, a green

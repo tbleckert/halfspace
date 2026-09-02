@@ -44,6 +44,7 @@
     "topscorers/get-topscorers-by-season-id": ["player", "participant", "type"],
     "teams/get-team-by-id": ["country", "venue", "coaches", "statistics", "sidelined"],
     "teams/get-teams-by-search-by-name": ["country", "venue"],
+    "rivals/get-rivals-by-team-id": ["team", "rival"],
     "players/get-player-by-id": ["nationality", "position", "detailedPosition", "statistics"],
     "players/get-players-by-search-by-name": ["nationality", "position", "detailedPosition"],
     "team-squads/get-team-squad-by-team-id": ["player", "position", "detailedPosition"],
