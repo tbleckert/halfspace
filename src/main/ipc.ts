@@ -44,6 +44,7 @@ import {
   validateStandingsInput,
   validateTeamFixturesInput,
   validateTeamInput,
+  validateTeamSquadInput,
   validateTeamStatisticsInput,
   validateTeamTransfersInput,
   validateToken,
@@ -173,7 +174,7 @@ export function registerIpcHandlers(): void {
   )
   registerSportmonksHandler(
     ipcChannels.refreshTeamSquad,
-    validateTeamInput,
+    validateTeamSquadInput,
     fetchTeamSquad,
     'Could not refresh team squad.'
   )

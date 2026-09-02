@@ -39,6 +39,7 @@ beforeEach(async () => {
       db.teamFixtureQueries,
       db.squadEntries,
       db.teamSquadQueries,
+      db.teamSeasonSquadQueries,
       db.teamStatisticsQueries,
       db.transfers,
       db.teamTransferQueries
@@ -49,6 +50,7 @@ beforeEach(async () => {
       await db.teamFixtureQueries.clear()
       await db.squadEntries.clear()
       await db.teamSquadQueries.clear()
+      await db.teamSeasonSquadQueries.clear()
       await db.teamStatisticsQueries.clear()
       await db.transfers.clear()
       await db.teamTransferQueries.clear()
@@ -100,6 +102,20 @@ describe('team refresh', () => {
     await prefetchTeamSquad(9)
 
     expect(refreshTeamSquad).toHaveBeenCalledTimes(1)
+  })
+
+  it('prefetches each squad season once without sharing in-flight requests', async () => {
+    const refreshTeamSquad = vi.fn().mockResolvedValue({ ok: true, data: teamSquadRefresh() })
+    installHalfspace({ refreshTeamSquad })
+    await Promise.all([
+      prefetchTeamSquad(9, 100),
+      prefetchTeamSquad(9, 101),
+      prefetchTeamSquad(9, 100)
+    ])
+    await prefetchTeamSquad(9, 100)
+    expect(refreshTeamSquad).toHaveBeenCalledTimes(2)
+    expect(refreshTeamSquad).toHaveBeenCalledWith({ teamId: 9, seasonId: 100 })
+    expect(refreshTeamSquad).toHaveBeenCalledWith({ teamId: 9, seasonId: 101 })
   })
 
   it('prefetches missing team statistics without refetching fresh data', async () => {

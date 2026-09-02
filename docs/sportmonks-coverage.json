@@ -44,6 +44,7 @@
     "players/get-player-by-id": ["nationality", "position", "detailedPosition", "statistics"],
     "players/get-players-by-search-by-name": ["nationality", "position", "detailedPosition"],
     "team-squads/get-team-squad-by-team-id": ["player", "position", "detailedPosition"],
+    "team-squads/get-team-squad-by-team-and-season-id": ["player", "position"],
     "coaches/get-coach-by-id": ["nationality", "teams"],
     "coaches/get-coaches-search-by-name": ["nationality"],
     "transfers/get-transfers-by-player-id": ["type", "fromTeam", "toTeam"],

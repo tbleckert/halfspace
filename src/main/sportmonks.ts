@@ -271,6 +271,14 @@ const squadEntrySchema = z
   })
   .passthrough()
 
+const seasonSquadEntrySchema = squadEntrySchema.extend({
+  season_id: z.number().int(),
+  transfer_id: z.number().int().nullable().default(null),
+  detailed_position_id: z.number().int().nullable().default(null),
+  start: z.string().nullable().default(null),
+  end: z.string().nullable().default(null)
+})
+
 const lineupDetailSchema = z
   .object({
     id: z.number().int(),
@@ -1026,6 +1034,15 @@ export function validateTeamStatisticsInput(value: unknown): RefreshTeamStatisti
   }
 
   return { seasonId: input.seasonId, teamId: input.teamId }
+}
+
+export function validateTeamSquadInput(value: unknown): RefreshTeamSquadInput {
+  const { teamId } = validateTeamInput(value)
+  const seasonId = (value as { seasonId?: unknown }).seasonId
+  if (seasonId !== undefined && !isPositiveId(seasonId)) {
+    throw new SportmonksError('invalid_input', 'Choose a valid season.')
+  }
+  return { teamId, seasonId }
 }
 
 export function validateVenueInput(value: unknown): RefreshVenueInput {
@@ -1975,8 +1992,14 @@ export async function fetchTeamSquad(
   fetcher: typeof fetch = fetch
 ): Promise<TeamSquadRefresh> {
   const fetchedAt = Date.now()
-  const url = new URL(`${apiBaseUrl}/squads/teams/${input.teamId}`)
-  url.searchParams.set('include', 'player.nationality;position;detailedPosition')
+  const path = input.seasonId
+    ? `/squads/seasons/${input.seasonId}/teams/${input.teamId}`
+    : `/squads/teams/${input.teamId}`
+  const url = new URL(`${apiBaseUrl}${path}`)
+  url.searchParams.set(
+    'include',
+    input.seasonId ? 'player.nationality;position' : 'player.nationality;position;detailedPosition'
+  )
 
   let response: Response
 
@@ -1997,7 +2020,10 @@ export async function fetchTeamSquad(
   let parsed: z.infer<typeof teamSquadResponseSchema>
 
   try {
-    parsed = teamSquadResponseSchema.parse(await response.json())
+    const schema = input.seasonId
+      ? teamSquadResponseSchema.extend({ data: z.array(seasonSquadEntrySchema) })
+      : teamSquadResponseSchema
+    parsed = schema.parse(await response.json())
   } catch {
     throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
   }

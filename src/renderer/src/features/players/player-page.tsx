@@ -204,7 +204,7 @@ export function PlayerPage({
             params={{ teamId: String(teamId) }}
             search={{ competition: competitionId, date, season }}
             className="mb-5 flex w-fit items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-            {...intentPrefetchProps(online, () => prefetchTeamSquad(teamId))}
+            {...intentPrefetchProps(online, () => prefetchTeamSquad(teamId, season))}
           >
             <ArrowLeft className="size-4" />
             {currentTeam?.name ?? 'Team'}

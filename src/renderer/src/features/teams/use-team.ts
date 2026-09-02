@@ -13,6 +13,7 @@ import {
   readTeamTransfers,
   teamFixtureQueryKey,
   teamStatisticsQueryKey,
+  teamSquadQueryKey,
   writeTeamFixtureRefresh,
   writeTeamRefresh,
   writeTeamSquadRefresh,
@@ -31,7 +32,7 @@ type TeamTransfersCache = Awaited<ReturnType<typeof readTeamTransfers>>
 let refreshGeneration = 0
 const teamRefreshes = new Map<number, RefreshRequest>()
 const teamFixtureRefreshes = new Map<string, RefreshRequest>()
-const teamSquadRefreshes = new Map<number, RefreshRequest>()
+const teamSquadRefreshes = new Map<string, RefreshRequest>()
 const teamStatisticsRefreshes = new Map<string, RefreshRequest>()
 const teamTransferRefreshes = new Map<number, RefreshRequest>()
 
@@ -106,12 +107,20 @@ export function useTeamFixtures(
 
 export function useTeamSquad(
   teamId: number | null,
-  enabled: boolean
+  enabled: boolean,
+  seasonId?: number
 ): RefreshableQuery<TeamSquadCache> {
-  const cached = useLiveQuery(
-    () => (teamId === null ? Promise.resolve({ query: null, members: [] }) : readTeamSquad(teamId)),
-    [teamId]
+  const result = useLiveQuery(
+    () =>
+      teamId === null
+        ? Promise.resolve({ query: null, members: [] })
+        : readTeamSquad(teamId, seasonId),
+    [teamId, seasonId]
   )
+  const cached =
+    result?.query && (result.query.teamId !== teamId || result.query.seasonId !== seasonId)
+      ? undefined
+      : result
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -122,13 +131,13 @@ export function useTeamSquad(
     setError(null)
 
     try {
-      await refreshTeamSquad(teamId)
+      await refreshTeamSquad(teamId, seasonId)
     } catch (refreshError) {
       setError(refreshError instanceof Error ? refreshError.message : 'Could not refresh squad.')
     } finally {
       setRefreshing(false)
     }
-  }, [enabled, teamId])
+  }, [enabled, teamId, seasonId])
 
   useStaleRefresh(enabled && teamId !== null, cached !== undefined, cached?.query?.staleAt, refresh)
 
@@ -241,11 +250,11 @@ export function teamFixtureInput(
   }
 }
 
-export async function prefetchTeamSquad(teamId: number): Promise<void> {
-  const cached = await readTeamSquad(teamId)
+export async function prefetchTeamSquad(teamId: number, seasonId?: number): Promise<void> {
+  const cached = await readTeamSquad(teamId, seasonId)
   if (cached.query && cached.query.staleAt > Date.now()) return
 
-  await refreshTeamSquad(teamId)
+  await refreshTeamSquad(teamId, seasonId)
 }
 
 export async function prefetchTeamStatistics(input: RefreshTeamStatisticsInput): Promise<void> {
@@ -307,24 +316,25 @@ async function refreshTeamStatisticsQuery(input: RefreshTeamStatisticsInput): Pr
   }
 }
 
-export async function refreshTeamSquad(teamId: number): Promise<void> {
-  const active = teamSquadRefreshes.get(teamId)
+export async function refreshTeamSquad(teamId: number, seasonId?: number): Promise<void> {
+  const key = teamSquadQueryKey(teamId, seasonId)
+  const active = teamSquadRefreshes.get(key)
   if (active?.generation === refreshGeneration) return active.promise
 
   const generation = refreshGeneration
   const promise = (async () => {
-    const result = await window.halfspace.sportmonks.refreshTeamSquad({ teamId })
+    const result = await window.halfspace.sportmonks.refreshTeamSquad({ teamId, seasonId })
     if (generation !== refreshGeneration) return
     if (!result.ok) throw new Error(result.error.message)
-    await writeTeamSquadRefresh(teamId, result.data)
+    await writeTeamSquadRefresh(teamId, result.data, seasonId)
   })()
 
-  teamSquadRefreshes.set(teamId, { generation, promise })
+  teamSquadRefreshes.set(key, { generation, promise })
 
   try {
     await promise
   } finally {
-    if (teamSquadRefreshes.get(teamId)?.promise === promise) teamSquadRefreshes.delete(teamId)
+    if (teamSquadRefreshes.get(key)?.promise === promise) teamSquadRefreshes.delete(key)
   }
 }
 

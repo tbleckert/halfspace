@@ -7,7 +7,9 @@ import {
   clearSportmonksCache,
   db,
   writeCompetitionSeasonsRefresh,
-  writeSeasonTopscorersRefresh
+  writeSeasonTopscorersRefresh,
+  writeTeamRefresh,
+  writeTeamSquadRefresh
 } from '@/data/db'
 import { routeTree } from '@/routeTree.gen'
 import { makeTopscorer } from '../../../test/topscorer-fixtures'
@@ -84,6 +86,63 @@ beforeEach(async () => {
 afterAll(() => db.close())
 
 describe('competition season navigation', () => {
+  it('switches historical squads offline while retaining team navigation and player context', async () => {
+    await writeTeamRefresh({
+      fetchedAt: Date.now(),
+      team: {
+        id: 9,
+        sport_id: 1,
+        country_id: 752,
+        name: 'Test club',
+        venue_id: null,
+        gender: 'male',
+        founded: null,
+        placeholder: false
+      }
+    })
+    const entry = {
+      id: 123,
+      transfer_id: null,
+      player_id: 100,
+      team_id: 9,
+      position_id: 27,
+      detailed_position_id: null,
+      jersey_number: 9,
+      start: null,
+      end: null,
+      player: makeTopscorer().player!
+    }
+    await writeTeamSquadRefresh(9, { fetchedAt: Date.now(), squad: [entry] }, 25591)
+    await writeTeamSquadRefresh(
+      9,
+      { fetchedAt: Date.now(), squad: [{ ...entry, jersey_number: 19 }] },
+      25590
+    )
+    const router = createRouter({
+      routeTree,
+      history: createMemoryHistory({
+        initialEntries: ['/teams/9/squad?competition=271&season=25591']
+      })
+    })
+    render(<RouterProvider router={router} />)
+    await screen.findByRole('link', { name: /Alex Forward/ })
+    await screen.findByRole('option', { name: '2025' })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Squad season' }), {
+      target: { value: '25590' }
+    })
+    await waitFor(() => expect(router.state.location.search.season).toBe(25590))
+    expect(router.state.location.pathname).toBe('/teams/9/squad')
+    await screen.findByText('19')
+    expect(screen.getByRole('link', { name: /Alex Forward/ }).getAttribute('href')).toContain(
+      'season=25590'
+    )
+    fireEvent.change(screen.getByRole('combobox', { name: 'Squad season' }), {
+      target: { value: '' }
+    })
+    await screen.findByText('Squad not available offline')
+    expect(router.state.location.search.season).toBeUndefined()
+  })
+
   it('opens the full assist leaderboard from the overview with its season context', async () => {
     const router = createRouter({
       routeTree,

@@ -311,12 +311,18 @@ export interface CachedSquadEntry {
 
 export interface TeamSquadQuery {
   teamId: number
+  seasonId?: number
   entryIds: number[]
   fetchedAt: number
   staleAt: number
   rateLimitRemaining?: number
   rateLimitResetsAt?: number
   message?: string
+}
+
+export interface TeamSeasonSquadQuery extends TeamSquadQuery {
+  key: string
+  entries: CachedSquadEntry[]
 }
 
 export interface SquadMember {
@@ -448,6 +454,7 @@ class HalfspaceDatabase extends Dexie {
   coaches!: Table<CachedCoach, number>
   squadEntries!: Table<CachedSquadEntry, number>
   teamSquadQueries!: Table<TeamSquadQuery, number>
+  teamSeasonSquadQueries!: Table<TeamSeasonSquadQuery, string>
   playerAppearances!: Table<CachedPlayerAppearance, string>
   playerAppearanceQueries!: Table<PlayerAppearanceQuery, string>
   playerStatisticsQueries!: Table<PlayerStatisticsQuery, string>
@@ -674,6 +681,10 @@ class HalfspaceDatabase extends Dexie {
 
     this.version(15).stores({
       seasonTopscorersQueries: '&seasonId, staleAt'
+    })
+
+    this.version(16).stores({
+      teamSeasonSquadQueries: '&key, teamId, seasonId, staleAt'
     })
   }
 }
@@ -1392,16 +1403,29 @@ export async function writeCoachRefresh(refresh: CoachRefresh): Promise<void> {
   })
 }
 
-export async function readTeamSquad(teamId: number): Promise<{
+export function teamSquadQueryKey(teamId: number, seasonId?: number): string {
+  return `${teamId}|${seasonId ?? 'current'}`
+}
+
+export async function readTeamSquad(
+  teamId: number,
+  seasonId?: number
+): Promise<{
   query: TeamSquadQuery | null
   members: SquadMember[]
 }> {
-  const query = await db.teamSquadQueries.get(teamId)
+  const historical =
+    seasonId === undefined
+      ? undefined
+      : await db.teamSeasonSquadQueries.get(teamSquadQueryKey(teamId, seasonId))
+  const query = seasonId === undefined ? await db.teamSquadQueries.get(teamId) : historical
   if (!query) return { query: null, members: [] }
 
-  const entries = (await db.squadEntries.bulkGet(query.entryIds)).filter(
-    (entry): entry is CachedSquadEntry => entry !== undefined
-  )
+  const entries =
+    historical?.entries ??
+    (await db.squadEntries.bulkGet(query.entryIds)).filter(
+      (entry): entry is CachedSquadEntry => entry !== undefined
+    )
   const players = await db.players.bulkGet(entries.map(({ playerId }) => playerId))
   const members = entries.flatMap((entry, index) => {
     const player = players[index]
@@ -1413,7 +1437,8 @@ export async function readTeamSquad(teamId: number): Promise<{
 
 export async function writeTeamSquadRefresh(
   teamId: number,
-  refresh: TeamSquadRefresh
+  refresh: TeamSquadRefresh,
+  seasonId?: number
 ): Promise<void> {
   const previousQuery = await db.teamSquadQueries.get(teamId)
   const squad = refresh.squad.filter(
@@ -1439,12 +1464,24 @@ export async function writeTeamSquadRefresh(
   }))
   const query: TeamSquadQuery = {
     teamId,
+    seasonId,
     entryIds: entries.map(({ id }) => id),
     fetchedAt: refresh.fetchedAt,
     staleAt: refresh.fetchedAt + teamSquadCacheDuration,
     rateLimitRemaining: refresh.rateLimit?.remaining,
     rateLimitResetsAt: refresh.rateLimit?.resetsAt,
     message: refresh.message
+  }
+  if (seasonId !== undefined) {
+    await db.transaction('rw', db.players, db.teamSeasonSquadQueries, async () => {
+      await db.players.bulkPut(players)
+      await db.teamSeasonSquadQueries.put({
+        ...query,
+        key: teamSquadQueryKey(teamId, seasonId),
+        entries
+      })
+    })
+    return
   }
   const removedEntryIds = (previousQuery?.entryIds ?? []).filter(
     (entryId) => !query.entryIds.includes(entryId)
@@ -1865,6 +1902,7 @@ export async function clearSportmonksCache(): Promise<void> {
       db.coaches,
       db.squadEntries,
       db.teamSquadQueries,
+      db.teamSeasonSquadQueries,
       db.playerAppearances,
       db.playerAppearanceQueries,
       db.playerStatisticsQueries,
@@ -1894,6 +1932,7 @@ export async function clearSportmonksCache(): Promise<void> {
       await db.coaches.clear()
       await db.squadEntries.clear()
       await db.teamSquadQueries.clear()
+      await db.teamSeasonSquadQueries.clear()
       await db.playerAppearances.clear()
       await db.playerAppearanceQueries.clear()
       await db.playerStatisticsQueries.clear()

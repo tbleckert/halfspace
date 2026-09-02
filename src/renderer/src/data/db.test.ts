@@ -99,6 +99,7 @@ beforeEach(async () => {
       db.coaches,
       db.squadEntries,
       db.teamSquadQueries,
+      db.teamSeasonSquadQueries,
       db.playerAppearances,
       db.playerAppearanceQueries,
       db.playerStatisticsQueries,
@@ -128,6 +129,7 @@ beforeEach(async () => {
       await db.coaches.clear()
       await db.squadEntries.clear()
       await db.teamSquadQueries.clear()
+      await db.teamSeasonSquadQueries.clear()
       await db.playerAppearances.clear()
       await db.playerAppearanceQueries.clear()
       await db.playerStatisticsQueries.clear()
@@ -714,6 +716,20 @@ describe('team entity cache', () => {
 })
 
 describe('squad and player cache', () => {
+  it('keeps season rosters separate from each other and current membership', async () => {
+    await writeTeamSquadRefresh(9, teamSquadRefresh())
+    const historical = teamSquadRefresh()
+    historical.squad[0].jersey_number = 42
+    await writeTeamSquadRefresh(9, historical, 100)
+    await writeTeamSquadRefresh(9, { ...historical, squad: [] }, 101)
+
+    expect((await readTeamSquad(9)).members[0].entry.jerseyNumber).toBe(8)
+    expect((await readTeamSquad(9, 100)).members[0].entry.jerseyNumber).toBe(42)
+    expect((await readTeamSquad(9, 101)).members).toEqual([])
+    expect((await readTeamSquad(9, 100)).query?.seasonId).toBe(100)
+    expect(await db.squadEntries.count()).toBe(1)
+  })
+
   it('normalizes the current squad into player and team membership records', async () => {
     await writeTeamRefresh(teamRefresh())
     await writeTeamSquadRefresh(9, teamSquadRefresh())

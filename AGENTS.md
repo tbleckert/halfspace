@@ -96,6 +96,9 @@ abstractions.
   refresh live fixture data every 30 seconds.
 - Present squads as position-grouped player profile cards with rounded portraits and only essential
   identity and football data rather than a dense table or list.
+- Squad season selection offers the current squad plus the competition's ten most recent seasons.
+  Cache historical rosters per team and season without overwriting current squad membership, retain
+  season context in player links, and keep the Squad view open when the season changes.
 - Keep low-resolution provider imagery in compact supporting cards. Do not stretch it into hero
   treatment that exposes its limitations.
 - Matchday fixture rows use one centered status column: a short terminal state such as FT, a green

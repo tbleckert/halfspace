@@ -129,6 +129,7 @@ export interface RefreshVenueInput {
 
 export interface RefreshTeamSquadInput {
   teamId: number
+  seasonId?: number
 }
 
 export interface RefreshPlayerInput {

@@ -781,6 +781,30 @@ describe('Sportmonks client', () => {
     expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')
   })
 
+  it('fetches a season squad using its distinct roster shape and supported includes', async () => {
+    const fetcher = vi.fn<typeof fetch>(async () =>
+      Response.json({
+        data: [
+          {
+            id: 123,
+            player_id: 581086,
+            team_id: 62,
+            season_id: 19735,
+            position_id: 26,
+            jersey_number: 8,
+            player: makePlayer()
+          }
+        ]
+      })
+    )
+
+    const refresh = await fetchTeamSquad({ teamId: 62, seasonId: 19735 }, 'private-token', fetcher)
+    const url = new URL(fetcher.mock.calls[0][0].toString())
+    expect(url.pathname).toBe('/v3/football/squads/seasons/19735/teams/62')
+    expect(url.searchParams.get('include')).toBe('player.nationality;position')
+    expect(refresh.squad[0]).toMatchObject({ jersey_number: 8, start: null, end: null })
+  })
+
   it('fetches a player profile with nationality and positions', async () => {
     const fetcher = vi.fn<typeof fetch>(async () =>
       Response.json({

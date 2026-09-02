@@ -17,6 +17,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { EntitySubpageNavigation } from '@/components/entity-subpage-navigation'
 import { entitySubpageNavigationItemClassName } from '@/components/entity-subpage-navigation-variants'
 import { Input } from '@/components/ui/input'
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ErrorAlert } from '@/components/error-alert'
 import type { CachedCompetition, CachedStanding, SquadMember } from '@/data/db'
@@ -103,7 +104,7 @@ export function TeamPage({
   const statisticsCompetitionId = statisticsContext?.competition.id ?? null
   const competitionSeasons = useCompetitionSeasons(
     statisticsCompetitionId,
-    online && view === 'stats'
+    online && (view === 'stats' || view === 'squad')
   )
   const statisticsSeasonOptions = useMemo(
     () =>
@@ -139,7 +140,11 @@ export function TeamPage({
       view !== 'transfers' &&
       (!requestedSeasonId || competitionContexts !== undefined)
   )
-  const squad = useTeamSquad(validTeamId ? parsedTeamId : null, online && view === 'squad')
+  const squad = useTeamSquad(
+    validTeamId ? parsedTeamId : null,
+    online && view === 'squad',
+    requestedSeasonId
+  )
   const statisticsSeasonId = requestedSeasonId ?? statisticsContext?.seasonId ?? null
   const statisticsInput = useMemo(
     () =>
@@ -165,7 +170,7 @@ export function TeamPage({
   const refreshing =
     team.refreshing ||
     (view === 'squad'
-      ? squad.refreshing
+      ? squad.refreshing || competitionSeasons.refreshing
       : view === 'stats'
         ? statistics.refreshing || competitionSeasons.refreshing
         : view === 'transfers'
@@ -174,7 +179,7 @@ export function TeamPage({
   const errors = [
     team.error,
     view === 'squad'
-      ? squad.error
+      ? (squad.error ?? competitionSeasons.error)
       : view === 'stats'
         ? (statistics.error ?? competitionSeasons.error)
         : view === 'transfers'
@@ -204,7 +209,7 @@ export function TeamPage({
   async function refresh(): Promise<void> {
     await Promise.all([
       team.refresh(),
-      view === 'stats' ? competitionSeasons.refresh() : Promise.resolve(),
+      view === 'stats' || view === 'squad' ? competitionSeasons.refresh() : Promise.resolve(),
       view === 'squad'
         ? squad.refresh()
         : view === 'stats'
@@ -215,17 +220,18 @@ export function TeamPage({
     ])
   }
 
-  function selectStatisticsSeason(nextSeasonId: number): void {
+  function selectSeason(nextSeasonId: number | undefined): void {
     const nextSeason = statisticsSeasonOptions.find(({ id }) => id === nextSeasonId)
-    if (!nextSeason || statisticsCompetitionId === null) return
+    if (nextSeasonId !== undefined && (!nextSeason || statisticsCompetitionId === null)) return
 
     void navigate({
+      to: view === 'squad' ? '/teams/$teamId/squad' : '/teams/$teamId/stats',
       params: { teamId: String(parsedTeamId) },
       search: (previous) => ({
         ...previous,
-        competition: statisticsCompetitionId,
-        date: seasonFixtureDate(nextSeason, today),
-        season: nextSeason.id
+        competition: statisticsCompetitionId ?? undefined,
+        date: nextSeason ? seasonFixtureDate(nextSeason, today) : today,
+        season: nextSeasonId
       }),
       replace: true
     })
@@ -391,15 +397,41 @@ export function TeamPage({
       )}
 
       {view === 'squad' && (
-        <TeamSquad
-          competitionId={competitionId}
-          date={fixtureWindowStart}
-          loading={squad.refreshing}
-          members={squad.cached?.members}
-          online={online}
-          season={requestedSeasonId}
-          teamId={parsedTeamId}
-        />
+        <section className="flex flex-col gap-5">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-xl font-semibold tracking-tight">Squad</h2>
+            <div className="flex items-center gap-2">
+              {requestedSeasonId && (
+                <span className="text-sm text-muted-foreground">
+                  {statisticsContext?.competition.name}
+                </span>
+              )}
+              <NativeSelect
+                aria-label="Squad season"
+                value={requestedSeasonId ?? ''}
+                onChange={(event) =>
+                  selectSeason(event.target.value ? Number(event.target.value) : undefined)
+                }
+              >
+                <NativeSelectOption value="">Current squad</NativeSelectOption>
+                {statisticsSeasonOptions.map((season) => (
+                  <NativeSelectOption key={season.id} value={season.id}>
+                    {season.name}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </div>
+          </div>
+          <TeamSquad
+            competitionId={competitionId}
+            date={fixtureWindowStart}
+            loading={squad.refreshing}
+            members={squad.cached?.members}
+            online={online}
+            season={requestedSeasonId}
+            teamId={parsedTeamId}
+          />
+        </section>
       )}
 
       {view === 'stats' && (
@@ -410,7 +442,7 @@ export function TeamPage({
           seasonId={statisticsSeasonId ?? undefined}
           seasons={statisticsSeasonOptions}
           statistics={statistics.cached?.statistics ?? []}
-          onSeasonChange={selectStatisticsSeason}
+          onSeasonChange={selectSeason}
         />
       )}
 
@@ -478,7 +510,7 @@ function TeamNavigation({
         params={{ teamId: String(teamId) }}
         search={{ competition: competitionId, date, season }}
         className={entitySubpageNavigationItemClassName(view === 'squad')}
-        {...intentPrefetchProps(online, () => prefetchTeamSquad(teamId))}
+        {...intentPrefetchProps(online, () => prefetchTeamSquad(teamId, season))}
       >
         Squad
       </Link>
