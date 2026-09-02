@@ -10,7 +10,8 @@ const optionalPositiveId = z.preprocess((value) => {
 
 const competitionSearchSchema = z.object({
   date: z.string().refine(isIsoDate).optional().catch(undefined),
-  season: optionalPositiveId
+  season: optionalPositiveId,
+  leaderboard: z.enum(['goals', 'assists', 'yellow-cards', 'red-cards']).optional().catch(undefined)
 })
 
 export const Route = createFileRoute('/competitions_/$competitionId')({
@@ -20,7 +21,7 @@ export const Route = createFileRoute('/competitions_/$competitionId')({
 
 function CompetitionWorkspaceRoute(): React.JSX.Element {
   const { competitionId } = Route.useParams()
-  const { date, season } = Route.useSearch()
+  const { date, season, leaderboard } = Route.useSearch()
   const matchRoute = useMatchRoute()
   const view = matchRoute({
     to: '/competitions/$competitionId/fixtures',
@@ -48,6 +49,7 @@ function CompetitionWorkspaceRoute(): React.JSX.Element {
         competitionId={competitionId}
         date={date}
         season={season}
+        leaderboard={leaderboard}
         view={view}
       />
       <Outlet />

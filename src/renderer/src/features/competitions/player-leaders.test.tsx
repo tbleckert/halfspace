@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { fireEvent, render, screen, within } from '@testing-library/react'
+import { useState } from 'react'
 import {
   createMemoryHistory,
   createRootRoute,
@@ -11,6 +12,7 @@ import {
 import { describe, expect, it } from 'vitest'
 import { makeTopscorer } from '../../../../test/topscorer-fixtures'
 import { PlayerLeaders } from './player-leaders'
+import type { PlayerLeaderboardCategory } from './player-leaders-data'
 import type { SportmonksTopscorer } from '@shared/contracts'
 
 function showLeaders(topscorers: SportmonksTopscorer[] | null, loading = false): void {
@@ -18,17 +20,22 @@ function showLeaders(topscorers: SportmonksTopscorer[] | null, loading = false):
   const index = createRoute({
     getParentRoute: () => root,
     path: '/',
-    component: () => (
-      <PlayerLeaders
-        competitionId={271}
-        date="2026-09-02"
-        seasonId={25591}
-        online={false}
-        loaded
-        loading={loading}
-        topscorers={topscorers}
-      />
-    )
+    component: function LeadersPage() {
+      const [category, setCategory] = useState<PlayerLeaderboardCategory>('goals')
+      return (
+        <PlayerLeaders
+          competitionId={271}
+          date="2026-09-02"
+          seasonId={25591}
+          online={false}
+          loaded
+          loading={loading}
+          topscorers={topscorers}
+          category={category}
+          onCategoryChange={setCategory}
+        />
+      )
+    }
   })
   const player = createRoute({ getParentRoute: () => root, path: '/players/$playerId' })
   const team = createRoute({ getParentRoute: () => root, path: '/teams/$teamId' })
@@ -75,15 +82,15 @@ describe('player leaderboards', () => {
     )
 
     const select = screen.getByRole('combobox', { name: 'Player leaderboard' })
-    fireEvent.change(select, { target: { value: '209' } })
+    fireEvent.change(select, { target: { value: 'assists' } })
     expect(
       within(screen.getByRole('table', { name: 'Assists leaders' })).getByText('7')
     ).toBeTruthy()
-    fireEvent.change(select, { target: { value: '84' } })
+    fireEvent.change(select, { target: { value: 'yellow-cards' } })
     expect(
       within(screen.getByRole('table', { name: 'Yellow cards leaders' })).getByText('6')
     ).toBeTruthy()
-    fireEvent.change(select, { target: { value: '83' } })
+    fireEvent.change(select, { target: { value: 'red-cards' } })
     expect(
       within(screen.getByRole('table', { name: 'Red cards leaders' })).getAllByRole('row')
     ).toHaveLength(2)

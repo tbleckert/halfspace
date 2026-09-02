@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { createMemoryHistory, createRouter, RouterProvider } from '@tanstack/react-router'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -59,7 +59,18 @@ beforeEach(async () => {
     pageCount: 1
   })
   await writeSeasonTopscorersRefresh(25591, {
-    topscorers: [makeTopscorer()],
+    topscorers: [
+      makeTopscorer(),
+      makeTopscorer({ id: 2, type_id: 209, total: 7 }),
+      makeTopscorer({
+        id: 3,
+        type_id: 209,
+        player_id: 101,
+        position: 2,
+        total: 7,
+        player: { ...makeTopscorer().player!, id: 101, display_name: 'Jamie Midfielder' }
+      })
+    ],
     fetchedAt: Date.now(),
     pageCount: 1
   })
@@ -73,6 +84,67 @@ beforeEach(async () => {
 afterAll(() => db.close())
 
 describe('competition season navigation', () => {
+  it('opens the full assist leaderboard from the overview with its season context', async () => {
+    const router = createRouter({
+      routeTree,
+      history: createMemoryHistory({
+        initialEntries: ['/competitions/271?date=2026-09-02&season=25591']
+      })
+    })
+    render(<RouterProvider router={router} />)
+
+    const goals = await screen.findByRole('region', { name: 'Top scorer' })
+    const assists = await screen.findByRole('region', { name: 'Top assists' })
+    expect(
+      within(goals).getByRole('link', { name: 'Alex Forward' }).getAttribute('href')
+    ).toContain('season=25591')
+    expect(within(assists).getByText('Shared lead · 2 players')).toBeTruthy()
+    fireEvent.click(within(assists).getByRole('link', { name: 'View assists leaderboard' }))
+
+    expect(await screen.findByRole('table', { name: 'Assists leaders' })).toBeTruthy()
+    expect(router.state.location.search).toMatchObject({
+      season: 25591,
+      date: '2026-09-02',
+      leaderboard: 'assists'
+    })
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Player leaderboard' }), {
+      target: { value: 'goals' }
+    })
+    expect(await screen.findByRole('table', { name: 'Goals leaders' })).toBeTruthy()
+    await act(() => router.history.back())
+    expect(await screen.findByRole('table', { name: 'Assists leaders' })).toBeTruthy()
+    fireEvent.change(screen.getByRole('combobox', { name: 'Season' }), {
+      target: { value: '25590' }
+    })
+    expect(await screen.findByText('No leaders for this season')).toBeTruthy()
+    expect(router.state.location.search).toMatchObject({ season: 25590, leaderboard: 'assists' })
+  })
+
+  it('updates cached overview highlights with the season and hides unavailable categories', async () => {
+    const router = createRouter({
+      routeTree,
+      history: createMemoryHistory({
+        initialEntries: ['/competitions/271?date=2026-09-02&season=25591']
+      })
+    })
+    render(<RouterProvider router={router} />)
+    await screen.findByRole('region', { name: 'Top assists' })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Season' }), {
+      target: { value: '25590' }
+    })
+    await waitFor(() => {
+      expect(
+        within(screen.getByRole('region', { name: 'Top scorer' })).getByText('20')
+      ).toBeTruthy()
+    })
+    const goals = screen.getByRole('region', { name: 'Top scorer' })
+    expect(screen.queryByRole('region', { name: 'Top assists' })).toBeNull()
+    expect(
+      within(goals).getByRole('link', { name: 'Alex Forward' }).getAttribute('href')
+    ).toContain('season=25590')
+  })
+
   it.each(['stats', 'fixtures', 'teams'])(
     'keeps the %s view open when changing season',
     async (view) => {

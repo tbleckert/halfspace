@@ -67,6 +67,10 @@ abstractions.
   Fetch all pages from the season topscorers endpoint with player, participant, and type includes;
   cache the four categories together per season. Preserve provider ranks and totals, keep card
   types separate, and retain competition and season context in player and team links.
+- Competition Overview shows compact Top scorer and Top assists profile cards above Upcoming,
+  reusing the season leaderboard cache. Keep portraits circular and totals monospaced; acknowledge
+  equal totals as a shared lead even when provider ranks differ. Hide categories without positive
+  totals, and link to the matching URL-backed leaderboard category in Stats.
 - Fixture pages keep Preview, Timeline, Lineups, Stats, and Odds in horizontal navigation inside
   the score hero. Preview stacks the compact venue card directly below Details.
 - Fixture Preview pairs that supporting column with season table context, each team’s five most

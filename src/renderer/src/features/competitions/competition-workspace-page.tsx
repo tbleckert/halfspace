@@ -41,7 +41,9 @@ import { intentPrefetchProps } from '@/lib/prefetch'
 import { cn } from '@/lib/utils'
 import { useOnline } from '@/lib/use-online'
 import { CompetitionLogo } from './competition-logo'
+import { CompetitionLeaderCards } from './competition-leader-cards'
 import { PlayerLeaders } from './player-leaders'
+import type { PlayerLeaderboardCategory } from './player-leaders-data'
 import {
   competitionSeasonOptions,
   competitionTeams,
@@ -68,11 +70,13 @@ export function CompetitionWorkspacePage({
   competitionId,
   date,
   season: requestedSeasonId,
+  leaderboard = 'goals',
   view = 'overview'
 }: {
   competitionId: string
   date?: string
   season?: number
+  leaderboard?: PlayerLeaderboardCategory
   view?: CompetitionView
 }): React.JSX.Element {
   const parsedCompetitionId = Number(competitionId)
@@ -119,7 +123,13 @@ export function CompetitionWorkspacePage({
     observedSeasonId
   const standings = useStandings(seasonId, online && view !== 'fixtures' && view !== 'stats')
   const statistics = useSeasonStatistics(seasonId, online && view === 'stats')
-  const topscorers = useSeasonTopscorers(seasonId, online && view === 'stats')
+  const showPlayerLeaders = view === 'overview' || view === 'stats'
+  const topscorers = useSeasonTopscorers(seasonId, online && showPlayerLeaders)
+  const leadersLoaded =
+    topscorers.cached !== undefined &&
+    (!topscorers.cached || topscorers.cached.seasonId === seasonId)
+  const seasonTopscorers =
+    topscorers.cached?.seasonId === seasonId ? topscorers.cached.topscorers : null
   const seasonFixtures = useMemo(() => {
     const cachedFixtures = fixtures.cached?.fixtures ?? []
     return seasonId === null
@@ -144,12 +154,13 @@ export function CompetitionWorkspacePage({
   )
   const refreshing =
     seasons.refreshing ||
-    (view === 'stats' ? statistics.refreshing || topscorers.refreshing : fixtures.refreshing) ||
+    (view === 'stats' ? statistics.refreshing : fixtures.refreshing) ||
+    (showPlayerLeaders && topscorers.refreshing) ||
     (view !== 'fixtures' && view !== 'stats' && standings.refreshing)
   const errors = [
     seasons.error,
     view === 'stats' ? statistics.error : fixtures.error,
-    view === 'stats' ? topscorers.error : null,
+    showPlayerLeaders ? topscorers.error : null,
     view === 'overview' || view === 'teams' ? standings.error : null
   ].filter((error): error is string => Boolean(error))
 
@@ -160,7 +171,7 @@ export function CompetitionWorkspacePage({
     await Promise.all([
       seasons.refresh(),
       view === 'stats' ? statistics.refresh() : fixtures.refresh(),
-      view === 'stats' ? topscorers.refresh() : Promise.resolve(),
+      showPlayerLeaders ? topscorers.refresh() : Promise.resolve(),
       view === 'overview' || view === 'teams' ? standings.refresh() : Promise.resolve()
     ])
   }
@@ -180,6 +191,14 @@ export function CompetitionWorkspacePage({
         season: nextSeason.id
       }),
       replace: true
+    })
+  }
+
+  function selectLeaderboard(category: PlayerLeaderboardCategory): void {
+    void navigate({
+      to: '/competitions/$competitionId/stats',
+      search: (previous) => ({ ...previous, leaderboard: category }),
+      resetScroll: false
     })
   }
 
@@ -253,6 +272,16 @@ export function CompetitionWorkspacePage({
           standingGroups={standingGroups}
           standingsLoaded={standings.cached !== undefined}
           standingsLoading={standings.refreshing}
+          playerHighlights={
+            <CompetitionLeaderCards
+              competitionId={competition.id}
+              date={fixtureDate}
+              seasonId={seasonId}
+              online={online}
+              loading={!leadersLoaded || (topscorers.refreshing && seasonTopscorers === null)}
+              topscorers={seasonTopscorers}
+            />
+          }
         />
       )}
 
@@ -292,14 +321,11 @@ export function CompetitionWorkspacePage({
             date={fixtureDate}
             seasonId={seasonId}
             online={online}
-            loaded={
-              topscorers.cached !== undefined &&
-              (!topscorers.cached || topscorers.cached.seasonId === seasonId)
-            }
+            loaded={leadersLoaded}
             loading={topscorers.refreshing}
-            topscorers={
-              topscorers.cached?.seasonId === seasonId ? topscorers.cached.topscorers : null
-            }
+            topscorers={seasonTopscorers}
+            category={leaderboard}
+            onCategoryChange={selectLeaderboard}
           />
         </>
       )}
@@ -323,6 +349,12 @@ function CompetitionNavigation({
   const workspacePrefetch = intentPrefetchProps(online, () =>
     prefetchCompetitionWorkspace(competitionId)
   )
+  const overviewPrefetch = intentPrefetchProps(online, async () => {
+    await Promise.all([
+      prefetchCompetitionWorkspace(competitionId),
+      season === undefined ? Promise.resolve() : prefetchSeasonTopscorers(season)
+    ])
+  })
   const statisticsPrefetch = intentPrefetchProps(online && season !== undefined, () =>
     season === undefined
       ? Promise.resolve()
@@ -339,7 +371,7 @@ function CompetitionNavigation({
         params={{ competitionId: String(competitionId) }}
         search={{ date, season }}
         className={entitySubpageNavigationItemClassName(view === 'overview')}
-        {...workspacePrefetch}
+        {...overviewPrefetch}
       >
         Overview
       </Link>
@@ -388,7 +420,8 @@ function CompetitionOverview({
   seasonId,
   standingGroups,
   standingsLoaded,
-  standingsLoading
+  standingsLoading,
+  playerHighlights
 }: {
   competitionId: number
   date: string
@@ -401,6 +434,7 @@ function CompetitionOverview({
   standingGroups: ReturnType<typeof groupStandings>
   standingsLoaded: boolean
   standingsLoading: boolean
+  playerHighlights: React.ReactNode
 }): React.JSX.Element {
   return (
     <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(20rem,0.85fr)]">
@@ -429,6 +463,7 @@ function CompetitionOverview({
       </div>
 
       <div className="flex flex-col gap-5">
+        {playerHighlights}
         {!fixturesLoaded ? (
           <FixturesSkeleton />
         ) : (

@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import type { SportmonksTopscorer } from '@shared/contracts'
 import { Card, CardHeader, CardTitle } from '@/components/ui/card'
@@ -17,13 +16,7 @@ import { prefetchPlayerEntity } from '@/features/players/use-player'
 import { TeamLogo } from '@/features/teams/team-logo'
 import { prefetchTeamEntity } from '@/features/teams/use-team'
 import { intentPrefetchProps } from '@/lib/prefetch'
-
-const categories = [
-  { id: 208, label: 'Goals' },
-  { id: 209, label: 'Assists' },
-  { id: 84, label: 'Yellow cards' },
-  { id: 83, label: 'Red cards' }
-]
+import { leaderboardCategories, type PlayerLeaderboardCategory } from './player-leaders-data'
 
 export function PlayerLeaders({
   competitionId,
@@ -32,7 +25,9 @@ export function PlayerLeaders({
   online,
   loaded,
   loading,
-  topscorers
+  topscorers,
+  category: selectedCategory,
+  onCategoryChange
 }: {
   competitionId: number
   date: string
@@ -41,11 +36,12 @@ export function PlayerLeaders({
   loaded: boolean
   loading: boolean
   topscorers: SportmonksTopscorer[] | null
+  category: PlayerLeaderboardCategory
+  onCategoryChange: (category: PlayerLeaderboardCategory) => void
 }): React.JSX.Element {
-  const [typeId, setTypeId] = useState(208)
-  const category = categories.find(({ id }) => id === typeId)!
+  const category = leaderboardCategories.find(({ value }) => value === selectedCategory)!
   const rows = (topscorers ?? [])
-    .filter((row) => row.type_id === typeId)
+    .filter((row) => row.type_id === category.id)
     .toSorted(
       (left, right) =>
         left.position - right.position ||
@@ -61,11 +57,11 @@ export function PlayerLeaders({
         <NativeSelect
           aria-label="Player leaderboard"
           className="w-36"
-          value={typeId}
-          onChange={(event) => setTypeId(Number(event.target.value))}
+          value={selectedCategory}
+          onChange={(event) => onCategoryChange(event.target.value as PlayerLeaderboardCategory)}
         >
-          {categories.map(({ id, label }) => (
-            <NativeSelectOption key={id} value={id}>
+          {leaderboardCategories.map(({ value, label }) => (
+            <NativeSelectOption key={value} value={value}>
               {label}
             </NativeSelectOption>
           ))}
