@@ -7,11 +7,23 @@ import eslintPluginReactRefresh from 'eslint-plugin-react-refresh'
 
 export default defineConfig(
   {
-    ignores: ['**/node_modules', '**/dist', '**/out', 'src/renderer/src/routeTree.gen.ts']
+    ignores: [
+      '**/node_modules',
+      '**/dist',
+      '**/out',
+      '.delta/**',
+      'src/renderer/src/routeTree.gen.ts'
+    ]
   },
   tseslint.configs.recommended,
   eslintPluginReact.configs.flat.recommended,
   eslintPluginReact.configs.flat['jsx-runtime'],
+  {
+    files: ['scripts/**/*.mjs'],
+    rules: {
+      '@typescript-eslint/explicit-function-return-type': 'off'
+    }
+  },
   {
     settings: {
       react: {

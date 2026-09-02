@@ -1,2 +1,3 @@
 src/renderer/src/routeTree.gen.ts
 pnpm-lock.yaml
+.delta/

@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "endpoints": {
+    "fixtures/get-fixtures-by-date": ["participants", "league", "state", "scores", "periods"],
+    "fixtures/get-fixtures-by-date-range": ["participants", "league", "state", "scores", "periods"],
+    "fixtures/get-fixture-by-id": [
+      "participants",
+      "league",
+      "state",
+      "scores",
+      "periods",
+      "venue",
+      "stage",
+      "round",
+      "coaches",
+      "lineups",
+      "events",
+      "statistics"
+    ],
+    "fixtures/get-fixtures-by-head-to-head": [
+      "participants",
+      "league",
+      "state",
+      "scores",
+      "periods"
+    ],
+    "fixtures/get-fixtures-by-date-range-for-team": [
+      "participants",
+      "league",
+      "state",
+      "scores",
+      "periods",
+      "lineups"
+    ],
+    "standard-odds-feed/pre-match-odds/get-odds-by-fixture-id": ["bookmaker", "market"],
+    "leagues/get-all-leagues": ["country", "currentSeason"],
+    "leagues/get-leagues-search-by-name": ["country", "currentSeason"],
+    "seasons/get-all-seasons": [],
+    "seasons/get-seasons-by-id": ["statistics"],
+    "standings/get-standings-by-season-id": ["participant", "stage", "group"],
+    "teams/get-team-by-id": ["country", "venue", "coaches", "statistics"],
+    "teams/get-teams-by-search-by-name": ["country", "venue"],
+    "players/get-player-by-id": ["nationality", "position", "detailedPosition", "statistics"],
+    "players/get-players-by-search-by-name": ["nationality", "position", "detailedPosition"],
+    "team-squads/get-team-squad-by-team-id": ["player", "position", "detailedPosition"],
+    "coaches/get-coach-by-id": ["nationality", "teams"],
+    "coaches/get-coaches-search-by-name": ["nationality"],
+    "transfers/get-transfers-by-player-id": ["type", "fromTeam", "toTeam"],
+    "transfers/get-transfers-by-team-id": ["player", "type", "fromTeam", "toTeam"],
+    "venues/get-venue-by-id": ["country"],
+    "venues/get-venues-by-search-by-name": ["country"]
+  }
+}

@@ -25,7 +25,10 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "pnpm typecheck && pnpm test && pnpm lint && pnpm format:check"
+    "coverage": "node scripts/sportmonks-coverage.mjs update",
+    "coverage:check": "node scripts/sportmonks-coverage.mjs check",
+    "coverage:refresh": "node scripts/sportmonks-coverage.mjs refresh",
+    "check": "pnpm typecheck && pnpm test && pnpm lint && pnpm format:check && pnpm coverage:check"
   },
   "dependencies": {
     "@tanstack/react-router": "^1.170.32",

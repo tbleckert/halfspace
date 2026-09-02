@@ -148,6 +148,12 @@ abstractions.
   a time, so likely destinations are ready without flooding Sportmonks. Prefetch fixture, team,
   squad, player, and venue detail on keyboard focus or deliberate hover; cancel incidental hovers,
   and keep fixture Odds lazy until that view opens.
+- Track the goal of complete Sportmonks Football API coverage against the official endpoint index.
+  Update `docs/sportmonks-coverage.json` whenever an endpoint or include becomes fully usable in the
+  product, regenerate the report and badge with `pnpm coverage`, and refresh the upstream catalog
+  with `pnpm coverage:refresh` when Sportmonks changes its documented API.
+- Keep the README roadmap as a major-feature checklist. Check off shipped feature scope while the
+  coverage catalog tracks the remaining endpoint and include detail.
 
 ## Mindset & Process
 
