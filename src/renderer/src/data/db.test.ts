@@ -143,6 +143,37 @@ beforeEach(async () => {
 afterAll(() => db.close())
 
 describe('entity search cache', () => {
+  it('retains cached absences when a basic team search result arrives', async () => {
+    const refresh = teamRefresh()
+    refresh.team.sidelined = [
+      {
+        id: 1,
+        player_id: 6306068,
+        team_id: 9,
+        season_id: null,
+        type_id: 500,
+        category: 'injury',
+        start_date: '2026-08-10',
+        end_date: null,
+        completed: false,
+        games_missed: 3,
+        type: { id: 500, name: 'Ankle injury' },
+        player: basePlayer()
+      }
+    ]
+    await writeTeamRefresh(refresh)
+    await writeEntitySearchRefresh({
+      teams: [teamRefresh().team],
+      competitions: [],
+      players: [],
+      coaches: [],
+      venues: [],
+      fetchedAt: Date.now()
+    })
+    expect((await readTeamIdentity(9)).team?.raw.sidelined?.[0].type?.name).toBe('Ankle injury')
+    expect((await readPlayerIdentity(6306068)).player?.displayName).toBe('Quinten Timber')
+  })
+
   it('ranks cached entities and hydrates remote results without replacing the subscription catalog', async () => {
     const fetchedAt = Date.UTC(2026, 7, 29, 10)
     const subscribedCompetition: CompetitionRefresh = {

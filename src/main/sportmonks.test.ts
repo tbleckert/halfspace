@@ -633,6 +633,22 @@ describe('Sportmonks client', () => {
           last_played_at: '2026-08-23 15:00:00',
           country: { id: 462, name: 'England', iso2: 'GB' },
           venue: { id: 206, name: 'Etihad Stadium', capacity: 55097 },
+          sidelined: [
+            {
+              id: 1,
+              player_id: 581086,
+              team_id: 9,
+              season_id: null,
+              type_id: 500,
+              category: 'injury',
+              start_date: '2026-08-10',
+              end_date: null,
+              games_missed: 3,
+              completed: 0,
+              type: { id: 500, name: 'Ankle injury' },
+              player: makePlayer()
+            }
+          ],
           coaches: [
             {
               id: 501,
@@ -656,11 +672,18 @@ describe('Sportmonks client', () => {
     expect(refresh.team.name).toBe('Manchester City')
     expect(refresh.team.venue?.name).toBe('Etihad Stadium')
     expect(refresh.team.coaches?.[0].coach?.display_name).toBe('Pep Guardiola')
+    expect(refresh.team.sidelined?.[0]).toMatchObject({
+      completed: false,
+      season_id: null,
+      type: { name: 'Ankle injury' }
+    })
 
     const [input, init] = fetcher.mock.calls[0]
     const url = new URL(input.toString())
     expect(url.pathname).toBe('/v3/football/teams/9')
-    expect(url.searchParams.get('include')).toBe('country;venue;coaches.coach')
+    expect(url.searchParams.get('include')).toBe(
+      'country;venue;coaches.coach;sidelined.player;sidelined.type'
+    )
     expect(url.searchParams.has('api_token')).toBe(false)
     expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')
   })

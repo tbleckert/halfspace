@@ -99,6 +99,10 @@ abstractions.
 - Squad season selection offers the current squad plus the competition's ten most recent seasons.
   Cache historical rosters per team and season without overwriting current squad membership, retain
   season context in player links, and keep the Squad view open when the season changes.
+- Team Overview shows current absences from `sidelined.player` and `sidelined.type`, separate from
+  the selected historical season. Respect the provider's completed flag, distinguish missing data
+  from no reported absences, and never invent return dates or infer availability from season IDs.
+  Refresh team detail hourly and retain it when basic search results update team identity.
 - Keep low-resolution provider imagery in compact supporting cards. Do not stretch it into hero
   treatment that exposes its limitations.
 - Matchday fixture rows use one centered status column: a short terminal state such as FT, a green

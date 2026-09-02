@@ -47,7 +47,7 @@ const competitionSeasonsCacheDuration = 24 * 60 * 60 * 1000
 const standingsCacheDuration = 60 * 60 * 1000
 const statisticsCacheDuration = 60 * 60 * 1000
 const competitionFixturesCacheDuration = 15 * 60 * 1000
-const teamCacheDuration = 24 * 60 * 60 * 1000
+const teamCacheDuration = 60 * 60 * 1000
 const teamFixturesCacheDuration = 15 * 60 * 1000
 const venueCacheDuration = 24 * 60 * 60 * 1000
 const teamSquadCacheDuration = 60 * 60 * 1000
@@ -1095,16 +1095,10 @@ export async function writeEntitySearchRefresh(refresh: EntitySearchRefresh): Pr
     raw: competition,
     fetchedAt: refresh.fetchedAt
   }))
-  const teams: CachedTeam[] = refresh.teams.map((team) => ({
-    id: team.id,
-    countryId: team.country_id,
-    venueId: team.venue_id ?? null,
-    name: team.name,
-    imagePath: team.image_path ?? null,
-    raw: team,
-    fetchedAt: refresh.fetchedAt,
-    staleAt
-  }))
+  const existingTeams = await db.teams.bulkGet(refresh.teams.map(({ id }) => id))
+  const teams = refresh.teams.map((team, index) =>
+    toCachedIncludedTeam(team, existingTeams[index], refresh.fetchedAt)
+  )
   const players: CachedPlayer[] = refresh.players.map((player) => ({
     id: player.id,
     name: player.name,
@@ -1362,9 +1356,18 @@ export async function writeTeamRefresh(refresh: TeamRefresh): Promise<void> {
     toCachedCoach(coach, existingCoaches[index], refresh.fetchedAt, false)
   )
 
-  await db.transaction('rw', db.teams, db.coaches, async () => {
+  const includedPlayers = (refresh.team.sidelined ?? []).flatMap(({ player }) =>
+    player ? [player] : []
+  )
+  const existingPlayers = await db.players.bulkGet(includedPlayers.map(({ id }) => id))
+  const players = includedPlayers.map((player, index) =>
+    toCachedIncludedPlayer(player, existingPlayers[index], refresh.fetchedAt)
+  )
+
+  await db.transaction('rw', db.teams, db.coaches, db.players, async () => {
     await db.teams.put(team)
     await db.coaches.bulkPut(coaches)
+    await db.players.bulkPut(players)
   })
 }
 

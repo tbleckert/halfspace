@@ -239,6 +239,22 @@ export interface SportmonksTeam {
   country?: SportmonksCountry | null
   venue?: SportmonksVenue | null
   coaches?: SportmonksCoachTeam[]
+  sidelined?: SportmonksSidelined[]
+}
+
+export interface SportmonksSidelined {
+  id: number
+  player_id: number
+  team_id: number
+  season_id: number | null
+  type_id: number
+  category: string
+  start_date: string
+  end_date: string | null
+  games_missed: number
+  completed: boolean
+  type?: SportmonksPosition | null
+  player?: SportmonksPlayer | null
 }
 
 export interface SportmonksPosition {

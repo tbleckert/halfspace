@@ -48,6 +48,7 @@ import { intentPrefetchProps } from '@/lib/prefetch'
 import { useOnline } from '@/lib/use-online'
 import { cn } from '@/lib/utils'
 import { TeamLogo } from './team-logo'
+import { TeamAvailability } from './team-availability'
 import { TeamTransfers } from './team-transfers'
 import {
   prefetchTeamEntity,
@@ -322,6 +323,12 @@ export function TeamPage({
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(16rem,0.65fr)_minmax(24rem,1.35fr)]">
           <div className="flex flex-col gap-5">
             <TeamCompetitions contexts={competitionContexts} online={online} />
+            <TeamAvailability
+              absences={detailedTeam?.sidelined}
+              competitionId={competitionId}
+              online={online}
+              teamId={parsedTeamId}
+            />
             {detailedTeam?.coaches &&
               detailedTeam.coaches.some(({ active, coach }) => active && coach) && (
                 <TeamCoaches

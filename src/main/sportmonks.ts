@@ -787,7 +787,28 @@ const seasonsResponseSchema = z
 
 const teamResponseSchema = z
   .object({
-    data: teamSchema,
+    data: teamSchema.extend({
+      sidelined: z
+        .array(
+          z
+            .object({
+              id: z.number().int(),
+              player_id: z.number().int(),
+              team_id: z.number().int(),
+              season_id: z.number().int().nullable(),
+              type_id: z.number().int(),
+              category: z.string(),
+              start_date: z.string(),
+              end_date: z.string().nullable(),
+              games_missed: z.number().int(),
+              completed: z.union([z.boolean(), z.literal(0), z.literal(1)]).transform(Boolean),
+              type: positionSchema.nullable().optional(),
+              player: playerSchema.nullable().optional()
+            })
+            .passthrough()
+        )
+        .optional()
+    }),
     rate_limit: z
       .object({
         remaining: z.number(),
@@ -1847,7 +1868,7 @@ export async function fetchTeamById(
 ): Promise<TeamRefresh> {
   const fetchedAt = Date.now()
   const url = new URL(`${apiBaseUrl}/teams/${input.teamId}`)
-  url.searchParams.set('include', 'country;venue;coaches.coach')
+  url.searchParams.set('include', 'country;venue;coaches.coach;sidelined.player;sidelined.type')
 
   let response: Response
 
