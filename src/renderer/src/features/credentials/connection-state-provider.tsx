@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import type { ConnectionState, SportmonksRateLimit } from '@shared/contracts'
 import { clearSportmonksCache } from '@/data/db'
 import { invalidateCompetitionRefresh } from '@/features/competitions/use-competitions'
+import { invalidateCoachRefreshes } from '@/features/coaches/use-coach'
 import { invalidateCompetitionWorkspaceRefreshes } from '@/features/competitions/use-competition-workspace'
 import { invalidateFixtureRefreshes } from '@/features/fixtures/use-fixtures'
 import { invalidatePlayerRefreshes } from '@/features/players/use-player'
@@ -30,6 +31,7 @@ export function ConnectionStateProvider({ children }: { children: ReactNode }): 
 
       if (result.ok) {
         invalidateCompetitionRefresh()
+        invalidateCoachRefreshes()
         invalidateCompetitionWorkspaceRefreshes()
         invalidateFixtureRefreshes()
         invalidatePlayerRefreshes()
@@ -56,6 +58,7 @@ export function ConnectionStateProvider({ children }: { children: ReactNode }): 
 
       if (result.ok) {
         invalidateCompetitionRefresh()
+        invalidateCoachRefreshes()
         invalidateCompetitionWorkspaceRefreshes()
         invalidateFixtureRefreshes()
         invalidatePlayerRefreshes()

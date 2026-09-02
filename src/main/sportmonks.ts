@@ -1,5 +1,6 @@
 import type {
   ApiErrorCode,
+  CoachRefresh,
   CompetitionRefresh,
   CompetitionSeasonsRefresh,
   EntitySearchInput,
@@ -17,6 +18,7 @@ import type {
   RefreshFixtureInput,
   RefreshFixturesInput,
   RefreshPlayerAppearancesInput,
+  RefreshCoachInput,
   RefreshPlayerInput,
   RefreshPlayerStatisticsInput,
   RefreshPlayerTransfersInput,
@@ -31,6 +33,7 @@ import type {
   SeasonStatisticsRefresh,
   StandingsRefresh,
   SportmonksCompetition,
+  SportmonksCoach,
   SportmonksFixture,
   SportmonksOdd,
   SportmonksPlayer,
@@ -139,6 +142,50 @@ const venueSchema = z
   })
   .passthrough()
 
+const coachBaseSchema = z
+  .object({
+    id: z.number().int(),
+    player_id: z.number().int().nullable(),
+    sport_id: z.number().int(),
+    country_id: z.number().int().nullable(),
+    nationality_id: z.number().int().nullable(),
+    city_id: z.number().int().nullable(),
+    common_name: z.string().nullable().optional(),
+    firstname: z.string().nullable().optional(),
+    lastname: z.string().nullable().optional(),
+    name: z.string(),
+    display_name: z.string(),
+    image_path: z.string().nullable().optional(),
+    height: z.number().int().nullable(),
+    weight: z.number().int().nullable(),
+    date_of_birth: z.string().nullable(),
+    gender: z.string().nullable(),
+    country: countrySchema.nullable().optional(),
+    nationality: countrySchema.nullable().optional(),
+    meta: z
+      .object({
+        fixture_id: z.number().int().optional(),
+        participant_id: z.number().int().optional()
+      })
+      .passthrough()
+      .optional()
+  })
+  .passthrough()
+
+const coachAssignmentSchema = z
+  .object({
+    id: z.number().int(),
+    team_id: z.number().int(),
+    coach_id: z.number().int(),
+    position_id: z.number().int().nullable(),
+    active: z.union([z.boolean(), z.literal(0), z.literal(1)]).transform(Boolean),
+    start: z.string().nullable(),
+    end: z.string().nullable(),
+    temporary: z.union([z.boolean(), z.literal(0), z.literal(1)]).transform(Boolean),
+    coach: coachBaseSchema.nullable().optional()
+  })
+  .passthrough()
+
 const teamSchema = z
   .object({
     id: z.number().int(),
@@ -154,9 +201,18 @@ const teamSchema = z
     placeholder: z.union([z.boolean(), z.literal(0), z.literal(1)]).transform(Boolean),
     last_played_at: z.string().nullable().optional(),
     country: countrySchema.nullable().optional(),
-    venue: venueSchema.nullable().optional()
+    venue: venueSchema.nullable().optional(),
+    coaches: z.array(coachAssignmentSchema).optional()
   })
   .passthrough()
+
+const coachTeamSchema = coachAssignmentSchema.extend({
+  team: teamSchema.nullable().optional()
+})
+
+const coachSchema = coachBaseSchema.extend({
+  teams: z.array(coachTeamSchema).optional()
+})
 
 const positionSchema = z
   .object({
@@ -441,7 +497,8 @@ const fixtureSchema = z
     periods: z.array(periodSchema).optional(),
     lineups: z.array(lineupSchema).optional(),
     events: z.array(eventSchema).optional(),
-    statistics: z.array(fixtureStatisticSchema).optional()
+    statistics: z.array(fixtureStatisticSchema).optional(),
+    coaches: z.array(coachBaseSchema).optional()
   })
   .passthrough()
 
@@ -740,6 +797,20 @@ const playerResponseSchema = z
   })
   .passthrough()
 
+const coachResponseSchema = z
+  .object({
+    data: coachSchema,
+    rate_limit: z
+      .object({
+        remaining: z.number(),
+        resets_in_seconds: z.number()
+      })
+      .passthrough()
+      .optional(),
+    message: z.string().optional()
+  })
+  .passthrough()
+
 const playerTransfersResponseSchema = z
   .object({
     data: z.array(transferSchema),
@@ -763,6 +834,7 @@ const playerTransfersResponseSchema = z
 const competitionSearchResponseSchema = z.object({ data: z.array(competitionSchema) }).passthrough()
 const teamSearchResponseSchema = z.object({ data: z.array(teamSchema) }).passthrough()
 const playerSearchResponseSchema = z.object({ data: z.array(playerSchema) }).passthrough()
+const coachSearchResponseSchema = z.object({ data: z.array(coachSchema) }).passthrough()
 const venueSearchResponseSchema = z.object({ data: z.array(venueSchema) }).passthrough()
 
 const rateLimitErrorResponseSchema = z
@@ -933,6 +1005,16 @@ export function validatePlayerInput(value: unknown): RefreshPlayerInput {
   return { playerId }
 }
 
+export function validateCoachInput(value: unknown): RefreshCoachInput {
+  const coachId = value && typeof value === 'object' ? (value as { coachId?: unknown }).coachId : 0
+
+  if (!isPositiveId(coachId)) {
+    throw new SportmonksError('invalid_input', 'Choose a valid coach.')
+  }
+
+  return { coachId }
+}
+
 export function validatePlayerStatisticsInput(value: unknown): RefreshPlayerStatisticsInput {
   const input = value && typeof value === 'object' ? (value as Record<string, unknown>) : {}
 
@@ -1028,7 +1110,7 @@ export async function fetchFixtureById(
   const url = new URL(`${apiBaseUrl}/fixtures/${input.fixtureId}`)
   url.searchParams.set(
     'include',
-    'participants;league;state;scores;periods;venue;stage;round;lineups.player;lineups.details;events.type;events.player;events.relatedPlayer;statistics.type'
+    'participants;league;state;scores;periods;venue;stage;round;coaches;lineups.player;lineups.details;events.type;events.player;events.relatedPlayer;statistics.type'
   )
   url.searchParams.set('filters', 'lineupDetailTypes:42,57,78,80,86,100,106,116,117,118,119')
 
@@ -1639,7 +1721,7 @@ export async function fetchTeamById(
 ): Promise<TeamRefresh> {
   const fetchedAt = Date.now()
   const url = new URL(`${apiBaseUrl}/teams/${input.teamId}`)
-  url.searchParams.set('include', 'country;venue')
+  url.searchParams.set('include', 'country;venue;coaches.coach')
 
   let response: Response
 
@@ -1669,6 +1751,52 @@ export async function fetchTeamById(
 
   return {
     team: parsed.data as SportmonksTeam,
+    fetchedAt,
+    rateLimit: parsed.rate_limit
+      ? {
+          remaining: parsed.rate_limit.remaining,
+          resetsAt: fetchedAt + parsed.rate_limit.resets_in_seconds * 1000
+        }
+      : undefined,
+    message: parsed.message
+  }
+}
+
+export async function fetchCoachById(
+  input: RefreshCoachInput,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<CoachRefresh> {
+  const fetchedAt = Date.now()
+  const url = new URL(`${apiBaseUrl}/coaches/${input.coachId}`)
+  url.searchParams.set('include', 'nationality;teams.team')
+
+  let response: Response
+
+  try {
+    response = await fetcher(url, {
+      headers: {
+        Accept: 'application/json',
+        Authorization: token
+      },
+      signal: AbortSignal.timeout(20_000)
+    })
+  } catch {
+    throw new SportmonksError('network', 'Could not reach Sportmonks.')
+  }
+
+  if (!response.ok) throw await errorForResponse(response)
+
+  let parsed: z.infer<typeof coachResponseSchema>
+
+  try {
+    parsed = coachResponseSchema.parse(await response.json())
+  } catch {
+    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
+  }
+
+  return {
+    coach: parsed.data as SportmonksCoach,
     fetchedAt,
     rateLimit: parsed.rate_limit
       ? {
@@ -1879,18 +2007,20 @@ export async function fetchEntitySearch(
 ): Promise<EntitySearchRefresh> {
   const fetchedAt = Date.now()
   const query = encodeURIComponent(input.query)
-  const [competitionResponse, teamResponse, playerResponse, venueResponse] = await Promise.all([
-    fetchEntitySearchPage('leagues', query, 'country;currentSeason', token, fetcher),
-    fetchEntitySearchPage('teams', query, 'country;venue', token, fetcher),
-    fetchEntitySearchPage(
-      'players',
-      query,
-      'nationality;position;detailedPosition',
-      token,
-      fetcher
-    ),
-    fetchEntitySearchPage('venues', query, 'country', token, fetcher)
-  ])
+  const [competitionResponse, teamResponse, playerResponse, coachResponse, venueResponse] =
+    await Promise.all([
+      fetchEntitySearchPage('leagues', query, 'country;currentSeason', token, fetcher),
+      fetchEntitySearchPage('teams', query, 'country;venue', token, fetcher),
+      fetchEntitySearchPage(
+        'players',
+        query,
+        'nationality;position;detailedPosition',
+        token,
+        fetcher
+      ),
+      fetchEntitySearchPage('coaches', query, 'nationality', token, fetcher),
+      fetchEntitySearchPage('venues', query, 'country', token, fetcher)
+    ])
 
   try {
     return {
@@ -1898,6 +2028,7 @@ export async function fetchEntitySearch(
         .data as SportmonksCompetition[],
       teams: teamSearchResponseSchema.parse(teamResponse).data as SportmonksTeam[],
       players: playerSearchResponseSchema.parse(playerResponse).data as SportmonksPlayer[],
+      coaches: coachSearchResponseSchema.parse(coachResponse).data as SportmonksCoach[],
       venues: venueSearchResponseSchema.parse(venueResponse).data as SportmonksVenue[],
       fetchedAt
     }
@@ -1907,7 +2038,7 @@ export async function fetchEntitySearch(
 }
 
 async function fetchEntitySearchPage(
-  entity: 'leagues' | 'teams' | 'players' | 'venues',
+  entity: 'leagues' | 'teams' | 'players' | 'coaches' | 'venues',
   query: string,
   include: string,
   token: string,

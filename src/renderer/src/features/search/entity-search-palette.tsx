@@ -2,6 +2,8 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { useRouter } from '@tanstack/react-router'
 import { LoaderCircle, Search } from 'lucide-react'
 import type { EntitySearchResult, EntitySearchResultType } from '@/data/db'
+import { CoachPhoto } from '@/features/coaches/coach-photo'
+import { prefetchCoachEntity } from '@/features/coaches/use-coach'
 import { CompetitionLogo } from '@/features/competitions/competition-logo'
 import { prefetchCompetitionWorkspace } from '@/features/competitions/use-competition-workspace'
 import { PlayerPhoto } from '@/features/players/player-photo'
@@ -18,6 +20,7 @@ const groupLabels: Record<EntitySearchResultType, string> = {
   competition: 'Competitions',
   team: 'Teams',
   player: 'Players',
+  coach: 'Coaches',
   venue: 'Venues'
 }
 
@@ -79,6 +82,15 @@ export function EntitySearchPalette({ online }: { online: boolean }): React.JSX.
       await router.navigate({
         to: '/players/$playerId',
         params: { playerId: String(result.id) },
+        search: { competition: undefined, date: undefined, season: undefined, team: undefined }
+      })
+      return
+    }
+
+    if (result.type === 'coach') {
+      await router.navigate({
+        to: '/coaches/$coachId',
+        params: { coachId: String(result.id) },
         search: { competition: undefined, date: undefined, season: undefined, team: undefined }
       })
       return
@@ -167,10 +179,10 @@ export function EntitySearchPalette({ online }: { online: boolean }): React.JSX.
                 }
                 aria-controls={hasQuery ? listboxId : undefined}
                 aria-expanded={hasQuery}
-                aria-label="Search competitions, teams, players, and venues"
+                aria-label="Search competitions, teams, players, coaches, and venues"
                 autoComplete="off"
                 className="h-14 w-full bg-transparent text-base outline-none placeholder:text-muted-foreground"
-                placeholder="Search competitions, teams, players, and venues"
+                placeholder="Search competitions, teams, players, coaches, and venues"
                 role="combobox"
                 value={query}
                 onChange={(event) => {
@@ -269,6 +281,11 @@ async function prefetchSearchResult(result: EntitySearchResult): Promise<void> {
     return
   }
 
+  if (result.type === 'coach') {
+    await prefetchCoachEntity(result.id)
+    return
+  }
+
   await prefetchVenueEntity(result.id)
 }
 
@@ -292,6 +309,12 @@ function ResultImage({
   if (result.type === 'player') {
     return (
       <PlayerPhoto className="size-9 rounded-full" imagePath={result.imagePath} online={online} />
+    )
+  }
+
+  if (result.type === 'coach') {
+    return (
+      <CoachPhoto className="size-9 rounded-full" imagePath={result.imagePath} online={online} />
     )
   }
 

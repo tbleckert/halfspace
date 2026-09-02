@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CompetitionsRouteImport } from './routes/competitions'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as CoachesCoachIdRouteImport } from './routes/coaches_.$coachId'
 import { Route as CompetitionsCompetitionIdRouteImport } from './routes/competitions_.$competitionId'
 import { Route as FixturesFixtureIdRouteImport } from './routes/fixtures.$fixtureId'
 import { Route as PlayersPlayerIdRouteImport } from './routes/players_.$playerId'
@@ -45,6 +46,11 @@ const CompetitionsRoute = CompetitionsRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CoachesCoachIdRoute = CoachesCoachIdRouteImport.update({
+  id: '/coaches_/$coachId',
+  path: '/coaches/$coachId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CompetitionsCompetitionIdRoute =
@@ -153,6 +159,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/competitions': typeof CompetitionsRoute
   '/settings': typeof SettingsRoute
+  '/coaches/$coachId': typeof CoachesCoachIdRoute
   '/competitions/$competitionId': typeof CompetitionsCompetitionIdRouteWithChildren
   '/fixtures/$fixtureId': typeof FixturesFixtureIdRouteWithChildren
   '/players/$playerId': typeof PlayersPlayerIdRouteWithChildren
@@ -177,6 +184,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/competitions': typeof CompetitionsRoute
   '/settings': typeof SettingsRoute
+  '/coaches/$coachId': typeof CoachesCoachIdRoute
   '/competitions/$competitionId': typeof CompetitionsCompetitionIdRouteWithChildren
   '/fixtures/$fixtureId': typeof FixturesFixtureIdRouteWithChildren
   '/players/$playerId': typeof PlayersPlayerIdRouteWithChildren
@@ -202,6 +210,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/competitions': typeof CompetitionsRoute
   '/settings': typeof SettingsRoute
+  '/coaches_/$coachId': typeof CoachesCoachIdRoute
   '/competitions_/$competitionId': typeof CompetitionsCompetitionIdRouteWithChildren
   '/fixtures/$fixtureId': typeof FixturesFixtureIdRouteWithChildren
   '/players_/$playerId': typeof PlayersPlayerIdRouteWithChildren
@@ -228,6 +237,7 @@ export interface FileRouteTypes {
     | '/'
     | '/competitions'
     | '/settings'
+    | '/coaches/$coachId'
     | '/competitions/$competitionId'
     | '/fixtures/$fixtureId'
     | '/players/$playerId'
@@ -252,6 +262,7 @@ export interface FileRouteTypes {
     | '/'
     | '/competitions'
     | '/settings'
+    | '/coaches/$coachId'
     | '/competitions/$competitionId'
     | '/fixtures/$fixtureId'
     | '/players/$playerId'
@@ -276,6 +287,7 @@ export interface FileRouteTypes {
     | '/'
     | '/competitions'
     | '/settings'
+    | '/coaches_/$coachId'
     | '/competitions_/$competitionId'
     | '/fixtures/$fixtureId'
     | '/players_/$playerId'
@@ -301,6 +313,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CompetitionsRoute: typeof CompetitionsRoute
   SettingsRoute: typeof SettingsRoute
+  CoachesCoachIdRoute: typeof CoachesCoachIdRoute
   CompetitionsCompetitionIdRoute: typeof CompetitionsCompetitionIdRouteWithChildren
   FixturesFixtureIdRoute: typeof FixturesFixtureIdRouteWithChildren
   PlayersPlayerIdRoute: typeof PlayersPlayerIdRouteWithChildren
@@ -329,6 +342,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/coaches_/$coachId': {
+      id: '/coaches_/$coachId'
+      path: '/coaches/$coachId'
+      fullPath: '/coaches/$coachId'
+      preLoaderRoute: typeof CoachesCoachIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/competitions_/$competitionId': {
@@ -541,6 +561,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CompetitionsRoute: CompetitionsRoute,
   SettingsRoute: SettingsRoute,
+  CoachesCoachIdRoute: CoachesCoachIdRoute,
   CompetitionsCompetitionIdRoute: CompetitionsCompetitionIdRouteWithChildren,
   FixturesFixtureIdRoute: FixturesFixtureIdRouteWithChildren,
   PlayersPlayerIdRoute: PlayersPlayerIdRouteWithChildren,

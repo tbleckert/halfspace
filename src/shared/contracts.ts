@@ -18,6 +18,7 @@ export const ipcChannels = {
   refreshTeamTransfers: 'sportmonks:refresh-team-transfers',
   refreshVenue: 'sportmonks:refresh-venue',
   refreshPlayer: 'sportmonks:refresh-player',
+  refreshCoach: 'sportmonks:refresh-coach',
   refreshPlayerAppearances: 'sportmonks:refresh-player-appearances',
   refreshPlayerStatistics: 'sportmonks:refresh-player-statistics',
   refreshPlayerTransfers: 'sportmonks:refresh-player-transfers',
@@ -122,6 +123,10 @@ export interface RefreshPlayerInput {
   playerId: number
 }
 
+export interface RefreshCoachInput {
+  coachId: number
+}
+
 export interface RefreshPlayerAppearancesInput {
   playerId: number
   teamId: number
@@ -220,6 +225,7 @@ export interface SportmonksTeam {
   last_played_at?: string | null
   country?: SportmonksCountry | null
   venue?: SportmonksVenue | null
+  coaches?: SportmonksCoachTeam[]
 }
 
 export interface SportmonksPosition {
@@ -272,6 +278,45 @@ export interface SportmonksPlayer {
   nationality?: SportmonksCountry | null
   position?: SportmonksPosition | null
   detailedPosition?: SportmonksPosition | null
+}
+
+export interface SportmonksCoachTeam {
+  id: number
+  team_id: number
+  coach_id: number
+  position_id: number | null
+  active: boolean
+  start: string | null
+  end: string | null
+  temporary: boolean
+  team?: SportmonksTeam | null
+  coach?: SportmonksCoach | null
+}
+
+export interface SportmonksCoach {
+  id: number
+  player_id: number | null
+  sport_id: number
+  country_id: number | null
+  nationality_id: number | null
+  city_id: number | null
+  common_name?: string | null
+  firstname?: string | null
+  lastname?: string | null
+  name: string
+  display_name: string
+  image_path?: string | null
+  height: number | null
+  weight: number | null
+  date_of_birth: string | null
+  gender: string | null
+  country?: SportmonksCountry | null
+  nationality?: SportmonksCountry | null
+  teams?: SportmonksCoachTeam[]
+  meta?: {
+    fixture_id?: number
+    participant_id?: number
+  }
 }
 
 export interface SportmonksSquadEntry {
@@ -433,6 +478,7 @@ export interface SportmonksFixture {
   lineups?: SportmonksLineup[]
   events?: SportmonksEvent[]
   statistics?: SportmonksFixtureStatistic[]
+  coaches?: SportmonksCoach[]
 }
 
 export interface SportmonksFixtureContext {
@@ -647,10 +693,21 @@ export interface PlayerRefresh {
   message?: string
 }
 
+export interface CoachRefresh {
+  coach: SportmonksCoach
+  fetchedAt: number
+  rateLimit?: {
+    remaining: number
+    resetsAt: number
+  }
+  message?: string
+}
+
 export interface EntitySearchRefresh {
   competitions: SportmonksCompetition[]
   teams: SportmonksTeam[]
   players: SportmonksPlayer[]
+  coaches: SportmonksCoach[]
   venues: SportmonksVenue[]
   fetchedAt: number
 }
@@ -722,6 +779,7 @@ export interface HalfspaceApi {
     refreshTeamTransfers(input: RefreshTeamTransfersInput): Promise<Result<TransfersRefresh>>
     refreshVenue(input: RefreshVenueInput): Promise<Result<VenueRefresh>>
     refreshPlayer(input: RefreshPlayerInput): Promise<Result<PlayerRefresh>>
+    refreshCoach(input: RefreshCoachInput): Promise<Result<CoachRefresh>>
     refreshPlayerAppearances(
       input: RefreshPlayerAppearancesInput
     ): Promise<Result<PlayerAppearancesRefresh>>

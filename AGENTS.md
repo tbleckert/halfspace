@@ -118,6 +118,11 @@ abstractions.
 - Player Career shows the complete Sportmonks transfer history as a compact chronological list with
   direct links to both teams. Cache transfers as normalized records so the same foundation can power
   Team Transfers later. Do not display a transfer amount without a trustworthy currency.
+- Coach pages keep identity, current club, career history, and recent club fixtures together in one
+  focused view. Normalize coaches into the shared entity cache, link them from teams and fixture
+  previews, and include them in global search. Team coach includes contain historical assignments;
+  show only active assignments on Team Overview. Do not add empty navigation for speculative
+  subpages.
 - Refresh fixture pages through the fixture-by-ID endpoint. When fixture lists update shared cache
   records, preserve richer match context already fetched for the entity page.
 - Show every active subscribed competition in the sidebar when there are 10 or fewer. Above 10,

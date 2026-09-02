@@ -1,12 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
 import type {
   SportmonksCompetition,
+  SportmonksCoach,
   SportmonksFixture,
   SportmonksPlayer,
   SportmonksTeam
 } from '@shared/contracts'
 import {
   fetchCompetitions,
+  fetchCoachById,
   fetchCompetitionFixtures,
   fetchCompetitionSeasons,
   fetchEntitySearch,
@@ -27,6 +29,7 @@ import {
   fetchTeamTransfers,
   fetchVenueById,
   validateCompetitionFixturesInput,
+  validateCoachInput,
   validateCompetitionSeasonsInput,
   validateEntitySearchInput,
   validateFixtureInput,
@@ -147,7 +150,8 @@ describe('Sportmonks client', () => {
           location: 'home',
           type: { id: 42, name: 'Shots' }
         }
-      ]
+      ],
+      coaches: [{ ...makeCoach(), meta: { fixture_id: baseFixture.id, participant_id: 11 } }]
     }
     const fetcher = vi.fn<typeof fetch>(async () =>
       Response.json({
@@ -165,12 +169,13 @@ describe('Sportmonks client', () => {
     expect(refresh.fixture.events?.[0].type?.name).toBe('Goal')
     expect(refresh.fixture.events?.[0].player?.image_path).toContain('6306068')
     expect(refresh.fixture.statistics?.[0].data.value).toBe(12)
+    expect(refresh.fixture.coaches?.[0].display_name).toBe('Pep Guardiola')
 
     const [input, init] = fetcher.mock.calls[0]
     const url = new URL(input.toString())
     expect(url.pathname).toBe(`/v3/football/fixtures/${fixture.id}`)
     expect(url.searchParams.get('include')).toBe(
-      'participants;league;state;scores;periods;venue;stage;round;lineups.player;lineups.details;events.type;events.player;events.relatedPlayer;statistics.type'
+      'participants;league;state;scores;periods;venue;stage;round;coaches;lineups.player;lineups.details;events.type;events.player;events.relatedPlayer;statistics.type'
     )
     expect(url.searchParams.get('filters')).toBe(
       'lineupDetailTypes:42,57,78,80,86,100,106,116,117,118,119'
@@ -419,6 +424,10 @@ describe('Sportmonks client', () => {
         return Response.json({ data: [makePlayer()] })
       }
 
+      if (url.pathname.startsWith('/v3/football/coaches/search/')) {
+        return Response.json({ data: [makeCoach()] })
+      }
+
       return Response.json({
         data: [
           {
@@ -437,8 +446,9 @@ describe('Sportmonks client', () => {
     expect(refresh.competitions[0].name).toBe('Premier League')
     expect(refresh.teams[0].name).toBe('Manchester City')
     expect(refresh.players[0].display_name).toBe('Quinten Timber')
+    expect(refresh.coaches[0].display_name).toBe('Pep Guardiola')
     expect(refresh.venues[0].name).toBe('Etihad Stadium')
-    expect(fetcher).toHaveBeenCalledTimes(4)
+    expect(fetcher).toHaveBeenCalledTimes(5)
 
     const requests = fetcher.mock.calls.map(([input, init]) => ({
       headers: new Headers(init?.headers),
@@ -448,12 +458,14 @@ describe('Sportmonks client', () => {
       '/v3/football/leagues/search/manchester',
       '/v3/football/teams/search/manchester',
       '/v3/football/players/search/manchester',
+      '/v3/football/coaches/search/manchester',
       '/v3/football/venues/search/manchester'
     ])
     expect(requests.map(({ url }) => url.searchParams.get('include'))).toEqual([
       'country;currentSeason',
       'country;venue',
       'nationality;position;detailedPosition',
+      'nationality',
       'country'
     ])
     expect(requests.every(({ url }) => url.searchParams.get('per_page') === '8')).toBe(true)
@@ -594,7 +606,20 @@ describe('Sportmonks client', () => {
           placeholder: false,
           last_played_at: '2026-08-23 15:00:00',
           country: { id: 462, name: 'England', iso2: 'GB' },
-          venue: { id: 206, name: 'Etihad Stadium', capacity: 55097 }
+          venue: { id: 206, name: 'Etihad Stadium', capacity: 55097 },
+          coaches: [
+            {
+              id: 501,
+              team_id: 9,
+              coach_id: 7,
+              position_id: 1,
+              active: true,
+              start: '2016-07-01',
+              end: null,
+              temporary: false,
+              coach: makeCoach()
+            }
+          ]
         },
         rate_limit: { remaining: 2_995, resets_in_seconds: 3_600 }
       })
@@ -604,11 +629,12 @@ describe('Sportmonks client', () => {
 
     expect(refresh.team.name).toBe('Manchester City')
     expect(refresh.team.venue?.name).toBe('Etihad Stadium')
+    expect(refresh.team.coaches?.[0].coach?.display_name).toBe('Pep Guardiola')
 
     const [input, init] = fetcher.mock.calls[0]
     const url = new URL(input.toString())
     expect(url.pathname).toBe('/v3/football/teams/9')
-    expect(url.searchParams.get('include')).toBe('country;venue')
+    expect(url.searchParams.get('include')).toBe('country;venue;coaches.coach')
     expect(url.searchParams.has('api_token')).toBe(false)
     expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')
   })
@@ -751,6 +777,44 @@ describe('Sportmonks client', () => {
     const url = new URL(input.toString())
     expect(url.pathname).toBe('/v3/football/players/6306068')
     expect(url.searchParams.get('include')).toBe('nationality;position;detailedPosition')
+    expect(url.searchParams.has('api_token')).toBe(false)
+    expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')
+  })
+
+  it('fetches a coach profile with nationality and complete club history', async () => {
+    const coach = {
+      ...makeCoach(),
+      nationality: { id: 462, name: 'Spain', iso2: 'ES' },
+      teams: [
+        {
+          id: 501,
+          team_id: 9,
+          coach_id: 7,
+          position_id: 1,
+          active: true,
+          start: '2016-07-01',
+          end: null,
+          temporary: false,
+          team: transferTeam(9, 'Manchester City')
+        }
+      ]
+    }
+    const fetcher = vi.fn<typeof fetch>(async () =>
+      Response.json({
+        data: coach,
+        rate_limit: { remaining: 2_991, resets_in_seconds: 3_600 }
+      })
+    )
+
+    const refresh = await fetchCoachById({ coachId: 7 }, 'private-token', fetcher)
+
+    expect(refresh.coach.nationality?.name).toBe('Spain')
+    expect(refresh.coach.teams?.[0].team?.name).toBe('Manchester City')
+
+    const [input, init] = fetcher.mock.calls[0]
+    const url = new URL(input.toString())
+    expect(url.pathname).toBe('/v3/football/coaches/7')
+    expect(url.searchParams.get('include')).toBe('nationality;teams.team')
     expect(url.searchParams.has('api_token')).toBe(false)
     expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')
   })
@@ -1073,6 +1137,7 @@ describe('Sportmonks client', () => {
     expect(() => validateTeamInput({ teamId: 0 })).toThrow('Choose a valid team.')
     expect(() => validateVenueInput({ venueId: 0 })).toThrow('Choose a valid venue.')
     expect(() => validatePlayerInput({ playerId: 0 })).toThrow('Choose a valid player.')
+    expect(() => validateCoachInput({ coachId: 0 })).toThrow('Choose a valid coach.')
     expect(() => validateEntitySearchInput({ query: 'a' })).toThrow(
       'Enter at least two characters.'
     )
@@ -1175,6 +1240,27 @@ function makePlayer(): SportmonksPlayer {
     height: 177,
     weight: null,
     date_of_birth: '2001-06-17',
+    gender: 'male'
+  }
+}
+
+function makeCoach(): SportmonksCoach {
+  return {
+    id: 7,
+    player_id: null,
+    sport_id: 1,
+    country_id: 462,
+    nationality_id: 462,
+    city_id: null,
+    common_name: 'Pep Guardiola',
+    firstname: 'Josep',
+    lastname: 'Guardiola',
+    name: 'Josep Guardiola i Sala',
+    display_name: 'Pep Guardiola',
+    image_path: 'https://cdn.sportmonks.com/images/soccer/coaches/7/7.png',
+    height: 180,
+    weight: null,
+    date_of_birth: '1971-01-18',
     gender: 'male'
   }
 }

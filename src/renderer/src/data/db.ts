@@ -1,5 +1,6 @@
 import Dexie, { type Table } from 'dexie'
 import type {
+  CoachRefresh,
   CompetitionRefresh,
   CompetitionSeasonsRefresh,
   EntitySearchRefresh,
@@ -21,6 +22,7 @@ import type {
   SeasonStatisticsRefresh,
   StandingsRefresh,
   SportmonksCompetition,
+  SportmonksCoach,
   SportmonksFixture,
   SportmonksOdd,
   SportmonksParticipant,
@@ -49,6 +51,7 @@ const teamFixturesCacheDuration = 15 * 60 * 1000
 const venueCacheDuration = 24 * 60 * 60 * 1000
 const teamSquadCacheDuration = 60 * 60 * 1000
 const playerCacheDuration = 24 * 60 * 60 * 1000
+const coachCacheDuration = 24 * 60 * 60 * 1000
 const playerAppearancesCacheDuration = 15 * 60 * 1000
 const transfersCacheDuration = 24 * 60 * 60 * 1000
 const fixtureDetailCacheDuration = 5 * 60 * 1000
@@ -59,7 +62,8 @@ const entityTypeOrder: Record<EntitySearchResultType, number> = {
   competition: 0,
   team: 1,
   player: 2,
-  venue: 3
+  coach: 3,
+  venue: 4
 }
 
 export interface CachedFixture {
@@ -255,7 +259,27 @@ export interface CachedPlayer {
   message?: string
 }
 
-export type EntitySearchResultType = 'competition' | 'team' | 'player' | 'venue'
+export interface CachedCoach {
+  id: number
+  name: string
+  displayName: string
+  imagePath: string | null
+  nationalityId: number | null
+  raw: SportmonksCoach
+  detailed: boolean
+  fetchedAt: number
+  staleAt: number
+  rateLimitRemaining?: number
+  rateLimitResetsAt?: number
+  message?: string
+}
+
+export interface CoachTeamRecord {
+  assignment: NonNullable<SportmonksCoach['teams']>[number]
+  team: CachedTeam
+}
+
+export type EntitySearchResultType = 'competition' | 'team' | 'player' | 'coach' | 'venue'
 
 export interface EntitySearchResult {
   id: number
@@ -414,6 +438,7 @@ class HalfspaceDatabase extends Dexie {
   teamStatisticsQueries!: Table<TeamStatisticsQuery, string>
   venues!: Table<CachedVenue, number>
   players!: Table<CachedPlayer, number>
+  coaches!: Table<CachedCoach, number>
   squadEntries!: Table<CachedSquadEntry, number>
   teamSquadQueries!: Table<TeamSquadQuery, number>
   playerAppearances!: Table<CachedPlayerAppearance, string>
@@ -635,6 +660,10 @@ class HalfspaceDatabase extends Dexie {
     this.version(13).stores({
       teamTransferQueries: '&teamId, staleAt'
     })
+
+    this.version(14).stores({
+      coaches: 'id, name, displayName, nationalityId, staleAt'
+    })
   }
 }
 
@@ -702,7 +731,13 @@ export async function writeFixtureRefresh(
 }
 
 export async function writeFixtureDetailRefresh(refresh: FixtureDetailRefresh): Promise<void> {
-  await db.transaction('rw', db.fixtures, async () => {
+  const fixtureCoaches = refresh.fixture.coaches ?? []
+  const existingCoaches = await db.coaches.bulkGet(fixtureCoaches.map(({ id }) => id))
+  const coaches = fixtureCoaches.map((coach, index) =>
+    toCachedCoach(coach, existingCoaches[index], refresh.fetchedAt, false)
+  )
+
+  await db.transaction('rw', db.fixtures, db.coaches, async () => {
     const existing = await db.fixtures.get(refresh.fixture.id)
     const fixture = toCachedFixture(
       refresh.fixture,
@@ -717,6 +752,7 @@ export async function writeFixtureDetailRefresh(refresh: FixtureDetailRefresh): 
         ? liveFixtureCacheDuration
         : fixtureDetailCacheDuration)
     await db.fixtures.put(fixture)
+    await db.coaches.bulkPut(coaches)
   })
 }
 
@@ -891,10 +927,11 @@ export async function readEntitySearch(query: string): Promise<EntitySearchResul
   const normalizedQuery = normalizeSearchText(query.trim())
   if (!normalizedQuery) return []
 
-  const [competitions, teams, players, venues] = await Promise.all([
+  const [competitions, teams, players, coaches, venues] = await Promise.all([
     db.competitions.toArray(),
     db.teams.toArray(),
     db.players.toArray(),
+    db.coaches.toArray(),
     db.venues.toArray()
   ])
   const rankedResults = [
@@ -933,6 +970,21 @@ export async function readEntitySearch(query: string): Promise<EntitySearchResul
         player.name,
         player.raw.common_name ?? '',
         player.raw.nationality?.name ?? ''
+      ])
+    })),
+    ...coaches.map((coach) => ({
+      result: {
+        id: coach.id,
+        type: 'coach' as const,
+        name: coach.displayName,
+        subtitle: coach.raw.nationality?.name ?? null,
+        imagePath: coach.imagePath
+      },
+      score: searchScore(normalizedQuery, [
+        coach.displayName,
+        coach.name,
+        coach.raw.common_name ?? '',
+        coach.raw.nationality?.name ?? ''
       ])
     })),
     ...venues.map((venue) => ({
@@ -1002,6 +1054,10 @@ export async function writeEntitySearchRefresh(refresh: EntitySearchRefresh): Pr
     fetchedAt: refresh.fetchedAt,
     staleAt
   }))
+  const existingCoaches = await db.coaches.bulkGet(refresh.coaches.map(({ id }) => id))
+  const coaches = refresh.coaches.map((coach, index) =>
+    toCachedCoach(coach, existingCoaches[index], refresh.fetchedAt, false)
+  )
   const venues: CachedVenue[] = refresh.venues.map((venue) => ({
     id: venue.id,
     countryId: venue.country_id ?? null,
@@ -1012,12 +1068,21 @@ export async function writeEntitySearchRefresh(refresh: EntitySearchRefresh): Pr
     staleAt
   }))
 
-  await db.transaction('rw', db.competitions, db.teams, db.players, db.venues, async () => {
-    await db.competitions.bulkPut(competitions)
-    await db.teams.bulkPut(teams)
-    await db.players.bulkPut(players)
-    await db.venues.bulkPut(venues)
-  })
+  await db.transaction(
+    'rw',
+    db.competitions,
+    db.teams,
+    db.players,
+    db.coaches,
+    db.venues,
+    async () => {
+      await db.competitions.bulkPut(competitions)
+      await db.teams.bulkPut(teams)
+      await db.players.bulkPut(players)
+      await db.coaches.bulkPut(coaches)
+      await db.venues.bulkPut(venues)
+    }
+  )
 }
 
 export async function readStandingsQuery(seasonId: number): Promise<{
@@ -1189,7 +1254,51 @@ export async function writeTeamRefresh(refresh: TeamRefresh): Promise<void> {
     message: refresh.message
   }
 
-  await db.teams.put(team)
+  const teamCoaches = (refresh.team.coaches ?? []).flatMap(({ coach }) => (coach ? [coach] : []))
+  const existingCoaches = await db.coaches.bulkGet(teamCoaches.map(({ id }) => id))
+  const coaches = teamCoaches.map((coach, index) =>
+    toCachedCoach(coach, existingCoaches[index], refresh.fetchedAt, false)
+  )
+
+  await db.transaction('rw', db.teams, db.coaches, async () => {
+    await db.teams.put(team)
+    await db.coaches.bulkPut(coaches)
+  })
+}
+
+export async function readCoachIdentity(coachId: number): Promise<{
+  coach: CachedCoach | null
+  teams: CoachTeamRecord[]
+}> {
+  const coach = await db.coaches.get(coachId)
+  if (!coach) return { coach: null, teams: [] }
+
+  const assignments = coach.raw.teams ?? []
+  const teams = await db.teams.bulkGet(assignments.map(({ team_id }) => team_id))
+
+  return {
+    coach,
+    teams: assignments.flatMap((assignment, index) => {
+      const team = teams[index]
+      return team ? [{ assignment, team }] : []
+    })
+  }
+}
+
+export async function writeCoachRefresh(refresh: CoachRefresh): Promise<void> {
+  const assignments = refresh.coach.teams ?? []
+  const includedTeams = assignments.flatMap(({ team }) => (team ? [team] : []))
+  const existingCoach = await db.coaches.get(refresh.coach.id)
+  const existingTeams = await db.teams.bulkGet(includedTeams.map(({ id }) => id))
+  const coach = toCachedCoach(refresh.coach, existingCoach, refresh.fetchedAt, true, refresh)
+  const teams = includedTeams.map((team, index) =>
+    toCachedTransferTeam(team, existingTeams[index], refresh.fetchedAt)
+  )
+
+  await db.transaction('rw', db.coaches, db.teams, async () => {
+    await db.coaches.put(coach)
+    await db.teams.bulkPut(teams)
+  })
 }
 
 export async function readTeamSquad(teamId: number): Promise<{
@@ -1661,6 +1770,7 @@ export async function clearSportmonksCache(): Promise<void> {
       db.teamStatisticsQueries,
       db.venues,
       db.players,
+      db.coaches,
       db.squadEntries,
       db.teamSquadQueries,
       db.playerAppearances,
@@ -1688,6 +1798,7 @@ export async function clearSportmonksCache(): Promise<void> {
       await db.teamStatisticsQueries.clear()
       await db.venues.clear()
       await db.players.clear()
+      await db.coaches.clear()
       await db.squadEntries.clear()
       await db.teamSquadQueries.clear()
       await db.playerAppearances.clear()
@@ -1752,6 +1863,50 @@ function toCachedSquadPlayer(
     rateLimitRemaining: existing?.rateLimitRemaining,
     rateLimitResetsAt: existing?.rateLimitResetsAt,
     message: existing?.message
+  }
+}
+
+function toCachedCoach(
+  coach: SportmonksCoach,
+  existing: CachedCoach | undefined,
+  fetchedAt: number,
+  detailed: boolean,
+  refresh?: CoachRefresh
+): CachedCoach {
+  const preserveDetailedRecord = existing?.detailed && !detailed
+  const raw = preserveDetailedRecord
+    ? {
+        ...coach,
+        ...existing.raw,
+        country: existing.raw.country ?? coach.country,
+        nationality: existing.raw.nationality ?? coach.nationality,
+        teams: existing.raw.teams
+      }
+    : {
+        ...existing?.raw,
+        ...coach,
+        country: coach.country ?? existing?.raw.country,
+        nationality: coach.nationality ?? existing?.raw.nationality,
+        teams: coach.teams ?? existing?.raw.teams
+      }
+
+  return {
+    id: coach.id,
+    name: coach.name,
+    displayName: coach.display_name,
+    imagePath: coach.image_path ?? null,
+    nationalityId: coach.nationality_id,
+    raw,
+    detailed: detailed || existing?.detailed || false,
+    fetchedAt,
+    staleAt: detailed
+      ? fetchedAt + coachCacheDuration
+      : existing?.detailed
+        ? existing.staleAt
+        : fetchedAt,
+    rateLimitRemaining: refresh?.rateLimit?.remaining ?? existing?.rateLimitRemaining,
+    rateLimitResetsAt: refresh?.rateLimit?.resetsAt ?? existing?.rateLimitResetsAt,
+    message: refresh?.message ?? existing?.message
   }
 }
 
@@ -1843,7 +1998,8 @@ function mergeFixtureDetail(
     periods: fixture.periods ?? existing.periods,
     lineups: fixture.lineups ?? existing.lineups,
     events: fixture.events ?? existing.events,
-    statistics: fixture.statistics ?? existing.statistics
+    statistics: fixture.statistics ?? existing.statistics,
+    coaches: fixture.coaches ?? existing.coaches
   }
 }
 

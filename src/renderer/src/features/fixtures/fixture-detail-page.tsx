@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { Link } from '@tanstack/react-router'
 import { ArrowLeft, ArrowLeftRight, CircleX, RefreshCw } from 'lucide-react'
 import type {
+  SportmonksCoach,
   SportmonksEvent,
   SportmonksFixture,
   SportmonksLineup,
@@ -17,6 +18,8 @@ import { buttonVariants } from '@/components/ui/button-variants'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { CachedCompetition, CachedFixture } from '@/data/db'
+import { CoachPhoto } from '@/features/coaches/coach-photo'
+import { prefetchCoachEntity } from '@/features/coaches/use-coach'
 import { CompetitionLogo } from '@/features/competitions/competition-logo'
 import { prefetchCompetitionWorkspace } from '@/features/competitions/use-competition-workspace'
 import { PlayerPhoto } from '@/features/players/player-photo'
@@ -427,6 +430,14 @@ function FixturePreview({
           seasonId={seasonId}
           startingAt={cachedFixture.startingAt}
         />
+        {cachedFixture.raw.coaches && cachedFixture.raw.coaches.length > 0 && (
+          <FixtureCoaches
+            coaches={cachedFixture.raw.coaches}
+            context={context}
+            fixture={cachedFixture.raw}
+            online={online}
+          />
+        )}
         {cachedFixture.raw.venue && cachedFixture.raw.venue_id && (
           <VenueCard
             competitionId={competitionId}
@@ -439,6 +450,59 @@ function FixturePreview({
         )}
       </aside>
     </div>
+  )
+}
+
+function FixtureCoaches({
+  coaches,
+  context,
+  fixture,
+  online
+}: {
+  coaches: SportmonksCoach[]
+  context: FixtureDetailSearch
+  fixture: SportmonksFixture
+  online: boolean
+}): React.JSX.Element {
+  return (
+    <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
+      <div className="border-b px-4 py-3">
+        <h2 className="text-sm font-semibold">Coaches</h2>
+      </div>
+      <div className="divide-y">
+        {coaches.map((coach) => {
+          const team = fixture.participants.find(({ id }) => id === coach.meta?.participant_id)
+
+          return (
+            <Link
+              key={coach.id}
+              to="/coaches/$coachId"
+              params={{ coachId: String(coach.id) }}
+              search={{
+                competition: context.competition,
+                date: context.date,
+                season: context.season,
+                team: team?.id ?? context.team
+              }}
+              className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-muted/45"
+              {...intentPrefetchProps(online, () => prefetchCoachEntity(coach.id))}
+            >
+              <CoachPhoto
+                className="size-10 rounded-full bg-background"
+                imagePath={coach.image_path ?? null}
+                online={online}
+              />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold">{coach.display_name}</p>
+                {team && (
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">{team.name}</p>
+                )}
+              </div>
+            </Link>
+          )
+        })}
+      </div>
+    </section>
   )
 }
 

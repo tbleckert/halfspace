@@ -156,6 +156,7 @@ function installHalfspace(overrides: Partial<Window['halfspace']['sportmonks']>)
       refreshTeamTransfers: vi.fn(),
       refreshVenue: vi.fn(),
       refreshPlayer: vi.fn(),
+      refreshCoach: vi.fn(),
       refreshPlayerAppearances: vi.fn(),
       refreshPlayerStatistics: vi.fn(),
       refreshPlayerTransfers: vi.fn(),

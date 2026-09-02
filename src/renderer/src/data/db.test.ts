@@ -1,5 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import type {
+  CoachRefresh,
   CompetitionRefresh,
   CompetitionSeasonsRefresh,
   EntitySearchRefresh,
@@ -26,6 +27,7 @@ import type {
 import {
   db,
   readCompetitionCatalog,
+  readCoachIdentity,
   readCompetitionSeasons,
   readCompetitionFixtureQuery,
   readEntitySearch,
@@ -47,6 +49,7 @@ import {
   readVenueTeams,
   setCompetitionPinned,
   writeCompetitionFixtureRefresh,
+  writeCoachRefresh,
   writeCompetitionRefresh,
   writeCompetitionSeasonsRefresh,
   writeEntitySearchRefresh,
@@ -92,6 +95,7 @@ beforeEach(async () => {
       db.teamStatisticsQueries,
       db.venues,
       db.players,
+      db.coaches,
       db.squadEntries,
       db.teamSquadQueries,
       db.playerAppearances,
@@ -120,6 +124,7 @@ beforeEach(async () => {
       await db.teamStatisticsQueries.clear()
       await db.venues.clear()
       await db.players.clear()
+      await db.coaches.clear()
       await db.squadEntries.clear()
       await db.teamSquadQueries.clear()
       await db.playerAppearances.clear()
@@ -194,6 +199,23 @@ describe('entity search cache', () => {
           position: { id: 26, name: 'Midfielder' }
         }
       ],
+      coaches: [
+        {
+          id: 7,
+          player_id: null,
+          sport_id: 1,
+          country_id: 462,
+          nationality_id: 462,
+          city_id: null,
+          name: 'Manchester Manager',
+          display_name: 'Manchester Manager',
+          height: null,
+          weight: null,
+          date_of_birth: null,
+          gender: 'male',
+          nationality: { id: 462, name: 'England' }
+        }
+      ],
       venues: [
         {
           id: 206,
@@ -215,6 +237,7 @@ describe('entity search cache', () => {
       'competition:Manchester Premier Cup',
       'team:Manchester City',
       'player:Manchester Player',
+      'coach:Manchester Manager',
       'venue:Etihad Stadium'
     ])
     expect(catalog.catalog?.competitionIds).toEqual([8])
@@ -310,7 +333,8 @@ describe('fixture cache', () => {
             location: 'home',
             type: { id: 42, name: 'Shots' }
           }
-        ]
+        ],
+        coaches: [{ ...coachIdentity(), meta: { fixture_id: 19425456, participant_id: 9 } }]
       }
     }
 
@@ -326,6 +350,8 @@ describe('fixture cache', () => {
     expect(fixture?.raw.lineups?.[0].player_name).toBe('Quinten Timber')
     expect(fixture?.raw.events?.[0].type?.name).toBe('Goal')
     expect(fixture?.raw.statistics?.[0].data.value).toBe(12)
+    expect(fixture?.raw.coaches?.[0].display_name).toBe('Pep Guardiola')
+    expect((await readCoachIdentity(7)).coach?.displayName).toBe('Pep Guardiola')
     expect(fixture?.detailStaleAt).toBeGreaterThan(detail.fetchedAt)
   })
 
@@ -564,7 +590,20 @@ describe('team entity cache', () => {
         founded: 1880,
         placeholder: false,
         country: { id: 462, name: 'England' },
-        venue: { id: 206, name: 'Etihad Stadium', capacity: 55097 }
+        venue: { id: 206, name: 'Etihad Stadium', capacity: 55097 },
+        coaches: [
+          {
+            id: 501,
+            team_id: 9,
+            coach_id: 7,
+            position_id: 1,
+            active: true,
+            start: '2016-07-01',
+            end: null,
+            temporary: false,
+            coach: coachIdentity()
+          }
+        ]
       }
     }
 
@@ -573,6 +612,7 @@ describe('team entity cache', () => {
 
     expect(identity.team?.name).toBe('Manchester City')
     expect(identity.team?.raw.venue?.name).toBe('Etihad Stadium')
+    expect((await readCoachIdentity(7)).coach?.displayName).toBe('Pep Guardiola')
     expect((await readVenueIdentity(206)).summary?.name).toBe('Etihad Stadium')
   })
 
@@ -618,6 +658,37 @@ describe('team entity cache', () => {
     expect((await readTeamStatistics({ seasonId: 23614, teamId: 9 }))?.statistics[0].value).toEqual(
       { count: 12 }
     )
+  })
+
+  it('normalizes a coach profile and its complete club history', async () => {
+    const refresh: CoachRefresh = {
+      fetchedAt: Date.UTC(2026, 7, 28, 10),
+      coach: {
+        ...coachIdentity(),
+        nationality: { id: 462, name: 'Spain' },
+        teams: [
+          {
+            id: 501,
+            team_id: 9,
+            coach_id: 7,
+            position_id: 1,
+            active: true,
+            start: '2016-07-01',
+            end: null,
+            temporary: false,
+            team: teamRefresh().team
+          }
+        ]
+      }
+    }
+
+    await writeCoachRefresh(refresh)
+
+    const identity = await readCoachIdentity(7)
+    expect(identity.coach?.detailed).toBe(true)
+    expect(identity.coach?.raw.nationality?.name).toBe('Spain')
+    expect(identity.teams[0].team.name).toBe('Manchester City')
+    expect(identity.teams[0].assignment.active).toBe(true)
   })
 })
 
@@ -867,6 +938,24 @@ function fixtureRefresh(id: number, name: string): FixtureRefresh {
         scores: []
       }
     ]
+  }
+}
+
+function coachIdentity(): CoachRefresh['coach'] {
+  return {
+    id: 7,
+    player_id: null,
+    sport_id: 1,
+    country_id: 462,
+    nationality_id: 462,
+    city_id: null,
+    name: 'Josep Guardiola i Sala',
+    display_name: 'Pep Guardiola',
+    image_path: 'https://cdn.sportmonks.com/images/soccer/coaches/7/7.png',
+    height: 180,
+    weight: null,
+    date_of_birth: '1971-01-18',
+    gender: 'male'
   }
 }
 

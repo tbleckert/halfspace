@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useLiveQuery } from 'dexie-react-hooks'
-import type { SportmonksSeason } from '@shared/contracts'
+import type { SportmonksSeason, SportmonksTeam } from '@shared/contracts'
 import {
   ArrowLeft,
   CalendarDays,
@@ -21,6 +21,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ErrorAlert } from '@/components/error-alert'
 import type { CachedCompetition, CachedStanding, SquadMember } from '@/data/db'
 import { db, readTeamStandings } from '@/data/db'
+import { CoachPhoto } from '@/features/coaches/coach-photo'
+import { prefetchCoachEntity } from '@/features/coaches/use-coach'
 import { CompetitionLogo } from '@/features/competitions/competition-logo'
 import {
   competitionSeasonOptions,
@@ -314,6 +316,17 @@ export function TeamPage({
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(16rem,0.65fr)_minmax(24rem,1.35fr)]">
           <div className="flex flex-col gap-5">
             <TeamCompetitions contexts={competitionContexts} online={online} />
+            {detailedTeam?.coaches &&
+              detailedTeam.coaches.some(({ active, coach }) => active && coach) && (
+                <TeamCoaches
+                  coaches={detailedTeam.coaches}
+                  competitionId={competitionId}
+                  date={fixtureWindowStart}
+                  online={online}
+                  season={requestedSeasonId}
+                  teamId={parsedTeamId}
+                />
+              )}
             {detailedTeam?.venue && detailedTeam.venue_id && (
               <VenueCard
                 competitionId={competitionId}
@@ -791,6 +804,60 @@ function TeamCompetitions({
           ))}
         </div>
       )}
+    </section>
+  )
+}
+
+function TeamCoaches({
+  coaches,
+  competitionId,
+  date,
+  online,
+  season,
+  teamId
+}: {
+  coaches: NonNullable<SportmonksTeam['coaches']>
+  competitionId?: number
+  date: string
+  online: boolean
+  season?: number
+  teamId: number
+}): React.JSX.Element {
+  const visibleCoaches = coaches.flatMap(({ active, coach }) => (active && coach ? [coach] : []))
+
+  return (
+    <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
+      <div className="border-b px-4 py-3">
+        <h2 className="text-sm font-semibold">
+          {visibleCoaches.length === 1 ? 'Coach' : 'Coaches'}
+        </h2>
+      </div>
+      <div className="divide-y">
+        {visibleCoaches.map((coach) => (
+          <Link
+            key={coach.id}
+            to="/coaches/$coachId"
+            params={{ coachId: String(coach.id) }}
+            search={{ competition: competitionId, date, season, team: teamId }}
+            className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-muted/45"
+            {...intentPrefetchProps(online, () => prefetchCoachEntity(coach.id))}
+          >
+            <CoachPhoto
+              className="size-10 rounded-full bg-background"
+              imagePath={coach.image_path ?? null}
+              online={online}
+            />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold">{coach.display_name}</p>
+              {coach.nationality?.name && (
+                <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                  {coach.nationality.name}
+                </p>
+              )}
+            </div>
+          </Link>
+        ))}
+      </div>
     </section>
   )
 }

@@ -4,6 +4,7 @@ import type { ApiErrorCode, Result, SportmonksRateLimit } from '@shared/contract
 import { ipcChannels } from '@shared/contracts'
 import {
   fetchCompetitions,
+  fetchCoachById,
   fetchCompetitionFixtures,
   fetchCompetitionSeasons,
   fetchEntitySearch,
@@ -25,6 +26,7 @@ import {
   fetchVenueById,
   SportmonksError,
   validateCompetitionFixturesInput,
+  validateCoachInput,
   validateCompetitionSeasonsInput,
   validateEntitySearchInput,
   validateFixtureInput,
@@ -182,6 +184,12 @@ export function registerIpcHandlers(): void {
     validatePlayerInput,
     fetchPlayerById,
     'Could not refresh player.'
+  )
+  registerSportmonksHandler(
+    ipcChannels.refreshCoach,
+    validateCoachInput,
+    fetchCoachById,
+    'Could not refresh coach.'
   )
   registerSportmonksHandler(
     ipcChannels.refreshPlayerAppearances,
