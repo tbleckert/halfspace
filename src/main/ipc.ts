@@ -5,6 +5,7 @@ import { ipcChannels } from '@shared/contracts'
 import {
   fetchCompetitions,
   fetchCoachById,
+  fetchRefereeById,
   fetchCompetitionFixtures,
   fetchCompetitionSeasons,
   fetchEntitySearch,
@@ -29,6 +30,7 @@ import {
   SportmonksError,
   validateCompetitionFixturesInput,
   validateCoachInput,
+  validateRefereeInput,
   validateCompetitionSeasonsInput,
   validateEntitySearchInput,
   validateFixtureInput,
@@ -207,6 +209,12 @@ export function registerIpcHandlers(): void {
     validateCoachInput,
     fetchCoachById,
     'Could not refresh coach.'
+  )
+  registerSportmonksHandler(
+    ipcChannels.refreshReferee,
+    validateRefereeInput,
+    fetchRefereeById,
+    'Could not refresh referee.'
   )
   registerSportmonksHandler(
     ipcChannels.refreshPlayerAppearances,

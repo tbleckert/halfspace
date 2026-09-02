@@ -33,6 +33,7 @@ const halfspaceApi: HalfspaceApi = {
     refreshVenue: (input) => ipcRenderer.invoke(ipcChannels.refreshVenue, input),
     refreshPlayer: (input) => ipcRenderer.invoke(ipcChannels.refreshPlayer, input),
     refreshCoach: (input) => ipcRenderer.invoke(ipcChannels.refreshCoach, input),
+    refreshReferee: (input) => ipcRenderer.invoke(ipcChannels.refreshReferee, input),
     refreshPlayerAppearances: (input) =>
       ipcRenderer.invoke(ipcChannels.refreshPlayerAppearances, input),
     refreshPlayerStatistics: (input) =>

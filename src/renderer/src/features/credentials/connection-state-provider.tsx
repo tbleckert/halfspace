@@ -3,6 +3,7 @@ import type { ConnectionState, SportmonksRateLimit } from '@shared/contracts'
 import { clearSportmonksCache } from '@/data/db'
 import { invalidateCompetitionRefresh } from '@/features/competitions/use-competitions'
 import { invalidateCoachRefreshes } from '@/features/coaches/use-coach'
+import { invalidateRefereeRefreshes } from '@/features/referees/use-referee'
 import { invalidateCompetitionWorkspaceRefreshes } from '@/features/competitions/use-competition-workspace'
 import { invalidateFixtureRefreshes } from '@/features/fixtures/use-fixtures'
 import { invalidatePlayerRefreshes } from '@/features/players/use-player'
@@ -32,6 +33,7 @@ export function ConnectionStateProvider({ children }: { children: ReactNode }): 
       if (result.ok) {
         invalidateCompetitionRefresh()
         invalidateCoachRefreshes()
+        invalidateRefereeRefreshes()
         invalidateCompetitionWorkspaceRefreshes()
         invalidateFixtureRefreshes()
         invalidatePlayerRefreshes()
@@ -59,6 +61,7 @@ export function ConnectionStateProvider({ children }: { children: ReactNode }): 
       if (result.ok) {
         invalidateCompetitionRefresh()
         invalidateCoachRefreshes()
+        invalidateRefereeRefreshes()
         invalidateCompetitionWorkspaceRefreshes()
         invalidateFixtureRefreshes()
         invalidatePlayerRefreshes()

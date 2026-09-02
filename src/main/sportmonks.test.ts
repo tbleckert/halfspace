@@ -201,7 +201,7 @@ describe('Sportmonks client', () => {
     const url = new URL(input.toString())
     expect(url.pathname).toBe(`/v3/football/fixtures/${fixture.id}`)
     expect(url.searchParams.get('include')).toBe(
-      'participants;league;state;scores;periods;venue;stage;round;coaches;lineups.player;lineups.details;events.type;events.player;events.relatedPlayer;statistics.type'
+      'participants;league;state;scores;periods;venue;stage;round;coaches;referees.referee;referees.type;lineups.player;lineups.details;events.type;events.player;events.relatedPlayer;statistics.type'
     )
     expect(url.searchParams.get('filters')).toBe(
       'lineupDetailTypes:42,57,78,80,86,100,106,116,117,118,119'

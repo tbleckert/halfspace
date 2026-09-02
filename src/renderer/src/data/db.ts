@@ -1,5 +1,7 @@
 import Dexie, { type Table } from 'dexie'
 import type {
+  RefereeRefresh,
+  SportmonksReferee,
   CoachRefresh,
   CompetitionRefresh,
   CompetitionSeasonsRefresh,
@@ -53,6 +55,7 @@ const venueCacheDuration = 24 * 60 * 60 * 1000
 const teamSquadCacheDuration = 60 * 60 * 1000
 const playerCacheDuration = 24 * 60 * 60 * 1000
 const coachCacheDuration = 24 * 60 * 60 * 1000
+const refereeCacheDuration = 24 * 60 * 60 * 1000
 const playerAppearancesCacheDuration = 15 * 60 * 1000
 const transfersCacheDuration = 24 * 60 * 60 * 1000
 const fixtureDetailCacheDuration = 5 * 60 * 1000
@@ -81,6 +84,15 @@ export interface CachedFixture {
   awayTeamId: number | null
   raw: SportmonksFixture
   detailStaleAt?: number
+  fetchedAt: number
+  staleAt: number
+}
+
+export interface CachedReferee {
+  id: number
+  raw: Omit<SportmonksReferee, 'latest'>
+  detailed: boolean
+  appointments: { fixtureId: number; role: string }[]
   fetchedAt: number
   staleAt: number
 }
@@ -452,6 +464,7 @@ class HalfspaceDatabase extends Dexie {
   venues!: Table<CachedVenue, number>
   players!: Table<CachedPlayer, number>
   coaches!: Table<CachedCoach, number>
+  referees!: Table<CachedReferee, number>
   squadEntries!: Table<CachedSquadEntry, number>
   teamSquadQueries!: Table<TeamSquadQuery, number>
   teamSeasonSquadQueries!: Table<TeamSeasonSquadQuery, string>
@@ -686,6 +699,9 @@ class HalfspaceDatabase extends Dexie {
     this.version(16).stores({
       teamSeasonSquadQueries: '&key, teamId, seasonId, staleAt'
     })
+    this.version(17).stores({
+      referees: 'id, staleAt'
+    })
   }
 }
 
@@ -800,7 +816,14 @@ export async function writeFixtureDetailRefresh(refresh: FixtureDetailRefresh): 
     toCachedCoach(coach, existingCoaches[index], refresh.fetchedAt, false)
   )
 
-  await db.transaction('rw', db.fixtures, db.coaches, async () => {
+  const fixtureReferees = (refresh.fixture.referees ?? []).flatMap(({ referee }) =>
+    referee ? [referee] : []
+  )
+  await db.transaction('rw', db.fixtures, db.coaches, db.referees, async () => {
+    const existingReferees = await db.referees.bulkGet(fixtureReferees.map(({ id }) => id))
+    const referees = fixtureReferees.map((referee, index) =>
+      toCachedReferee(referee, refresh.fetchedAt, existingReferees[index])
+    )
     const existing = await db.fixtures.get(refresh.fixture.id)
     const fixture = toCachedFixture(
       refresh.fixture,
@@ -816,6 +839,7 @@ export async function writeFixtureDetailRefresh(refresh: FixtureDetailRefresh): 
         : fixtureDetailCacheDuration)
     await db.fixtures.put(fixture)
     await db.coaches.bulkPut(coaches)
+    await db.referees.bulkPut(referees)
   })
 }
 
@@ -1371,6 +1395,61 @@ export async function writeTeamRefresh(refresh: TeamRefresh): Promise<void> {
   })
 }
 
+export async function readRefereeIdentity(refereeId: number): Promise<{
+  referee: CachedReferee | null
+  appointments: { fixture: CachedFixture; role: string }[]
+}> {
+  const referee = await db.referees.get(refereeId)
+  if (!referee) return { referee: null, appointments: [] }
+  const fixtures = await db.fixtures.bulkGet(referee.appointments.map(({ fixtureId }) => fixtureId))
+  return {
+    referee,
+    appointments: referee.appointments
+      .flatMap((appointment, index) => {
+        const fixture = fixtures[index]
+        return fixture ? [{ fixture, role: appointment.role }] : []
+      })
+      .toSorted((a, b) => (b.fixture.startingAt ?? 0) - (a.fixture.startingAt ?? 0))
+  }
+}
+
+export async function writeRefereeRefresh(refresh: RefereeRefresh): Promise<void> {
+  const referee = toCachedReferee(refresh.referee, refresh.fetchedAt, undefined, true)
+  await db.transaction('rw', db.referees, db.fixtures, async () => {
+    const fixtures = await toCachedFixtures(
+      (refresh.referee.latest ?? []).flatMap(({ fixture }) => (fixture ? [fixture] : [])),
+      refresh.fetchedAt,
+      refresh.fetchedAt
+    )
+    await db.referees.put(referee)
+    await db.fixtures.bulkPut(fixtures)
+  })
+}
+
+function toCachedReferee(
+  referee: SportmonksReferee,
+  fetchedAt: number,
+  existing?: CachedReferee,
+  detailed = false
+): CachedReferee {
+  const { latest, ...identity } = referee
+  return {
+    id: referee.id,
+    raw: { ...existing?.raw, ...identity },
+    detailed: detailed || existing?.detailed || false,
+    appointments: detailed
+      ? (latest ?? [])
+          .filter(({ fixture }) => Boolean(fixture))
+          .map((assignment) => ({
+            fixtureId: assignment.fixture_id,
+            role: assignment.type?.name ?? 'Match official'
+          }))
+      : (existing?.appointments ?? []),
+    fetchedAt,
+    staleAt: detailed ? fetchedAt + refereeCacheDuration : (existing?.staleAt ?? fetchedAt)
+  }
+}
+
 export async function readCoachIdentity(coachId: number): Promise<{
   coach: CachedCoach | null
   teams: CoachTeamRecord[]
@@ -1903,6 +1982,7 @@ export async function clearSportmonksCache(): Promise<void> {
       db.venues,
       db.players,
       db.coaches,
+      db.referees,
       db.squadEntries,
       db.teamSquadQueries,
       db.teamSeasonSquadQueries,
@@ -1933,6 +2013,7 @@ export async function clearSportmonksCache(): Promise<void> {
       await db.venues.clear()
       await db.players.clear()
       await db.coaches.clear()
+      await db.referees.clear()
       await db.squadEntries.clear()
       await db.teamSquadQueries.clear()
       await db.teamSeasonSquadQueries.clear()
@@ -2134,7 +2215,8 @@ function mergeFixtureDetail(
     lineups: fixture.lineups ?? existing.lineups,
     events: fixture.events ?? existing.events,
     statistics: fixture.statistics ?? existing.statistics,
-    coaches: fixture.coaches ?? existing.coaches
+    coaches: fixture.coaches ?? existing.coaches,
+    referees: fixture.referees ?? existing.referees
   }
 }
 

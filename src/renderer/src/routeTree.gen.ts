@@ -16,6 +16,7 @@ import { Route as CoachesCoachIdRouteImport } from './routes/coaches_.$coachId'
 import { Route as CompetitionsCompetitionIdRouteImport } from './routes/competitions_.$competitionId'
 import { Route as FixturesFixtureIdRouteImport } from './routes/fixtures.$fixtureId'
 import { Route as PlayersPlayerIdRouteImport } from './routes/players_.$playerId'
+import { Route as RefereesRefereeIdRouteImport } from './routes/referees_.$refereeId'
 import { Route as TeamsTeamIdRouteImport } from './routes/teams_.$teamId'
 import { Route as VenuesVenueIdRouteImport } from './routes/venues_.$venueId'
 import { Route as CompetitionsCompetitionIdFixturesRouteImport } from './routes/competitions_.$competitionId.fixtures'
@@ -67,6 +68,11 @@ const FixturesFixtureIdRoute = FixturesFixtureIdRouteImport.update({
 const PlayersPlayerIdRoute = PlayersPlayerIdRouteImport.update({
   id: '/players_/$playerId',
   path: '/players/$playerId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RefereesRefereeIdRoute = RefereesRefereeIdRouteImport.update({
+  id: '/referees_/$refereeId',
+  path: '/referees/$refereeId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TeamsTeamIdRoute = TeamsTeamIdRouteImport.update({
@@ -163,6 +169,7 @@ export interface FileRoutesByFullPath {
   '/competitions/$competitionId': typeof CompetitionsCompetitionIdRouteWithChildren
   '/fixtures/$fixtureId': typeof FixturesFixtureIdRouteWithChildren
   '/players/$playerId': typeof PlayersPlayerIdRouteWithChildren
+  '/referees/$refereeId': typeof RefereesRefereeIdRoute
   '/teams/$teamId': typeof TeamsTeamIdRouteWithChildren
   '/venues/$venueId': typeof VenuesVenueIdRoute
   '/competitions/$competitionId/fixtures': typeof CompetitionsCompetitionIdFixturesRoute
@@ -188,6 +195,7 @@ export interface FileRoutesByTo {
   '/competitions/$competitionId': typeof CompetitionsCompetitionIdRouteWithChildren
   '/fixtures/$fixtureId': typeof FixturesFixtureIdRouteWithChildren
   '/players/$playerId': typeof PlayersPlayerIdRouteWithChildren
+  '/referees/$refereeId': typeof RefereesRefereeIdRoute
   '/teams/$teamId': typeof TeamsTeamIdRouteWithChildren
   '/venues/$venueId': typeof VenuesVenueIdRoute
   '/competitions/$competitionId/fixtures': typeof CompetitionsCompetitionIdFixturesRoute
@@ -214,6 +222,7 @@ export interface FileRoutesById {
   '/competitions_/$competitionId': typeof CompetitionsCompetitionIdRouteWithChildren
   '/fixtures/$fixtureId': typeof FixturesFixtureIdRouteWithChildren
   '/players_/$playerId': typeof PlayersPlayerIdRouteWithChildren
+  '/referees_/$refereeId': typeof RefereesRefereeIdRoute
   '/teams_/$teamId': typeof TeamsTeamIdRouteWithChildren
   '/venues_/$venueId': typeof VenuesVenueIdRoute
   '/competitions_/$competitionId/fixtures': typeof CompetitionsCompetitionIdFixturesRoute
@@ -241,6 +250,7 @@ export interface FileRouteTypes {
     | '/competitions/$competitionId'
     | '/fixtures/$fixtureId'
     | '/players/$playerId'
+    | '/referees/$refereeId'
     | '/teams/$teamId'
     | '/venues/$venueId'
     | '/competitions/$competitionId/fixtures'
@@ -266,6 +276,7 @@ export interface FileRouteTypes {
     | '/competitions/$competitionId'
     | '/fixtures/$fixtureId'
     | '/players/$playerId'
+    | '/referees/$refereeId'
     | '/teams/$teamId'
     | '/venues/$venueId'
     | '/competitions/$competitionId/fixtures'
@@ -291,6 +302,7 @@ export interface FileRouteTypes {
     | '/competitions_/$competitionId'
     | '/fixtures/$fixtureId'
     | '/players_/$playerId'
+    | '/referees_/$refereeId'
     | '/teams_/$teamId'
     | '/venues_/$venueId'
     | '/competitions_/$competitionId/fixtures'
@@ -317,6 +329,7 @@ export interface RootRouteChildren {
   CompetitionsCompetitionIdRoute: typeof CompetitionsCompetitionIdRouteWithChildren
   FixturesFixtureIdRoute: typeof FixturesFixtureIdRouteWithChildren
   PlayersPlayerIdRoute: typeof PlayersPlayerIdRouteWithChildren
+  RefereesRefereeIdRoute: typeof RefereesRefereeIdRoute
   TeamsTeamIdRoute: typeof TeamsTeamIdRouteWithChildren
   VenuesVenueIdRoute: typeof VenuesVenueIdRoute
 }
@@ -370,6 +383,13 @@ declare module '@tanstack/react-router' {
       path: '/players/$playerId'
       fullPath: '/players/$playerId'
       preLoaderRoute: typeof PlayersPlayerIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/referees_/$refereeId': {
+      id: '/referees_/$refereeId'
+      path: '/referees/$refereeId'
+      fullPath: '/referees/$refereeId'
+      preLoaderRoute: typeof RefereesRefereeIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/teams_/$teamId': {
@@ -565,6 +585,7 @@ const rootRouteChildren: RootRouteChildren = {
   CompetitionsCompetitionIdRoute: CompetitionsCompetitionIdRouteWithChildren,
   FixturesFixtureIdRoute: FixturesFixtureIdRouteWithChildren,
   PlayersPlayerIdRoute: PlayersPlayerIdRouteWithChildren,
+  RefereesRefereeIdRoute: RefereesRefereeIdRoute,
   TeamsTeamIdRoute: TeamsTeamIdRouteWithChildren,
   VenuesVenueIdRoute: VenuesVenueIdRoute,
 }

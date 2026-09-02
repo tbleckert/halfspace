@@ -54,6 +54,7 @@ beforeEach(() => {
       refreshVenue: vi.fn(),
       refreshPlayer: vi.fn(),
       refreshCoach: vi.fn(),
+      refreshReferee: vi.fn(),
       refreshPlayerAppearances: vi.fn(),
       refreshPlayerStatistics: vi.fn(),
       refreshPlayerTransfers: vi.fn(),

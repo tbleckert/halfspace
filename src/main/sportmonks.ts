@@ -1,4 +1,6 @@
 import type {
+  RefereeRefresh,
+  RefreshRefereeInput,
   ApiErrorCode,
   CoachRefresh,
   CompetitionRefresh,
@@ -452,6 +454,29 @@ const fixtureContextSchema = z
   })
   .passthrough()
 
+const refereeBaseSchema = z
+  .object({
+    id: z.number().int(),
+    name: z.string(),
+    display_name: z.string(),
+    country_id: z.number().int().nullable(),
+    image_path: z.string().nullable().optional(),
+    date_of_birth: z.string().nullable().optional(),
+    country: countrySchema.nullable().optional()
+  })
+  .passthrough()
+
+const refereeAssignmentSchema = z
+  .object({
+    id: z.number().int(),
+    fixture_id: z.number().int(),
+    referee_id: z.number().int(),
+    type_id: z.number().int(),
+    referee: refereeBaseSchema.nullable().optional(),
+    type: positionSchema.nullable().optional()
+  })
+  .passthrough()
+
 const fixtureSchema = z
   .object({
     id: z.number().int(),
@@ -510,7 +535,8 @@ const fixtureSchema = z
     lineups: z.array(lineupSchema).optional(),
     events: z.array(eventSchema).optional(),
     statistics: z.array(fixtureStatisticSchema).optional(),
-    coaches: z.array(coachBaseSchema).optional()
+    coaches: z.array(coachBaseSchema).optional(),
+    referees: z.array(refereeAssignmentSchema).optional()
   })
   .passthrough()
 
@@ -1205,7 +1231,7 @@ export async function fetchFixtureById(
   const url = new URL(`${apiBaseUrl}/fixtures/${input.fixtureId}`)
   url.searchParams.set(
     'include',
-    'participants;league;state;scores;periods;venue;stage;round;coaches;lineups.player;lineups.details;events.type;events.player;events.relatedPlayer;statistics.type'
+    'participants;league;state;scores;periods;venue;stage;round;coaches;referees.referee;referees.type;lineups.player;lineups.details;events.type;events.player;events.relatedPlayer;statistics.type'
   )
   url.searchParams.set('filters', 'lineupDetailTypes:42,57,78,80,86,100,106,116,117,118,119')
 
@@ -1898,6 +1924,62 @@ export async function fetchTeamById(
 
   return {
     team: parsed.data as SportmonksTeam,
+    fetchedAt,
+    rateLimit: parsed.rate_limit
+      ? {
+          remaining: parsed.rate_limit.remaining,
+          resetsAt: fetchedAt + parsed.rate_limit.resets_in_seconds * 1000
+        }
+      : undefined,
+    message: parsed.message
+  }
+}
+
+export function validateRefereeInput(value: unknown): RefreshRefereeInput {
+  const refereeId =
+    value && typeof value === 'object' ? (value as { refereeId?: unknown }).refereeId : undefined
+  if (!isPositiveId(refereeId))
+    throw new SportmonksError('invalid_input', 'Choose a valid referee.')
+  return { refereeId }
+}
+
+export async function fetchRefereeById(
+  input: RefreshRefereeInput,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<RefereeRefresh> {
+  const fetchedAt = Date.now()
+  const url = new URL(`${apiBaseUrl}/referees/${input.refereeId}`)
+  url.searchParams.set(
+    'include',
+    'country;latest.type;latest.fixture.participants;latest.fixture.league;latest.fixture.scores;latest.fixture.state;latest.fixture.periods'
+  )
+  let response: Response
+  try {
+    response = await fetcher(url, {
+      headers: { Accept: 'application/json', Authorization: token },
+      signal: AbortSignal.timeout(20_000)
+    })
+  } catch {
+    throw new SportmonksError('network', 'Could not reach Sportmonks.')
+  }
+  if (!response.ok) throw await errorForResponse(response)
+
+  const schema = fixtureDetailResponseSchema.extend({
+    data: refereeBaseSchema.extend({
+      latest: z
+        .array(refereeAssignmentSchema.extend({ fixture: fixtureSchema.nullable().optional() }))
+        .optional()
+    })
+  })
+  let parsed: z.infer<typeof schema>
+  try {
+    parsed = schema.parse(await response.json())
+  } catch {
+    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
+  }
+  return {
+    referee: parsed.data,
     fetchedAt,
     rateLimit: parsed.rate_limit
       ? {

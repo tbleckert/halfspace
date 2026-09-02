@@ -19,6 +19,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { CachedCompetition, CachedFixture } from '@/data/db'
 import { CoachPhoto } from '@/features/coaches/coach-photo'
+import { FixtureOfficials } from '@/features/referees/fixture-officials'
 import { prefetchCoachEntity } from '@/features/coaches/use-coach'
 import { CompetitionLogo } from '@/features/competitions/competition-logo'
 import { prefetchCompetitionWorkspace } from '@/features/competitions/use-competition-workspace'
@@ -438,6 +439,12 @@ function FixturePreview({
             online={online}
           />
         )}
+        <FixtureOfficials
+          assignments={cachedFixture.raw.referees ?? []}
+          context={context}
+          fixtureId={cachedFixture.id}
+          online={online}
+        />
         {cachedFixture.raw.venue && cachedFixture.raw.venue_id && (
           <VenueCard
             competitionId={competitionId}

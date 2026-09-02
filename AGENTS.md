@@ -149,6 +149,9 @@ abstractions.
   previews, and include them in global search. Team coach includes contain historical assignments;
   show only active assignments on Team Overview. Do not add empty navigation for speculative
   subpages.
+- Referee profiles are reached through fixture officials. Keep each appointment's officiating role
+  explicit, normalize its fixture into the shared cache, and label the `latest` history as the last
+  six months rather than a complete career. Preserve fixture and season context on the return link.
 - Refresh fixture pages through the fixture-by-ID endpoint. When fixture lists update shared cache
   records, preserve richer match context already fetched for the entity page.
 - Show every active subscribed competition in the sidebar when there are 10 or fewer. Above 10,

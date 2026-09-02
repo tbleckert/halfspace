@@ -21,6 +21,7 @@ export const ipcChannels = {
   refreshVenue: 'sportmonks:refresh-venue',
   refreshPlayer: 'sportmonks:refresh-player',
   refreshCoach: 'sportmonks:refresh-coach',
+  refreshReferee: 'sportmonks:refresh-referee',
   refreshPlayerAppearances: 'sportmonks:refresh-player-appearances',
   refreshPlayerStatistics: 'sportmonks:refresh-player-statistics',
   refreshPlayerTransfers: 'sportmonks:refresh-player-transfers',
@@ -138,6 +139,31 @@ export interface RefreshPlayerInput {
 
 export interface RefreshCoachInput {
   coachId: number
+}
+
+export interface RefreshRefereeInput {
+  refereeId: number
+}
+
+export interface SportmonksReferee {
+  id: number
+  name: string
+  display_name: string
+  country_id: number | null
+  image_path?: string | null
+  date_of_birth?: string | null
+  country?: SportmonksCountry | null
+  latest?: SportmonksRefereeAssignment[]
+}
+
+export interface SportmonksRefereeAssignment {
+  id: number
+  fixture_id: number
+  referee_id: number
+  type_id: number
+  type?: SportmonksPosition | null
+  referee?: SportmonksReferee | null
+  fixture?: SportmonksFixture | null
 }
 
 export interface RefreshPlayerAppearancesInput {
@@ -508,6 +534,7 @@ export interface SportmonksFixture {
   events?: SportmonksEvent[]
   statistics?: SportmonksFixtureStatistic[]
   coaches?: SportmonksCoach[]
+  referees?: SportmonksRefereeAssignment[]
 }
 
 export interface SportmonksFixtureContext {
@@ -756,6 +783,13 @@ export interface CoachRefresh {
   message?: string
 }
 
+export interface RefereeRefresh {
+  referee: SportmonksReferee
+  fetchedAt: number
+  rateLimit?: SportmonksRateLimit
+  message?: string
+}
+
 export interface EntitySearchRefresh {
   competitions: SportmonksCompetition[]
   teams: SportmonksTeam[]
@@ -837,6 +871,7 @@ export interface HalfspaceApi {
     refreshVenue(input: RefreshVenueInput): Promise<Result<VenueRefresh>>
     refreshPlayer(input: RefreshPlayerInput): Promise<Result<PlayerRefresh>>
     refreshCoach(input: RefreshCoachInput): Promise<Result<CoachRefresh>>
+    refreshReferee(input: RefreshRefereeInput): Promise<Result<RefereeRefresh>>
     refreshPlayerAppearances(
       input: RefreshPlayerAppearancesInput
     ): Promise<Result<PlayerAppearancesRefresh>>
