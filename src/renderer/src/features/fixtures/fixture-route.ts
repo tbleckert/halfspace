@@ -14,3 +14,9 @@ export const fixtureDetailSearchSchema = z.object({
 })
 
 export type FixtureDetailSearch = z.infer<typeof fixtureDetailSearchSchema>
+
+export interface FixturePlayerContext {
+  competition: number | undefined
+  date: string | undefined
+  season: number | undefined
+}

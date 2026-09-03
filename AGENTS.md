@@ -80,6 +80,8 @@ abstractions.
   totals, and link to the matching URL-backed leaderboard category in Stats.
 - Fixture pages keep Preview, Timeline, Lineups, Stats, and Odds in horizontal navigation inside
   the score hero. Preview stacks the compact venue card directly below Details.
+- Keep fixture subview presentation in focused components. The persistent entity shell owns shared
+  queries, header, and navigation; reuse the shared Card surface for each view's data panels.
 - Fixture Preview pairs that supporting column with season table context, each team’s five most
   recent completed matches before kickoff, and recent head-to-head meetings. Reuse standings and
   team-fixture caches, cache head-to-head separately, and prefetch Preview on intent.

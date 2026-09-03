@@ -327,3 +327,7 @@ export function fixtureOddsGroups(odds: SportmonksOdd[]): OddsGroup[] {
         left.market.localeCompare(right.market) || left.bookmaker.localeCompare(right.bookmaker)
     )
 }
+
+export function formatPlayerRating(rating: number): string {
+  return rating.toFixed(1)
+}
