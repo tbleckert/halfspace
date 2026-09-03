@@ -15,6 +15,7 @@ export const ipcChannels = {
   refreshCompetitions: 'sportmonks:refresh-competitions',
   refreshCompetitionSeasons: 'sportmonks:refresh-competition-seasons',
   refreshStandings: 'sportmonks:refresh-standings',
+  refreshRoundStandings: 'sportmonks:refresh-round-standings',
   refreshSeasonStatistics: 'sportmonks:refresh-season-statistics',
   refreshSeasonTopscorers: 'sportmonks:refresh-season-topscorers',
   refreshSeasonSchedule: 'sportmonks:refresh-season-schedule',
@@ -186,6 +187,10 @@ export interface RefreshFixtureHeadToHeadInput {
 
 export interface RefreshStandingsInput {
   seasonId: number
+}
+
+export interface RefreshRoundStandingsInput extends RefreshStandingsInput {
+  roundId: number
 }
 
 export interface RefreshSeasonScheduleInput {
@@ -1090,6 +1095,7 @@ export interface HalfspaceApi {
       input: RefreshCompetitionSeasonsInput
     ): Promise<Result<CompetitionSeasonsRefresh>>
     refreshStandings(input: RefreshStandingsInput): Promise<Result<StandingsRefresh>>
+    refreshRoundStandings(input: RefreshRoundStandingsInput): Promise<Result<StandingsRefresh>>
     refreshSeasonStatistics(
       input: RefreshSeasonStatisticsInput
     ): Promise<Result<SeasonStatisticsRefresh>>

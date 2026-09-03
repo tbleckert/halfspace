@@ -9,6 +9,7 @@ import type {
 } from '@shared/contracts'
 import type {
   TeamRivalsRefresh,
+  RefreshRoundStandingsInput,
   FixtureCommentaryRefresh,
   SeasonScheduleRefresh,
   SportmonksScheduleStage,
@@ -509,6 +510,7 @@ export interface TeamOfWeekQuery extends TeamOfWeekRefresh {
 }
 
 class HalfspaceDatabase extends Dexie {
+  roundStandingQueries!: Table<RoundStandingQuery, string>
   subscriptionQueries!: Table<SubscriptionQuery, string>
   fixtureTvQueries!: Table<FixtureTvQuery, number>
   fixturePressureQueries!: Table<FixturePressureQuery, number>
@@ -801,10 +803,48 @@ class HalfspaceDatabase extends Dexie {
     this.version(25).stores({
       fixturePressureQueries: '&fixtureId, staleAt'
     })
+    this.version(26).stores({
+      roundStandingQueries: '&key, seasonId, staleAt'
+    })
   }
 }
 
 export const db = new HalfspaceDatabase()
+
+export interface RoundStandingQuery extends RefreshRoundStandingsInput {
+  key: string
+  standings: CachedStanding[]
+  fetchedAt: number
+  staleAt: number
+}
+
+export function roundStandingsQueryKey(input: RefreshRoundStandingsInput): string {
+  return `${input.seasonId}:${input.roundId}`
+}
+
+export async function readRoundStandings(
+  input: RefreshRoundStandingsInput
+): Promise<RoundStandingQuery | null> {
+  return (await db.roundStandingQueries.get(roundStandingsQueryKey(input))) ?? null
+}
+
+export async function writeRoundStandingsRefresh(
+  input: RefreshRoundStandingsInput,
+  refresh: StandingsRefresh
+): Promise<void> {
+  const key = roundStandingsQueryKey(input)
+  await db.transaction('rw', db.roundStandingQueries, async () => {
+    const existing = await db.roundStandingQueries.get(key)
+    if (existing && existing.fetchedAt > refresh.fetchedAt) return
+    await db.roundStandingQueries.put({
+      ...input,
+      key,
+      standings: refresh.standings.map((standing) => toCachedStanding(standing, refresh.fetchedAt)),
+      fetchedAt: refresh.fetchedAt,
+      staleAt: refresh.fetchedAt + standingsCacheDuration
+    })
+  })
+}
 
 export function teamOfWeekQueryKey(input: RefreshTeamOfWeekInput): string {
   return `${input.competitionId}:${input.roundId ?? 'latest'}`
@@ -1577,18 +1617,9 @@ export async function writeStandingsRefresh(
   seasonId: number,
   refresh: StandingsRefresh
 ): Promise<void> {
-  const previousQuery = await db.standingQueries.get(seasonId)
-  const standings = refresh.standings.map((standing) => ({
-    id: standing.id,
-    participantId: standing.participant_id,
-    leagueId: standing.league_id,
-    seasonId: standing.season_id,
-    stageId: standing.stage_id,
-    groupId: standing.group_id,
-    position: standing.position,
-    raw: standing,
-    fetchedAt: refresh.fetchedAt
-  }))
+  const standings = refresh.standings.map((standing) =>
+    toCachedStanding(standing, refresh.fetchedAt)
+  )
   const query: StandingQuery = {
     seasonId,
     standingIds: standings.map(({ id }) => id),
@@ -1598,15 +1629,30 @@ export async function writeStandingsRefresh(
     rateLimitResetsAt: refresh.rateLimit?.resetsAt,
     message: refresh.message
   }
-  const removedStandingIds = (previousQuery?.standingIds ?? []).filter(
-    (standingId) => !query.standingIds.includes(standingId)
-  )
-
   await db.transaction('rw', db.standings, db.standingQueries, async () => {
+    const previousQuery = await db.standingQueries.get(seasonId)
+    if (previousQuery && previousQuery.fetchedAt > refresh.fetchedAt) return
+    const removedStandingIds = (previousQuery?.standingIds ?? []).filter(
+      (standingId) => !query.standingIds.includes(standingId)
+    )
     await db.standings.bulkDelete(removedStandingIds)
     await db.standings.bulkPut(standings)
     await db.standingQueries.put(query)
   })
+}
+
+function toCachedStanding(standing: SportmonksStanding, fetchedAt: number): CachedStanding {
+  return {
+    id: standing.id,
+    participantId: standing.participant_id,
+    leagueId: standing.league_id,
+    seasonId: standing.season_id,
+    stageId: standing.stage_id,
+    groupId: standing.group_id,
+    position: standing.position,
+    raw: standing,
+    fetchedAt
+  }
 }
 
 export async function readSeasonStatistics(
@@ -2380,6 +2426,7 @@ export async function clearSportmonksCache(): Promise<void> {
       db.competitionSeasonQueries,
       db.standings,
       db.standingQueries,
+      db.roundStandingQueries,
       db.seasonStatisticsQueries,
       db.seasonTopscorersQueries,
       db.seasonScheduleQueries,
@@ -2420,6 +2467,7 @@ export async function clearSportmonksCache(): Promise<void> {
       await db.competitionSeasonQueries.clear()
       await db.standings.clear()
       await db.standingQueries.clear()
+      await db.roundStandingQueries.clear()
       await db.seasonStatisticsQueries.clear()
       await db.seasonTopscorersQueries.clear()
       await db.seasonScheduleQueries.clear()

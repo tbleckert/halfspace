@@ -28,6 +28,7 @@ const halfspaceApi: HalfspaceApi = {
     refreshCompetitionSeasons: (input) =>
       ipcRenderer.invoke(ipcChannels.refreshCompetitionSeasons, input),
     refreshStandings: (input) => ipcRenderer.invoke(ipcChannels.refreshStandings, input),
+    refreshRoundStandings: (input) => ipcRenderer.invoke(ipcChannels.refreshRoundStandings, input),
     refreshSeasonStatistics: (input) =>
       ipcRenderer.invoke(ipcChannels.refreshSeasonStatistics, input),
     refreshSeasonTopscorers: (input) =>

@@ -9,6 +9,8 @@ import {
   writeCompetitionSeasonsRefresh,
   writeSeasonTopscorersRefresh,
   writeSeasonScheduleRefresh,
+  writeStandingsRefresh,
+  writeRoundStandingsRefresh,
   writeTeamRefresh,
   writeTeamSquadRefresh
 } from '@/data/db'
@@ -87,6 +89,84 @@ beforeEach(async () => {
 afterAll(() => db.close())
 
 describe('competition season navigation', () => {
+  it('browses cached round tables offline and clears the round when the season changes', async () => {
+    const fetchedAt = Date.now()
+    const standing = {
+      id: 1,
+      participant_id: 19,
+      league_id: 271,
+      season_id: 25591,
+      stage_id: 1,
+      group_id: null,
+      round_id: 1,
+      standing_rule_id: null,
+      position: 1,
+      result: null,
+      points: 3,
+      participant: { id: 19, name: 'Arsenal' }
+    }
+    await writeStandingsRefresh(25591, { standings: [{ ...standing, points: 9 }], fetchedAt })
+    for (const roundId of [1, 2]) {
+      await writeRoundStandingsRefresh(
+        { seasonId: 25591, roundId },
+        { standings: [{ ...standing, round_id: roundId, points: roundId * 3 }], fetchedAt }
+      )
+    }
+    await writeSeasonScheduleRefresh(25591, {
+      fetchedAt,
+      stages: [
+        {
+          id: 1,
+          season_id: 25591,
+          name: 'Regular season',
+          sort_order: 1,
+          is_current: true,
+          finished: false,
+          fixtures: [],
+          rounds: [1, 2, 3].map((id) => ({
+            id,
+            name: String(id),
+            is_current: id === 2,
+            finished: id === 1,
+            fixtures: []
+          }))
+        }
+      ]
+    })
+    const router = createRouter({
+      routeTree,
+      history: createMemoryHistory({
+        initialEntries: ['/competitions/271/table?season=25591&round=1']
+      })
+    })
+    render(<RouterProvider router={router} />)
+    expect(
+      within(await screen.findByRole('table', { name: 'Round 1' })).getByRole('cell', { name: '3' })
+    ).toBeTruthy()
+    expect(screen.queryByRole('option', { name: 'Round 3' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Next table round' }))
+    expect(
+      within(await screen.findByRole('table', { name: 'Round 2' })).getByRole('cell', { name: '6' })
+    ).toBeTruthy()
+    expect(router.state.location.search.round).toBe(2)
+    fireEvent.change(screen.getByRole('combobox', { name: 'Table round' }), {
+      target: { value: 'current' }
+    })
+    expect(
+      within(await screen.findByRole('table', { name: 'Current table' })).getByRole('cell', {
+        name: '9'
+      })
+    ).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Previous table round' }))
+    await screen.findByRole('table', { name: 'Round 2' })
+    fireEvent.change(screen.getByRole('combobox', { name: 'Season' }), {
+      target: { value: '25590' }
+    })
+    await waitFor(() => expect(router.state.location.search.season).toBe(25590))
+    expect(router.state.location.pathname).toBe('/competitions/271/table')
+    expect(router.state.location.search.round).toBeUndefined()
+    expect(screen.queryByRole('table', { name: 'Round 2' })).toBeNull()
+  })
   it('browses rounds offline and clears stage selections when switching seasons', async () => {
     for (const seasonId of [25591, 25590]) {
       await writeSeasonScheduleRefresh(seasonId, {
@@ -265,7 +345,7 @@ describe('competition season navigation', () => {
     ).toContain('season=25590')
   })
 
-  it.each(['stats', 'fixtures', 'teams'])(
+  it.each(['stats', 'fixtures', 'teams', 'table'])(
     'keeps the %s view open when changing season',
     async (view) => {
       const router = createRouter({

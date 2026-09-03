@@ -64,6 +64,7 @@ include should have a useful place in Halfspace.
 - [x] Matchday hub with calendar navigation, live updates, upcoming fixtures, and recent results.
 - [x] Competition pages with standings, qualification and relegation places, linked form, and season selection.
 - [x] Complete season schedules with stage and round navigation.
+- [x] Round-by-round league tables with season selection and offline history.
 - [x] Team pages with fixtures, squad profiles, and transfer history.
 - [x] Historical team squads with season selection and offline browsing.
 - [x] Current team injuries and suspensions with linked player profiles.

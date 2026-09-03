@@ -3,6 +3,7 @@ import type { ConnectionState, SportmonksRateLimit } from '@shared/contracts'
 import { clearSportmonksCache } from '@/data/db'
 import { invalidateCompetitionRefresh } from '@/features/competitions/use-competitions'
 import { invalidateScheduleRefreshes } from '@/features/competitions/use-season-schedule'
+import { invalidateRoundStandingsRefreshes } from '@/features/competitions/use-round-standings'
 import { invalidateCoachRefreshes } from '@/features/coaches/use-coach'
 import { invalidateRefereeRefreshes } from '@/features/referees/use-referee'
 import { invalidateCompetitionWorkspaceRefreshes } from '@/features/competitions/use-competition-workspace'
@@ -178,6 +179,7 @@ function invalidateRefreshes(): void {
   invalidateTeamOfWeekRefreshes()
   invalidateCompetitionRefresh()
   invalidateScheduleRefreshes()
+  invalidateRoundStandingsRefreshes()
   invalidateCoachRefreshes()
   invalidateRefereeRefreshes()
   invalidateCompetitionWorkspaceRefreshes()

@@ -22,6 +22,7 @@ import { Route as VenuesVenueIdRouteImport } from './routes/venues_.$venueId'
 import { Route as CompetitionsCompetitionIdFixturesRouteImport } from './routes/competitions_.$competitionId.fixtures'
 import { Route as CompetitionsCompetitionIdScheduleRouteImport } from './routes/competitions_.$competitionId.schedule'
 import { Route as CompetitionsCompetitionIdStatsRouteImport } from './routes/competitions_.$competitionId.stats'
+import { Route as CompetitionsCompetitionIdTableRouteImport } from './routes/competitions_.$competitionId.table'
 import { Route as CompetitionsCompetitionIdTeamOfWeekRouteImport } from './routes/competitions_.$competitionId.team-of-week'
 import { Route as CompetitionsCompetitionIdTeamsRouteImport } from './routes/competitions_.$competitionId.teams'
 import { Route as FixturesFixtureIdCommentaryRouteImport } from './routes/fixtures.$fixtureId.commentary'
@@ -105,6 +106,12 @@ const CompetitionsCompetitionIdStatsRoute =
   CompetitionsCompetitionIdStatsRouteImport.update({
     id: '/stats',
     path: '/stats',
+    getParentRoute: () => CompetitionsCompetitionIdRoute,
+  } as any)
+const CompetitionsCompetitionIdTableRoute =
+  CompetitionsCompetitionIdTableRouteImport.update({
+    id: '/table',
+    path: '/table',
     getParentRoute: () => CompetitionsCompetitionIdRoute,
   } as any)
 const CompetitionsCompetitionIdTeamOfWeekRoute =
@@ -202,6 +209,7 @@ export interface FileRoutesByFullPath {
   '/competitions/$competitionId/fixtures': typeof CompetitionsCompetitionIdFixturesRoute
   '/competitions/$competitionId/schedule': typeof CompetitionsCompetitionIdScheduleRoute
   '/competitions/$competitionId/stats': typeof CompetitionsCompetitionIdStatsRoute
+  '/competitions/$competitionId/table': typeof CompetitionsCompetitionIdTableRoute
   '/competitions/$competitionId/team-of-week': typeof CompetitionsCompetitionIdTeamOfWeekRoute
   '/competitions/$competitionId/teams': typeof CompetitionsCompetitionIdTeamsRoute
   '/fixtures/$fixtureId/commentary': typeof FixturesFixtureIdCommentaryRoute
@@ -232,6 +240,7 @@ export interface FileRoutesByTo {
   '/competitions/$competitionId/fixtures': typeof CompetitionsCompetitionIdFixturesRoute
   '/competitions/$competitionId/schedule': typeof CompetitionsCompetitionIdScheduleRoute
   '/competitions/$competitionId/stats': typeof CompetitionsCompetitionIdStatsRoute
+  '/competitions/$competitionId/table': typeof CompetitionsCompetitionIdTableRoute
   '/competitions/$competitionId/team-of-week': typeof CompetitionsCompetitionIdTeamOfWeekRoute
   '/competitions/$competitionId/teams': typeof CompetitionsCompetitionIdTeamsRoute
   '/fixtures/$fixtureId/commentary': typeof FixturesFixtureIdCommentaryRoute
@@ -263,6 +272,7 @@ export interface FileRoutesById {
   '/competitions_/$competitionId/fixtures': typeof CompetitionsCompetitionIdFixturesRoute
   '/competitions_/$competitionId/schedule': typeof CompetitionsCompetitionIdScheduleRoute
   '/competitions_/$competitionId/stats': typeof CompetitionsCompetitionIdStatsRoute
+  '/competitions_/$competitionId/table': typeof CompetitionsCompetitionIdTableRoute
   '/competitions_/$competitionId/team-of-week': typeof CompetitionsCompetitionIdTeamOfWeekRoute
   '/competitions_/$competitionId/teams': typeof CompetitionsCompetitionIdTeamsRoute
   '/fixtures/$fixtureId/commentary': typeof FixturesFixtureIdCommentaryRoute
@@ -295,6 +305,7 @@ export interface FileRouteTypes {
     | '/competitions/$competitionId/fixtures'
     | '/competitions/$competitionId/schedule'
     | '/competitions/$competitionId/stats'
+    | '/competitions/$competitionId/table'
     | '/competitions/$competitionId/team-of-week'
     | '/competitions/$competitionId/teams'
     | '/fixtures/$fixtureId/commentary'
@@ -325,6 +336,7 @@ export interface FileRouteTypes {
     | '/competitions/$competitionId/fixtures'
     | '/competitions/$competitionId/schedule'
     | '/competitions/$competitionId/stats'
+    | '/competitions/$competitionId/table'
     | '/competitions/$competitionId/team-of-week'
     | '/competitions/$competitionId/teams'
     | '/fixtures/$fixtureId/commentary'
@@ -355,6 +367,7 @@ export interface FileRouteTypes {
     | '/competitions_/$competitionId/fixtures'
     | '/competitions_/$competitionId/schedule'
     | '/competitions_/$competitionId/stats'
+    | '/competitions_/$competitionId/table'
     | '/competitions_/$competitionId/team-of-week'
     | '/competitions_/$competitionId/teams'
     | '/fixtures/$fixtureId/commentary'
@@ -478,6 +491,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompetitionsCompetitionIdStatsRouteImport
       parentRoute: typeof CompetitionsCompetitionIdRoute
     }
+    '/competitions_/$competitionId/table': {
+      id: '/competitions_/$competitionId/table'
+      path: '/table'
+      fullPath: '/competitions/$competitionId/table'
+      preLoaderRoute: typeof CompetitionsCompetitionIdTableRouteImport
+      parentRoute: typeof CompetitionsCompetitionIdRoute
+    }
     '/competitions_/$competitionId/team-of-week': {
       id: '/competitions_/$competitionId/team-of-week'
       path: '/team-of-week'
@@ -590,6 +610,7 @@ interface CompetitionsCompetitionIdRouteChildren {
   CompetitionsCompetitionIdFixturesRoute: typeof CompetitionsCompetitionIdFixturesRoute
   CompetitionsCompetitionIdScheduleRoute: typeof CompetitionsCompetitionIdScheduleRoute
   CompetitionsCompetitionIdStatsRoute: typeof CompetitionsCompetitionIdStatsRoute
+  CompetitionsCompetitionIdTableRoute: typeof CompetitionsCompetitionIdTableRoute
   CompetitionsCompetitionIdTeamOfWeekRoute: typeof CompetitionsCompetitionIdTeamOfWeekRoute
   CompetitionsCompetitionIdTeamsRoute: typeof CompetitionsCompetitionIdTeamsRoute
 }
@@ -601,6 +622,7 @@ const CompetitionsCompetitionIdRouteChildren: CompetitionsCompetitionIdRouteChil
     CompetitionsCompetitionIdScheduleRoute:
       CompetitionsCompetitionIdScheduleRoute,
     CompetitionsCompetitionIdStatsRoute: CompetitionsCompetitionIdStatsRoute,
+    CompetitionsCompetitionIdTableRoute: CompetitionsCompetitionIdTableRoute,
     CompetitionsCompetitionIdTeamOfWeekRoute:
       CompetitionsCompetitionIdTeamOfWeekRoute,
     CompetitionsCompetitionIdTeamsRoute: CompetitionsCompetitionIdTeamsRoute,

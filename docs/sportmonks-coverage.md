@@ -1,6 +1,6 @@
 # Sportmonks API coverage
 
-Halfspace currently covers **33 of 153 endpoints** and **107 of 1320 documented endpoint includes**.
+Halfspace currently covers **34 of 153 endpoints** and **113 of 1320 documented endpoint includes**.
 
 Overall coverage: **10%**
 
@@ -99,7 +99,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 
 - [ ] [All Standings](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-all-standings)
 - [x] [Standings by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-standings-by-season-id) — includes 6/10
-- [ ] [Standings by Round ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-standings-by-round-id)
+- [x] [Standings by Round ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-standings-by-round-id) — includes 6/10
 - [ ] [Standing Correction by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-standing-correction-by-season-id)
 - [ ] [Live Standings by League ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-live-standings-by-league-id)
 - [ ] [Grouped Standings by Round ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-grouped-standings-by-round-id)

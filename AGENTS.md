@@ -60,6 +60,10 @@ abstractions.
   each result to its fixture with competition and season context intact.
 - Show competition qualification and relegation places from `rule.type`, with matching row markers
   and a deduplicated legend. Keep provider labels and never infer rules from table positions.
+- Competition Table browses the current table and reported standings for completed or current rounds.
+  Keep round snapshots separate from current standings, keyed by season and round, and reject responses
+  for a different query. Round selection is URL-backed and clears when the season changes. Reuse the
+  schedule's round catalog, order numbered rounds numerically, and never fabricate historical tables.
 - Competition Schedule browses the complete season by stage and round. Fetch the schedule once per
   cache window, normalize its fixtures into the shared cache, and keep stage and round selections
   in the URL. Default to the current stage and round; clear those selections when switching seasons.

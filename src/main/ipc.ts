@@ -24,6 +24,8 @@ import {
   fetchSeasonStatistics,
   fetchSeasonTopscorers,
   fetchStandingsBySeason,
+  fetchStandingsByRound,
+  validateRoundStandingsInput,
   fetchTeamById,
   fetchTeamRivals,
   fetchTeamFixtures,
@@ -69,6 +71,12 @@ let currentRateLimit: SportmonksRateLimit | null = null
 let credentialGeneration = 0
 
 export function registerIpcHandlers(): void {
+  registerSportmonksHandler(
+    ipcChannels.refreshRoundStandings,
+    validateRoundStandingsInput,
+    fetchStandingsByRound,
+    'Could not refresh round standings.'
+  )
   registerSportmonksHandler(
     ipcChannels.refreshFixturePressure,
     validateFixtureInput,

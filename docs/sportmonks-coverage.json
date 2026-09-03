@@ -63,6 +63,14 @@
       "rule"
     ],
     "topscorers/get-topscorers-by-season-id": ["player", "participant", "type"],
+    "standings/get-standings-by-round-id": [
+      "participant",
+      "stage",
+      "group",
+      "details",
+      "form",
+      "rule"
+    ],
     "teams/get-team-by-id": ["country", "venue", "coaches", "statistics", "sidelined", "rankings"],
     "teams/get-teams-by-search-by-name": ["country", "venue"],
     "rivals/get-rivals-by-team-id": ["team", "rival"],

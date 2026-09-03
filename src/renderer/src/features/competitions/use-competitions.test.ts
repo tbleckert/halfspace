@@ -45,6 +45,7 @@ describe('competition refresh', () => {
         refreshCompetitions,
         refreshCompetitionSeasons: vi.fn(),
         refreshStandings: vi.fn(),
+        refreshRoundStandings: vi.fn(),
         refreshSeasonStatistics: vi.fn(),
         refreshSeasonTopscorers: vi.fn(),
         refreshCompetitionFixtures: vi.fn(),

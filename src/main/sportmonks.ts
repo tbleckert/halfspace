@@ -32,6 +32,7 @@ import type {
   RefreshSeasonStatisticsInput,
   RefreshSeasonTopscorersInput,
   RefreshStandingsInput,
+  RefreshRoundStandingsInput,
   RefreshTeamFixturesInput,
   RefreshTeamInput,
   RefreshTeamSquadInput,
@@ -1669,8 +1670,40 @@ export async function fetchStandingsBySeason(
   token: string,
   fetcher: typeof fetch = fetch
 ): Promise<StandingsRefresh> {
+  return fetchStandings(`/seasons/${input.seasonId}`, token, fetcher)
+}
+
+export function validateRoundStandingsInput(value: unknown): RefreshRoundStandingsInput {
+  const input = z
+    .object({ seasonId: z.number().int().positive(), roundId: z.number().int().positive() })
+    .safeParse(value)
+  if (!input.success) throw new SportmonksError('invalid_input', 'Choose a valid season and round.')
+  return input.data
+}
+
+export async function fetchStandingsByRound(
+  input: RefreshRoundStandingsInput,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<StandingsRefresh> {
+  const result = await fetchStandings(`/rounds/${input.roundId}`, token, fetcher)
+  if (
+    result.standings.some(
+      (standing) => standing.season_id !== input.seasonId || standing.round_id !== input.roundId
+    )
+  ) {
+    throw new SportmonksError('invalid_response', 'Standings do not match the selected round.')
+  }
+  return result
+}
+
+async function fetchStandings(
+  path: string,
+  token: string,
+  fetcher: typeof fetch
+): Promise<StandingsRefresh> {
   const fetchedAt = Date.now()
-  const url = new URL(`${apiBaseUrl}/standings/seasons/${input.seasonId}`)
+  const url = new URL(`${apiBaseUrl}/standings${path}`)
   url.searchParams.set('include', 'participant;stage;group;details;form;rule.type')
   url.searchParams.set('filters', 'standingDetailTypes:129,179')
 
