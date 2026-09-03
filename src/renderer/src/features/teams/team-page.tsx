@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
+import { CompareLink } from '@/features/comparisons/compare-link'
 import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import type { SportmonksSeason, SportmonksTeam } from '@shared/contracts'
 import {
@@ -299,15 +300,25 @@ export function TeamPage({
             </div>
           </div>
 
-          <Button
-            aria-label={`Refresh ${identity.name}`}
-            disabled={!online || refreshing}
-            size="icon"
-            variant="outline"
-            onClick={() => void refresh()}
-          >
-            <RefreshCw className={cn('size-4', refreshing && 'animate-spin')} />
-          </Button>
+          <div className="flex items-center gap-2">
+            {view === 'stats' && (
+              <CompareLink
+                kind="teams"
+                id={parsedTeamId}
+                competition={statisticsCompetitionId ?? undefined}
+                season={statisticsSeasonId ?? undefined}
+              />
+            )}
+            <Button
+              aria-label={`Refresh ${identity.name}`}
+              disabled={!online || refreshing}
+              size="icon"
+              variant="outline"
+              onClick={() => void refresh()}
+            >
+              <RefreshCw className={cn('size-4', refreshing && 'animate-spin')} />
+            </Button>
+          </div>
         </header>
 
         <TeamNavigation

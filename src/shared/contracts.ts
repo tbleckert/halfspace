@@ -360,6 +360,7 @@ export interface TransferFeedRefresh extends Omit<TransfersRefresh, 'pageCount'>
 
 export interface EntitySearchInput {
   query: string
+  entity?: 'teams' | 'players'
 }
 
 export interface SportmonksCountry {

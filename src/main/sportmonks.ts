@@ -1242,7 +1242,11 @@ export function validateEntitySearchInput(value: unknown): EntitySearchInput {
     throw new SportmonksError('invalid_input', 'Search terms cannot exceed 80 characters.')
   }
 
-  return { query: trimmedQuery }
+  const entity = (value as { entity?: unknown }).entity
+  if (entity !== undefined && entity !== 'teams' && entity !== 'players') {
+    throw new SportmonksError('invalid_input', 'Choose teams or players.')
+  }
+  return { query: trimmedQuery, ...(entity ? { entity } : {}) }
 }
 
 export function validatePlayerAppearancesInput(value: unknown): RefreshPlayerAppearancesInput {
@@ -2183,6 +2187,13 @@ export async function fetchEntitySearch(
 ): Promise<EntitySearchRefresh> {
   const fetchedAt = Date.now()
   const query = encodeURIComponent(input.query)
+  const search = (
+    entity: Parameters<typeof fetchEntitySearchPage>[0],
+    include: string
+  ): Promise<unknown> =>
+    input.entity && input.entity !== entity
+      ? Promise.resolve({ data: [] })
+      : fetchEntitySearchPage(entity, query, include, token, fetcher)
   const [
     competitionResponse,
     teamResponse,
@@ -2192,25 +2203,13 @@ export async function fetchEntitySearch(
     refereeResponse,
     fixtureResponse
   ] = await Promise.all([
-    fetchEntitySearchPage('leagues', query, 'country;currentSeason', token, fetcher),
-    fetchEntitySearchPage('teams', query, 'country;venue', token, fetcher),
-    fetchEntitySearchPage(
-      'players',
-      query,
-      'nationality;position;detailedPosition',
-      token,
-      fetcher
-    ),
-    fetchEntitySearchPage('coaches', query, 'nationality', token, fetcher),
-    fetchEntitySearchPage('venues', query, 'country', token, fetcher),
-    fetchEntitySearchPage('referees', query, 'country', token, fetcher),
-    fetchEntitySearchPage(
-      'fixtures',
-      query,
-      'participants;league;state;scores;periods',
-      token,
-      fetcher
-    )
+    search('leagues', 'country;currentSeason'),
+    search('teams', 'country;venue'),
+    search('players', 'nationality;position;detailedPosition'),
+    search('coaches', 'nationality'),
+    search('venues', 'country'),
+    search('referees', 'country'),
+    search('fixtures', 'participants;league;state;scores;periods')
   ])
 
   try {

@@ -77,7 +77,7 @@ export function TransfersPage({
           <RefreshCw className={cn('size-4', feed.refreshing && 'animate-spin')} />
         </Button>
       </header>
-      <EntitySubpageNavigation aria-label="Transfer feed">
+      <EntitySubpageNavigation aria-label="Transfer feed" className="border-b">
         <Link
           to="/transfers"
           search={{ filter, status }}

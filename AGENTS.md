@@ -271,6 +271,10 @@ abstractions.
 - Keep the public README product-first, with the canonical logo centered at the top. Leave app
   screenshots out until the planned subscription upgrade and news work are ready to show; describe
   unshipped features only in the roadmap.
+- Comparisons reuse team and player season-statistic caches, scoped to one competition and season.
+  Keep entity, season, and player club selections in the URL. Compare one explicit club record per
+  player; never combine unweighted averages across clubs. Missing values remain unknown, not zero.
+  Search comparison candidates through the existing typed search API, restricted to teams or players.
 
 ## Mindset & Process
 

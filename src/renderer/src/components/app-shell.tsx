@@ -1,6 +1,14 @@
 import { useMemo } from 'react'
 import { Link, Outlet, useRouterState } from '@tanstack/react-router'
-import { CalendarDays, Circle, Clock3, Repeat2, Settings, Trophy } from 'lucide-react'
+import {
+  ArrowLeftRight,
+  CalendarDays,
+  Circle,
+  Clock3,
+  Repeat2,
+  Settings,
+  Trophy
+} from 'lucide-react'
 import type { SportmonksRateLimit } from '@shared/contracts'
 import { TokenSetup } from '@/features/credentials/token-setup'
 import { useConnectionState } from '@/features/credentials/use-connection-state'
@@ -152,8 +160,13 @@ function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): Re
               })}
             </div>
           )}
-          <div className="mt-3">
+          <div className="mt-3 flex flex-col gap-1">
             <SidebarLink icon={<Repeat2 className="size-4" />} label="Transfers" to="/transfers" />
+            <SidebarLink
+              icon={<ArrowLeftRight className="size-4" />}
+              label="Compare"
+              to="/compare"
+            />
           </div>
 
           <div className="mt-auto flex flex-col gap-1 pt-4">
@@ -209,7 +222,7 @@ function SidebarLink({
   exact?: boolean
   icon: React.ReactNode
   label: string
-  to: '/competitions' | '/settings' | '/transfers'
+  to: '/competitions' | '/settings' | '/transfers' | '/compare'
 }): React.JSX.Element {
   return (
     <Link
