@@ -178,6 +178,8 @@ abstractions.
   a time, so likely destinations are ready without flooding Sportmonks. Prefetch fixture, team,
   squad, player, and venue detail on keyboard focus or deliberate hover; cancel incidental hovers,
   and keep fixture Odds lazy until that view opens.
+- Pause automatic query refreshes while offline or hidden. On focus or reconnect, refresh only
+  overdue data; retry failed stale queries at a bounded cadence without overlapping requests.
 - Track the goal of complete Sportmonks Football API coverage against the official endpoint index.
   Update `docs/sportmonks-coverage.json` whenever an endpoint or include becomes fully usable in the
   product, regenerate the report and badge with `pnpm coverage`, and refresh the upstream catalog
