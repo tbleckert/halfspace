@@ -232,9 +232,11 @@ export function PlayerPage({
               <CompareLink
                 kind="players"
                 id={parsedPlayerId}
-                competition={competitionId}
                 season={statisticsSeasonId ?? undefined}
-                team={currentTeamId ?? undefined}
+                team={
+                  statistics.cached?.statistics.find((record) => record.team_id === currentTeamId)
+                    ?.team_id
+                }
               />
             )}
             <Button

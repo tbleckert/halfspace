@@ -3,6 +3,8 @@ import { BrowserWindow, ipcMain } from 'electron'
 import type { ApiErrorCode, Result, SportmonksRateLimit } from '@shared/contracts'
 import { ipcChannels } from '@shared/contracts'
 import {
+  fetchStatisticSeasons,
+  validateStatisticSeasonsInput,
   fetchSeasonSchedule,
   validateSeasonScheduleInput,
   fetchCompetitions,
@@ -73,6 +75,12 @@ let currentRateLimit: SportmonksRateLimit | null = null
 let credentialGeneration = 0
 
 export function registerIpcHandlers(): void {
+  registerSportmonksHandler(
+    ipcChannels.refreshStatisticSeasons,
+    validateStatisticSeasonsInput,
+    fetchStatisticSeasons,
+    'Could not refresh available seasons.'
+  )
   registerSportmonksHandler(
     ipcChannels.refreshTransferFeed,
     validateTransferFeedInput,

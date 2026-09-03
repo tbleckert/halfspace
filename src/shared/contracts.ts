@@ -18,6 +18,7 @@ export const ipcChannels = {
   refreshRoundStandings: 'sportmonks:refresh-round-standings',
   refreshTransferFeed: 'sportmonks:refresh-transfer-feed',
   refreshSeasonStatistics: 'sportmonks:refresh-season-statistics',
+  refreshStatisticSeasons: 'sportmonks:refresh-statistic-seasons',
   refreshSeasonTopscorers: 'sportmonks:refresh-season-topscorers',
   refreshSeasonSchedule: 'sportmonks:refresh-season-schedule',
   refreshCompetitionFixtures: 'sportmonks:refresh-competition-fixtures',
@@ -261,6 +262,24 @@ export interface TeamRivalsRefresh {
 export interface RefreshTeamStatisticsInput {
   seasonId: number
   teamId: number
+}
+
+export interface RefreshStatisticSeasonsInput {
+  entity: 'teams' | 'players'
+  entityId: number
+}
+
+export interface StatisticSeasonRecord {
+  season: SportmonksSeason
+  competitionName: string
+  teamId: number
+  teamName: string
+}
+
+export interface StatisticSeasonsRefresh {
+  records: StatisticSeasonRecord[]
+  fetchedAt: number
+  rateLimit?: SportmonksRateLimit
 }
 
 export interface RefreshTeamFixturesInput {
@@ -1102,6 +1121,9 @@ export interface HalfspaceApi {
     refreshFixtureHeadToHead(input: RefreshFixtureHeadToHeadInput): Promise<Result<FixtureRefresh>>
     refreshFixtureOdds(input: RefreshFixtureOddsInput): Promise<Result<FixtureOddsRefresh>>
     refreshCompetitions(): Promise<Result<CompetitionRefresh>>
+    refreshStatisticSeasons(
+      input: RefreshStatisticSeasonsInput
+    ): Promise<Result<StatisticSeasonsRefresh>>
     refreshCompetitionSeasons(
       input: RefreshCompetitionSeasonsInput
     ): Promise<Result<CompetitionSeasonsRefresh>>

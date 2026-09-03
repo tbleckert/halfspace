@@ -273,10 +273,21 @@ abstractions.
 - Keep the public README product-first, with the canonical logo centered at the top. Leave app
   screenshots out until the planned subscription upgrade and news work are ready to show; describe
   unshipped features only in the roadmap.
-- Comparisons reuse team and player season-statistic caches, scoped to one competition and season.
-  Keep entity, season, and player club selections in the URL. Compare one explicit club record per
-  player; never combine unweighted averages across clubs. Missing values remain unknown, not zero.
-  Search comparison candidates through the existing typed search API, restricted to teams or players.
+- Comparisons start with a team or player, then that entity's ten most recent available seasons.
+  Discover season records through `statistics.season.league` and player clubs through `statistics.team`;
+  cache this metadata per entity separately from the lazily loaded performance details. Omit records
+  without values or accessible season and competition context. Group equivalent year labels such as
+  2025/26 and 2025/2026, but keep calendar-year and cross-year seasons distinct. Show club/competition
+  as quiet context when only one record exists; reveal a combined selector only for multiple records.
+  Reuse team and player season-statistic caches with independent context for each side. Allow
+  cross-league comparisons and the same entity in different seasons. Keep entity, resolved season,
+  and player club selections in the URL, derive competition from the record, and swap the entire context.
+  Compare one explicit club record per player; never combine unweighted averages across clubs.
+  Missing values remain unknown, not zero. Search candidates through the existing typed search API,
+  restricted to teams or players. Player radars use reported actions per 90 from each selected club
+  record, with at least four shared metrics and positive reported minutes on both sides. Scale each
+  axis to the pair's larger value, explicitly not a league percentile or league-strength adjustment;
+  show actual values and playing time alongside the chart. Keep exact season totals below.
 
 ## Mindset & Process
 

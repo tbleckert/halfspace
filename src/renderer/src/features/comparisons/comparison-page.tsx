@@ -1,125 +1,109 @@
-import { Link, useNavigate } from '@tanstack/react-router'
+import { useEffect } from 'react'
+import { Link, useNavigate, useRouter } from '@tanstack/react-router'
 import { ArrowLeftRight } from 'lucide-react'
+import type { StatisticSeasonRecord } from '@shared/contracts'
 import { Button } from '@/components/ui/button'
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { EntitySubpageNavigation } from '@/components/entity-subpage-navigation'
 import { entitySubpageNavigationItemClassName } from '@/components/entity-subpage-navigation-variants'
-import { ErrorAlert } from '@/components/error-alert'
-import { useCompetitions } from '@/features/competitions/use-competitions'
-import { useCompetitionSeasons } from '@/features/competitions/use-competition-workspace'
-import {
-  competitionSeasonOptions,
-  selectedCompetitionSeason
-} from '@/features/competitions/competition-workspace-data'
 import { useOnline } from '@/lib/use-online'
 import { ComparisonPicker } from './comparison-picker'
+import { ComparisonSeasonPicker } from './comparison-season-picker'
 import { PlayerComparisonStatistics, TeamComparisonStatistics } from './comparison-statistics'
+import { useComparisonSeason } from './use-comparison-season'
 import type { ComparisonKind } from './comparison-data'
 
 export function ComparisonPage({
   kind = 'teams',
-  competition,
-  season,
   left,
   right,
+  leftSeason,
+  rightSeason,
   leftTeam,
   rightTeam
 }: {
   kind?: ComparisonKind
-  competition?: number
-  season?: number
   left?: number
   right?: number
+  leftSeason?: number
+  rightSeason?: number
   leftTeam?: number
   rightTeam?: number
 }): React.JSX.Element {
   const online = useOnline()
   const navigate = useNavigate({ from: '/compare' })
-  const catalog = useCompetitions(online)
-  const competitions = catalog.cached?.competitions ?? []
-  const selectedCompetition =
-    competitions.find(({ id }) => id === competition) ?? (competition ? null : competitions[0])
-  const competitionId = selectedCompetition?.id
-  const seasons = useCompetitionSeasons(competitionId ?? null, online)
-  const options = competitionSeasonOptions(
-    seasons.cached?.seasons ?? [],
-    selectedCompetition?.raw.currentseason
-  )
-  const selectedSeason = season
-    ? options.find(({ id }) => id === season)
-    : selectedCompetitionSeason(options)
-  const seasonId = selectedSeason?.id
-  const select = (side: 'left' | 'right', id: number): void => {
+  const router = useRouter()
+  const first = useComparisonSeason(kind, left, leftSeason, leftTeam, online)
+  const second = useComparisonSeason(kind, right, rightSeason, rightTeam, online)
+  useEffect(() => {
+    const latest = router.latestLocation
+    const search = latest.search
+    if (
+      latest.pathname !== '/compare' ||
+      (search.kind ?? 'teams') !== kind ||
+      search.left !== left ||
+      search.right !== right ||
+      search.leftSeason !== leftSeason ||
+      search.rightSeason !== rightSeason ||
+      search.leftTeam !== leftTeam ||
+      search.rightTeam !== rightTeam
+    )
+      return
+    const nextLeftSeason = first.selected?.season.id ?? leftSeason
+    const nextRightSeason = second.selected?.season.id ?? rightSeason
+    const nextLeftTeam = kind === 'players' ? (first.selected?.teamId ?? leftTeam) : undefined
+    const nextRightTeam = kind === 'players' ? (second.selected?.teamId ?? rightTeam) : undefined
+    if (
+      nextLeftSeason === leftSeason &&
+      nextRightSeason === rightSeason &&
+      nextLeftTeam === leftTeam &&
+      nextRightTeam === rightTeam
+    )
+      return
+    void navigate({
+      replace: true,
+      search: {
+        ...search,
+        leftSeason: nextLeftSeason,
+        rightSeason: nextRightSeason,
+        leftTeam: nextLeftTeam,
+        rightTeam: nextRightTeam
+      }
+    })
+  }, [
+    router,
+    navigate,
+    kind,
+    left,
+    right,
+    leftSeason,
+    rightSeason,
+    leftTeam,
+    rightTeam,
+    first.selected,
+    second.selected
+  ])
+  const contexts = { left: first, right: second }
+  const selectRecord = (side: 'left' | 'right', record: StatisticSeasonRecord): void => {
     void navigate({
       search: (previous) => ({
         ...previous,
-        kind,
-        competition: competitionId,
-        season: seasonId,
-        [side]: id,
-        [side === 'left' ? 'leftTeam' : 'rightTeam']: undefined
+        [side === 'left' ? 'leftSeason' : 'rightSeason']: record.season.id,
+        [side === 'left' ? 'leftTeam' : 'rightTeam']: kind === 'players' ? record.teamId : undefined
       })
     })
   }
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-5 p-7 lg:p-10">
-      <header className="flex flex-wrap items-center justify-between gap-4">
+      <header>
         <h1 className="text-3xl font-semibold tracking-tight">Compare</h1>
-        <div className="flex flex-wrap items-center gap-2">
-          <NativeSelect
-            aria-label="Comparison competition"
-            value={competitionId ?? ''}
-            onChange={(event) =>
-              void navigate({
-                search: (previous) => ({
-                  ...previous,
-                  competition: Number(event.target.value),
-                  season: undefined,
-                  leftTeam: undefined,
-                  rightTeam: undefined
-                })
-              })
-            }
-          >
-            {!competitionId && <NativeSelectOption value="">Choose competition</NativeSelectOption>}
-            {competitions.map((item) => (
-              <NativeSelectOption key={item.id} value={item.id}>
-                {item.name}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-          <NativeSelect
-            aria-label="Comparison season"
-            value={seasonId ?? ''}
-            disabled={!options.length}
-            onChange={(event) =>
-              void navigate({
-                search: (previous) => ({
-                  ...previous,
-                  competition: competitionId,
-                  season: Number(event.target.value),
-                  leftTeam: undefined,
-                  rightTeam: undefined
-                })
-              })
-            }
-          >
-            {!options.length && <NativeSelectOption value="">Season</NativeSelectOption>}
-            {options.map((item) => (
-              <NativeSelectOption key={item.id} value={item.id}>
-                {item.name}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-        </div>
       </header>
       <EntitySubpageNavigation aria-label="Comparison type" className="border-b">
         {(['teams', 'players'] as const).map((value) => (
           <Link
             key={value}
             to="/compare"
-            search={{ kind: value, competition: competitionId, season: seasonId }}
+            search={{ kind: value }}
             aria-current={kind === value ? 'page' : undefined}
             className={entitySubpageNavigationItemClassName(kind === value)}
           >
@@ -127,23 +111,47 @@ export function ComparisonPage({
           </Link>
         ))}
       </EntitySubpageNavigation>
-      {(catalog.error || seasons.error) && (
-        <ErrorAlert>{catalog.error ?? seasons.error}</ErrorAlert>
-      )}
-      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
-        <ComparisonPicker
-          key={`${kind}:left`}
-          side="First"
-          clubId={leftTeam}
-          kind={kind}
-          id={left}
-          excludedId={right}
-          online={online}
-          competitionId={competitionId}
-          seasonId={seasonId}
-          onSelect={(id) => select('left', id)}
-        />
+      <div className="relative grid gap-3 sm:grid-cols-2 sm:gap-12">
+        {(['left', 'right'] as const).map((side) => {
+          const context = contexts[side]
+          const label = side === 'left' ? 'First' : 'Second'
+          const id = side === 'left' ? left : right
+          return (
+            <ComparisonPicker
+              key={`${kind}:${side}`}
+              side={label}
+              kind={kind}
+              id={id}
+              clubId={context.selected?.teamId}
+              online={online}
+              competitionId={context.selected?.season.league_id}
+              seasonId={context.selected?.season.id}
+              onSelect={(id) =>
+                void navigate({
+                  search: (previous) => ({
+                    ...previous,
+                    kind,
+                    [side]: id,
+                    [side === 'left' ? 'leftTeam' : 'rightTeam']: undefined,
+                    [side === 'left' ? 'leftSeason' : 'rightSeason']: undefined
+                  })
+                })
+              }
+            >
+              {id && (
+                <ComparisonSeasonPicker
+                  side={label}
+                  kind={kind}
+                  context={context}
+                  online={online}
+                  onSelect={(record) => selectRecord(side, record)}
+                />
+              )}
+            </ComparisonPicker>
+          )
+        })}
         <Button
+          className="justify-self-center sm:absolute sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2"
           aria-label="Swap selections"
           size="icon"
           variant="ghost"
@@ -154,53 +162,44 @@ export function ComparisonPage({
                 ...previous,
                 left: right,
                 right: left,
-                leftTeam: rightTeam,
-                rightTeam: leftTeam
+                leftTeam: kind === 'players' ? (second.selected?.teamId ?? rightTeam) : undefined,
+                rightTeam: kind === 'players' ? (first.selected?.teamId ?? leftTeam) : undefined,
+                leftSeason: second.selected?.season.id ?? rightSeason,
+                rightSeason: first.selected?.season.id ?? leftSeason
               })
             })
           }
         >
           <ArrowLeftRight className="size-4" />
         </Button>
-        <ComparisonPicker
-          key={`${kind}:right`}
-          side="Second"
-          clubId={rightTeam}
-          kind={kind}
-          id={right}
-          excludedId={left}
-          online={online}
-          competitionId={competitionId}
-          seasonId={seasonId}
-          onSelect={(id) => select('right', id)}
-        />
       </div>
-      {left && right && seasonId ? (
+      {left && right && first.selected && second.selected ? (
         kind === 'teams' ? (
-          <TeamComparisonStatistics left={left} right={right} seasonId={seasonId} online={online} />
+          <TeamComparisonStatistics
+            left={left}
+            right={right}
+            leftSeasonId={first.selected.season.id}
+            rightSeasonId={second.selected.season.id}
+            online={online}
+          />
         ) : (
           <PlayerComparisonStatistics
             left={left}
             right={right}
-            seasonId={seasonId}
+            leftSeasonId={first.selected.season.id}
+            rightSeasonId={second.selected.season.id}
+            leftContext={`${first.selected.teamName} · ${first.selected.competitionName} · ${first.selected.season.name}`}
+            rightContext={`${second.selected.teamName} · ${second.selected.competitionName} · ${second.selected.season.name}`}
             online={online}
-            leftTeam={leftTeam}
-            rightTeam={rightTeam}
-            onClubChange={(side, id) =>
-              void navigate({
-                search: (previous) => ({
-                  ...previous,
-                  [side === 'left' ? 'leftTeam' : 'rightTeam']: id
-                })
-              })
-            }
+            leftTeam={first.selected.teamId}
+            rightTeam={second.selected.teamId}
           />
         )
-      ) : (
+      ) : !left || !right ? (
         <p className="py-10 text-center text-sm text-muted-foreground">
-          {!seasonId ? 'Choose a competition and season' : `Choose two ${kind} to compare`}
+          Choose two {kind} to compare
         </p>
-      )}
+      ) : null}
     </div>
   )
 }

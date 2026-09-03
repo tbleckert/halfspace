@@ -6,20 +6,18 @@ import type { ComparisonKind } from './comparison-data'
 export function CompareLink({
   kind,
   id,
-  competition,
   season,
   team
 }: {
   kind: ComparisonKind
   id: number
-  competition?: number
   season?: number
   team?: number
 }): React.JSX.Element {
   return (
     <Link
       to="/compare"
-      search={{ kind, left: id, competition, season, leftTeam: team }}
+      search={{ kind, left: id, leftSeason: season, leftTeam: team }}
       className={buttonVariants({ variant: 'outline' })}
     >
       <ArrowLeftRight className="size-4" />

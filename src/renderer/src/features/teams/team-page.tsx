@@ -305,7 +305,6 @@ export function TeamPage({
               <CompareLink
                 kind="teams"
                 id={parsedTeamId}
-                competition={statisticsCompetitionId ?? undefined}
                 season={statisticsSeasonId ?? undefined}
               />
             )}

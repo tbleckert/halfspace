@@ -1,11 +1,9 @@
 import { useMemo } from 'react'
-import type { SportmonksPlayerStatistic } from '@shared/contracts'
 import { RefreshCw } from 'lucide-react'
 import { db } from '@/data/db'
 import { ErrorAlert } from '@/components/error-alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle } from '@/components/ui/card'
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import {
   Table,
   TableBody,
@@ -15,7 +13,7 @@ import {
   TableRow
 } from '@/components/ui/table'
 import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
-import { useTeamEntity, useTeamStatistics } from '@/features/teams/use-team'
+import { useTeamStatistics } from '@/features/teams/use-team'
 import { usePlayerStatistics } from '@/features/players/use-player'
 import {
   playerStatisticsSummary,
@@ -28,22 +26,28 @@ import {
   teamComparisonMetrics,
   type ComparisonRow
 } from './comparison-data'
+import { PlayerComparisonRadar } from './player-comparison-radar'
 
 interface ComparisonStatisticsProps {
   left: number
   right: number
-  seasonId: number
+  leftSeasonId: number
+  rightSeasonId: number
   online: boolean
 }
 
 export function TeamComparisonStatistics({
   left,
   right,
-  seasonId,
+  leftSeasonId,
+  rightSeasonId,
   online
 }: ComparisonStatisticsProps): React.JSX.Element {
-  const leftInput = useMemo(() => ({ teamId: left, seasonId }), [left, seasonId])
-  const rightInput = useMemo(() => ({ teamId: right, seasonId }), [right, seasonId])
+  const leftInput = useMemo(() => ({ teamId: left, seasonId: leftSeasonId }), [left, leftSeasonId])
+  const rightInput = useMemo(
+    () => ({ teamId: right, seasonId: rightSeasonId }),
+    [right, rightSeasonId]
+  )
   const first = useTeamStatistics(leftInput, online)
   const second = useTeamStatistics(rightInput, online)
   const rows = comparisonRows(
@@ -67,47 +71,47 @@ export function TeamComparisonStatistics({
 export function PlayerComparisonStatistics({
   left,
   right,
-  seasonId,
+  leftSeasonId,
+  rightSeasonId,
+  leftContext,
+  rightContext,
   online,
   leftTeam,
-  rightTeam,
-  onClubChange
+  rightTeam
 }: ComparisonStatisticsProps & {
-  leftTeam?: number
-  rightTeam?: number
-  onClubChange: (side: 'left' | 'right', teamId: number) => void
+  leftContext: string
+  rightContext: string
+  leftTeam: number
+  rightTeam: number
 }): React.JSX.Element {
-  const leftInput = useMemo(() => ({ playerId: left, seasonId }), [left, seasonId])
-  const rightInput = useMemo(() => ({ playerId: right, seasonId }), [right, seasonId])
+  const leftInput = useMemo(
+    () => ({ playerId: left, seasonId: leftSeasonId }),
+    [left, leftSeasonId]
+  )
+  const rightInput = useMemo(
+    () => ({ playerId: right, seasonId: rightSeasonId }),
+    [right, rightSeasonId]
+  )
   const first = usePlayerStatistics(leftInput, online)
   const second = usePlayerStatistics(rightInput, online)
   const leftRecord = playerComparisonRecord(first.cached?.statistics ?? [], leftTeam)
   const rightRecord = playerComparisonRecord(second.cached?.statistics ?? [], rightTeam)
-  const rows = comparisonRows(
-    playerStatisticsSummary(leftRecord?.details ?? []),
-    playerStatisticsSummary(rightRecord?.details ?? []),
-    playerComparisonMetrics
-  )
+  const leftSummary = playerStatisticsSummary(leftRecord?.details ?? [])
+  const rightSummary = playerStatisticsSummary(rightRecord?.details ?? [])
+  const rows = comparisonRows(leftSummary, rightSummary, playerComparisonMetrics)
+  const players = useScopedLiveQuery(() => db.players.bulkGet([left, right]), [left, right])
   return (
     <>
-      <div className="grid grid-cols-2 gap-4">
-        <PlayerComparisonClub
-          label="First player's club"
-          loaded={!!first.cached}
-          records={first.cached?.statistics ?? []}
-          teamId={leftRecord?.team_id}
-          online={online}
-          onChange={(id) => onClubChange('left', id)}
+      {first.cached && second.cached && (
+        <PlayerComparisonRadar
+          left={leftSummary}
+          right={rightSummary}
+          leftName={players?.[0]?.displayName ?? `Player ${left}`}
+          rightName={players?.[1]?.displayName ?? `Player ${right}`}
+          leftContext={leftContext}
+          rightContext={rightContext}
         />
-        <PlayerComparisonClub
-          label="Second player's club"
-          loaded={!!second.cached}
-          records={second.cached?.statistics ?? []}
-          teamId={rightRecord?.team_id}
-          online={online}
-          onChange={(id) => onClubChange('right', id)}
-        />
-      </div>
+      )}
       <ComparisonStatisticsTable
         rows={rows}
         online={online}
@@ -118,49 +122,6 @@ export function PlayerComparisonStatistics({
         refresh={() => Promise.all([first.refresh(), second.refresh()])}
       />
     </>
-  )
-}
-
-function PlayerComparisonClub({
-  label,
-  loaded,
-  records,
-  teamId,
-  online,
-  onChange
-}: {
-  label: string
-  loaded: boolean
-  records: SportmonksPlayerStatistic[]
-  teamId?: number
-  online: boolean
-  onChange: (id: number) => void
-}): React.JSX.Element {
-  const teamIds = [...new Set(records.map((record) => record.team_id))]
-  const clubs = useScopedLiveQuery(() => db.teams.bulkGet(teamIds), [teamIds.join(',')])
-  const selected = useTeamEntity(teamId ?? null, online)
-  if (!loaded) return <div />
-  if (!teamIds.length)
-    return <p className="text-sm text-muted-foreground">No club record this season</p>
-  if (teamIds.length === 1)
-    return (
-      <p className="text-sm text-muted-foreground">
-        {selected.cached?.team?.name ?? clubs?.[0]?.name ?? `Team ${teamIds[0]}`}
-      </p>
-    )
-  return (
-    <NativeSelect
-      aria-label={label}
-      value={teamId ?? ''}
-      onChange={(event) => onChange(Number(event.target.value))}
-    >
-      {!teamId && <NativeSelectOption value="">Choose club</NativeSelectOption>}
-      {teamIds.map((id, index) => (
-        <NativeSelectOption key={id} value={id}>
-          {clubs?.[index]?.name ?? `Team ${id}`}
-        </NativeSelectOption>
-      ))}
-    </NativeSelect>
   )
 }
 

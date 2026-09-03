@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest'
 import type { SportmonksPlayerStatistic } from '@shared/contracts'
-import { comparisonRows, playerComparisonRecord } from './comparison-data'
+import { playerStatisticsSummary } from '@/features/statistics/statistics-data'
+import { comparisonRows, playerComparisonRecord, playerRadarRows } from './comparison-data'
 
 it('preserves zero and missing data and omits metrics missing from both sides', () => {
   expect(
@@ -28,4 +29,28 @@ it('selects one explicit club record without combining totals or averages', () =
   expect(playerComparisonRecord(records, 999)).toBeNull()
   expect(playerComparisonRecord(records)).toBe(records[0])
   expect(playerComparisonRecord([])).toBeNull()
+})
+
+it('compares player contributions per 90 using each selected record’s minutes', () => {
+  const empty = playerStatisticsSummary([])
+  const rows = playerRadarRows(
+    { ...empty, minutes: 180, goals: 2, assists: 0, shots: 10 },
+    { ...empty, minutes: 900, goals: 5, assists: 0, shots: 20 }
+  )
+  expect(rows).toEqual([
+    { label: 'Goals', left: 1, right: 0.5, leftRatio: 1, rightRatio: 0.5 },
+    { label: 'Assists', left: 0, right: 0, leftRatio: 0, rightRatio: 0 },
+    { label: 'Shots', left: 5, right: 2, leftRatio: 1, rightRatio: 0.4 }
+  ])
+})
+
+it('excludes unknown metrics without making them zero and requires reported playing time', () => {
+  const empty = playerStatisticsSummary([])
+  const first = { ...empty, minutes: 90, goals: 0, assists: 1 }
+  const second = { ...empty, minutes: 180, goals: 2 }
+  expect(playerRadarRows(first, second)).toEqual([
+    { label: 'Goals', left: 0, right: 1, leftRatio: 0, rightRatio: 1 }
+  ])
+  expect(playerRadarRows({ ...first, minutes: null }, second)).toEqual([])
+  expect(playerRadarRows(first, { ...second, minutes: 0 })).toEqual([])
 })

@@ -20,6 +20,7 @@ import { ConnectionStateContext } from './connection-state-context'
 import { invalidateSubscriptionRefresh } from '@/features/subscription/use-subscription'
 import { invalidateFixtureTvRefreshes } from '@/features/fixtures/use-fixture-tv'
 import { invalidateTeamOfWeekRefreshes } from '@/features/competitions/use-team-of-week'
+import { invalidateStatisticSeasonRefreshes } from '@/features/comparisons/use-statistic-seasons'
 
 export function ConnectionStateProvider({ children }: { children: ReactNode }): React.JSX.Element {
   const [connection, setConnection] = useState<ConnectionState | null>(null)
@@ -175,6 +176,7 @@ export function ConnectionStateProvider({ children }: { children: ReactNode }): 
 }
 
 function invalidateRefreshes(): void {
+  invalidateStatisticSeasonRefreshes()
   invalidateSubscriptionRefresh()
   invalidateFixtureTvRefreshes()
   invalidateTeamOfWeekRefreshes()

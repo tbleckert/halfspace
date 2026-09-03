@@ -35,6 +35,7 @@ beforeEach(() => {
       clearToken
     },
     sportmonks: {
+      refreshStatisticSeasons: vi.fn(),
       refreshSubscription: vi.fn(),
       refreshTeamOfWeek: vi.fn(),
       refreshFixtureTv: vi.fn(),

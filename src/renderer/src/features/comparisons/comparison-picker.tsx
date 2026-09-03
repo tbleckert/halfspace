@@ -15,23 +15,23 @@ import type { ComparisonKind } from './comparison-data'
 export function ComparisonPicker({
   kind,
   id,
-  excludedId,
   side,
   online,
   competitionId,
   seasonId,
   clubId,
-  onSelect
+  onSelect,
+  children
 }: {
   kind: ComparisonKind
   id?: number
-  excludedId?: number
   side: 'First' | 'Second'
   online: boolean
   competitionId?: number
   seasonId?: number
   clubId?: number
   onSelect: (id: number) => void
+  children: React.ReactNode
 }): React.JSX.Element {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -50,7 +50,7 @@ export function ComparisonPicker({
     name ?? (id ? `${noun === 'team' ? 'Team' : 'Player'} ${id}` : `Choose ${noun}`)
 
   return (
-    <Card className="flex min-w-0 flex-col gap-3 p-4">
+    <Card className="flex h-full min-w-0 flex-col gap-3 p-4">
       <div className="flex min-w-0 items-center gap-3">
         <Photo
           className="size-14 shrink-0 rounded-full"
@@ -126,7 +126,6 @@ export function ComparisonPicker({
                   <CommandItem
                     key={result.id}
                     value={String(result.id)}
-                    disabled={result.id === excludedId}
                     onSelect={() => {
                       onSelect(result.id)
                       setOpen(false)
@@ -161,6 +160,7 @@ export function ComparisonPicker({
           </Command>
         </DialogContent>
       </Dialog>
+      {children}
       {(team.error || player.error) && (
         <p role="alert" className="text-sm text-destructive">
           {team.error ?? player.error}

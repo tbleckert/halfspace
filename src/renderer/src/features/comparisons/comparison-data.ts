@@ -17,6 +17,54 @@ export interface ComparisonRow {
   unit?: '%'
 }
 
+export interface PlayerRadarRow {
+  label: string
+  left: number
+  right: number
+  leftRatio: number
+  rightRatio: number
+}
+
+const playerRadarMetrics: Metric<PlayerStatisticsSummary>[] = [
+  { key: 'goals', label: 'Goals' },
+  { key: 'assists', label: 'Assists' },
+  { key: 'shots', label: 'Shots' },
+  { key: 'keyPasses', label: 'Key passes' },
+  { key: 'passes', label: 'Passes' },
+  { key: 'tackles', label: 'Tackles' },
+  { key: 'interceptions', label: 'Interceptions' },
+  { key: 'clearances', label: 'Clearances' },
+  { key: 'saves', label: 'Saves' }
+]
+
+export function playerRadarRows(
+  left: PlayerStatisticsSummary,
+  right: PlayerStatisticsSummary
+): PlayerRadarRow[] {
+  const leftMinutes = left.minutes
+  const rightMinutes = right.minutes
+  if (leftMinutes === null || rightMinutes === null || leftMinutes <= 0 || rightMinutes <= 0) {
+    return []
+  }
+  return playerRadarMetrics.flatMap(({ key, label }) => {
+    const leftTotal = left[key]
+    const rightTotal = right[key]
+    if (leftTotal === null || rightTotal === null) return []
+    const first = (leftTotal / leftMinutes) * 90
+    const second = (rightTotal / rightMinutes) * 90
+    const maximum = Math.max(first, second)
+    return [
+      {
+        label,
+        left: first,
+        right: second,
+        leftRatio: maximum ? first / maximum : 0,
+        rightRatio: maximum ? second / maximum : 0
+      }
+    ]
+  })
+}
+
 export function comparisonRows<T extends { [K in keyof T]: number | null }>(
   left: T,
   right: T,

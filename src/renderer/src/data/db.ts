@@ -1,5 +1,7 @@
 import Dexie, { type Table } from 'dexie'
 import type {
+  RefreshStatisticSeasonsInput,
+  StatisticSeasonsRefresh,
   FixtureTvRefresh,
   FixturePressureRefresh,
   SubscriptionRefresh,
@@ -562,6 +564,7 @@ class HalfspaceDatabase extends Dexie {
   playerTransferQueries!: Table<PlayerTransferQuery, number>
   teamTransferQueries!: Table<TeamTransferQuery, number>
   transferFeedQueries!: Table<TransferFeedQuery, string>
+  statisticSeasonQueries!: Table<StatisticSeasonQuery, string>
 
   constructor() {
     super('halfspace')
@@ -821,10 +824,44 @@ class HalfspaceDatabase extends Dexie {
     this.version(27).stores({
       transferFeedQueries: '&key, staleAt'
     })
+    this.version(28).stores({
+      statisticSeasonQueries: '&key, staleAt'
+    })
   }
 }
 
 export const db = new HalfspaceDatabase()
+
+export interface StatisticSeasonQuery extends StatisticSeasonsRefresh {
+  key: string
+  staleAt: number
+}
+
+export function statisticSeasonsQueryKey(input: RefreshStatisticSeasonsInput): string {
+  return `${input.entity}:${input.entityId}`
+}
+
+export async function readStatisticSeasons(
+  input: RefreshStatisticSeasonsInput
+): Promise<StatisticSeasonQuery | null> {
+  return (await db.statisticSeasonQueries.get(statisticSeasonsQueryKey(input))) ?? null
+}
+
+export async function writeStatisticSeasonsRefresh(
+  input: RefreshStatisticSeasonsInput,
+  refresh: StatisticSeasonsRefresh
+): Promise<void> {
+  const key = statisticSeasonsQueryKey(input)
+  await db.transaction('rw', db.statisticSeasonQueries, async () => {
+    const previous = await db.statisticSeasonQueries.get(key)
+    if (previous && previous.fetchedAt > refresh.fetchedAt) return
+    await db.statisticSeasonQueries.put({
+      ...refresh,
+      key,
+      staleAt: refresh.fetchedAt + statisticsCacheDuration
+    })
+  })
+}
 
 export interface RoundStandingQuery extends RefreshRoundStandingsInput {
   key: string
@@ -2530,7 +2567,8 @@ export async function clearSportmonksCache(): Promise<void> {
       db.transfers,
       db.playerTransferQueries,
       db.teamTransferQueries,
-      db.transferFeedQueries
+      db.transferFeedQueries,
+      db.statisticSeasonQueries
     ],
     async () => {
       await db.subscriptionQueries.clear()
@@ -2573,6 +2611,7 @@ export async function clearSportmonksCache(): Promise<void> {
       await db.playerTransferQueries.clear()
       await db.teamTransferQueries.clear()
       await db.transferFeedQueries.clear()
+      await db.statisticSeasonQueries.clear()
     }
   )
 }

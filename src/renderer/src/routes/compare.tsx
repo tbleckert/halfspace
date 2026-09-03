@@ -6,8 +6,8 @@ const optionalId = z.coerce.number().int().positive().optional().catch(undefined
 export const Route = createFileRoute('/compare')({
   validateSearch: z.object({
     kind: z.enum(['teams', 'players']).optional().catch(undefined),
-    competition: optionalId,
-    season: optionalId,
+    leftSeason: optionalId,
+    rightSeason: optionalId,
     left: optionalId,
     right: optionalId,
     leftTeam: optionalId,

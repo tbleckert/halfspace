@@ -75,7 +75,7 @@ include should have a useful place in Halfspace.
 - [x] Referee season statistics with reported disciplinary totals and per-match averages.
 - [x] Player pages with match records and career history, plus coach and venue profiles.
 - [x] Season statistics for competitions, teams, and players.
-- [x] Side-by-side team and player comparisons with competition, season, and player club selection.
+- [x] Cross-league team and player comparisons with entity-specific season selection, independent records, and per-90 player radars.
 - [x] Season player leaderboards for goals, assists, yellow cards, and red cards.
 - [x] Fixture previews, event timelines, pitch lineups, match statistics, and pre-match odds.
 - [x] Fixture weather and match-specific absences with linked player profiles.
@@ -99,6 +99,7 @@ include should have a useful place in Halfspace.
 - [ ] Football news.
 - [ ] Premium odds and deeper bookmaker coverage.
 - [ ] Deeper comparison and analysis tools built on the local data foundation.
+- [ ] Shareable image exports of comparisons and other football views for social media.
 - [ ] Complete Sportmonks endpoint and include coverage.
 
 Checked items describe the features available today, not exhaustive API coverage. Every addition

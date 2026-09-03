@@ -1,4 +1,6 @@
 import type {
+  RefreshStatisticSeasonsInput,
+  StatisticSeasonsRefresh,
   TeamRivalsRefresh,
   FixtureCommentaryRefresh,
   RefreshSeasonScheduleInput,
@@ -96,6 +98,91 @@ const seasonSchema = z
     ending_at: z.string().nullable().optional()
   })
   .passthrough()
+
+const statisticSeasonsResponseSchema = z.object({
+  data: z.object({
+    id: z.number().int(),
+    name: z.string(),
+    statistics: z
+      .array(
+        z.object({
+          player_id: z.number().int().optional(),
+          team_id: z.number().int(),
+          season_id: z.number().int(),
+          has_values: z.union([z.boolean(), z.literal(0), z.literal(1)]).transform(Boolean),
+          season: seasonSchema
+            .extend({
+              league: z.object({ id: z.number().int(), name: z.string() }).nullish()
+            })
+            .nullish(),
+          team: z.object({ id: z.number().int(), name: z.string() }).nullish()
+        })
+      )
+      .default([])
+  }),
+  rate_limit: z.object({ remaining: z.number(), resets_in_seconds: z.number() }).optional()
+})
+
+export function validateStatisticSeasonsInput(value: unknown): RefreshStatisticSeasonsInput {
+  const parsed = z
+    .object({ entity: z.enum(['teams', 'players']), entityId: z.number().int().positive() })
+    .safeParse(value)
+  if (!parsed.success) throw new SportmonksError('invalid_input', 'Choose a valid team or player.')
+  return parsed.data
+}
+
+export async function fetchStatisticSeasons(
+  input: RefreshStatisticSeasonsInput,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<StatisticSeasonsRefresh> {
+  const fetchedAt = Date.now()
+  const url = new URL(`${apiBaseUrl}/${input.entity}/${input.entityId}`)
+  url.searchParams.set(
+    'include',
+    input.entity === 'players'
+      ? 'statistics.season.league;statistics.team'
+      : 'statistics.season.league'
+  )
+  const parsed = await requestSportmonks(url, token, statisticSeasonsResponseSchema, fetcher)
+  if (parsed.data.id !== input.entityId)
+    throw new Error('Season records do not match the selected entity.')
+  const records = parsed.data.statistics.flatMap((record) => {
+    const entityId = input.entity === 'players' ? record.player_id : record.team_id
+    if (entityId !== input.entityId)
+      throw new Error('Season records do not match the selected entity.')
+    if (!record.has_values || !record.season?.league) return []
+    const { league, ...season } = record.season
+    if (
+      season.id !== record.season_id ||
+      season.league_id !== league.id ||
+      (record.team && record.team.id !== record.team_id)
+    ) {
+      throw new Error('Season records contain mismatched relationships.')
+    }
+    return [
+      {
+        season,
+        competitionName: league.name,
+        teamId: record.team_id,
+        teamName:
+          input.entity === 'teams'
+            ? parsed.data.name
+            : (record.team?.name ?? `Team ${record.team_id}`)
+      }
+    ]
+  })
+  return {
+    records,
+    fetchedAt,
+    rateLimit: parsed.rate_limit
+      ? {
+          remaining: parsed.rate_limit.remaining,
+          resetsAt: fetchedAt + parsed.rate_limit.resets_in_seconds * 1000
+        }
+      : undefined
+  }
+}
 
 const competitionSchema = z
   .object({
