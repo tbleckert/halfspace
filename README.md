@@ -28,23 +28,31 @@ include should have a useful place in Halfspace.
 - [x] Season player leaderboards for goals, assists, yellow cards, and red cards.
 - [x] Fixture previews, event timelines, pitch lineups, match statistics, and pre-match odds.
 - [x] Live match commentary with key-event filtering and offline history.
+- [x] Fixture TV guides with country-specific broadcast listings.
+- [x] Competition Team of the Week with season and round browsing.
+- [x] Pre-match and in-play odds explorer with market and bookmaker comparison.
+- [x] Subscription overview showing plans, add-ons, and feature access for your token.
 - [x] Global entity search, competition quick access, and navigation prefetching.
 
 ### Ahead
 
 - [ ] Knockout brackets and tournament progression.
-- [ ] Team rankings and teams of the week.
+- [ ] Team rankings.
 - [ ] Referee season statistics and deeper match history.
 - [ ] Transfer rumours and pending transfers.
 - [ ] Expected goals, predictions, and expected lineups.
 - [ ] Match facts and deeper in-play analysis.
-- [ ] Football news and TV listings.
-- [ ] In-play and premium odds, market exploration, and bookmaker coverage.
+- [ ] Football news.
+- [ ] Premium odds and deeper bookmaker coverage.
 - [ ] Comparison and analysis tools built on the local data foundation.
 - [ ] Complete Sportmonks endpoint and include coverage.
 
 Checked items describe the features available today, not exhaustive API coverage. Every addition
 should stay local-first, with typed requests, durable caching, and natural links between entities.
+
+Data availability depends on your Sportmonks plan, add-ons, selected leagues, and the individual
+fixture. Settings shows what your token can access; an included feature may still have no data for
+a particular selection.
 
 An endpoint or include is considered covered when its data can be fetched safely, cached locally,
 reached through the interface, and understood in the context of the related entities.

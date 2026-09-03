@@ -10,7 +10,10 @@ export const fixtureDetailSearchSchema = z.object({
   date: z.string().refine(isIsoDate).optional().catch(undefined),
   competition: optionalPositiveId,
   season: optionalPositiveId,
-  team: optionalPositiveId
+  team: optionalPositiveId,
+  oddsFeed: z.enum(['pre-match', 'inplay']).optional().catch(undefined),
+  market: optionalPositiveId,
+  bookmaker: optionalPositiveId
 })
 
 export type FixtureDetailSearch = z.infer<typeof fixtureDetailSearchSchema>

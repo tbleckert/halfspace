@@ -2,13 +2,11 @@ import { describe, expect, it } from 'vitest'
 import type {
   SportmonksEvent,
   SportmonksFixtureStatistic,
-  SportmonksLineup,
-  SportmonksOdd
+  SportmonksLineup
 } from '@shared/contracts'
 import {
   fixtureFormationLabel,
   fixtureFormationLines,
-  fixtureOddsGroups,
   fixturePlayerPerformances,
   fixturePlayerAnnotations,
   fixtureStatisticRows,
@@ -121,37 +119,6 @@ describe('fixture detail data', () => {
           { label: 'Interceptions', value: 2 },
           { label: 'Duels won', value: 7 }
         ]
-      }
-    ])
-  })
-
-  it('groups odds by market and bookmaker', () => {
-    const odds = [
-      {
-        id: 1,
-        market_id: 1,
-        bookmaker_id: 2,
-        label: 'Home',
-        value: '1.80',
-        market: { id: 1, name: 'Fulltime Result' },
-        bookmaker: { id: 2, name: 'Nordic Bet' }
-      },
-      {
-        id: 2,
-        market_id: 1,
-        bookmaker_id: 2,
-        label: 'Away',
-        value: '4.20',
-        market: { id: 1, name: 'Fulltime Result' },
-        bookmaker: { id: 2, name: 'Nordic Bet' }
-      }
-    ] as SportmonksOdd[]
-
-    expect(fixtureOddsGroups(odds)).toMatchObject([
-      {
-        market: 'Fulltime Result',
-        bookmaker: 'Nordic Bet',
-        odds: [{ label: 'Away' }, { label: 'Home' }]
       }
     ])
   })

@@ -80,6 +80,9 @@ abstractions.
   reusing the season leaderboard cache. Keep portraits circular and totals monospaced; acknowledge
   equal totals as a shared lead even when provider ranks differ. Hide categories without positive
   totals, and link to the matching URL-backed leaderboard category in Stats.
+- Competition Team of the Week browses the latest selection and explicit season rounds. Cache each
+  query separately, hydrate shared player and team identities, preserve season context in links,
+  and never display a latest selection from another season as the selected season's team.
 - Fixture pages keep Preview, Timeline, Lineups, Stats, and Odds in horizontal navigation inside
   the score hero. Preview stacks the compact venue card directly below Details.
 - Keep fixture subview presentation in focused components. The persistent entity shell owns shared
@@ -149,8 +152,17 @@ abstractions.
 - Fixture Commentary is lazy-loaded from the dedicated non-paginated endpoint. Keep it cached per
   fixture, newest first by provider `order`, with an All updates / Key events filter and linked
   player identities. Refresh every 30 seconds only while an ongoing match's Commentary tab is open.
-- Fetch fixture odds lazily from the dedicated pre-match endpoint. Its response is a single,
-  non-paginated payload even when other Sportmonks collections paginate.
+- Fetch pre-match and in-play odds lazily from their dedicated non-paginated endpoints into separate
+  caches. Refresh in-play odds every 30 seconds only while an ongoing match's Odds view is open.
+  Keep feed, market, and bookmaker selections in the URL. Compare like-for-like outcomes and lines,
+  retain provider update times, and exclude stopped or suspended quotes from price highlights.
+- Fixture TV guide uses fixture-specific `tvStations.tvStation` and `tvStations.country` includes;
+  a station's general countries do not establish where a particular match is broadcast. Cache the
+  guide separately, filter by country, and distinguish an empty guide from unavailable data.
+- Settings shows the token's Football plans, add-ons, and feature access from My Resources and My
+  Enrichments. Keep access separate from coverage: an included feature can have no data for a
+  particular league or fixture. Unknown access is not a denial, and empty results do not imply an
+  upgrade. Clear subscription metadata with the rest of the cache when credentials change.
 - Do not infer player appearances from team fixtures or bench selection. Name lineup data for what
   it confirms, and reserve appearances for verified participation.
 - Player pages use a persistent horizontal workspace navigation. Overview keeps compact identity

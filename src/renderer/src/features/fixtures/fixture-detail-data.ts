@@ -1,8 +1,7 @@
 import type {
   SportmonksEvent,
   SportmonksFixtureStatistic,
-  SportmonksLineup,
-  SportmonksOdd
+  SportmonksLineup
 } from '@shared/contracts'
 
 export interface StatisticRow {
@@ -16,13 +15,6 @@ export interface StatisticRow {
 export interface StatisticShare {
   home: number
   away: number
-}
-
-export interface OddsGroup {
-  key: string
-  market: string
-  bookmaker: string
-  odds: SportmonksOdd[]
 }
 
 export interface FormationLine {
@@ -300,32 +292,6 @@ function statisticNumber(value: number | string | null): number | null {
 
   const number = Number(normalized)
   return Number.isFinite(number) ? number : null
-}
-
-export function fixtureOddsGroups(odds: SportmonksOdd[]): OddsGroup[] {
-  const groups = new Map<string, OddsGroup>()
-
-  for (const odd of odds) {
-    const key = `${odd.market_id}|${odd.bookmaker_id}`
-    const group = groups.get(key) ?? {
-      key,
-      market: odd.market?.name ?? odd.market_description ?? `Market ${odd.market_id}`,
-      bookmaker: odd.bookmaker?.name ?? `Bookmaker ${odd.bookmaker_id}`,
-      odds: []
-    }
-    group.odds.push(odd)
-    groups.set(key, group)
-  }
-
-  return [...groups.values()]
-    .map((group) => ({
-      ...group,
-      odds: group.odds.toSorted((left, right) => left.label.localeCompare(right.label))
-    }))
-    .toSorted(
-      (left, right) =>
-        left.market.localeCompare(right.market) || left.bookmaker.localeCompare(right.bookmaker)
-    )
 }
 
 export function formatPlayerRating(rating: number): string {

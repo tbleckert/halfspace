@@ -14,6 +14,9 @@ import { invalidateRivalRefreshes } from '@/features/teams/use-team-rivals'
 import { invalidateVenueRefreshes } from '@/features/venues/use-venue'
 import { invalidateSearchRefreshes } from '@/features/search/use-entity-search'
 import { ConnectionStateContext } from './connection-state-context'
+import { invalidateSubscriptionRefresh } from '@/features/subscription/use-subscription'
+import { invalidateFixtureTvRefreshes } from '@/features/fixtures/use-fixture-tv'
+import { invalidateTeamOfWeekRefreshes } from '@/features/competitions/use-team-of-week'
 
 export function ConnectionStateProvider({ children }: { children: ReactNode }): React.JSX.Element {
   const [connection, setConnection] = useState<ConnectionState | null>(null)
@@ -169,6 +172,9 @@ export function ConnectionStateProvider({ children }: { children: ReactNode }): 
 }
 
 function invalidateRefreshes(): void {
+  invalidateSubscriptionRefresh()
+  invalidateFixtureTvRefreshes()
+  invalidateTeamOfWeekRefreshes()
   invalidateCompetitionRefresh()
   invalidateScheduleRefreshes()
   invalidateCoachRefreshes()

@@ -484,9 +484,9 @@ describe('fixture cache', () => {
       ]
     }
 
-    await writeFixtureOddsRefresh(19425456, refresh)
+    await writeFixtureOddsRefresh(19425456, 'pre-match', refresh)
 
-    const cached = await readFixtureOdds(19425456)
+    const cached = await readFixtureOdds(19425456, 'pre-match')
     expect(cached.query?.oddIds).toEqual([701])
     expect(cached.odds[0].raw.market?.name).toBe('Fulltime Result')
   })
@@ -505,20 +505,20 @@ describe('fixture cache', () => {
         }
       ]
     }
-    await writeFixtureOddsRefresh(19425456, refresh)
+    await writeFixtureOddsRefresh(19425456, 'pre-match', refresh)
     beforeNextCacheTransaction(() =>
-      writeFixtureOddsRefresh(19425456, {
+      writeFixtureOddsRefresh(19425456, 'pre-match', {
         ...refresh,
         fetchedAt: refresh.fetchedAt + 1_000,
         odds: [{ ...refresh.odds[0], id: 702 }]
       })
     )
-    await writeFixtureOddsRefresh(19425456, {
+    await writeFixtureOddsRefresh(19425456, 'pre-match', {
       ...refresh,
       fetchedAt: refresh.fetchedAt + 2_000,
       odds: [{ ...refresh.odds[0], id: 703 }]
     })
-    expect((await readFixtureOdds(19425456)).query?.oddIds).toEqual([703])
+    expect((await readFixtureOdds(19425456, 'pre-match')).query?.oddIds).toEqual([703])
     expect(await db.fixtureOdds.toCollection().primaryKeys()).toEqual([703])
   })
 

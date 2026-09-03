@@ -9,11 +9,15 @@ export const Route = createFileRoute('/fixtures/$fixtureId')({
 
 function FixtureDetailRoute(): React.JSX.Element {
   const { fixtureId } = Route.useParams()
-  const { competition, date, season, team } = Route.useSearch()
+  const { competition, date, season, team, oddsFeed, market, bookmaker } = Route.useSearch()
   const matchRoute = useMatchRoute()
   let view: FixtureView = 'preview'
 
-  if (matchRoute({ to: '/fixtures/$fixtureId/commentary', params: { fixtureId }, fuzzy: false })) {
+  if (matchRoute({ to: '/fixtures/$fixtureId/tv', params: { fixtureId }, fuzzy: false })) {
+    view = 'tv'
+  } else if (
+    matchRoute({ to: '/fixtures/$fixtureId/commentary', params: { fixtureId }, fuzzy: false })
+  ) {
     view = 'commentary'
   } else if (
     matchRoute({
@@ -58,6 +62,9 @@ function FixtureDetailRoute(): React.JSX.Element {
         seasonId={season}
         teamId={team}
         view={view}
+        oddsFeed={oddsFeed}
+        marketId={market}
+        bookmakerId={bookmaker}
       />
       <Outlet />
     </>

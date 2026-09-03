@@ -21,6 +21,7 @@ import type {
   RefreshCompetitionSeasonsInput,
   RefreshFixtureHeadToHeadInput,
   RefreshFixtureInput,
+  RefreshFixtureOddsInput,
   RefreshFixturesInput,
   RefreshFixtureWindowInput,
   RefreshPlayerAppearancesInput,
@@ -195,7 +196,7 @@ const coachAssignmentSchema = z
   })
   .passthrough()
 
-const teamSchema = z
+export const teamSchema = z
   .object({
     id: z.number().int(),
     sport_id: z.number().int(),
@@ -232,7 +233,7 @@ const positionSchema = z
   })
   .passthrough()
 
-const playerSchema = z
+export const playerSchema = z
   .object({
     id: z.number().int(),
     sport_id: z.number().int(),
@@ -424,6 +425,9 @@ const oddSchema = z
     probability: z.string().nullable().optional(),
     winning: z.boolean().nullable().optional(),
     stopped: z.boolean().nullable().optional(),
+    suspended: z.boolean().nullable().optional(),
+    participants: z.string().nullable().optional(),
+    latest_bookmaker_update: z.string().nullable().optional(),
     total: z.string().nullable().optional(),
     handicap: z.string().nullable().optional(),
     bookmaker: bookmakerSchema.nullable().optional(),
@@ -976,6 +980,15 @@ export function validateFixtureInput(value: unknown): RefreshFixtureInput {
   return { fixtureId }
 }
 
+export function validateFixtureOddsInput(value: unknown): RefreshFixtureOddsInput {
+  const { fixtureId } = validateFixtureInput(value)
+  const feed = (value as { feed?: unknown }).feed
+  if (feed !== 'pre-match' && feed !== 'inplay') {
+    throw new SportmonksError('invalid_input', 'Select a valid odds feed.')
+  }
+  return { fixtureId, feed }
+}
+
 export function validateFixtureHeadToHeadInput(value: unknown): RefreshFixtureHeadToHeadInput {
   if (!value || typeof value !== 'object') {
     throw new SportmonksError('invalid_input', 'Choose two valid teams.')
@@ -1284,15 +1297,18 @@ export async function fetchFixtureCommentary(
 }
 
 export async function fetchFixtureOdds(
-  input: RefreshFixtureInput,
+  input: RefreshFixtureOddsInput,
   token: string,
   fetcher: typeof fetch = fetch
 ): Promise<FixtureOddsRefresh> {
   const fetchedAt = Date.now()
-  const url = new URL(`${apiBaseUrl}/odds/pre-match/fixtures/${input.fixtureId}`)
+  const url = new URL(`${apiBaseUrl}/odds/${input.feed}/fixtures/${input.fixtureId}`)
   url.searchParams.set('include', 'bookmaker;market')
 
   const parsed = await requestSportmonks(url, token, fixtureOddsResponseSchema, fetcher)
+  if (parsed.data.some((odd) => odd.fixture_id !== input.fixtureId)) {
+    throw new SportmonksError('invalid_response', 'Sportmonks returned odds for another fixture.')
+  }
 
   return {
     odds: parsed.data as SportmonksOdd[],

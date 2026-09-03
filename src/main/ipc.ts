@@ -37,6 +37,7 @@ import {
   validateCompetitionSeasonsInput,
   validateEntitySearchInput,
   validateFixtureInput,
+  validateFixtureOddsInput,
   validateFixtureHeadToHeadInput,
   validateFixtureWindowInput,
   validatePlayerAppearancesInput,
@@ -57,6 +58,9 @@ import {
 } from './sportmonks'
 import { clearSportmonksRateLimits, SportmonksError } from './sportmonks-client'
 import { clearStoredToken, hasStoredToken, readStoredToken, saveStoredToken } from './token-store'
+import { fetchSubscription } from './subscription'
+import { fetchFixtureTv } from './fixture-tv'
+import { fetchTeamOfWeek, validateTeamOfWeekInput } from './team-of-week'
 
 const missingTokenMessage = 'Add your Sportmonks token in Settings.'
 
@@ -64,6 +68,23 @@ let currentRateLimit: SportmonksRateLimit | null = null
 let credentialGeneration = 0
 
 export function registerIpcHandlers(): void {
+  registerSportmonksHandler(
+    ipcChannels.refreshTeamOfWeek,
+    validateTeamOfWeekInput,
+    fetchTeamOfWeek,
+    'Could not refresh Team of the Week.'
+  )
+  registerSportmonksHandler(
+    ipcChannels.refreshFixtureTv,
+    validateFixtureInput,
+    fetchFixtureTv,
+    'Could not refresh TV listings.'
+  )
+  registerSportmonksHandlerWithoutInput(
+    ipcChannels.refreshSubscription,
+    fetchSubscription,
+    'Could not refresh subscription access.'
+  )
   ipcMain.handle(ipcChannels.connectionState, async (event) => {
     assertTrustedSender(event)
     return { configured: await hasStoredToken() }
@@ -130,7 +151,7 @@ export function registerIpcHandlers(): void {
   )
   registerSportmonksHandler(
     ipcChannels.refreshFixtureOdds,
-    validateFixtureInput,
+    validateFixtureOddsInput,
     fetchFixtureOdds,
     'Could not refresh fixture odds.'
   )

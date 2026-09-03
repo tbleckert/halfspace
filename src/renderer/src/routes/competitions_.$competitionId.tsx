@@ -26,30 +26,36 @@ function CompetitionWorkspaceRoute(): React.JSX.Element {
   const { date, season, leaderboard, stage, round } = Route.useSearch()
   const matchRoute = useMatchRoute()
   const view = matchRoute({
-    to: '/competitions/$competitionId/schedule',
+    to: '/competitions/$competitionId/team-of-week',
     params: { competitionId },
     fuzzy: false
   })
-    ? 'schedule'
+    ? 'team-of-week'
     : matchRoute({
-          to: '/competitions/$competitionId/fixtures',
+          to: '/competitions/$competitionId/schedule',
           params: { competitionId },
           fuzzy: false
         })
-      ? 'fixtures'
+      ? 'schedule'
       : matchRoute({
-            to: '/competitions/$competitionId/stats',
+            to: '/competitions/$competitionId/fixtures',
             params: { competitionId },
             fuzzy: false
           })
-        ? 'stats'
+        ? 'fixtures'
         : matchRoute({
-              to: '/competitions/$competitionId/teams',
+              to: '/competitions/$competitionId/stats',
               params: { competitionId },
               fuzzy: false
             })
-          ? 'teams'
-          : 'overview'
+          ? 'stats'
+          : matchRoute({
+                to: '/competitions/$competitionId/teams',
+                params: { competitionId },
+                fuzzy: false
+              })
+            ? 'teams'
+            : 'overview'
 
   return (
     <>

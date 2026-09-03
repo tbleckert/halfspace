@@ -5,6 +5,7 @@ import { SportmonksTokenForm } from '@/features/credentials/sportmonks-token-for
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { SubscriptionCard } from '@/features/subscription/subscription-card'
 
 export function SettingsPage(): React.JSX.Element {
   const { clearToken } = useConnectionState()
@@ -28,6 +29,8 @@ export function SettingsPage(): React.JSX.Element {
       <header>
         <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
       </header>
+
+      <SubscriptionCard />
 
       <Card>
         <CardHeader>

@@ -1,4 +1,7 @@
 export const ipcChannels = {
+  refreshSubscription: 'sportmonks:refresh-subscription',
+  refreshFixtureTv: 'sportmonks:refresh-fixture-tv',
+  refreshTeamOfWeek: 'sportmonks:refresh-team-of-week',
   connectionState: 'credentials:connection-state',
   saveToken: 'credentials:save-token',
   clearToken: 'credentials:clear-token',
@@ -63,6 +66,59 @@ export interface ConnectionState {
   configured: boolean
 }
 
+export interface SubscriptionRefresh {
+  plans: { name: string; category: string }[]
+  addOns: string[]
+  resources: { id: number; description: string }[]
+  enrichments: { id: number; name: string }[]
+  fetchedAt: number
+}
+
+export interface SportmonksTvListing {
+  id: number
+  fixture_id: number
+  tvstation_id: number
+  country_id: number | null
+  tvstation: { id: number; name: string; url: string | null; image_path: string | null } | null
+  country: { id: number; name: string; image_path: string | null } | null
+}
+
+export interface FixtureTvRefresh {
+  listings: SportmonksTvListing[]
+  fetchedAt: number
+}
+
+export interface RefreshTeamOfWeekInput {
+  competitionId: number
+  roundId?: number
+}
+
+export interface SportmonksTeamOfWeekEntry {
+  id: number
+  player_id: number
+  team_id: number
+  fixture_id: number
+  round_id: number
+  rating: number | null
+  formation_position: number | null
+  formation: string | null
+  player: SportmonksPlayer | null
+  team: SportmonksTeam | null
+  round: {
+    id: number
+    league_id: number
+    season_id: number
+    name: string
+    starting_at?: string | null
+    ending_at?: string | null
+  }
+}
+
+export interface TeamOfWeekRefresh {
+  entries: SportmonksTeamOfWeekEntry[]
+  fetchedAt: number
+}
+
 export interface SaveTokenInput {
   token: string
 }
@@ -80,6 +136,12 @@ export interface RefreshFixtureWindowInput {
 
 export interface RefreshFixtureInput {
   fixtureId: number
+}
+
+export type OddsFeed = 'pre-match' | 'inplay'
+
+export interface RefreshFixtureOddsInput extends RefreshFixtureInput {
+  feed: OddsFeed
 }
 
 export interface SportmonksCommentary {
@@ -566,6 +628,9 @@ export interface SportmonksOdd {
   probability?: string | null
   winning?: boolean | null
   stopped?: boolean | null
+  suspended?: boolean | null
+  participants?: string | null
+  latest_bookmaker_update?: string | null
   total?: string | null
   handicap?: string | null
   bookmaker?: SportmonksBookmaker | null
@@ -908,6 +973,9 @@ export interface HalfspaceApi {
     clearToken(): Promise<Result<null>>
   }
   sportmonks: {
+    refreshSubscription(): Promise<Result<SubscriptionRefresh>>
+    refreshFixtureTv(input: RefreshFixtureInput): Promise<Result<FixtureTvRefresh>>
+    refreshTeamOfWeek(input: RefreshTeamOfWeekInput): Promise<Result<TeamOfWeekRefresh>>
     refreshTeamRivals: (input: RefreshTeamInput) => Promise<Result<TeamRivalsRefresh>>
     refreshFixtureCommentary: (
       input: RefreshFixtureInput
@@ -919,7 +987,7 @@ export interface HalfspaceApi {
     refreshFixtureWindow(input: RefreshFixtureWindowInput): Promise<Result<FixtureRefresh>>
     refreshFixture(input: RefreshFixtureInput): Promise<Result<FixtureDetailRefresh>>
     refreshFixtureHeadToHead(input: RefreshFixtureHeadToHeadInput): Promise<Result<FixtureRefresh>>
-    refreshFixtureOdds(input: RefreshFixtureInput): Promise<Result<FixtureOddsRefresh>>
+    refreshFixtureOdds(input: RefreshFixtureOddsInput): Promise<Result<FixtureOddsRefresh>>
     refreshCompetitions(): Promise<Result<CompetitionRefresh>>
     refreshCompetitionSeasons(
       input: RefreshCompetitionSeasonsInput

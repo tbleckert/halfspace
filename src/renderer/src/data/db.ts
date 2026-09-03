@@ -1,5 +1,12 @@
 import Dexie, { type Table } from 'dexie'
 import type {
+  FixtureTvRefresh,
+  SubscriptionRefresh,
+  TeamOfWeekRefresh,
+  RefreshTeamOfWeekInput,
+  OddsFeed
+} from '@shared/contracts'
+import type {
   TeamRivalsRefresh,
   FixtureCommentaryRefresh,
   SeasonScheduleRefresh,
@@ -476,7 +483,25 @@ export interface TeamRivalsQuery {
   staleAt: number
 }
 
+export interface SubscriptionQuery extends SubscriptionRefresh {
+  key: string
+  staleAt: number
+}
+
+export interface FixtureTvQuery extends FixtureTvRefresh {
+  fixtureId: number
+  staleAt: number
+}
+
+export interface TeamOfWeekQuery extends TeamOfWeekRefresh {
+  key: string
+  staleAt: number
+}
+
 class HalfspaceDatabase extends Dexie {
+  subscriptionQueries!: Table<SubscriptionQuery, string>
+  fixtureTvQueries!: Table<FixtureTvQuery, number>
+  teamOfWeekQueries!: Table<TeamOfWeekQuery, string>
   teamRivalsQueries!: Table<TeamRivalsQuery, number>
   fixtureCommentaryQueries!: Table<FixtureCommentaryQuery, number>
   seasonScheduleQueries!: Table<SeasonScheduleQuery, number>
@@ -484,6 +509,8 @@ class HalfspaceDatabase extends Dexie {
   fixtureQueries!: Table<FixtureQuery, string>
   fixtureOdds!: Table<CachedFixtureOdd, number>
   fixtureOddsQueries!: Table<FixtureOddsQuery, number>
+  fixtureInplayOdds!: Table<CachedFixtureOdd, number>
+  fixtureInplayOddsQueries!: Table<FixtureOddsQuery, number>
   fixtureHeadToHeadQueries!: Table<FixtureHeadToHeadQuery, string>
   competitions!: Table<CachedCompetition, number>
   competitionCatalogs!: Table<CompetitionCatalog, string>
@@ -747,10 +774,99 @@ class HalfspaceDatabase extends Dexie {
     this.version(20).stores({
       teamRivalsQueries: '&teamId, staleAt'
     })
+    this.version(21).stores({
+      subscriptionQueries: '&key, staleAt'
+    })
+    this.version(22).stores({
+      fixtureTvQueries: '&fixtureId, staleAt'
+    })
+    this.version(23).stores({
+      teamOfWeekQueries: '&key, staleAt'
+    })
+    this.version(24).stores({
+      fixtureInplayOdds: '&id, fixtureId',
+      fixtureInplayOddsQueries: '&fixtureId, staleAt'
+    })
   }
 }
 
 export const db = new HalfspaceDatabase()
+
+export function teamOfWeekQueryKey(input: RefreshTeamOfWeekInput): string {
+  return `${input.competitionId}:${input.roundId ?? 'latest'}`
+}
+
+export async function readTeamOfWeek(
+  input: RefreshTeamOfWeekInput
+): Promise<TeamOfWeekQuery | null> {
+  return (await db.teamOfWeekQueries.get(teamOfWeekQueryKey(input))) ?? null
+}
+
+export async function writeTeamOfWeekRefresh(
+  input: RefreshTeamOfWeekInput,
+  refresh: TeamOfWeekRefresh
+): Promise<void> {
+  await db.transaction('rw', db.teamOfWeekQueries, db.players, db.teams, async () => {
+    const players = [
+      ...new Map(
+        refresh.entries.flatMap((entry) =>
+          entry.player ? [[entry.player.id, entry.player] as const] : []
+        )
+      ).values()
+    ]
+    const teams = [
+      ...new Map(
+        refresh.entries.flatMap((entry) =>
+          entry.team ? [[entry.team.id, entry.team] as const] : []
+        )
+      ).values()
+    ]
+    const existingPlayers = await db.players.bulkGet(players.map((player) => player.id))
+    const existingTeams = await db.teams.bulkGet(teams.map((team) => team.id))
+    await db.players.bulkPut(
+      players.map((player, index) =>
+        toCachedIncludedPlayer(player, existingPlayers[index], refresh.fetchedAt)
+      )
+    )
+    await db.teams.bulkPut(
+      teams.map((team, index) =>
+        toCachedIncludedTeam(team, existingTeams[index], refresh.fetchedAt)
+      )
+    )
+    await db.teamOfWeekQueries.put({
+      ...refresh,
+      key: teamOfWeekQueryKey(input),
+      staleAt: refresh.fetchedAt + 60 * 60 * 1000
+    })
+  })
+}
+
+export async function readSubscription(): Promise<SubscriptionQuery | null> {
+  return (await db.subscriptionQueries.get('current')) ?? null
+}
+
+export async function readFixtureTv(fixtureId: number): Promise<FixtureTvQuery | null> {
+  return (await db.fixtureTvQueries.get(fixtureId)) ?? null
+}
+
+export async function writeFixtureTvRefresh(
+  fixtureId: number,
+  refresh: FixtureTvRefresh
+): Promise<void> {
+  await db.fixtureTvQueries.put({
+    ...refresh,
+    fixtureId,
+    staleAt: refresh.fetchedAt + 60 * 60 * 1000
+  })
+}
+
+export async function writeSubscriptionRefresh(refresh: SubscriptionRefresh): Promise<void> {
+  await db.subscriptionQueries.put({
+    ...refresh,
+    key: 'current',
+    staleAt: refresh.fetchedAt + 60 * 60 * 1000
+  })
+}
 
 export async function readTeamRivals(
   teamId: number
@@ -1028,14 +1144,19 @@ export async function writeFixtureDetailRefresh(refresh: FixtureDetailRefresh): 
   })
 }
 
-export async function readFixtureOdds(fixtureId: number): Promise<{
+export async function readFixtureOdds(
+  fixtureId: number,
+  feed: OddsFeed
+): Promise<{
   query: FixtureOddsQuery | null
   odds: CachedFixtureOdd[]
 }> {
-  const query = await db.fixtureOddsQueries.get(fixtureId)
+  const queryTable = feed === 'inplay' ? db.fixtureInplayOddsQueries : db.fixtureOddsQueries
+  const oddsTable = feed === 'inplay' ? db.fixtureInplayOdds : db.fixtureOdds
+  const query = await queryTable.get(fixtureId)
   if (!query) return { query: null, odds: [] }
 
-  const odds = (await db.fixtureOdds.bulkGet(query.oddIds)).filter(
+  const odds = (await oddsTable.bulkGet(query.oddIds)).filter(
     (odd): odd is CachedFixtureOdd => odd !== undefined
   )
 
@@ -1044,8 +1165,11 @@ export async function readFixtureOdds(fixtureId: number): Promise<{
 
 export async function writeFixtureOddsRefresh(
   fixtureId: number,
+  feed: OddsFeed,
   refresh: FixtureOddsRefresh
 ): Promise<void> {
+  const queryTable = feed === 'inplay' ? db.fixtureInplayOddsQueries : db.fixtureOddsQueries
+  const oddsTable = feed === 'inplay' ? db.fixtureInplayOdds : db.fixtureOdds
   const odds: CachedFixtureOdd[] = refresh.odds.map((odd) => ({
     id: odd.id,
     fixtureId: odd.fixture_id,
@@ -1065,12 +1189,12 @@ export async function writeFixtureOddsRefresh(
   }
   const oddIds = new Set(query.oddIds)
 
-  await db.transaction('rw', db.fixtureOdds, db.fixtureOddsQueries, async () => {
-    const previousQuery = await db.fixtureOddsQueries.get(fixtureId)
+  await db.transaction('rw', oddsTable, queryTable, async () => {
+    const previousQuery = await queryTable.get(fixtureId)
     const removedOddIds = (previousQuery?.oddIds ?? []).filter((oddId) => !oddIds.has(oddId))
-    await db.fixtureOdds.bulkDelete(removedOddIds)
-    await db.fixtureOdds.bulkPut(odds)
-    await db.fixtureOddsQueries.put(query)
+    await oddsTable.bulkDelete(removedOddIds)
+    await oddsTable.bulkPut(odds)
+    await queryTable.put(query)
   })
 }
 
@@ -2149,10 +2273,15 @@ export async function clearSportmonksCache(): Promise<void> {
   await db.transaction(
     'rw',
     [
+      db.subscriptionQueries,
+      db.fixtureTvQueries,
+      db.teamOfWeekQueries,
       db.fixtures,
       db.fixtureQueries,
       db.fixtureOdds,
       db.fixtureOddsQueries,
+      db.fixtureInplayOdds,
+      db.fixtureInplayOddsQueries,
       db.fixtureCommentaryQueries,
       db.fixtureHeadToHeadQueries,
       db.competitions,
@@ -2183,10 +2312,15 @@ export async function clearSportmonksCache(): Promise<void> {
       db.teamTransferQueries
     ],
     async () => {
+      await db.subscriptionQueries.clear()
+      await db.fixtureTvQueries.clear()
+      await db.teamOfWeekQueries.clear()
       await db.fixtures.clear()
       await db.fixtureQueries.clear()
       await db.fixtureOdds.clear()
       await db.fixtureOddsQueries.clear()
+      await db.fixtureInplayOdds.clear()
+      await db.fixtureInplayOddsQueries.clear()
       await db.fixtureCommentaryQueries.clear()
       await db.fixtureHeadToHeadQueries.clear()
       await db.competitions.clear()

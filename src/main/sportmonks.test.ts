@@ -326,7 +326,11 @@ describe('Sportmonks client', () => {
       })
     )
 
-    const refresh = await fetchFixtureOdds({ fixtureId: odd.fixture_id }, 'private-token', fetcher)
+    const refresh = await fetchFixtureOdds(
+      { fixtureId: odd.fixture_id, feed: 'pre-match' },
+      'private-token',
+      fetcher
+    )
 
     expect(refresh.odds).toEqual([odd])
     expect(refresh.rateLimit?.remaining).toBe(1_966)

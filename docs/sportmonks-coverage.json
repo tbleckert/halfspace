@@ -13,6 +13,7 @@
       "stage",
       "round",
       "coaches",
+      "tvStations",
       "referees",
       "lineups",
       "events",
@@ -34,6 +35,9 @@
       "lineups"
     ],
     "standard-odds-feed/pre-match-odds/get-odds-by-fixture-id": ["bookmaker", "market"],
+    "standard-odds-feed/inplay-odds/get-inplay-odds-by-fixture-id": ["bookmaker", "market"],
+    "team-of-the-week-totw/get-latest-totw": ["player", "team", "round"],
+    "team-of-the-week-totw/get-totw-per-round": ["player", "team", "round"],
     "leagues/get-all-leagues": ["country", "currentSeason"],
     "leagues/get-leagues-search-by-name": ["country", "currentSeason"],
     "seasons/get-all-seasons": [],

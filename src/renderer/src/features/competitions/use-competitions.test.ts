@@ -33,6 +33,9 @@ describe('competition refresh', () => {
         clearToken: vi.fn()
       },
       sportmonks: {
+        refreshSubscription: vi.fn(),
+        refreshTeamOfWeek: vi.fn(),
+        refreshFixtureTv: vi.fn(),
         refreshFixtures: vi.fn(),
         refreshFixtureWindow: vi.fn(),
         refreshFixture: vi.fn(),

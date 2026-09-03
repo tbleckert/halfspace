@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import type { RefreshFixtureHeadToHeadInput } from '@shared/contracts'
+import type { OddsFeed, RefreshFixtureHeadToHeadInput } from '@shared/contracts'
 import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import { useRefreshStatus } from '@/lib/use-refresh-status'
 import {
@@ -22,7 +22,7 @@ let refreshGeneration = 0
 const refreshes = new Map<string, RefreshRequest>()
 const windowRefreshes = new Map<string, RefreshRequest>()
 const entityRefreshes = new Map<number, RefreshRequest>()
-const oddsRefreshes = new Map<number, RefreshRequest>()
+const oddsRefreshes = new Map<string, RefreshRequest>()
 const headToHeadRefreshes = new Map<string, RefreshRequest>()
 
 type FixtureCache = Awaited<ReturnType<typeof readFixtureQuery>>
@@ -168,25 +168,31 @@ export function useFixtureEntity(
 
 export function useFixtureOdds(
   fixtureId: number | null,
-  enabled: boolean
+  enabled: boolean,
+  feed: OddsFeed,
+  live: boolean
 ): RefreshableQuery<FixtureOddsCache> {
   const cached = useScopedLiveQuery(
     () =>
-      fixtureId === null ? Promise.resolve({ query: null, odds: [] }) : readFixtureOdds(fixtureId),
-    [fixtureId]
+      fixtureId === null
+        ? Promise.resolve({ query: null, odds: [] })
+        : readFixtureOdds(fixtureId, feed),
+    [fixtureId, feed]
   )
-  const { refreshing, error, runRefresh } = useRefreshStatus(fixtureId)
+  const { refreshing, error, runRefresh } = useRefreshStatus(`${fixtureId}:${feed}`)
 
   const refresh = useCallback(async () => {
     if (!enabled || fixtureId === null) return
 
-    await runRefresh(() => refreshFixtureOdds(fixtureId), 'Could not refresh fixture odds.')
-  }, [enabled, fixtureId, runRefresh])
+    await runRefresh(() => refreshFixtureOdds(fixtureId, feed), 'Could not refresh fixture odds.')
+  }, [enabled, fixtureId, feed, runRefresh])
 
   useStaleRefresh(
     enabled && fixtureId !== null,
     cached !== undefined,
-    cached?.query?.staleAt,
+    feed === 'inplay' && live && cached?.query
+      ? Math.min(cached.query.staleAt, cached.query.fetchedAt + 30_000)
+      : cached?.query?.staleAt,
     refresh
   )
 
@@ -328,24 +334,25 @@ export async function refreshFixtureEntity(fixtureId: number): Promise<void> {
   }
 }
 
-async function refreshFixtureOdds(fixtureId: number): Promise<void> {
-  const existing = oddsRefreshes.get(fixtureId)
+async function refreshFixtureOdds(fixtureId: number, feed: OddsFeed): Promise<void> {
+  const key = `${fixtureId}:${feed}`
+  const existing = oddsRefreshes.get(key)
   if (existing?.generation === refreshGeneration) return existing.promise
 
   const generation = refreshGeneration
   const promise = (async () => {
-    const result = await window.halfspace.sportmonks.refreshFixtureOdds({ fixtureId })
+    const result = await window.halfspace.sportmonks.refreshFixtureOdds({ fixtureId, feed })
     if (generation !== refreshGeneration) return
     if (!result.ok) throw new Error(result.error.message)
-    await writeFixtureOddsRefresh(fixtureId, result.data)
+    await writeFixtureOddsRefresh(fixtureId, feed, result.data)
   })()
 
-  oddsRefreshes.set(fixtureId, { generation, promise })
+  oddsRefreshes.set(key, { generation, promise })
 
   try {
     await promise
   } finally {
-    if (oddsRefreshes.get(fixtureId)?.promise === promise) oddsRefreshes.delete(fixtureId)
+    if (oddsRefreshes.get(key)?.promise === promise) oddsRefreshes.delete(key)
   }
 }
 
