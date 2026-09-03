@@ -7,6 +7,7 @@ import { intentPrefetchProps } from '@/lib/prefetch'
 import { cn } from '@/lib/utils'
 import { currentFixtureScore, fixtureParticipantAt } from '@/lib/fixture'
 import { EntityFixturePanel } from './entity-fixture-panel'
+import { FixtureAbsences } from './fixture-absences'
 import {
   fixtureOutcome,
   recentHeadToHead,
@@ -68,6 +69,7 @@ export function FixturePreviewWorkspace({
         }
         online={online}
       />
+      <FixtureAbsences fixture={fixture.raw} context={context} online={online} />
       <FixtureForm
         away={away}
         awayFixtures={awayFixtures}

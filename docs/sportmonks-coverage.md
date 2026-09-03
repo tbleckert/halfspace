@@ -1,6 +1,6 @@
 # Sportmonks API coverage
 
-Halfspace currently covers **33 of 153 endpoints** and **102 of 1320 documented endpoint includes**.
+Halfspace currently covers **33 of 153 endpoints** and **105 of 1320 documented endpoint includes**.
 
 Overall coverage: **9%**
 
@@ -27,7 +27,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 ### Fixtures
 
 - [ ] [All Fixtures](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-all-fixtures)
-- [x] [Fixture by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixture-by-id) — includes 15/38
+- [x] [Fixture by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixture-by-id) — includes 17/38
 - [ ] [Fixtures by Multiple IDs](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixtures-by-multiple-ids)
 - [x] [Fixtures by Date](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixtures-by-date) — includes 5/38
 - [x] [Fixtures by Date Range](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixtures-by-date-range) — includes 5/38
@@ -98,7 +98,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 ### Standings
 
 - [ ] [All Standings](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-all-standings)
-- [x] [Standings by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-standings-by-season-id) — includes 5/10
+- [x] [Standings by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-standings-by-season-id) — includes 6/10
 - [ ] [Standings by Round ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-standings-by-round-id)
 - [ ] [Standing Correction by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-standing-correction-by-season-id)
 - [ ] [Live Standings by League ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-live-standings-by-league-id)

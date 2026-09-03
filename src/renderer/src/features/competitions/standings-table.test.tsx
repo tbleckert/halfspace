@@ -41,7 +41,7 @@ const standing: CachedStanding = {
   }
 }
 
-function renderTable(row: CachedStanding): void {
+function renderTable(row: CachedStanding, otherRows: CachedStanding[] = []): void {
   const rootRoute = createRootRoute({
     component: () => (
       <StandingsTable
@@ -50,7 +50,7 @@ function renderTable(row: CachedStanding): void {
         name="Table"
         online={false}
         season={27895}
-        standings={[row]}
+        standings={[row, ...otherRows]}
       />
     )
   })
@@ -78,5 +78,32 @@ describe('standings table', () => {
     const table = await screen.findByRole('table', { name: 'Table' })
     expect(within(table).getAllByRole('cell', { name: '–' })).toHaveLength(2)
     expect(within(table).queryByRole('link', { name: /open match/ })).toBeNull()
+    expect(screen.queryByRole('list', { name: 'Table places' })).toBeNull()
+  })
+
+  it('labels table places with provider rules and shows each qualification type once', async () => {
+    const rule = {
+      id: 10,
+      type_id: 246,
+      type: { id: 246, name: 'UEFA Champions League Qualifiers' }
+    }
+    const qualified = { ...standing, raw: { ...standing.raw, rule } }
+    renderTable(qualified, [
+      {
+        ...qualified,
+        id: 2,
+        position: 2,
+        raw: { ...qualified.raw, id: 2, position: 2, rule: { ...rule, id: 11 } }
+      }
+    ])
+    const legend = await screen.findByRole('list', { name: 'Table places' })
+    expect(within(legend).getAllByRole('listitem')).toHaveLength(1)
+    expect(within(legend).getByText(rule.type.name)).not.toBeNull()
+    expect(
+      screen.getByRole('cell', { name: /^1.*UEFA Champions League Qualifiers$/ })
+    ).not.toBeNull()
+    expect(
+      screen.getByRole('cell', { name: /^2.*UEFA Champions League Qualifiers$/ })
+    ).not.toBeNull()
   })
 })

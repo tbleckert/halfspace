@@ -58,6 +58,8 @@ abstractions.
   details, plus the last five W/D/L results from standing form. Request only the detail types shown;
   preserve missing values as unknown. Sort form by provider `sort_order`, oldest to newest, and link
   each result to its fixture with competition and season context intact.
+- Show competition qualification and relegation places from `rule.type`, with matching row markers
+  and a deduplicated legend. Keep provider labels and never infer rules from table positions.
 - Competition Schedule browses the complete season by stage and round. Fetch the schedule once per
   cache window, normalize its fixtures into the shared cache, and keep stage and round selections
   in the URL. Default to the current stage and round; clear those selections when switching seasons.
@@ -99,6 +101,12 @@ abstractions.
 - Fixture Preview pairs that supporting column with season table context, each team’s five most
   recent completed matches before kickoff, and recent head-to-head meetings. Reuse standings and
   team-fixture caches, cache head-to-head separately, and prefetch Preview on intent.
+- Fixture Preview shows match-specific absences from `sidelined.player` and `sidelined.type`, grouped
+  by `participant_id` with linked player profiles. Preserve historical match absences separately
+  from current team availability and distinguish missing data from no reported absences.
+- Keep `weatherReport` in a compact Preview card. Distinguish recorded conditions from forecasts,
+  use reported temperature units, and never infer kickoff weather from daily values. Omit missing
+  weather and measurements whose units are unknown. Preserve weather and absences during list refreshes.
 - Sportmonks fixture detail owns events, statistics, and lineups; fixture list refreshes must
   preserve that richer cached detail. Fetch and cache the much larger odds payload only when the
   Odds view opens.

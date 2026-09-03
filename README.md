@@ -62,7 +62,7 @@ include should have a useful place in Halfspace.
 
 - [x] Local-first desktop app with personal Sportmonks tokens and offline browsing.
 - [x] Matchday hub with calendar navigation, live updates, upcoming fixtures, and recent results.
-- [x] Competition pages with standings, played matches, goal difference, linked form, and season selection.
+- [x] Competition pages with standings, qualification and relegation places, linked form, and season selection.
 - [x] Complete season schedules with stage and round navigation.
 - [x] Team pages with fixtures, squad profiles, and transfer history.
 - [x] Historical team squads with season selection and offline browsing.
@@ -73,6 +73,7 @@ include should have a useful place in Halfspace.
 - [x] Season statistics for competitions, teams, and players.
 - [x] Season player leaderboards for goals, assists, yellow cards, and red cards.
 - [x] Fixture previews, event timelines, pitch lineups, match statistics, and pre-match odds.
+- [x] Fixture weather and match-specific absences with linked player profiles.
 - [x] Match-aware Game view combining pressure, key statistics, and the event timeline.
 - [x] Fixture pressure charts with goal and red-card markers, exact values, and live updates.
 - [x] Live match commentary with key-event filtering and offline history.

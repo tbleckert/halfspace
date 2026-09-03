@@ -30,6 +30,7 @@ import { ArrowLeft, RefreshCw } from 'lucide-react'
 import { useEffect, useMemo } from 'react'
 import { FixtureCommentary } from './fixture-commentary'
 import { FixtureTv } from './fixture-tv'
+import { FixtureWeather } from './fixture-weather'
 import { FixtureLineups } from './fixture-lineups'
 import { FixtureLiveIndicator } from './fixture-live-indicator'
 import { FixtureOdds } from './fixture-odds'
@@ -533,6 +534,7 @@ function FixturePreview({
             venueSummary={cachedFixture.raw.venue}
           />
         )}
+        <FixtureWeather report={cachedFixture.raw.weatherreport} />
         <FixtureTv key={cachedFixture.id} fixtureId={cachedFixture.id} online={online} />
       </aside>
     </div>

@@ -17,6 +17,14 @@ import { cn } from '@/lib/utils'
 import { recentStandingForm, standingDetailValue } from './standing-details'
 
 const resultLabels: Record<string, string> = { W: 'Win', D: 'Draw', L: 'Loss' }
+const ruleColors = [
+  'bg-primary',
+  'bg-success',
+  'bg-amber-500',
+  'bg-violet-500',
+  'bg-rose-500',
+  'bg-muted-foreground'
+]
 
 export function StandingsTable({
   competitionId,
@@ -33,6 +41,15 @@ export function StandingsTable({
   season?: number
   standings: CachedStanding[]
 }): React.JSX.Element {
+  const rules = [
+    ...new Map(
+      standings.flatMap(({ raw }) =>
+        raw.rule?.type ? [[raw.rule.type.id, raw.rule.type] as const] : []
+      )
+    ).values()
+  ]
+  const ruleColor = (typeId: number): string =>
+    ruleColors[rules.findIndex(({ id }) => id === typeId) % ruleColors.length]
   return (
     <Card className="overflow-hidden">
       <CardHeader className="border-b px-4 py-3">
@@ -57,10 +74,24 @@ export function StandingsTable({
             const teamName = standing.raw.participant?.name ?? `Team ${standing.participantId}`
             const form = recentStandingForm(standing.raw.form)
             const goalDifference = standingDetailValue(standing.raw.details, 179)
+            const rule = standing.raw.rule?.type
             return (
               <TableRow key={standing.id} className="border-0 hover:bg-transparent">
-                <TableCell className="px-3 py-2.5 font-mono tabular-nums text-muted-foreground">
+                <TableCell
+                  className="relative px-3 py-2.5 font-mono tabular-nums text-muted-foreground"
+                  title={rule?.name}
+                >
+                  {rule && (
+                    <span
+                      aria-hidden
+                      className={cn(
+                        'absolute inset-y-2 left-0 w-0.5 rounded-r',
+                        ruleColor(rule.id)
+                      )}
+                    />
+                  )}
                   {standing.position}
+                  {rule && <span className="sr-only"> · {rule.name}</span>}
                 </TableCell>
                 <TableCell className="whitespace-normal px-2 py-2.5">
                   <Link
@@ -132,6 +163,22 @@ export function StandingsTable({
           })}
         </TableBody>
       </Table>
+      {rules.length > 0 && (
+        <ul
+          aria-label="Table places"
+          className="space-y-2 border-t px-4 py-3 text-xs text-muted-foreground"
+        >
+          {rules.map((rule) => (
+            <li key={rule.id} className="flex items-center gap-2">
+              <span
+                aria-hidden
+                className={cn('size-2 shrink-0 rounded-full', ruleColor(rule.id))}
+              />
+              {rule.name}
+            </li>
+          ))}
+        </ul>
+      )}
     </Card>
   )
 }

@@ -485,6 +485,51 @@ const refereeAssignmentSchema = z
   })
   .passthrough()
 
+const weatherTemperaturesSchema = z.object({
+  current: z.number().nullable().optional(),
+  morning: z.number().nullable().optional(),
+  day: z.number().nullable().optional(),
+  evening: z.number().nullable().optional(),
+  night: z.number().nullable().optional()
+})
+
+const weatherReportSchema = z
+  .object({
+    id: z.number().int(),
+    fixture_id: z.number().int(),
+    type: z.string().nullable().optional(),
+    metric: z.string().nullable().optional(),
+    description: z.string().nullable().optional(),
+    temperature: weatherTemperaturesSchema.nullable().optional(),
+    feels_like: weatherTemperaturesSchema.nullable().optional(),
+    humidity: z.string().nullable().optional(),
+    clouds: z.string().nullable().optional(),
+    current: z
+      .object({
+        temp: z.number().nullable().optional(),
+        feels_like: z.number().nullable().optional(),
+        humidity: z.string().nullable().optional(),
+        clouds: z.string().nullable().optional(),
+        description: z.string().nullable().optional()
+      })
+      .passthrough()
+      .nullable()
+      .optional()
+  })
+  .passthrough()
+
+const fixtureAbsenceSchema = z
+  .object({
+    id: z.number().int(),
+    fixture_id: z.number().int(),
+    participant_id: z.number().int(),
+    player_id: z.number().int().nullable().optional(),
+    type_id: z.number().int().nullable().optional(),
+    player: playerSchema.nullable().optional(),
+    type: positionSchema.nullable().optional()
+  })
+  .passthrough()
+
 const fixtureSchema = z
   .object({
     id: z.number().int(),
@@ -544,7 +589,9 @@ const fixtureSchema = z
     events: z.array(eventSchema).optional(),
     statistics: z.array(fixtureStatisticSchema).optional(),
     coaches: z.array(coachBaseSchema).optional(),
-    referees: z.array(refereeAssignmentSchema).optional()
+    referees: z.array(refereeAssignmentSchema).optional(),
+    weatherreport: weatherReportSchema.nullable().optional(),
+    sidelined: z.array(fixtureAbsenceSchema).optional()
   })
   .passthrough()
 
@@ -620,6 +667,15 @@ const standingSchema = z
     participant: participantSchema.nullable().optional(),
     stage: standingContextSchema.nullable().optional(),
     group: standingContextSchema.nullable().optional(),
+    rule: z
+      .object({
+        id: z.number().int(),
+        type_id: z.number().int(),
+        type: positionSchema.nullable().optional()
+      })
+      .passthrough()
+      .nullable()
+      .optional(),
     details: z
       .array(
         z
@@ -1245,7 +1301,7 @@ export async function fetchFixtureById(
   const url = new URL(`${apiBaseUrl}/fixtures/${input.fixtureId}`)
   url.searchParams.set(
     'include',
-    'participants;league;state;scores;periods;venue;stage;round;coaches;referees.referee;referees.type;lineups.player;lineups.details;events.type;events.player;events.relatedPlayer;statistics.type'
+    'participants;league;state;scores;periods;venue;stage;round;coaches;referees.referee;referees.type;lineups.player;lineups.details;events.type;events.player;events.relatedPlayer;statistics.type;weatherReport;sidelined.player;sidelined.type'
   )
   url.searchParams.set('filters', 'lineupDetailTypes:42,57,78,80,86,100,106,116,117,118,119')
 
@@ -1604,7 +1660,7 @@ export async function fetchStandingsBySeason(
 ): Promise<StandingsRefresh> {
   const fetchedAt = Date.now()
   const url = new URL(`${apiBaseUrl}/standings/seasons/${input.seasonId}`)
-  url.searchParams.set('include', 'participant;stage;group;details;form')
+  url.searchParams.set('include', 'participant;stage;group;details;form;rule.type')
   url.searchParams.set('filters', 'standingDetailTypes:129,179')
 
   const parsed = await requestSportmonks(url, token, standingsResponseSchema, fetcher)

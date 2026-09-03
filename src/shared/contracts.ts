@@ -678,6 +678,45 @@ export interface SportmonksFixture {
   statistics?: SportmonksFixtureStatistic[]
   coaches?: SportmonksCoach[]
   referees?: SportmonksRefereeAssignment[]
+  weatherreport?: SportmonksWeatherReport | null
+  sidelined?: SportmonksFixtureAbsence[]
+}
+
+export interface SportmonksFixtureAbsence {
+  id: number
+  fixture_id: number
+  participant_id: number
+  player_id?: number | null
+  type_id?: number | null
+  player?: SportmonksPlayer | null
+  type?: SportmonksType | null
+}
+
+export interface SportmonksWeatherTemperatures {
+  current?: number | null
+  morning?: number | null
+  day?: number | null
+  evening?: number | null
+  night?: number | null
+}
+
+export interface SportmonksWeatherReport {
+  id: number
+  fixture_id: number
+  type?: string | null
+  metric?: string | null
+  description?: string | null
+  temperature?: SportmonksWeatherTemperatures | null
+  feels_like?: SportmonksWeatherTemperatures | null
+  humidity?: string | null
+  clouds?: string | null
+  current?: {
+    temp?: number | null
+    feels_like?: number | null
+    humidity?: string | null
+    clouds?: string | null
+    description?: string | null
+  } | null
 }
 
 export interface SportmonksFixtureContext {
@@ -748,6 +787,7 @@ export interface SportmonksStanding {
   group?: SportmonksStandingContext | null
   details?: SportmonksStandingDetail[]
   form?: SportmonksStandingForm[]
+  rule?: { id: number; type_id: number; type?: SportmonksType | null } | null
 }
 
 export interface SportmonksSeasonStatistic {

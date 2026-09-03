@@ -1148,7 +1148,10 @@ export async function writeFixtureDetailRefresh(refresh: FixtureDetailRefresh): 
   const fixtureReferees = (refresh.fixture.referees ?? []).flatMap(({ referee }) =>
     referee ? [referee] : []
   )
-  await db.transaction('rw', db.fixtures, db.coaches, db.referees, async () => {
+  const includedPlayers = (refresh.fixture.sidelined ?? []).flatMap(({ player }) =>
+    player ? [player] : []
+  )
+  await db.transaction('rw', db.fixtures, db.coaches, db.referees, db.players, async () => {
     const existingCoaches = await db.coaches.bulkGet(fixtureCoaches.map(({ id }) => id))
     const coaches = fixtureCoaches.map((coach, index) =>
       toCachedCoach(coach, existingCoaches[index], refresh.fetchedAt, false)
@@ -1159,6 +1162,10 @@ export async function writeFixtureDetailRefresh(refresh: FixtureDetailRefresh): 
     )
     const existing = await db.fixtures.get(refresh.fixture.id)
     if (existing && existing.fetchedAt > refresh.fetchedAt) return
+    const existingPlayers = await db.players.bulkGet(includedPlayers.map(({ id }) => id))
+    const players = includedPlayers.map((player, index) =>
+      toCachedIncludedPlayer(player, existingPlayers[index], refresh.fetchedAt)
+    )
     const fixture = toCachedFixture(
       refresh.fixture,
       refresh.fetchedAt,
@@ -1174,6 +1181,7 @@ export async function writeFixtureDetailRefresh(refresh: FixtureDetailRefresh): 
     await db.fixtures.put(fixture)
     await db.coaches.bulkPut(coaches)
     await db.referees.bulkPut(referees)
+    await db.players.bulkPut(players)
   })
 }
 
@@ -2623,7 +2631,10 @@ function mergeFixtureDetail(
     events: fixture.events ?? existing.events,
     statistics: fixture.statistics ?? existing.statistics,
     coaches: fixture.coaches ?? existing.coaches,
-    referees: fixture.referees ?? existing.referees
+    referees: fixture.referees ?? existing.referees,
+    weatherreport:
+      fixture.weatherreport === undefined ? existing.weatherreport : fixture.weatherreport,
+    sidelined: fixture.sidelined ?? existing.sidelined
   }
 }
 
