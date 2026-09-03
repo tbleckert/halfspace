@@ -17,8 +17,6 @@ const cached: FixturePressureQuery = {
 }
 const props = {
   cached,
-  error: null,
-  access: 'included' as const,
   events: [] as SportmonksEvent[],
   home: { id: 1, name: 'Lecce' },
   away: { id: 2, name: 'Roma' },
@@ -67,15 +65,14 @@ it('exposes every event sharing a marker minute on focus and touch', () => {
   expect(screen.getByRole('tooltip')).toBeTruthy()
 })
 
-it('keeps cached readings visible during provider failures', () => {
-  render(<FixturePressure {...props} error="Rate limit reached." />)
+it('shows cached readings offline', () => {
+  render(<FixturePressure {...props} />)
   expect(screen.getByRole('slider', { name: 'Pressure by minute' })).toBeTruthy()
 })
 
-it('keeps unavailable fixture data distinct from uncached offline data', () => {
+it('omits pressure when no readings are available', () => {
   const { rerender } = render(<FixturePressure {...props} cached={{ ...cached, points: [] }} />)
-  expect(screen.getByText('Pressure not available for this fixture.')).toBeTruthy()
-  expect(screen.queryByText(/plan/)).toBeNull()
+  expect(screen.queryByText('Pressure')).toBeNull()
   rerender(<FixturePressure {...props} cached={null} />)
-  expect(screen.getByText('Pressure not available offline.')).toBeTruthy()
+  expect(screen.queryByText('Pressure')).toBeNull()
 })

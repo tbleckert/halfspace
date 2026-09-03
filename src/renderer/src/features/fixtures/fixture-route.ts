@@ -1,6 +1,12 @@
 import { z } from 'zod'
 import { isIsoDate } from '@/lib/date'
 
+const startedStateIds = new Set([2, 3, 4, 5, 6, 7, 8, 9, 11, 15, 18, 21, 22, 25])
+
+export function defaultFixtureView(stateId: number): 'preview' | 'game' {
+  return startedStateIds.has(stateId) ? 'game' : 'preview'
+}
+
 const optionalPositiveId = z.preprocess((value) => {
   const parsed = typeof value === 'number' || typeof value === 'string' ? Number(value) : NaN
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined

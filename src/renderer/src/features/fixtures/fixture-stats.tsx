@@ -9,11 +9,11 @@ import { Link } from '@tanstack/react-router'
 import {
   fixturePlayerPerformances,
   fixtureStatisticRows,
-  fixtureStatisticShare,
   formatPlayerRating,
   type PlayerPerformance
 } from './fixture-detail-data'
 import { FixtureEmptyState } from './fixture-empty-state'
+import { FixtureStatisticRow } from './fixture-statistic-row'
 import type { FixturePlayerContext } from './fixture-route'
 
 export function FixtureStats({
@@ -48,34 +48,9 @@ export function FixtureStats({
           <FixtureEmptyState>Stats not available</FixtureEmptyState>
         ) : (
           <div className="divide-y">
-            {rows.map((row) => {
-              const share = fixtureStatisticShare(row.home, row.away)
-
-              return (
-                <div key={row.id} className="px-4 py-4 text-sm">
-                  <div className="grid grid-cols-[1fr_minmax(8rem,1.5fr)_1fr] items-center gap-4">
-                    <span className="font-mono font-semibold tabular-nums">
-                      {formatStatisticValue(row.home)}
-                    </span>
-                    <span className="text-center text-muted-foreground">{row.label}</span>
-                    <span className="text-right font-mono font-semibold tabular-nums">
-                      {formatStatisticValue(row.away)}
-                    </span>
-                  </div>
-                  <div
-                    aria-hidden="true"
-                    className="mt-3 flex h-1.5 overflow-hidden rounded-full bg-muted"
-                  >
-                    {share && (
-                      <>
-                        <span className="bg-chart-1" style={{ width: `${share.home}%` }} />
-                        <span className="bg-chart-5" style={{ width: `${share.away}%` }} />
-                      </>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
+            {rows.map((row) => (
+              <FixtureStatisticRow key={row.id} row={row} />
+            ))}
           </div>
         )}
       </Card>
@@ -217,8 +192,4 @@ function FixtureStatTeam({
       <span className="truncate">{participant?.name ?? 'Team'}</span>
     </div>
   )
-}
-
-function formatStatisticValue(value: number | string | null): string {
-  return value === null ? '–' : String(value)
 }

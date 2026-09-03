@@ -1,5 +1,4 @@
 import { useId, useMemo, useState } from 'react'
-import { Link } from '@tanstack/react-router'
 import { FootballIcon } from '@/components/football-icon'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { FixturePressureQuery } from '@/data/db'
@@ -10,52 +9,31 @@ import { pressureChartData, type PressureMarker } from './pressure-data'
 
 export function FixturePressure({
   cached,
-  error,
-  access,
   events,
   home,
   away,
   online
 }: {
   cached: FixturePressureQuery | null | undefined
-  error: string | null
-  access: 'included' | 'not-included' | 'unknown'
   events: SportmonksEvent[]
   home?: SportmonksParticipant
   away?: SportmonksParticipant
   online: boolean
-}): React.JSX.Element {
+}): React.JSX.Element | null {
   const chart = useMemo(
     () => pressureChartData(cached?.points ?? [], events, home?.id, away?.id),
     [cached?.points, events, home?.id, away?.id]
   )
 
+  if (chart.readings.length === 0) return null
+
   return (
-    <Card>
+    <Card className="min-w-0">
       <CardHeader>
         <CardTitle>Pressure</CardTitle>
       </CardHeader>
       <CardContent>
-        {chart.readings.length > 0 ? (
-          <PressureChart chart={chart} home={home} away={away} online={online} />
-        ) : access === 'not-included' ? (
-          <p className="text-sm text-muted-foreground">
-            Pressure is not included in your Sportmonks plan.{' '}
-            <Link to="/settings" className="text-foreground underline underline-offset-4">
-              View subscription
-            </Link>
-          </p>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            {cached
-              ? 'Pressure not available for this fixture.'
-              : !online
-                ? 'Pressure not available offline.'
-                : error
-                  ? 'Pressure unavailable.'
-                  : 'Loading pressure…'}
-          </p>
-        )}
+        <PressureChart chart={chart} home={home} away={away} online={online} />
       </CardContent>
     </Card>
   )

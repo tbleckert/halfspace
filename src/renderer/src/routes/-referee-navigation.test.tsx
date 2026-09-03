@@ -58,7 +58,9 @@ describe('referee navigation', () => {
     })
     const router = createRouter({
       routeTree,
-      history: createMemoryHistory({ initialEntries: ['/fixtures/50?competition=8&season=10'] })
+      history: createMemoryHistory({
+        initialEntries: ['/fixtures/50/preview?competition=8&season=10']
+      })
     })
     render(<RouterProvider router={router} />)
     fireEvent.click(await screen.findByRole('link', { name: /A. Official/ }))

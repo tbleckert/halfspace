@@ -11,18 +11,22 @@ function FixtureDetailRoute(): React.JSX.Element {
   const { fixtureId } = Route.useParams()
   const { competition, date, season, team, oddsFeed, market, bookmaker } = Route.useSearch()
   const matchRoute = useMatchRoute()
-  let view: FixtureView = 'preview'
+  let view: FixtureView | undefined
 
   if (matchRoute({ to: '/fixtures/$fixtureId/commentary', params: { fixtureId }, fuzzy: false })) {
     view = 'commentary'
   } else if (
     matchRoute({
-      to: '/fixtures/$fixtureId/timeline',
+      to: '/fixtures/$fixtureId/game',
       params: { fixtureId },
       fuzzy: false
     })
   ) {
-    view = 'timeline'
+    view = 'game'
+  } else if (
+    matchRoute({ to: '/fixtures/$fixtureId/preview', params: { fixtureId }, fuzzy: false })
+  ) {
+    view = 'preview'
   } else if (
     matchRoute({
       to: '/fixtures/$fixtureId/lineups',

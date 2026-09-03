@@ -10,6 +10,7 @@ import {
   fixturePlayerPerformances,
   fixturePlayerAnnotations,
   fixtureStatisticRows,
+  fixtureKeyStatisticRows,
   fixtureStatisticShare,
   sortedFixtureEvents
 } from './fixture-detail-data'
@@ -79,6 +80,35 @@ describe('fixture detail data', () => {
     expect(fixtureStatisticShare('33%', '67%')).toEqual({ home: 33, away: 67 })
     expect(fixtureStatisticShare(0, 0)).toBeNull()
     expect(fixtureStatisticShare('unknown', 4)).toBeNull()
+  })
+
+  it('selects key match stats in football order without inventing missing values', () => {
+    const statistics = [
+      { type_id: 34, location: 'away', data: { value: 0 } },
+      { type_id: 45, location: 'home', data: { value: 58 } },
+      { type_id: 45, location: 'away', data: { value: 42 } },
+      { type_id: 86, location: 'home', data: { value: 5 } },
+      { type_id: 580, location: 'home', data: { value: 2 } },
+      { type_id: 42, location: 'home', data: { value: 12 } },
+      { type_id: 56, location: 'home', data: { value: 6 } }
+    ] as SportmonksFixtureStatistic[]
+
+    expect(fixtureKeyStatisticRows(statistics)).toEqual([
+      { id: 45, label: 'Possession', home: 58, away: 42, group: null },
+      { id: 42, label: 'Shots', home: 12, away: null, group: null },
+      { id: 86, label: 'Shots on target', home: 5, away: null, group: null },
+      { id: 580, label: 'Big chances', home: 2, away: null, group: null },
+      { id: 34, label: 'Corners', home: null, away: 0, group: null }
+    ])
+  })
+
+  it('omits key stats that have not been reported by either team', () => {
+    expect(fixtureKeyStatisticRows([])).toEqual([])
+    expect(
+      fixtureKeyStatisticRows([
+        { type_id: 45, location: 'home', data: { value: null } }
+      ] as SportmonksFixtureStatistic[])
+    ).toEqual([])
   })
 
   it('builds position-relevant player performance summaries', () => {

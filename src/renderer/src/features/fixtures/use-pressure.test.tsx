@@ -24,7 +24,7 @@ afterEach(() => {
 })
 
 describe('pressure refresh', () => {
-  it('refreshes an ongoing match after 30 seconds only while Stats is open', async () => {
+  it('refreshes an ongoing match after 30 seconds only while Game is open', async () => {
     const request = vi
       .fn()
       .mockResolvedValue({ ok: true, data: { fetchedAt: Date.now(), points: [] } })

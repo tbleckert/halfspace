@@ -83,8 +83,11 @@ abstractions.
 - Competition Team of the Week browses the latest selection and explicit season rounds. Cache each
   query separately, hydrate shared player and team identities, preserve season context in links,
   and never display a latest selection from another season as the selected season's team.
-- Fixture pages keep Preview, Timeline, Lineups, Stats, and Odds in horizontal navigation inside
-  the score hero. Preview stacks the compact venue card directly below Details.
+- Fixture pages keep Preview, Game, Commentary, Lineups, Stats, and Odds in horizontal navigation
+  inside the score hero. Resolve generic fixture links to Preview before play and Game once the
+  match has started, including breaks and completed matches. Keep postponed and cancelled fixtures
+  on Preview. Record that initial choice in the URL; explicit subpages always win, and background
+  status updates must not change the active view. Preview stacks the venue card below Details.
 - Keep fixture subview presentation in focused components. The persistent entity shell owns shared
   queries, header, and navigation; reuse the shared Card surface for each view's data panels.
 - Fixture Preview pairs that supporting column with season table context, each team’s five most
@@ -93,10 +96,15 @@ abstractions.
 - Sportmonks fixture detail owns events, statistics, and lineups; fixture list refreshes must
   preserve that richer cached detail. Fetch and cache the much larger odds payload only when the
   Odds view opens.
-- Fixture Stats starts with Pressure: per-minute Sportmonks Pressure Index bars, home above zero
+- Fixture Game pairs Pressure and compact key stats in a 2:1 grid, with the full-width timeline
+  below. Stack the cards on narrower screens. Show possession, shots, shots on target, big chances,
+  and corners when reported, with comparison bars and a Full stats link. Omit unavailable pressure
+  instead of reserving an empty card, and let key stats use the available width. Keep detailed match
+  and player performance metrics in Stats.
+- Fixture Game shows per-minute Sportmonks Pressure Index bars, home above zero
   and away below, on the same scale. Keep original values rather than percentages or smoothed
-  estimates, and leave missing readings absent. Load pressure only on Stats, cache per fixture,
-  and refresh every 30 seconds while an ongoing match's Stats view is open. Annotate goals and
+  estimates, and leave missing readings absent. Load pressure only on Game, cache per fixture,
+  and refresh every 30 seconds while an ongoing match's Game view is open. Annotate goals and
   dismissals with their original match-minute labels, excluding rescinded events. Pressure records
   have no period IDs; preserve reported minutes without guessing halftime offsets. Access requires
   the fixture resource and Pressure Index enrichment; empty data alone is not an access denial.

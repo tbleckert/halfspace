@@ -43,7 +43,7 @@ export function RefereePage({
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-7 p-7 lg:p-10">
       {fixtureId && (
         <Link
-          to="/fixtures/$fixtureId"
+          to="/fixtures/$fixtureId/preview"
           params={{ fixtureId: String(fixtureId) }}
           search={context}
           className="flex w-fit items-center gap-2 text-sm text-muted-foreground hover:text-foreground"

@@ -154,6 +154,11 @@ describe('entity subpage navigation', () => {
 
     expect((await screen.findByTestId('fixture-page')).textContent).toBe('1:preview')
 
+    for (const to of ['/fixtures/$fixtureId/game', '/fixtures/$fixtureId/preview'] as const) {
+      await act(() => router.navigate({ to, params: { fixtureId: '19636120' } }))
+      expect(pageInstances.fixture).toBe(1)
+    }
+
     await act(() =>
       router.navigate({
         to: '/fixtures/$fixtureId/stats',

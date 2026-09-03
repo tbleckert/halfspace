@@ -269,6 +269,23 @@ export function fixtureStatisticRows(statistics: SportmonksFixtureStatistic[]): 
   return [...rows.values()].toSorted((left, right) => left.label.localeCompare(right.label))
 }
 
+const keyStatisticLabels = new Map([
+  [45, 'Possession'],
+  [42, 'Shots'],
+  [86, 'Shots on target'],
+  [580, 'Big chances'],
+  [34, 'Corners']
+])
+
+export function fixtureKeyStatisticRows(statistics: SportmonksFixtureStatistic[]): StatisticRow[] {
+  const rows = new Map(fixtureStatisticRows(statistics).map((row) => [row.id, row]))
+
+  return [...keyStatisticLabels].flatMap(([id, label]) => {
+    const row = rows.get(id)
+    return row && (row.home !== null || row.away !== null) ? [{ ...row, label }] : []
+  })
+}
+
 export function fixtureStatisticShare(
   homeValue: number | string | null,
   awayValue: number | string | null
