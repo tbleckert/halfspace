@@ -213,7 +213,18 @@ export const teamSchema = z
     last_played_at: z.string().nullable().optional(),
     country: countrySchema.nullable().optional(),
     venue: venueSchema.nullable().optional(),
-    coaches: z.array(coachAssignmentSchema).optional()
+    coaches: z.array(coachAssignmentSchema).optional(),
+    rankings: z
+      .array(
+        z.object({
+          id: z.number().int(),
+          participant_id: z.number().int(),
+          position: z.number().int().nullable(),
+          points: z.number().nullable(),
+          type: z.string()
+        })
+      )
+      .optional()
   })
   .passthrough()
 
@@ -1818,7 +1829,10 @@ export async function fetchTeamById(
 ): Promise<TeamRefresh> {
   const fetchedAt = Date.now()
   const url = new URL(`${apiBaseUrl}/teams/${input.teamId}`)
-  url.searchParams.set('include', 'country;venue;coaches.coach;sidelined.player;sidelined.type')
+  url.searchParams.set(
+    'include',
+    'country;venue;coaches.coach;sidelined.player;sidelined.type;rankings'
+  )
 
   const parsed = await requestSportmonks(url, token, teamResponseSchema, fetcher)
 

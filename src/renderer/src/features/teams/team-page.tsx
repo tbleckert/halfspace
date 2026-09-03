@@ -50,6 +50,7 @@ import { cn } from '@/lib/utils'
 import { TeamLogo } from './team-logo'
 import { TeamAvailability } from './team-availability'
 import { TeamRivals } from './team-rivals'
+import { TeamRankings } from './team-rankings'
 import { useTeamRivals } from './use-team-rivals'
 import { TeamTransfers } from './team-transfers'
 import {
@@ -328,6 +329,7 @@ export function TeamPage({
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(16rem,0.65fr)_minmax(24rem,1.35fr)]">
           <div className="flex flex-col gap-5">
             <TeamCompetitions contexts={competitionContexts} online={online} />
+            <TeamRankings rankings={detailedTeam?.rankings} />
             <TeamRivals
               cached={rivals.cached}
               loading={rivals.refreshing}

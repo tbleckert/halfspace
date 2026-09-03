@@ -422,6 +422,15 @@ export interface SportmonksTeam {
   venue?: SportmonksVenue | null
   coaches?: SportmonksCoachTeam[]
   sidelined?: SportmonksSidelined[]
+  rankings?: SportmonksTeamRanking[]
+}
+
+export interface SportmonksTeamRanking {
+  id: number
+  participant_id: number
+  position: number | null
+  points: number | null
+  type: string
 }
 
 export interface SportmonksSidelined {

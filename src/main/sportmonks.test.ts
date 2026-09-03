@@ -713,7 +713,7 @@ describe('Sportmonks client', () => {
     const url = new URL(input.toString())
     expect(url.pathname).toBe('/v3/football/teams/9')
     expect(url.searchParams.get('include')).toBe(
-      'country;venue;coaches.coach;sidelined.player;sidelined.type'
+      'country;venue;coaches.coach;sidelined.player;sidelined.type;rankings'
     )
     expect(url.searchParams.has('api_token')).toBe(false)
     expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')

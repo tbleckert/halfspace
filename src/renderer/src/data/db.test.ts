@@ -148,6 +148,7 @@ describe('entity search cache', () => {
     await writeTeamRefresh(teamRefresh())
     const detail = teamRefresh()
     detail.team.sidelined = []
+    detail.team.rankings = [{ id: 1, participant_id: 9, position: 16, points: 79000, type: 'UEFA' }]
     detail.team.country = { id: 462, name: 'England' }
     beforeNextCacheTransaction(() => writeTeamRefresh(detail))
 
@@ -164,6 +165,16 @@ describe('entity search cache', () => {
 
     expect((await readTeamIdentity(9)).team?.raw.country?.name).toBe('England')
     expect((await readTeamIdentity(9)).team?.raw.sidelined).toEqual([])
+    expect((await readTeamIdentity(9)).team?.raw.rankings).toEqual(detail.team.rankings)
+  })
+
+  it('does not roll team detail back when an older request finishes last', async () => {
+    const older = teamRefresh()
+    const newer = { ...teamRefresh(), fetchedAt: older.fetchedAt + 1_000 }
+    newer.team.rankings = [{ id: 1, participant_id: 9, position: 12, points: 80000, type: 'UEFA' }]
+    await writeTeamRefresh(newer)
+    await writeTeamRefresh(older)
+    expect((await readTeamIdentity(9)).team?.raw.rankings).toEqual(newer.team.rankings)
   })
 
   it('retains cached absences when a basic team search result arrives', async () => {

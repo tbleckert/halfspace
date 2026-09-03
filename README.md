@@ -68,6 +68,7 @@ include should have a useful place in Halfspace.
 - [x] Historical team squads with season selection and offline browsing.
 - [x] Current team injuries and suspensions with linked player profiles.
 - [x] Team rivalries with direct links to rival clubs.
+- [x] Team rankings with reported ranking systems, positions, and points.
 - [x] Referee profiles and recent match appointments, linked from fixture officials.
 - [x] Referee season statistics with reported disciplinary totals and per-match averages.
 - [x] Player pages with match records and career history, plus coach and venue profiles.
@@ -88,7 +89,6 @@ include should have a useful place in Halfspace.
 ### Ahead
 
 - [ ] Knockout brackets and tournament progression.
-- [ ] Team rankings.
 - [ ] Complete referee appointment history beyond the recent six-month window.
 - [ ] Transfer rumours and pending transfers.
 - [ ] Expected goals, predictions, and expected lineups.

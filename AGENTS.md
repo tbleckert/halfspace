@@ -149,6 +149,9 @@ abstractions.
 - Team Overview links provider-reported rival clubs in a compact card. Cache rival relationships
   per team for a day, deduplicate both directions, and hydrate the shared team cache without
   replacing richer detail. Rival links keep the date but resolve their own competition and season.
+- Team Overview shows rankings from the supported team `rankings` include. Name the ranking system,
+  preserve reported points, and omit empty rankings. Do not invent a season, update date, or global
+  ranking meaning; the standalone beta ranking endpoints are a separate resource.
 - Keep low-resolution provider imagery in compact supporting cards. Do not stretch it into hero
   treatment that exposes its limitations.
 - Matchday fixture rows use one centered status column: a short terminal state such as FT, a green

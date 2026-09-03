@@ -1774,6 +1774,8 @@ export async function writeTeamRefresh(refresh: TeamRefresh): Promise<void> {
   )
 
   await db.transaction('rw', db.teams, db.coaches, db.players, async () => {
+    const existing = await db.teams.get(team.id)
+    if (existing && existing.fetchedAt > refresh.fetchedAt) return
     const existingCoaches = await db.coaches.bulkGet(teamCoaches.map(({ id }) => id))
     const coaches = teamCoaches.map((coach, index) =>
       toCachedCoach(coach, existingCoaches[index], refresh.fetchedAt, false)
