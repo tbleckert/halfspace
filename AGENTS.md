@@ -158,7 +158,10 @@ abstractions.
   retain provider update times, and exclude stopped or suspended quotes from price highlights.
 - Fixture TV guide uses fixture-specific `tvStations.tvStation` and `tvStations.country` includes;
   a station's general countries do not establish where a particular match is broadcast. Cache the
-  guide separately, filter by country, and distinguish an empty guide from unavailable data.
+  guide separately, filter by country, and distinguish an empty guide from unavailable data. Keep
+  it in a compact Preview card below the venue, not a separate tab, with long station lists contained
+  in a scrollable region. Preserve distinct provider station IDs; similar names alone are not enough
+  to merge broadcasters.
 - Settings shows the token's Football plans, add-ons, and feature access from My Resources and My
   Enrichments. Keep access separate from coverage: an included feature can have no data for a
   particular league or fixture. Unknown access is not a denial, and empty results do not imply an

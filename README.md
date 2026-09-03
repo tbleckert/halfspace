@@ -28,7 +28,7 @@ include should have a useful place in Halfspace.
 - [x] Season player leaderboards for goals, assists, yellow cards, and red cards.
 - [x] Fixture previews, event timelines, pitch lineups, match statistics, and pre-match odds.
 - [x] Live match commentary with key-event filtering and offline history.
-- [x] Fixture TV guides with country-specific broadcast listings.
+- [x] Fixture Preview TV guides with country-specific broadcast listings.
 - [x] Competition Team of the Week with season and round browsing.
 - [x] Pre-match and in-play odds explorer with market and bookmaker comparison.
 - [x] Subscription overview showing plans, add-ons, and feature access for your token.

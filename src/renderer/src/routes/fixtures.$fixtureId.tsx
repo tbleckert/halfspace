@@ -13,11 +13,7 @@ function FixtureDetailRoute(): React.JSX.Element {
   const matchRoute = useMatchRoute()
   let view: FixtureView = 'preview'
 
-  if (matchRoute({ to: '/fixtures/$fixtureId/tv', params: { fixtureId }, fuzzy: false })) {
-    view = 'tv'
-  } else if (
-    matchRoute({ to: '/fixtures/$fixtureId/commentary', params: { fixtureId }, fuzzy: false })
-  ) {
+  if (matchRoute({ to: '/fixtures/$fixtureId/commentary', params: { fixtureId }, fuzzy: false })) {
     view = 'commentary'
   } else if (
     matchRoute({

@@ -41,8 +41,7 @@ import { useCommentary } from './use-commentary'
 import { prefetchFixturePreview, type FixturePreviewInput } from './use-fixture-preview'
 import { useFixtureEntity, useFixtureOdds } from './use-fixtures'
 
-export type FixtureView =
-  'preview' | 'timeline' | 'lineups' | 'stats' | 'odds' | 'commentary' | 'tv'
+export type FixtureView = 'preview' | 'timeline' | 'lineups' | 'stats' | 'odds' | 'commentary'
 
 interface FixtureDetailPageProps {
   competitionId?: number
@@ -199,9 +198,6 @@ export function FixtureDetailPage({
           seasonId={resolvedSeasonId}
           teamId={teamId}
         />
-      )}
-      {view === 'tv' && (
-        <FixtureTv key={parsedFixtureId} fixtureId={parsedFixtureId} online={online} />
       )}
       {view === 'timeline' && (
         <FixtureTimeline away={away} events={match.events ?? []} home={home} online={online} />
@@ -407,8 +403,7 @@ function FixtureNavigation({
     { label: 'Commentary', to: '/fixtures/$fixtureId/commentary', view: 'commentary' },
     { label: 'Lineups', to: '/fixtures/$fixtureId/lineups', view: 'lineups' },
     { label: 'Stats', to: '/fixtures/$fixtureId/stats', view: 'stats' },
-    { label: 'Odds', to: '/fixtures/$fixtureId/odds', view: 'odds' },
-    { label: 'TV guide', to: '/fixtures/$fixtureId/tv', view: 'tv' }
+    { label: 'Odds', to: '/fixtures/$fixtureId/odds', view: 'odds' }
   ]
   return (
     <EntitySubpageNavigation
@@ -506,6 +501,7 @@ function FixturePreview({
             venueSummary={cachedFixture.raw.venue}
           />
         )}
+        <FixtureTv key={cachedFixture.id} fixtureId={cachedFixture.id} online={online} />
       </aside>
     </div>
   )
