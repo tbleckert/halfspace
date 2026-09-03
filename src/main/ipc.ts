@@ -31,7 +31,6 @@ import {
   fetchTeamStatistics,
   fetchTeamTransfers,
   fetchVenueById,
-  SportmonksError,
   validateCompetitionFixturesInput,
   validateCoachInput,
   validateRefereeInput,
@@ -56,11 +55,13 @@ import {
   validateToken,
   validateVenueInput
 } from './sportmonks'
+import { clearSportmonksRateLimits, SportmonksError } from './sportmonks-client'
 import { clearStoredToken, hasStoredToken, readStoredToken, saveStoredToken } from './token-store'
 
 const missingTokenMessage = 'Add your Sportmonks token in Settings.'
 
 let currentRateLimit: SportmonksRateLimit | null = null
+let credentialGeneration = 0
 
 export function registerIpcHandlers(): void {
   ipcMain.handle(ipcChannels.connectionState, async (event) => {
@@ -84,6 +85,7 @@ export function registerIpcHandlers(): void {
     try {
       const token = validateToken((input as { token?: unknown } | undefined)?.token)
       await saveStoredToken(token)
+      resetRateLimits()
       return success({ configured: true })
     } catch (error) {
       return failure(error, 'storage', 'Could not store the Sportmonks token.')
@@ -95,6 +97,7 @@ export function registerIpcHandlers(): void {
 
     try {
       await clearStoredToken()
+      resetRateLimits()
       return success(null)
     } catch (error) {
       return failure(error, 'storage', 'Could not remove the Sportmonks token.')
@@ -299,10 +302,23 @@ function registerSportmonksHandlerWithoutInput<TData>(
 }
 
 async function withStoredToken<T>(request: (token: string) => Promise<T>): Promise<T> {
+  const requestGeneration = credentialGeneration
   const token = await readStoredToken()
   if (!token) throw new SportmonksError('missing_token', missingTokenMessage)
 
-  return request(token)
+  try {
+    return await request(token)
+  } catch (error) {
+    if (
+      requestGeneration === credentialGeneration &&
+      error instanceof SportmonksError &&
+      error.code === 'rate_limited' &&
+      error.rateLimit
+    ) {
+      publishRateLimit(error.rateLimit)
+    }
+    throw error
+  }
 }
 
 function assertTrustedSender(event: IpcMainInvokeEvent): void {
@@ -323,10 +339,6 @@ function failure(
   fallbackMessage: string
 ): Result<never> {
   if (error instanceof SportmonksError) {
-    if (error.code === 'rate_limited' && error.rateLimit) {
-      publishRateLimit(error.rateLimit)
-    }
-
     return {
       ok: false,
       error: { code: error.code, message: error.message, rateLimit: error.rateLimit }
@@ -336,7 +348,13 @@ function failure(
   return { ok: false, error: { code: fallbackCode, message: fallbackMessage } }
 }
 
-function publishRateLimit(rateLimit: SportmonksRateLimit): void {
+function resetRateLimits(): void {
+  credentialGeneration += 1
+  clearSportmonksRateLimits()
+  publishRateLimit(null)
+}
+
+function publishRateLimit(rateLimit: SportmonksRateLimit | null): void {
   currentRateLimit = rateLimit
 
   for (const window of BrowserWindow.getAllWindows()) {

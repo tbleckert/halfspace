@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { clearSportmonksRateLimits } from './sportmonks-client'
 import type {
   SportmonksCompetition,
   SportmonksCoach,
@@ -52,6 +53,7 @@ import {
 } from './sportmonks'
 
 describe('Sportmonks client', () => {
+  beforeEach(clearSportmonksRateLimits)
   it('paginates with a header token and returns one combined refresh', async () => {
     const fixture = makeFixture()
     const fetcher = vi.fn<typeof fetch>(async (input) => {

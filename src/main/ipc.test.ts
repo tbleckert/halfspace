@@ -40,6 +40,7 @@ vi.mock('./sportmonks', async (importOriginal) => ({
 }))
 
 import { registerIpcHandlers } from './ipc'
+import { SportmonksError } from './sportmonks-client'
 
 describe('IPC handlers', () => {
   beforeEach(() => {
@@ -109,6 +110,49 @@ describe('IPC handlers', () => {
         { date: '2026-08-31', timeZone: 'Europe/Stockholm' }
       )
     ).rejects.toThrow('Rejected IPC call from an untrusted sender.')
+  })
+
+  it.each([ipcChannels.saveToken, ipcChannels.clearToken])(
+    'clears the rate-limit notice after %s',
+    async (channel) => {
+      const rateLimit = { remaining: 0, resetsAt: Date.now() + 60_000, requestedEntity: 'Fixture' }
+      sportmonksMocks.fetchFixturesByDate.mockRejectedValue(
+        new SportmonksError('rate_limited', 'Limit reached.', rateLimit)
+      )
+      await invokeTrusted(ipcChannels.refreshFixtures, { date: '2026-09-03', timeZone: 'UTC' })
+      expect(await invokeTrusted(ipcChannels.rateLimitState)).toEqual(rateLimit)
+
+      await invokeTrusted(channel, { token: 'replacement-token' })
+      expect(await invokeTrusted(ipcChannels.rateLimitState)).toBeNull()
+      expect(electronMocks.send).toHaveBeenLastCalledWith(ipcChannels.rateLimitChanged, null)
+    }
+  )
+
+  it('does not publish a previous token’s in-flight rate limit after credentials change', async () => {
+    let rejectRequest!: (error: Error) => void
+    sportmonksMocks.fetchFixturesByDate.mockImplementationOnce(
+      () =>
+        new Promise((_, reject) => {
+          rejectRequest = reject
+        })
+    )
+    const request = invokeTrusted(ipcChannels.refreshFixtures, {
+      date: '2026-09-03',
+      timeZone: 'UTC'
+    })
+    await vi.waitFor(() => expect(rejectRequest).toBeDefined())
+    await invokeTrusted(ipcChannels.saveToken, { token: 'replacement-token' })
+    electronMocks.send.mockClear()
+    rejectRequest(
+      new SportmonksError('rate_limited', 'Limit reached.', {
+        remaining: 0,
+        resetsAt: Date.now() + 60_000
+      })
+    )
+
+    await expect(request).resolves.toMatchObject({ ok: false })
+    expect(await invokeTrusted(ipcChannels.rateLimitState)).toBeNull()
+    expect(electronMocks.send).not.toHaveBeenCalled()
   })
 })
 

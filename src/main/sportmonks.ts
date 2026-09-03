@@ -5,7 +5,6 @@ import type {
   SeasonScheduleRefresh,
   RefereeRefresh,
   RefreshRefereeInput,
-  ApiErrorCode,
   CoachRefresh,
   CompetitionRefresh,
   CompetitionSeasonsRefresh,
@@ -49,7 +48,6 @@ import type {
   SportmonksPlayer,
   SportmonksPlayerStatistic,
   SportmonksTransfer,
-  SportmonksRateLimit,
   SportmonksSeason,
   SportmonksSeasonStatistic,
   SportmonksSquadEntry,
@@ -63,6 +61,7 @@ import type {
   VenueRefresh
 } from '@shared/contracts'
 import { z } from 'zod'
+import { requestSportmonks, SportmonksError } from './sportmonks-client'
 
 const apiBaseUrl = 'https://api.sportmonks.com/v3/football'
 const maximumPages = 100
@@ -932,30 +931,6 @@ const playerSearchResponseSchema = z.object({ data: z.array(playerSchema) }).pas
 const coachSearchResponseSchema = z.object({ data: z.array(coachSchema) }).passthrough()
 const venueSearchResponseSchema = z.object({ data: z.array(venueSchema) }).passthrough()
 
-const rateLimitErrorResponseSchema = z
-  .object({
-    retry_after: z.number().nonnegative().optional(),
-    rate_limit: z
-      .object({
-        remaining: z.number().nonnegative().optional(),
-        requested_entity: z.string().min(1).optional(),
-        resets_in_seconds: z.number().nonnegative().optional()
-      })
-      .passthrough()
-      .optional()
-  })
-  .passthrough()
-
-export class SportmonksError extends Error {
-  constructor(
-    readonly code: ApiErrorCode,
-    message: string,
-    readonly rateLimit?: SportmonksRateLimit
-  ) {
-    super(message)
-  }
-}
-
 export function validateToken(value: unknown): string {
   if (typeof value !== 'string') {
     throw new SportmonksError('invalid_input', 'Enter a Sportmonks token.')
@@ -1239,29 +1214,7 @@ export async function fetchFixtureById(
   )
   url.searchParams.set('filters', 'lineupDetailTypes:42,57,78,80,86,100,106,116,117,118,119')
 
-  let response: Response
-
-  try {
-    response = await fetcher(url, {
-      headers: {
-        Accept: 'application/json',
-        Authorization: token
-      },
-      signal: AbortSignal.timeout(20_000)
-    })
-  } catch {
-    throw new SportmonksError('network', 'Could not reach Sportmonks.')
-  }
-
-  if (!response.ok) throw await errorForResponse(response)
-
-  let parsed: z.infer<typeof fixtureDetailResponseSchema>
-
-  try {
-    parsed = fixtureDetailResponseSchema.parse(await response.json())
-  } catch {
-    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
-  }
+  const parsed = await requestSportmonks(url, token, fixtureDetailResponseSchema, fetcher)
 
   return {
     fixture: parsed.data as SportmonksFixture,
@@ -1300,16 +1253,6 @@ export async function fetchFixtureCommentary(
   const fetchedAt = Date.now()
   const url = new URL(`${apiBaseUrl}/commentaries/fixtures/${input.fixtureId}`)
   url.searchParams.set('include', 'player;relatedPlayer')
-  let response: Response
-  try {
-    response = await fetcher(url, {
-      headers: { Accept: 'application/json', Authorization: token },
-      signal: AbortSignal.timeout(20_000)
-    })
-  } catch {
-    throw new SportmonksError('network', 'Could not reach Sportmonks.')
-  }
-  if (!response.ok) throw await errorForResponse(response)
   const schema = fixtureDetailResponseSchema.extend({
     data: z.array(
       z.object({
@@ -1326,12 +1269,7 @@ export async function fetchFixtureCommentary(
       })
     )
   })
-  let parsed: z.infer<typeof schema>
-  try {
-    parsed = schema.parse(await response.json())
-  } catch {
-    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
-  }
+  const parsed = await requestSportmonks(url, token, schema, fetcher)
   return {
     commentaries: parsed.data,
     fetchedAt,
@@ -1354,29 +1292,7 @@ export async function fetchFixtureOdds(
   const url = new URL(`${apiBaseUrl}/odds/pre-match/fixtures/${input.fixtureId}`)
   url.searchParams.set('include', 'bookmaker;market')
 
-  let response: Response
-
-  try {
-    response = await fetcher(url, {
-      headers: {
-        Accept: 'application/json',
-        Authorization: token
-      },
-      signal: AbortSignal.timeout(20_000)
-    })
-  } catch {
-    throw new SportmonksError('network', 'Could not reach Sportmonks.')
-  }
-
-  if (!response.ok) throw await errorForResponse(response)
-
-  let parsed: z.infer<typeof fixtureOddsResponseSchema>
-
-  try {
-    parsed = fixtureOddsResponseSchema.parse(await response.json())
-  } catch {
-    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
-  }
+  const parsed = await requestSportmonks(url, token, fixtureOddsResponseSchema, fetcher)
 
   return {
     odds: parsed.data as SportmonksOdd[],
@@ -1462,29 +1378,7 @@ export async function fetchPlayerStatistics(
     `playerStatisticSeasons:${input.seasonId};playerStatisticDetailTypes:${playerStatisticTypeIds.join(',')}`
   )
 
-  let response: Response
-
-  try {
-    response = await fetcher(url, {
-      headers: {
-        Accept: 'application/json',
-        Authorization: token
-      },
-      signal: AbortSignal.timeout(20_000)
-    })
-  } catch {
-    throw new SportmonksError('network', 'Could not reach Sportmonks.')
-  }
-
-  if (!response.ok) throw await errorForResponse(response)
-
-  let parsed: z.infer<typeof playerStatisticsResponseSchema>
-
-  try {
-    parsed = playerStatisticsResponseSchema.parse(await response.json())
-  } catch {
-    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
-  }
+  const parsed = await requestSportmonks(url, token, playerStatisticsResponseSchema, fetcher)
 
   return {
     statistics: parsed.data.statistics as SportmonksPlayerStatistic[],
@@ -1544,29 +1438,7 @@ async function fetchTransfers(
     url.searchParams.set('per_page', '50')
     url.searchParams.set('page', String(page))
 
-    let response: Response
-
-    try {
-      response = await fetcher(url, {
-        headers: {
-          Accept: 'application/json',
-          Authorization: token
-        },
-        signal: AbortSignal.timeout(20_000)
-      })
-    } catch {
-      throw new SportmonksError('network', 'Could not reach Sportmonks.')
-    }
-
-    if (!response.ok) throw await errorForResponse(response)
-
-    let parsed: z.infer<typeof playerTransfersResponseSchema>
-
-    try {
-      parsed = playerTransfersResponseSchema.parse(await response.json())
-    } catch {
-      throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
-    }
+    const parsed = await requestSportmonks(url, token, playerTransfersResponseSchema, fetcher)
 
     transfers.push(...(parsed.data as SportmonksTransfer[]))
     message = parsed.message ?? message
@@ -1614,31 +1486,7 @@ async function fetchFixturePages(
     url.searchParams.set('page', String(page))
     if (filters) url.searchParams.set('filters', filters)
 
-    let response: Response
-
-    try {
-      response = await fetcher(url, {
-        headers: {
-          Accept: 'application/json',
-          Authorization: token
-        },
-        signal: AbortSignal.timeout(20_000)
-      })
-    } catch {
-      throw new SportmonksError('network', 'Could not reach Sportmonks.')
-    }
-
-    if (!response.ok) {
-      throw await errorForResponse(response)
-    }
-
-    let parsed: z.infer<typeof fixtureResponseSchema>
-
-    try {
-      parsed = fixtureResponseSchema.parse(await response.json())
-    } catch {
-      throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
-    }
+    const parsed = await requestSportmonks(url, token, fixtureResponseSchema, fetcher)
 
     fixtures.push(...(parsed.data as SportmonksFixture[]))
     message = parsed.message ?? message
@@ -1650,7 +1498,7 @@ async function fetchFixturePages(
       }
     }
 
-    if (!parsed.pagination?.has_more || page === pageLimit) {
+    if (!parsed.pagination?.has_more || page === options.pageLimit) {
       return {
         fixtures,
         fetchedAt,
@@ -1683,31 +1531,7 @@ export async function fetchCompetitions(
     url.searchParams.set('per_page', '50')
     url.searchParams.set('page', String(page))
 
-    let response: Response
-
-    try {
-      response = await fetcher(url, {
-        headers: {
-          Accept: 'application/json',
-          Authorization: token
-        },
-        signal: AbortSignal.timeout(20_000)
-      })
-    } catch {
-      throw new SportmonksError('network', 'Could not reach Sportmonks.')
-    }
-
-    if (!response.ok) {
-      throw await errorForResponse(response)
-    }
-
-    let parsed: z.infer<typeof competitionResponseSchema>
-
-    try {
-      parsed = competitionResponseSchema.parse(await response.json())
-    } catch {
-      throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
-    }
+    const parsed = await requestSportmonks(url, token, competitionResponseSchema, fetcher)
 
     competitions.push(...(parsed.data as SportmonksCompetition[]))
     message = parsed.message ?? message
@@ -1744,31 +1568,7 @@ export async function fetchStandingsBySeason(
   const url = new URL(`${apiBaseUrl}/standings/seasons/${input.seasonId}`)
   url.searchParams.set('include', 'participant;stage;group')
 
-  let response: Response
-
-  try {
-    response = await fetcher(url, {
-      headers: {
-        Accept: 'application/json',
-        Authorization: token
-      },
-      signal: AbortSignal.timeout(20_000)
-    })
-  } catch {
-    throw new SportmonksError('network', 'Could not reach Sportmonks.')
-  }
-
-  if (!response.ok) {
-    throw await errorForResponse(response)
-  }
-
-  let parsed: z.infer<typeof standingsResponseSchema>
-
-  try {
-    parsed = standingsResponseSchema.parse(await response.json())
-  } catch {
-    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
-  }
+  const parsed = await requestSportmonks(url, token, standingsResponseSchema, fetcher)
 
   return {
     standings: parsed.data as SportmonksStanding[],
@@ -1793,29 +1593,7 @@ export async function fetchSeasonStatistics(
   url.searchParams.set('include', 'statistics')
   url.searchParams.set('filters', `seasonStatisticTypes:${seasonStatisticTypeIds.join(',')}`)
 
-  let response: Response
-
-  try {
-    response = await fetcher(url, {
-      headers: {
-        Accept: 'application/json',
-        Authorization: token
-      },
-      signal: AbortSignal.timeout(20_000)
-    })
-  } catch {
-    throw new SportmonksError('network', 'Could not reach Sportmonks.')
-  }
-
-  if (!response.ok) throw await errorForResponse(response)
-
-  let parsed: z.infer<typeof seasonStatisticsResponseSchema>
-
-  try {
-    parsed = seasonStatisticsResponseSchema.parse(await response.json())
-  } catch {
-    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
-  }
+  const parsed = await requestSportmonks(url, token, seasonStatisticsResponseSchema, fetcher)
 
   return {
     statistics: parsed.data.statistics as SportmonksSeasonStatistic[],
@@ -1848,23 +1626,7 @@ export async function fetchSeasonTopscorers(
     url.searchParams.set('per_page', '50')
     url.searchParams.set('page', String(page))
 
-    let response: Response
-    try {
-      response = await fetcher(url, {
-        headers: { Accept: 'application/json', Authorization: token },
-        signal: AbortSignal.timeout(20_000)
-      })
-    } catch {
-      throw new SportmonksError('network', 'Could not reach Sportmonks.')
-    }
-    if (!response.ok) throw await errorForResponse(response)
-
-    let parsed: z.infer<typeof seasonTopscorersResponseSchema>
-    try {
-      parsed = seasonTopscorersResponseSchema.parse(await response.json())
-    } catch {
-      throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
-    }
+    const parsed = await requestSportmonks(url, token, seasonTopscorersResponseSchema, fetcher)
 
     topscorers.push(...(parsed.data as SportmonksTopscorer[]))
     message = parsed.message ?? message
@@ -1900,29 +1662,7 @@ export async function fetchCompetitionSeasons(
     url.searchParams.set('per_page', '50')
     url.searchParams.set('page', String(page))
 
-    let response: Response
-
-    try {
-      response = await fetcher(url, {
-        headers: {
-          Accept: 'application/json',
-          Authorization: token
-        },
-        signal: AbortSignal.timeout(20_000)
-      })
-    } catch {
-      throw new SportmonksError('network', 'Could not reach Sportmonks.')
-    }
-
-    if (!response.ok) throw await errorForResponse(response)
-
-    let parsed: z.infer<typeof seasonsResponseSchema>
-
-    try {
-      parsed = seasonsResponseSchema.parse(await response.json())
-    } catch {
-      throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
-    }
+    const parsed = await requestSportmonks(url, token, seasonsResponseSchema, fetcher)
 
     seasons.push(...(parsed.data as SportmonksSeason[]))
     message = parsed.message ?? message
@@ -1952,16 +1692,6 @@ export async function fetchTeamRivals(
   const fetchedAt = Date.now()
   const url = new URL(`${apiBaseUrl}/rivals/teams/${input.teamId}`)
   url.searchParams.set('include', 'team;rival')
-  let response: Response
-  try {
-    response = await fetcher(url, {
-      headers: { Accept: 'application/json', Authorization: token },
-      signal: AbortSignal.timeout(20_000)
-    })
-  } catch {
-    throw new SportmonksError('network', 'Could not reach Sportmonks.')
-  }
-  if (!response.ok) throw await errorForResponse(response)
   const schema = fixtureDetailResponseSchema.extend({
     data: z.array(
       z.object({
@@ -1972,12 +1702,7 @@ export async function fetchTeamRivals(
       })
     )
   })
-  let parsed: z.infer<typeof schema>
-  try {
-    parsed = schema.parse(await response.json())
-  } catch {
-    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
-  }
+  const parsed = await requestSportmonks(url, token, schema, fetcher)
   return {
     rivals: parsed.data,
     fetchedAt,
@@ -2000,31 +1725,7 @@ export async function fetchTeamById(
   const url = new URL(`${apiBaseUrl}/teams/${input.teamId}`)
   url.searchParams.set('include', 'country;venue;coaches.coach;sidelined.player;sidelined.type')
 
-  let response: Response
-
-  try {
-    response = await fetcher(url, {
-      headers: {
-        Accept: 'application/json',
-        Authorization: token
-      },
-      signal: AbortSignal.timeout(20_000)
-    })
-  } catch {
-    throw new SportmonksError('network', 'Could not reach Sportmonks.')
-  }
-
-  if (!response.ok) {
-    throw await errorForResponse(response)
-  }
-
-  let parsed: z.infer<typeof teamResponseSchema>
-
-  try {
-    parsed = teamResponseSchema.parse(await response.json())
-  } catch {
-    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
-  }
+  const parsed = await requestSportmonks(url, token, teamResponseSchema, fetcher)
 
   return {
     team: parsed.data as SportmonksTeam,
@@ -2053,16 +1754,6 @@ export async function fetchSeasonSchedule(
 ): Promise<SeasonScheduleRefresh> {
   const fetchedAt = Date.now()
   const url = new URL(`${apiBaseUrl}/schedules/seasons/${input.seasonId}`)
-  let response: Response
-  try {
-    response = await fetcher(url, {
-      headers: { Accept: 'application/json', Authorization: token },
-      signal: AbortSignal.timeout(20_000)
-    })
-  } catch {
-    throw new SportmonksError('network', 'Could not reach Sportmonks.')
-  }
-  if (!response.ok) throw await errorForResponse(response)
   const round = z.object({
     id: z.number().int(),
     name: z.string(),
@@ -2081,12 +1772,7 @@ export async function fetchSeasonSchedule(
       })
     )
   })
-  let parsed: z.infer<typeof schema>
-  try {
-    parsed = schema.parse(await response.json())
-  } catch {
-    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
-  }
+  const parsed = await requestSportmonks(url, token, schema, fetcher)
   return {
     stages: parsed.data,
     fetchedAt,
@@ -2119,16 +1805,6 @@ export async function fetchRefereeById(
     'include',
     'country;latest.type;latest.fixture.participants;latest.fixture.league;latest.fixture.scores;latest.fixture.state;latest.fixture.periods'
   )
-  let response: Response
-  try {
-    response = await fetcher(url, {
-      headers: { Accept: 'application/json', Authorization: token },
-      signal: AbortSignal.timeout(20_000)
-    })
-  } catch {
-    throw new SportmonksError('network', 'Could not reach Sportmonks.')
-  }
-  if (!response.ok) throw await errorForResponse(response)
 
   const schema = fixtureDetailResponseSchema.extend({
     data: refereeBaseSchema.extend({
@@ -2137,12 +1813,7 @@ export async function fetchRefereeById(
         .optional()
     })
   })
-  let parsed: z.infer<typeof schema>
-  try {
-    parsed = schema.parse(await response.json())
-  } catch {
-    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
-  }
+  const parsed = await requestSportmonks(url, token, schema, fetcher)
   return {
     referee: parsed.data,
     fetchedAt,
@@ -2165,29 +1836,7 @@ export async function fetchCoachById(
   const url = new URL(`${apiBaseUrl}/coaches/${input.coachId}`)
   url.searchParams.set('include', 'nationality;teams.team')
 
-  let response: Response
-
-  try {
-    response = await fetcher(url, {
-      headers: {
-        Accept: 'application/json',
-        Authorization: token
-      },
-      signal: AbortSignal.timeout(20_000)
-    })
-  } catch {
-    throw new SportmonksError('network', 'Could not reach Sportmonks.')
-  }
-
-  if (!response.ok) throw await errorForResponse(response)
-
-  let parsed: z.infer<typeof coachResponseSchema>
-
-  try {
-    parsed = coachResponseSchema.parse(await response.json())
-  } catch {
-    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
-  }
+  const parsed = await requestSportmonks(url, token, coachResponseSchema, fetcher)
 
   return {
     coach: parsed.data as SportmonksCoach,
@@ -2215,29 +1864,7 @@ export async function fetchTeamStatistics(
     `teamStatisticSeasons:${input.seasonId};teamStatisticDetailTypes:${teamStatisticTypeIds.join(',')}`
   )
 
-  let response: Response
-
-  try {
-    response = await fetcher(url, {
-      headers: {
-        Accept: 'application/json',
-        Authorization: token
-      },
-      signal: AbortSignal.timeout(20_000)
-    })
-  } catch {
-    throw new SportmonksError('network', 'Could not reach Sportmonks.')
-  }
-
-  if (!response.ok) throw await errorForResponse(response)
-
-  let parsed: z.infer<typeof teamStatisticsResponseSchema>
-
-  try {
-    parsed = teamStatisticsResponseSchema.parse(await response.json())
-  } catch {
-    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
-  }
+  const parsed = await requestSportmonks(url, token, teamStatisticsResponseSchema, fetcher)
 
   return {
     statistics: parsed.data.statistics.flatMap(
@@ -2269,32 +1896,10 @@ export async function fetchTeamSquad(
     input.seasonId ? 'player.nationality;position' : 'player.nationality;position;detailedPosition'
   )
 
-  let response: Response
-
-  try {
-    response = await fetcher(url, {
-      headers: {
-        Accept: 'application/json',
-        Authorization: token
-      },
-      signal: AbortSignal.timeout(20_000)
-    })
-  } catch {
-    throw new SportmonksError('network', 'Could not reach Sportmonks.')
-  }
-
-  if (!response.ok) throw await errorForResponse(response)
-
-  let parsed: z.infer<typeof teamSquadResponseSchema>
-
-  try {
-    const schema = input.seasonId
-      ? teamSquadResponseSchema.extend({ data: z.array(seasonSquadEntrySchema) })
-      : teamSquadResponseSchema
-    parsed = schema.parse(await response.json())
-  } catch {
-    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
-  }
+  const schema = input.seasonId
+    ? teamSquadResponseSchema.extend({ data: z.array(seasonSquadEntrySchema) })
+    : teamSquadResponseSchema
+  const parsed = await requestSportmonks(url, token, schema, fetcher)
 
   return {
     squad: parsed.data as SportmonksSquadEntry[],
@@ -2318,29 +1923,7 @@ export async function fetchPlayerById(
   const url = new URL(`${apiBaseUrl}/players/${input.playerId}`)
   url.searchParams.set('include', 'nationality;position;detailedPosition')
 
-  let response: Response
-
-  try {
-    response = await fetcher(url, {
-      headers: {
-        Accept: 'application/json',
-        Authorization: token
-      },
-      signal: AbortSignal.timeout(20_000)
-    })
-  } catch {
-    throw new SportmonksError('network', 'Could not reach Sportmonks.')
-  }
-
-  if (!response.ok) throw await errorForResponse(response)
-
-  let parsed: z.infer<typeof playerResponseSchema>
-
-  try {
-    parsed = playerResponseSchema.parse(await response.json())
-  } catch {
-    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
-  }
+  const parsed = await requestSportmonks(url, token, playerResponseSchema, fetcher)
 
   return {
     player: parsed.data as SportmonksPlayer,
@@ -2364,31 +1947,7 @@ export async function fetchVenueById(
   const url = new URL(`${apiBaseUrl}/venues/${input.venueId}`)
   url.searchParams.set('include', 'country')
 
-  let response: Response
-
-  try {
-    response = await fetcher(url, {
-      headers: {
-        Accept: 'application/json',
-        Authorization: token
-      },
-      signal: AbortSignal.timeout(20_000)
-    })
-  } catch {
-    throw new SportmonksError('network', 'Could not reach Sportmonks.')
-  }
-
-  if (!response.ok) {
-    throw await errorForResponse(response)
-  }
-
-  let parsed: z.infer<typeof venueResponseSchema>
-
-  try {
-    parsed = venueResponseSchema.parse(await response.json())
-  } catch {
-    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
-  }
+  const parsed = await requestSportmonks(url, token, venueResponseSchema, fetcher)
 
   return {
     venue: parsed.data as SportmonksVenue,
@@ -2451,27 +2010,7 @@ async function fetchEntitySearchPage(
   url.searchParams.set('include', include)
   url.searchParams.set('per_page', '8')
 
-  let response: Response
-
-  try {
-    response = await fetcher(url, {
-      headers: {
-        Accept: 'application/json',
-        Authorization: token
-      },
-      signal: AbortSignal.timeout(20_000)
-    })
-  } catch {
-    throw new SportmonksError('network', 'Could not reach Sportmonks.')
-  }
-
-  if (!response.ok) throw await errorForResponse(response)
-
-  try {
-    return await response.json()
-  } catch {
-    throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected response.')
-  }
+  return requestSportmonks(url, token, z.unknown(), fetcher)
 }
 
 function isValidIsoDate(value: string): boolean {
@@ -2551,76 +2090,4 @@ function isValidTimeZone(value: string): boolean {
   } catch {
     return false
   }
-}
-
-async function errorForResponse(response: Response): Promise<SportmonksError> {
-  if (response.status === 401) {
-    return new SportmonksError('unauthorized', 'Sportmonks rejected this token.')
-  }
-
-  if (response.status === 403) {
-    return new SportmonksError('forbidden', 'Your Sportmonks plan does not include this data.')
-  }
-
-  if (response.status === 429) {
-    const rateLimit = (await rateLimitFromErrorResponse(response)) ?? {
-      estimated: true,
-      remaining: 0,
-      resetsAt: Date.now() + 60 * 60 * 1_000
-    }
-
-    return new SportmonksError(
-      'rate_limited',
-      'The Sportmonks rate limit has been reached.',
-      rateLimit
-    )
-  }
-
-  return new SportmonksError('upstream', `Sportmonks returned an error (${response.status}).`)
-}
-
-async function rateLimitFromErrorResponse(
-  response: Response
-): Promise<SportmonksRateLimit | undefined> {
-  const retryAfterSeconds = parseRetryAfter(response.headers.get('retry-after'))
-
-  try {
-    const body: unknown = await response.json()
-    const result = rateLimitErrorResponseSchema.safeParse(body)
-    if (!result.success && retryAfterSeconds === undefined) return undefined
-
-    const resetSeconds = result.success
-      ? (result.data.rate_limit?.resets_in_seconds ?? result.data.retry_after ?? retryAfterSeconds)
-      : retryAfterSeconds
-    if (resetSeconds === undefined) return undefined
-
-    const remainingHeader = Number(response.headers.get('x-ratelimit-remaining'))
-
-    return {
-      estimated: false,
-      remaining:
-        (result.success ? result.data.rate_limit?.remaining : undefined) ??
-        (Number.isFinite(remainingHeader) ? remainingHeader : 0),
-      requestedEntity: result.success ? result.data.rate_limit?.requested_entity : undefined,
-      resetsAt: Date.now() + resetSeconds * 1_000
-    }
-  } catch {
-    if (retryAfterSeconds === undefined) return undefined
-
-    return {
-      estimated: false,
-      remaining: 0,
-      resetsAt: Date.now() + retryAfterSeconds * 1_000
-    }
-  }
-}
-
-function parseRetryAfter(value: string | null): number | undefined {
-  if (!value) return undefined
-
-  const seconds = Number(value)
-  if (Number.isFinite(seconds) && seconds >= 0) return seconds
-
-  const resetAt = Date.parse(value)
-  return Number.isNaN(resetAt) ? undefined : Math.max(0, (resetAt - Date.now()) / 1_000)
 }

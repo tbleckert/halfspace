@@ -1,8 +1,10 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { clearSportmonksRateLimits } from './sportmonks-client'
 import { makeTopscorer } from '../test/topscorer-fixtures'
 import { fetchSeasonTopscorers, validateSeasonTopscorersInput } from './sportmonks'
 
 describe('season topscorers', () => {
+  beforeEach(clearSportmonksRateLimits)
   it('fetches every page with the requested categories and safe header authentication', async () => {
     const fetcher = vi.fn<typeof fetch>(async (input) => {
       const page = Number(new URL(input.toString()).searchParams.get('page'))
