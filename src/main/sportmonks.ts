@@ -1898,11 +1898,28 @@ export async function fetchRefereeById(
   const url = new URL(`${apiBaseUrl}/referees/${input.refereeId}`)
   url.searchParams.set(
     'include',
-    'country;latest.type;latest.fixture.participants;latest.fixture.league;latest.fixture.scores;latest.fixture.state;latest.fixture.periods'
+    'country;latest.type;latest.fixture.participants;latest.fixture.league;latest.fixture.scores;latest.fixture.state;latest.fixture.periods;statistics.details;statistics.season.league'
   )
+  url.searchParams.set('filters', 'refereeStatisticDetailTypes:47,56,83,84,85,188,314')
 
   const schema = fixtureDetailResponseSchema.extend({
     data: refereeBaseSchema.extend({
+      statistics: z
+        .array(
+          z.object({
+            id: z.number().int(),
+            referee_id: z.number().int(),
+            season_id: z.number().int(),
+            details: z.array(z.object({ type_id: z.number().int(), value: z.unknown() })),
+            season: seasonSchema
+              .extend({
+                league: z.object({ id: z.number().int(), name: z.string() }).nullable().optional()
+              })
+              .nullable()
+              .optional()
+          })
+        )
+        .optional(),
       latest: z
         .array(refereeAssignmentSchema.extend({ fixture: fixtureSchema.nullable().optional() }))
         .optional()

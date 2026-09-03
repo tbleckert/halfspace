@@ -29,6 +29,15 @@ beforeEach(() => clearSportmonksCache())
 afterAll(() => db.close())
 
 describe('referee cache', () => {
+  it('does not roll season stats back when an older profile refresh finishes late', async () => {
+    const statistics = [
+      { id: 1, referee_id: 7, season_id: 10, details: [{ type_id: 188, value: { count: 4 } }] }
+    ]
+    await writeRefereeRefresh({ referee: { ...referee, statistics }, fetchedAt: 2000 })
+    await writeRefereeRefresh({ referee: { ...referee, statistics: [] }, fetchedAt: 1000 })
+    expect((await readRefereeIdentity(7)).referee?.raw.statistics).toEqual(statistics)
+  })
+
   it('normalizes recent fixtures while preserving their richer match detail', async () => {
     await writeFixtureDetailRefresh({
       fetchedAt: Date.now(),

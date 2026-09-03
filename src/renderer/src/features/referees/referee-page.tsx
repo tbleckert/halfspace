@@ -12,14 +12,19 @@ import { PlayerPhoto } from '@/features/players/player-photo'
 import { useOnline } from '@/lib/use-online'
 import { cn } from '@/lib/utils'
 import { useRefereeEntity } from './use-referee'
+import { RefereeStatistics } from './referee-statistics'
 
 export function RefereePage({
   refereeId,
   fixtureId,
+  statsSeason,
+  onStatsSeasonChange,
   context
 }: {
   refereeId: string
   fixtureId?: number
+  statsSeason?: number
+  onStatsSeasonChange: (seasonId: number) => void
   context: FixtureDetailSearch
 }): React.JSX.Element {
   const id = Number(refereeId)
@@ -91,6 +96,13 @@ export function RefereePage({
             </Button>
           </header>
           {referee.error && <ErrorAlert>{referee.error}</ErrorAlert>}
+          {!loading && (
+            <RefereeStatistics
+              statistics={identity?.statistics}
+              seasonId={statsSeason ?? context.season}
+              onSeasonChange={onStatsSeasonChange}
+            />
+          )}
           <section className="flex flex-col gap-5">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-xl font-semibold tracking-tight">Recent appointments</h2>

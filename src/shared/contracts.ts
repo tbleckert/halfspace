@@ -294,6 +294,22 @@ export interface SportmonksReferee {
   date_of_birth?: string | null
   country?: SportmonksCountry | null
   latest?: SportmonksRefereeAssignment[]
+  statistics?: SportmonksRefereeStatistic[]
+}
+
+export interface SportmonksRefereeStatistic {
+  id: number
+  referee_id: number
+  season_id: number
+  details: { type_id: number; value: unknown }[]
+  season?: {
+    id: number
+    league_id: number
+    name: string
+    starting_at?: string | null
+    is_current?: boolean
+    league?: { id: number; name: string } | null
+  } | null
 }
 
 export interface SportmonksRefereeAssignment {

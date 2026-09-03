@@ -1807,8 +1807,10 @@ export async function readRefereeIdentity(refereeId: number): Promise<{
 }
 
 export async function writeRefereeRefresh(refresh: RefereeRefresh): Promise<void> {
-  const referee = toCachedReferee(refresh.referee, refresh.fetchedAt, undefined, true)
   await db.transaction('rw', db.referees, db.fixtures, async () => {
+    const existing = await db.referees.get(refresh.referee.id)
+    if (existing && existing.fetchedAt > refresh.fetchedAt) return
+    const referee = toCachedReferee(refresh.referee, refresh.fetchedAt, existing, true)
     const fixtures = await toCachedFixtures(
       (refresh.referee.latest ?? []).flatMap(({ fixture }) => (fixture ? [fixture] : [])),
       refresh.fetchedAt,

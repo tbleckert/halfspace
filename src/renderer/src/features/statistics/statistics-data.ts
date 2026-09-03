@@ -3,6 +3,28 @@ interface Statistic {
   value: unknown
 }
 
+export function refereeStatisticsSummary(statistics: Statistic[]): {
+  matches: number | null
+  rows: { label: string; total: number | null; average: number | null }[]
+} {
+  const types = [
+    { id: 84, label: 'Yellow cards' },
+    { id: 83, label: 'Straight red cards' },
+    { id: 85, label: 'Second yellow cards' },
+    { id: 47, label: 'Penalties' },
+    { id: 56, label: 'Fouls' },
+    { id: 314, label: 'VAR moments' }
+  ]
+  return {
+    matches: statisticCount(statistics, 188),
+    rows: types.map(({ id, label }) => ({
+      label,
+      total: statisticCount(statistics, id),
+      average: statisticAverage(statistics, id)
+    }))
+  }
+}
+
 export interface LeagueStatisticsSummary {
   awayGoals: number | null
   bothTeamsScored: number | null

@@ -43,6 +43,11 @@ describe('referee provider boundary', () => {
     const url = new URL(input.toString())
     expect(url.pathname).toBe('/v3/football/referees/14468')
     expect(url.searchParams.get('include')).toContain('latest.fixture.participants')
+    expect(url.searchParams.get('include')).toContain('statistics.details')
+    expect(url.searchParams.get('include')).toContain('statistics.season.league')
+    expect(url.searchParams.get('filters')).toBe(
+      'refereeStatisticDetailTypes:47,56,83,84,85,188,314'
+    )
     expect(url.searchParams.has('api_token')).toBe(false)
     expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')
     expect(result.referee.latest?.[0].fixture?.id).toBe(50)

@@ -213,6 +213,10 @@ abstractions.
 - Referee profiles are reached through fixture officials. Keep each appointment's officiating role
   explicit, normalize its fixture into the shared cache, and label the `latest` history as the last
   six months rather than a complete career. Preserve fixture and season context on the return link.
+- Referee season stats reuse the profile cache with `statistics.details` and `statistics.season.league`.
+  Offer the ten most recent reported seasons per competition. Keep the `statsSeason` selection separate
+  from the originating fixture's season, show provider counts and averages, and keep straight red and
+  second-yellow cards separate. Never derive these totals from the recent appointments list.
 - Refresh fixture pages through the fixture-by-ID endpoint. When fixture lists update shared cache
   records, preserve richer match context already fetched for the entity page.
 - Keep normalized fixture state and daily query snapshots monotonic by request timestamp so late

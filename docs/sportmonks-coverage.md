@@ -1,6 +1,6 @@
 # Sportmonks API coverage
 
-Halfspace currently covers **33 of 153 endpoints** and **105 of 1320 documented endpoint includes**.
+Halfspace currently covers **33 of 153 endpoints** and **106 of 1320 documented endpoint includes**.
 
 Overall coverage: **9%**
 
@@ -161,7 +161,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 ### Referees
 
 - [ ] [All Referees](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/referees/get-all-referees)
-- [x] [Referee by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/referees/get-referee-by-id) — includes 2/6
+- [x] [Referee by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/referees/get-referee-by-id) — includes 3/6
 - [ ] [Referees by Country ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/referees/get-referees-by-country-id)
 - [ ] [Referees by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/referees/get-referees-by-season-id)
 - [x] [Referees Search by Name](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/referees/get-referees-search-by-name) — includes 1/6

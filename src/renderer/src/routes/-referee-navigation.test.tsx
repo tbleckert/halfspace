@@ -53,7 +53,38 @@ describe('referee navigation', () => {
     }
     await writeFixtureDetailRefresh({ fixture, fetchedAt: Date.now() })
     await writeRefereeRefresh({
-      referee: { ...referee, latest: [{ ...assignment, fixture }] },
+      referee: {
+        ...referee,
+        latest: [{ ...assignment, fixture }],
+        statistics: [
+          {
+            id: 1,
+            referee_id: 7,
+            season_id: 10,
+            details: [{ type_id: 188, value: { count: 4 } }],
+            season: {
+              id: 10,
+              league_id: 8,
+              name: '2025/2026',
+              starting_at: '2025-08-01',
+              league: { id: 8, name: 'Premier League' }
+            }
+          },
+          {
+            id: 2,
+            referee_id: 7,
+            season_id: 11,
+            details: [{ type_id: 188, value: { count: 9 } }],
+            season: {
+              id: 11,
+              league_id: 8,
+              name: '2026/2027',
+              starting_at: '2026-08-01',
+              league: { id: 8, name: 'Premier League' }
+            }
+          }
+        ]
+      },
       fetchedAt: Date.now()
     })
     const router = createRouter({
@@ -66,6 +97,13 @@ describe('referee navigation', () => {
     fireEvent.click(await screen.findByRole('link', { name: /A. Official/ }))
     expect(await screen.findByRole('heading', { name: 'Alex Official' })).toBeTruthy()
     expect(screen.getByText('Last six months')).toBeTruthy()
+    expect(screen.getByText('4')).toBeTruthy()
+    fireEvent.change(screen.getByLabelText('Referee statistics season'), {
+      target: { value: '11' }
+    })
+    expect(await screen.findByText('9')).toBeTruthy()
+    expect(screen.queryByText('4')).toBeNull()
+    expect(router.state.location.search).toMatchObject({ season: 10, statsSeason: 11, fixture: 50 })
     const back = screen.getByRole('link', { name: 'Match' })
     expect(back.getAttribute('href')).toContain('competition=8')
     expect(back.getAttribute('href')).toContain('season=10')
