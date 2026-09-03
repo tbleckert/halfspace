@@ -33,10 +33,7 @@ export function FixtureGame({
   return (
     <div className="flex flex-col gap-5">
       <div
-        className={cn(
-          'grid items-start gap-5',
-          hasPressure && 'lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]'
-        )}
+        className={cn('grid gap-5', hasPressure && 'lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]')}
       >
         {hasPressure && (
           <FixturePressure
@@ -62,9 +59,9 @@ export function FixtureGame({
           </CardHeader>
           {rows.length > 0 ? (
             <>
-              <div className="flex items-center justify-between gap-4 px-4 pt-3 text-xs font-medium">
+              <div className="flex items-center justify-between gap-4 px-4 text-xs font-medium">
                 {[home, away].map((participant, index) => (
-                  <div key={index} className="flex min-w-0 items-center gap-1.5">
+                  <div key={index} className="flex min-w-0 items-center gap-2">
                     <span
                       aria-hidden="true"
                       className={cn(
@@ -73,7 +70,7 @@ export function FixtureGame({
                       )}
                     />
                     <TeamLogo
-                      className="size-4"
+                      className="size-5"
                       imagePath={participant?.image_path ?? null}
                       online={online}
                     />

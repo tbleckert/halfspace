@@ -315,9 +315,6 @@ function PressureChart({
           </div>
         </div>
       </div>
-      <figcaption className="mt-3 text-xs text-muted-foreground">
-        Sportmonks Pressure Index · Reported minutes
-      </figcaption>
     </figure>
   )
 }

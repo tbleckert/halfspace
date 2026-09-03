@@ -36,6 +36,8 @@ abstractions.
 - Use direct, singular page headings. Do not add eyebrow labels or pretitles above them.
 - Avoid prototype copy, implementation explanations, and redundant guidance. Text should name the
   current thing, communicate a meaningful state, or enable an action.
+- Skip routine Sportmonks attribution on football data cards; name the provider only where account,
+  access, or error context makes it useful. Align headings and team rows across adjacent match cards.
 - Build the product outward through dedicated football entity pages and natural links between
   them. Prioritize entity depth before secondary tools or dashboards.
 - Horizontal local navigation uses one shared rule. Only the active item has its own indicator;
