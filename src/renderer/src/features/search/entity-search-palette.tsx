@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from '@tanstack/react-router'
 import { LoaderCircle, Search } from 'lucide-react'
-import type { EntitySearchResult, EntitySearchResultType } from '@/data/db'
+import type { CachedFixture, EntitySearchResult, EntitySearchResultType } from '@/data/db'
 import { Button } from '@/components/ui/button'
 import { Command, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
@@ -11,19 +11,27 @@ import { CompetitionLogo } from '@/features/competitions/competition-logo'
 import { prefetchCompetitionWorkspace } from '@/features/competitions/use-competition-workspace'
 import { PlayerPhoto } from '@/features/players/player-photo'
 import { prefetchPlayerEntity } from '@/features/players/use-player'
+import { prefetchRefereeEntity } from '@/features/referees/use-referee'
+import { prefetchFixtureEntity } from '@/features/fixtures/use-fixtures'
+import { FixtureLiveIndicator } from '@/features/fixtures/fixture-live-indicator'
 import { TeamLogo } from '@/features/teams/team-logo'
 import { prefetchTeamEntity } from '@/features/teams/use-team'
 import { VenueImage } from '@/features/venues/venue-image'
 import { prefetchVenueEntity } from '@/features/venues/use-venue'
 import { intentPrefetchProps, startPrefetch } from '@/lib/prefetch'
 import { cn } from '@/lib/utils'
+import { formatFixtureTime } from '@/lib/date'
+import { currentFixtureScore, fixtureParticipantAt } from '@/lib/fixture'
+import { fixtureRowStatus } from '@/lib/fixture-state'
 import { useEntitySearch } from './use-entity-search'
 
 const groupLabels: Record<EntitySearchResultType, string> = {
   competition: 'Competitions',
   team: 'Teams',
+  fixture: 'Matches',
   player: 'Players',
   coach: 'Coaches',
+  referee: 'Referees',
   venue: 'Venues'
 }
 
@@ -60,6 +68,24 @@ export function EntitySearchPalette({ online }: { online: boolean }): React.JSX.
 
   async function openResult(result: EntitySearchResult): Promise<void> {
     changeOpen(false)
+
+    if (result.type === 'fixture') {
+      await router.navigate({
+        to: '/fixtures/$fixtureId',
+        params: { fixtureId: String(result.id) },
+        search: { competition: result.fixture?.leagueId, season: result.fixture?.seasonId }
+      })
+      return
+    }
+
+    if (result.type === 'referee') {
+      await router.navigate({
+        to: '/referees/$refereeId',
+        params: { refereeId: String(result.id) },
+        search: {}
+      })
+      return
+    }
 
     if (result.type === 'competition') {
       await router.navigate({
@@ -148,9 +174,9 @@ export function EntitySearchPalette({ online }: { online: boolean }): React.JSX.
             <CommandInput
               ref={inputRef}
               aria-expanded={hasQuery}
-              aria-label="Search competitions, teams, players, coaches, and venues"
+              aria-label="Search matches, competitions, teams, players, coaches, referees, and venues"
               autoComplete="off"
-              placeholder="Search competitions, teams, players, coaches, and venues"
+              placeholder="Search football…"
               value={query}
               onValueChange={(value) => {
                 setQuery(value)
@@ -189,7 +215,7 @@ export function EntitySearchPalette({ online }: { online: boolean }): React.JSX.
                       {...intentPrefetchProps(online, () => prefetchSearchResult(result))}
                     >
                       <ResultImage online={online} result={result} />
-                      <span className="min-w-0">
+                      <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium">{result.name}</span>
                         {result.subtitle && (
                           <span className="block truncate text-xs text-muted-foreground">
@@ -197,6 +223,7 @@ export function EntitySearchPalette({ online }: { online: boolean }): React.JSX.
                           </span>
                         )}
                       </span>
+                      {result.fixture && <MatchSummary fixture={result.fixture} />}
                     </CommandItem>
                   </div>
                 )
@@ -217,6 +244,15 @@ export function EntitySearchPalette({ online }: { online: boolean }): React.JSX.
 }
 
 async function prefetchSearchResult(result: EntitySearchResult): Promise<void> {
+  if (result.type === 'fixture') {
+    await prefetchFixtureEntity(result.id)
+    return
+  }
+
+  if (result.type === 'referee') {
+    await prefetchRefereeEntity(result.id)
+    return
+  }
   if (result.type === 'competition') {
     await prefetchCompetitionWorkspace(result.id)
     return
@@ -248,6 +284,22 @@ function ResultImage({
   result: EntitySearchResult
 }): React.JSX.Element {
   const className = 'size-9 rounded-lg bg-background'
+  const fixture = result.fixture
+
+  if (fixture) {
+    return (
+      <span className="flex w-9 shrink-0 flex-col items-center -space-y-2">
+        {(['home', 'away'] as const).map((side) => (
+          <TeamLogo
+            key={side}
+            className="size-6 bg-background"
+            imagePath={fixtureParticipantAt(fixture.raw, side)?.image_path ?? null}
+            online={online}
+          />
+        ))}
+      </span>
+    )
+  }
 
   if (result.type === 'competition') {
     return <CompetitionLogo className={className} imagePath={result.imagePath} online={online} />
@@ -257,7 +309,7 @@ function ResultImage({
     return <TeamLogo className={className} imagePath={result.imagePath} online={online} />
   }
 
-  if (result.type === 'player') {
+  if (result.type === 'player' || result.type === 'referee') {
     return (
       <PlayerPhoto className="size-9 rounded-full" imagePath={result.imagePath} online={online} />
     )
@@ -270,4 +322,29 @@ function ResultImage({
   }
 
   return <VenueImage className="size-9 rounded-lg" imagePath={result.imagePath} online={online} />
+}
+
+function MatchSummary({ fixture }: { fixture: CachedFixture }): React.JSX.Element {
+  const status = fixtureRowStatus(fixture.raw)
+  const score = currentFixtureScore(fixture.raw)
+  const hasScore = score.home !== undefined || score.away !== undefined
+
+  return (
+    <span className="ml-auto flex shrink-0 flex-col items-end gap-1 font-mono text-xs tabular-nums">
+      {hasScore && (
+        <span className="font-semibold">
+          {score.home ?? '–'}–{score.away ?? '–'}
+        </span>
+      )}
+      <span
+        className={cn(
+          'flex items-center gap-1.5 text-muted-foreground',
+          status.kind === 'in-play' && 'text-success-emphasis'
+        )}
+      >
+        {status.kind === 'in-play' && <FixtureLiveIndicator showLabel={false} />}
+        {status.kind === 'kickoff' ? formatFixtureTime(fixture.startingAt) : status.label}
+      </span>
+    </span>
+  )
 }

@@ -9,7 +9,6 @@ import {
   Trophy,
   UsersRound
 } from 'lucide-react'
-import type { CachedStanding } from '@/data/db'
 import { db } from '@/data/db'
 import { EntitySubpageNavigation } from '@/components/entity-subpage-navigation'
 import { entitySubpageNavigationItemClassName } from '@/components/entity-subpage-navigation-variants'
@@ -20,14 +19,6 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table'
 import { EntityFixturePanel } from '@/features/fixtures/entity-fixture-panel'
 import {
   groupEntityFixturesByDate,
@@ -45,6 +36,7 @@ import { CompetitionLeaderCards } from './competition-leader-cards'
 import { PlayerLeaders } from './player-leaders'
 import { SeasonSchedule } from './season-schedule'
 import { TeamOfWeek } from './team-of-week'
+import { StandingsTable } from './standings-table'
 import { prefetchSeasonSchedule, useSeasonSchedule } from './use-season-schedule'
 import type { PlayerLeaderboardCategory } from './player-leaders-data'
 import {
@@ -542,6 +534,7 @@ function CompetitionOverview({
               key={group.key}
               competitionId={competitionId}
               name={standingGroups.length === 1 ? 'Table' : group.name}
+              date={date}
               online={online}
               season={season}
               standings={group.standings}
@@ -744,69 +737,6 @@ function CompetitionTeams({
           </li>
         ))}
       </ul>
-    </section>
-  )
-}
-
-function StandingsTable({
-  competitionId,
-  name,
-  online,
-  season,
-  standings
-}: {
-  competitionId: number
-  name: string
-  online: boolean
-  season?: number
-  standings: CachedStanding[]
-}): React.JSX.Element {
-  return (
-    <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
-      <div className="border-b px-4 py-3">
-        <h2 className="text-sm font-semibold">{name}</h2>
-      </div>
-      <Table className="table-fixed border-collapse">
-        <TableHeader className="bg-muted/45 text-xs text-muted-foreground [&_tr]:border-0">
-          <TableRow className="border-0 hover:bg-transparent">
-            <TableHead className="h-auto w-12 px-4 py-2 text-muted-foreground">#</TableHead>
-            <TableHead className="h-auto px-2 py-2 text-muted-foreground">Team</TableHead>
-            <TableHead className="h-auto w-14 px-4 py-2 text-right text-muted-foreground">
-              Pts
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody className="divide-y">
-          {standings.map((standing) => (
-            <TableRow key={standing.id} className="border-0 hover:bg-transparent">
-              <TableCell className="px-4 py-2.5 font-mono tabular-nums text-muted-foreground">
-                {standing.position}
-              </TableCell>
-              <TableCell className="whitespace-normal px-2 py-2.5">
-                <Link
-                  to="/teams/$teamId"
-                  params={{ teamId: String(standing.participantId) }}
-                  search={{ competition: competitionId, season }}
-                  className="flex min-w-0 items-center gap-2.5 rounded-sm outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
-                  {...intentPrefetchProps(online, () => prefetchTeamEntity(standing.participantId))}
-                >
-                  <TeamLogo
-                    className="size-7 bg-background"
-                    imagePath={standing.raw.participant?.image_path ?? null}
-                    online={online}
-                  />
-                  <span className="truncate font-medium">
-                    {standing.raw.participant?.name ?? `Team ${standing.participantId}`}
-                  </span>
-                </Link>
-              </TableCell>
-              <TableCell className="px-4 py-2.5 text-right font-mono font-semibold tabular-nums">
-                {standing.raw.points}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
     </section>
   )
 }

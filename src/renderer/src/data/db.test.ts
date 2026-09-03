@@ -156,6 +156,8 @@ describe('entity search cache', () => {
       competitions: [],
       players: [],
       coaches: [],
+      referees: [],
+      fixtures: [],
       venues: [],
       fetchedAt: detail.fetchedAt + 1_000
     })
@@ -188,6 +190,8 @@ describe('entity search cache', () => {
       competitions: [],
       players: [],
       coaches: [],
+      referees: [],
+      fixtures: [],
       venues: [],
       fetchedAt: Date.now()
     })
@@ -212,6 +216,8 @@ describe('entity search cache', () => {
     }
     const searchRefresh: EntitySearchRefresh = {
       fetchedAt: fetchedAt + 1,
+      referees: [],
+      fixtures: [],
       competitions: [
         {
           id: 301,
@@ -594,6 +600,8 @@ describe('competition cache', () => {
       teams: [],
       players: [],
       coaches: [],
+      referees: [],
+      fixtures: [],
       venues: [],
       fetchedAt: Date.now()
     })
@@ -886,6 +894,8 @@ describe('included coach cache', () => {
         await writeEntitySearchRefresh({
           fetchedAt: Date.UTC(2026, 7, 28, 10),
           competitions: [],
+          referees: [],
+          fixtures: [],
           teams: [],
           players: [],
           venues: [],

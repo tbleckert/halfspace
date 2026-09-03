@@ -1,8 +1,8 @@
 # Sportmonks API coverage
 
-Halfspace currently covers **31 of 153 endpoints** and **94 of 1320 documented endpoint includes**.
+Halfspace currently covers **33 of 153 endpoints** and **102 of 1320 documented endpoint includes**.
 
-Overall coverage: **8%**
+Overall coverage: **9%**
 
 Source: [Sportmonks Football API 3.0 documentation index](https://docs.sportmonks.com/v3/sitemap.md)
 
@@ -33,7 +33,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 - [x] [Fixtures by Date Range](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixtures-by-date-range) — includes 5/38
 - [x] [Fixtures by Date Range for Team](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixtures-by-date-range-for-team) — includes 6/38
 - [x] [Fixtures by Head To Head](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixtures-by-head-to-head) — includes 5/38
-- [ ] [Fixtures by Search by Name](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixtures-by-search-by-name)
+- [x] [Fixtures by Search by Name](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixtures-by-search-by-name) — includes 5/38
 - [ ] [Upcoming Fixtures by Market ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-upcoming-fixtures-by-market-id)
 - [ ] [Upcoming Fixtures by TV Station ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-upcoming-fixtures-by-tv-station-id)
 - [ ] [Past Fixtures by TV Station ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-past-fixtures-by-tv-station-id)
@@ -98,7 +98,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 ### Standings
 
 - [ ] [All Standings](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-all-standings)
-- [x] [Standings by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-standings-by-season-id) — includes 3/10
+- [x] [Standings by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-standings-by-season-id) — includes 5/10
 - [ ] [Standings by Round ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-standings-by-round-id)
 - [ ] [Standing Correction by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-standing-correction-by-season-id)
 - [ ] [Live Standings by League ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-live-standings-by-league-id)
@@ -164,7 +164,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 - [x] [Referee by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/referees/get-referee-by-id) — includes 2/6
 - [ ] [Referees by Country ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/referees/get-referees-by-country-id)
 - [ ] [Referees by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/referees/get-referees-by-season-id)
-- [ ] [Referees Search by Name](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/referees/get-referees-search-by-name)
+- [x] [Referees Search by Name](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/referees/get-referees-search-by-name) — includes 1/6
 
 ### Transfers
 

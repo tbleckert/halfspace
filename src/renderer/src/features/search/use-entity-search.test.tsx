@@ -37,6 +37,8 @@ describe('search credential boundary', () => {
           teams: [],
           players: [],
           coaches: [],
+          referees: [],
+          fixtures: [],
           venues: [],
           fetchedAt: Date.now()
         }

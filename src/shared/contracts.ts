@@ -718,6 +718,19 @@ export interface SportmonksStandingContext {
   name: string
 }
 
+export interface SportmonksStandingDetail {
+  id: number
+  type_id: number
+  value: number
+}
+
+export interface SportmonksStandingForm {
+  id: number
+  fixture_id: number
+  form: string
+  sort_order: number
+}
+
 export interface SportmonksStanding {
   id: number
   participant_id: number
@@ -733,6 +746,8 @@ export interface SportmonksStanding {
   participant?: SportmonksParticipant | null
   stage?: SportmonksStandingContext | null
   group?: SportmonksStandingContext | null
+  details?: SportmonksStandingDetail[]
+  form?: SportmonksStandingForm[]
 }
 
 export interface SportmonksSeasonStatistic {
@@ -938,6 +953,8 @@ export interface EntitySearchRefresh {
   teams: SportmonksTeam[]
   players: SportmonksPlayer[]
   coaches: SportmonksCoach[]
+  referees: SportmonksReferee[]
+  fixtures: SportmonksFixture[]
   venues: SportmonksVenue[]
   fetchedAt: number
 }

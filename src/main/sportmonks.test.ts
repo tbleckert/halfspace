@@ -460,6 +460,16 @@ describe('Sportmonks client', () => {
         return Response.json({ data: [makeCoach()] })
       }
 
+      if (url.pathname.startsWith('/v3/football/referees/search/')) {
+        return Response.json({
+          data: [{ id: 14468, name: 'John Beaton', display_name: 'J. Beaton', country_id: 1161 }]
+        })
+      }
+
+      if (url.pathname.startsWith('/v3/football/fixtures/search/')) {
+        return Response.json({ data: [makeFixture()] })
+      }
+
       return Response.json({
         data: [
           {
@@ -480,7 +490,9 @@ describe('Sportmonks client', () => {
     expect(refresh.players[0].display_name).toBe('Quinten Timber')
     expect(refresh.coaches[0].display_name).toBe('Pep Guardiola')
     expect(refresh.venues[0].name).toBe('Etihad Stadium')
-    expect(fetcher).toHaveBeenCalledTimes(5)
+    expect(refresh.referees[0].name).toBe('John Beaton')
+    expect(refresh.fixtures[0].id).toBe(makeFixture().id)
+    expect(fetcher).toHaveBeenCalledTimes(7)
 
     const requests = fetcher.mock.calls.map(([input, init]) => ({
       headers: new Headers(init?.headers),
@@ -491,16 +503,21 @@ describe('Sportmonks client', () => {
       '/v3/football/teams/search/manchester',
       '/v3/football/players/search/manchester',
       '/v3/football/coaches/search/manchester',
-      '/v3/football/venues/search/manchester'
+      '/v3/football/venues/search/manchester',
+      '/v3/football/referees/search/manchester',
+      '/v3/football/fixtures/search/manchester'
     ])
     expect(requests.map(({ url }) => url.searchParams.get('include'))).toEqual([
       'country;currentSeason',
       'country;venue',
       'nationality;position;detailedPosition',
       'nationality',
-      'country'
+      'country',
+      'country',
+      'participants;league;state;scores;periods'
     ])
     expect(requests.every(({ url }) => url.searchParams.get('per_page') === '8')).toBe(true)
+    expect(requests.at(-1)?.url.searchParams.get('order')).toBe('desc')
     expect(requests.every(({ headers }) => headers.get('Authorization') === 'private-token')).toBe(
       true
     )
@@ -537,7 +554,12 @@ describe('Sportmonks client', () => {
             result: null,
             points: 84,
             participant: { id: 10, name: 'Home' },
-            stage: { id: 77471288, name: 'Regular Season' }
+            stage: { id: 77471288, name: 'Regular Season' },
+            details: [
+              { id: 100, type_id: 129, value: 30 },
+              { id: 101, type_id: 179, value: 12 }
+            ],
+            form: [{ id: 200, fixture_id: 123, form: 'W', sort_order: 30 }]
           }
         ],
         rate_limit: { remaining: 2_996, resets_in_seconds: 3_600 }
@@ -548,11 +570,14 @@ describe('Sportmonks client', () => {
 
     expect(refresh.standings).toHaveLength(1)
     expect(refresh.standings[0].participant?.name).toBe('Home')
+    expect(refresh.standings[0].details?.map(({ value }) => value)).toEqual([30, 12])
+    expect(refresh.standings[0].form?.[0]).toMatchObject({ fixture_id: 123, form: 'W' })
 
     const [input, init] = fetcher.mock.calls[0]
     const url = new URL(input.toString())
     expect(url.pathname).toBe('/v3/football/standings/seasons/23614')
-    expect(url.searchParams.get('include')).toBe('participant;stage;group')
+    expect(url.searchParams.get('include')).toBe('participant;stage;group;details;form')
+    expect(url.searchParams.get('filters')).toBe('standingDetailTypes:129,179')
     expect(url.searchParams.has('api_token')).toBe(false)
     expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')
   })

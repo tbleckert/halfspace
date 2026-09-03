@@ -54,6 +54,10 @@ abstractions.
   ten most recent seasons in a compact URL-backed selector; keep standings and fixture windows
   season-scoped, and keep the selected season when changing competition views or opening a fixture.
   Changing the selected season must retain the active competition subpage.
+- Competition tables show provider-reported played matches and goal difference from standing
+  details, plus the last five W/D/L results from standing form. Request only the detail types shown;
+  preserve missing values as unknown. Sort form by provider `sort_order`, oldest to newest, and link
+  each result to its fixture with competition and season context intact.
 - Competition Schedule browses the complete season by stage and round. Fetch the schedule once per
   cache window, normalize its fixtures into the shared cache, and keep stage and round selections
   in the URL. Default to the current stage and round; clear those selections when switching seasons.
@@ -215,6 +219,9 @@ abstractions.
   search Sportmonks through main and hydrate the existing entity tables. Keep the palette opaque
   and free of open and close animation. Until a query is entered, show only the search row without
   a divider or reserved results area.
+- Global search includes matches and referees. Match results show competition, date, score, and
+  status; request recent matches first with `order=desc`. Reuse shared fixture and referee caches,
+  preserving richer match detail, referee appointments, and newer data when search updates identity.
 - Keep navigation prefetch non-blocking and stale-aware. TanStack Router preloads routes on intent;
   data intent should warm the existing Dexie queries without bypassing their TTLs. After startup,
   warm today’s Matchday and each visible sidebar competition in the background, one competition at

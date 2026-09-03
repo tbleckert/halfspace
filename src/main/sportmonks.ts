@@ -43,6 +43,7 @@ import type {
   SportmonksTopscorer,
   StandingsRefresh,
   SportmonksCompetition,
+  SportmonksReferee,
   SportmonksCoach,
   SportmonksFixture,
   SportmonksOdd,
@@ -618,7 +619,26 @@ const standingSchema = z
     points: z.number(),
     participant: participantSchema.nullable().optional(),
     stage: standingContextSchema.nullable().optional(),
-    group: standingContextSchema.nullable().optional()
+    group: standingContextSchema.nullable().optional(),
+    details: z
+      .array(
+        z
+          .object({ id: z.number().int(), type_id: z.number().int(), value: z.number() })
+          .passthrough()
+      )
+      .optional(),
+    form: z
+      .array(
+        z
+          .object({
+            id: z.number().int(),
+            fixture_id: z.number().int(),
+            form: z.string(),
+            sort_order: z.number().int()
+          })
+          .passthrough()
+      )
+      .optional()
   })
   .passthrough()
 
@@ -934,6 +954,8 @@ const teamSearchResponseSchema = z.object({ data: z.array(teamSchema) }).passthr
 const playerSearchResponseSchema = z.object({ data: z.array(playerSchema) }).passthrough()
 const coachSearchResponseSchema = z.object({ data: z.array(coachSchema) }).passthrough()
 const venueSearchResponseSchema = z.object({ data: z.array(venueSchema) }).passthrough()
+const refereeSearchResponseSchema = z.object({ data: z.array(refereeBaseSchema) }).passthrough()
+const fixtureSearchResponseSchema = z.object({ data: z.array(fixtureSchema) }).passthrough()
 
 export function validateToken(value: unknown): string {
   if (typeof value !== 'string') {
@@ -1582,7 +1604,8 @@ export async function fetchStandingsBySeason(
 ): Promise<StandingsRefresh> {
   const fetchedAt = Date.now()
   const url = new URL(`${apiBaseUrl}/standings/seasons/${input.seasonId}`)
-  url.searchParams.set('include', 'participant;stage;group')
+  url.searchParams.set('include', 'participant;stage;group;details;form')
+  url.searchParams.set('filters', 'standingDetailTypes:129,179')
 
   const parsed = await requestSportmonks(url, token, standingsResponseSchema, fetcher)
 
@@ -1985,20 +2008,35 @@ export async function fetchEntitySearch(
 ): Promise<EntitySearchRefresh> {
   const fetchedAt = Date.now()
   const query = encodeURIComponent(input.query)
-  const [competitionResponse, teamResponse, playerResponse, coachResponse, venueResponse] =
-    await Promise.all([
-      fetchEntitySearchPage('leagues', query, 'country;currentSeason', token, fetcher),
-      fetchEntitySearchPage('teams', query, 'country;venue', token, fetcher),
-      fetchEntitySearchPage(
-        'players',
-        query,
-        'nationality;position;detailedPosition',
-        token,
-        fetcher
-      ),
-      fetchEntitySearchPage('coaches', query, 'nationality', token, fetcher),
-      fetchEntitySearchPage('venues', query, 'country', token, fetcher)
-    ])
+  const [
+    competitionResponse,
+    teamResponse,
+    playerResponse,
+    coachResponse,
+    venueResponse,
+    refereeResponse,
+    fixtureResponse
+  ] = await Promise.all([
+    fetchEntitySearchPage('leagues', query, 'country;currentSeason', token, fetcher),
+    fetchEntitySearchPage('teams', query, 'country;venue', token, fetcher),
+    fetchEntitySearchPage(
+      'players',
+      query,
+      'nationality;position;detailedPosition',
+      token,
+      fetcher
+    ),
+    fetchEntitySearchPage('coaches', query, 'nationality', token, fetcher),
+    fetchEntitySearchPage('venues', query, 'country', token, fetcher),
+    fetchEntitySearchPage('referees', query, 'country', token, fetcher),
+    fetchEntitySearchPage(
+      'fixtures',
+      query,
+      'participants;league;state;scores;periods',
+      token,
+      fetcher
+    )
+  ])
 
   try {
     return {
@@ -2007,6 +2045,8 @@ export async function fetchEntitySearch(
       teams: teamSearchResponseSchema.parse(teamResponse).data as SportmonksTeam[],
       players: playerSearchResponseSchema.parse(playerResponse).data as SportmonksPlayer[],
       coaches: coachSearchResponseSchema.parse(coachResponse).data as SportmonksCoach[],
+      referees: refereeSearchResponseSchema.parse(refereeResponse).data as SportmonksReferee[],
+      fixtures: fixtureSearchResponseSchema.parse(fixtureResponse).data as SportmonksFixture[],
       venues: venueSearchResponseSchema.parse(venueResponse).data as SportmonksVenue[],
       fetchedAt
     }
@@ -2016,7 +2056,7 @@ export async function fetchEntitySearch(
 }
 
 async function fetchEntitySearchPage(
-  entity: 'leagues' | 'teams' | 'players' | 'coaches' | 'venues',
+  entity: 'leagues' | 'teams' | 'players' | 'coaches' | 'venues' | 'referees' | 'fixtures',
   query: string,
   include: string,
   token: string,
@@ -2025,6 +2065,7 @@ async function fetchEntitySearchPage(
   const url = new URL(`${apiBaseUrl}/${entity}/search/${query}`)
   url.searchParams.set('include', include)
   url.searchParams.set('per_page', '8')
+  if (entity === 'fixtures') url.searchParams.set('order', 'desc')
 
   return requestSportmonks(url, token, z.unknown(), fetcher)
 }

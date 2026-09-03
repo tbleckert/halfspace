@@ -62,7 +62,7 @@ include should have a useful place in Halfspace.
 
 - [x] Local-first desktop app with personal Sportmonks tokens and offline browsing.
 - [x] Matchday hub with calendar navigation, live updates, upcoming fixtures, and recent results.
-- [x] Competition pages with standings, fixtures, teams, and season selection.
+- [x] Competition pages with standings, played matches, goal difference, linked form, and season selection.
 - [x] Complete season schedules with stage and round navigation.
 - [x] Team pages with fixtures, squad profiles, and transfer history.
 - [x] Historical team squads with season selection and offline browsing.
@@ -80,7 +80,8 @@ include should have a useful place in Halfspace.
 - [x] Competition Team of the Week with season and round browsing.
 - [x] Pre-match and in-play odds explorer with market and bookmaker comparison.
 - [x] Subscription overview showing plans, add-ons, and feature access for your token.
-- [x] Global entity search, competition quick access, and navigation prefetching.
+- [x] Global search across matches and football profiles, including referees, with cached results.
+- [x] Competition quick access and navigation prefetching.
 
 ### Ahead
 

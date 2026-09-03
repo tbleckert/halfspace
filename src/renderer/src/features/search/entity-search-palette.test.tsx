@@ -6,10 +6,11 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
+  Outlet,
   RouterProvider
 } from '@tanstack/react-router'
 import { describe, expect, it } from 'vitest'
-import { writeCompetitionRefresh } from '@/data/db'
+import { writeCompetitionRefresh, writeEntitySearchRefresh } from '@/data/db'
 import { EntitySearchPalette } from './entity-search-palette'
 
 describe('entity search palette', () => {
@@ -53,17 +54,78 @@ describe('entity search palette', () => {
     fireEvent.keyDown(option, { key: 'Escape' })
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
   })
+
+  it.each([
+    ['Beaton', 'J. Beaton', 'Opened referee'],
+    ['Lecce', 'Lecce vs Roma', 'Opened match']
+  ])('opens a cached result for %s from the palette', async (query, name, heading) => {
+    await writeEntitySearchRefresh({
+      competitions: [],
+      teams: [],
+      players: [],
+      coaches: [],
+      venues: [],
+      referees: [
+        {
+          id: 14468,
+          name: 'John Beaton',
+          display_name: 'J. Beaton',
+          country_id: 1161,
+          country: { id: 1161, name: 'Scotland' }
+        }
+      ],
+      fixtures: [
+        {
+          id: 50,
+          name: 'Lecce vs Roma',
+          league_id: 384,
+          season_id: 1,
+          state_id: 1,
+          has_odds: false,
+          placeholder: false,
+          participants: [],
+          scores: []
+        }
+      ],
+      fetchedAt: Date.now()
+    })
+    renderPalette()
+    fireEvent.click(await screen.findByRole('button', { name: 'Search' }))
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: query } })
+    fireEvent.click(await screen.findByRole('option', { name: new RegExp(name) }))
+    expect(await screen.findByRole('heading', { name: heading })).not.toBeNull()
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
 })
 
 function renderPalette(): void {
-  const rootRoute = createRootRoute({ component: () => <EntitySearchPalette online={false} /> })
+  const rootRoute = createRootRoute({
+    component: () => (
+      <>
+        <EntitySearchPalette online={false} />
+        <Outlet />
+      </>
+    )
+  })
   const indexRoute = createRoute({
     getParentRoute: () => rootRoute,
     path: '/',
     component: () => null
   })
   const router = createRouter({
-    routeTree: rootRoute.addChildren([indexRoute]),
+    routeTree: rootRoute.addChildren([
+      indexRoute,
+      createRoute({
+        getParentRoute: () => rootRoute,
+        path: '/fixtures/$fixtureId',
+        component: () => <h1>Opened match</h1>
+      }),
+      createRoute({
+        getParentRoute: () => rootRoute,
+        path: '/referees/$refereeId',
+        component: () => <h1>Opened referee</h1>
+      })
+    ]),
     history: createMemoryHistory({ initialEntries: ['/'] })
   })
 

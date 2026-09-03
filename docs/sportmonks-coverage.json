@@ -3,6 +3,13 @@
   "endpoints": {
     "fixtures/get-fixtures-by-date": ["participants", "league", "state", "scores", "periods"],
     "fixtures/get-fixtures-by-date-range": ["participants", "league", "state", "scores", "periods"],
+    "fixtures/get-fixtures-by-search-by-name": [
+      "participants",
+      "league",
+      "state",
+      "scores",
+      "periods"
+    ],
     "fixtures/get-fixture-by-id": [
       "participants",
       "league",
@@ -45,7 +52,7 @@
     "schedules/get-schedules-by-season-id": [],
     "commentaries/get-commentaries-by-fixture-id": ["player", "relatedPlayer"],
     "seasons/get-seasons-by-id": ["statistics"],
-    "standings/get-standings-by-season-id": ["participant", "stage", "group"],
+    "standings/get-standings-by-season-id": ["participant", "stage", "group", "details", "form"],
     "topscorers/get-topscorers-by-season-id": ["player", "participant", "type"],
     "teams/get-team-by-id": ["country", "venue", "coaches", "statistics", "sidelined"],
     "teams/get-teams-by-search-by-name": ["country", "venue"],
@@ -56,6 +63,7 @@
     "team-squads/get-team-squad-by-team-and-season-id": ["player", "position"],
     "coaches/get-coach-by-id": ["nationality", "teams"],
     "referees/get-referee-by-id": ["country", "latest"],
+    "referees/get-referees-search-by-name": ["country"],
     "coaches/get-coaches-search-by-name": ["nationality"],
     "transfers/get-transfers-by-player-id": ["type", "fromTeam", "toTeam"],
     "transfers/get-transfers-by-team-id": ["player", "type", "fromTeam", "toTeam"],

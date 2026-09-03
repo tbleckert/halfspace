@@ -78,9 +78,11 @@ const liveFixtureCacheDuration = 30 * 1000
 const entityTypeOrder: Record<EntitySearchResultType, number> = {
   competition: 0,
   team: 1,
-  player: 2,
-  coach: 3,
-  venue: 4
+  fixture: 2,
+  player: 3,
+  coach: 4,
+  referee: 5,
+  venue: 6
 }
 
 export interface CachedFixture {
@@ -310,7 +312,8 @@ export interface CoachTeamRecord {
   team: CachedTeam
 }
 
-export type EntitySearchResultType = 'competition' | 'team' | 'player' | 'coach' | 'venue'
+export type EntitySearchResultType =
+  'competition' | 'team' | 'fixture' | 'player' | 'coach' | 'referee' | 'venue'
 
 export interface EntitySearchResult {
   id: number
@@ -318,6 +321,7 @@ export interface EntitySearchResult {
   name: string
   subtitle: string | null
   imagePath: string | null
+  fixture?: CachedFixture
 }
 
 export interface CachedSquadEntry {
@@ -1350,11 +1354,13 @@ export async function readEntitySearch(query: string): Promise<EntitySearchResul
   const normalizedQuery = normalizeSearchText(query.trim())
   if (!normalizedQuery) return []
 
-  const [competitions, teams, players, coaches, venues] = await Promise.all([
+  const [competitions, teams, fixtures, players, coaches, referees, venues] = await Promise.all([
     db.competitions.toArray(),
     db.teams.toArray(),
+    db.fixtures.toArray(),
     db.players.toArray(),
     db.coaches.toArray(),
+    db.referees.toArray(),
     db.venues.toArray()
   ])
   const rankedResults = [
@@ -1377,6 +1383,24 @@ export async function readEntitySearch(query: string): Promise<EntitySearchResul
         imagePath: team.imagePath
       },
       score: searchScore(normalizedQuery, [team.name, team.raw.country?.name ?? ''])
+    })),
+    ...fixtures.map((fixture) => ({
+      result: {
+        id: fixture.id,
+        type: 'fixture' as const,
+        name: fixture.name ?? `Match ${fixture.id}`,
+        subtitle:
+          [fixture.raw.league?.name, formatSearchFixtureDate(fixture.startingAt)]
+            .filter(Boolean)
+            .join(' · ') || null,
+        imagePath: null,
+        fixture
+      },
+      score: searchScore(normalizedQuery, [
+        fixture.name ?? '',
+        fixture.raw.league?.name ?? '',
+        ...fixture.raw.participants.map(({ name }) => name)
+      ])
     })),
     ...players.map((player) => ({
       result: {
@@ -1410,6 +1434,20 @@ export async function readEntitySearch(query: string): Promise<EntitySearchResul
         coach.raw.nationality?.name ?? ''
       ])
     })),
+    ...referees.map((referee) => ({
+      result: {
+        id: referee.id,
+        type: 'referee' as const,
+        name: referee.raw.display_name,
+        subtitle: ['Referee', referee.raw.country?.name].filter(Boolean).join(' · '),
+        imagePath: referee.raw.image_path ?? null
+      },
+      score: searchScore(normalizedQuery, [
+        referee.raw.display_name,
+        referee.raw.name,
+        referee.raw.country?.name ?? ''
+      ])
+    })),
     ...venues.map((venue) => ({
       result: {
         id: venue.id,
@@ -1430,6 +1468,9 @@ export async function readEntitySearch(query: string): Promise<EntitySearchResul
     .toSorted((a, b) => {
       if (a.score !== b.score) return a.score - b.score
       const typeDifference = entityTypeOrder[a.result.type] - entityTypeOrder[b.result.type]
+      if (a.result.type === 'fixture' && b.result.type === 'fixture') {
+        return (b.result.fixture.startingAt ?? 0) - (a.result.fixture.startingAt ?? 0)
+      }
       return typeDifference || a.result.name.localeCompare(b.result.name)
     })
 
@@ -1479,11 +1520,7 @@ export async function writeEntitySearchRefresh(refresh: EntitySearchRefresh): Pr
 
   await db.transaction(
     'rw',
-    db.competitions,
-    db.teams,
-    db.players,
-    db.coaches,
-    db.venues,
+    [db.fixtures, db.competitions, db.teams, db.players, db.coaches, db.referees, db.venues],
     async () => {
       const existingTeams = await db.teams.bulkGet(refresh.teams.map(({ id }) => id))
       const teams = refresh.teams.map((team, index) =>
@@ -1493,13 +1530,25 @@ export async function writeEntitySearchRefresh(refresh: EntitySearchRefresh): Pr
       const coaches = refresh.coaches.map((coach, index) =>
         toCachedCoach(coach, existingCoaches[index], refresh.fetchedAt, false)
       )
+      const existingReferees = await db.referees.bulkGet(refresh.referees.map(({ id }) => id))
+      const referees = refresh.referees.map((referee, index) =>
+        toCachedReferee(referee, refresh.fetchedAt, existingReferees[index])
+      )
+      const fixtures = await toCachedFixtures(refresh.fixtures, refresh.fetchedAt, staleAt)
       await db.competitions.bulkPut(competitions)
       await db.teams.bulkPut(teams)
       await db.players.bulkPut(players)
       await db.coaches.bulkPut(coaches)
+      await db.referees.bulkPut(referees)
+      await db.fixtures.bulkPut(fixtures)
       await db.venues.bulkPut(venues)
     }
   )
+}
+
+function formatSearchFixtureDate(timestamp: number | null): string {
+  if (timestamp === null) return ''
+  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(timestamp)
 }
 
 export async function readStandingsQuery(seasonId: number): Promise<{
