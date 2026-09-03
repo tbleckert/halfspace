@@ -7,7 +7,10 @@ import { useConnectionState } from '@/features/credentials/use-connection-state'
 import { Button } from '@/components/ui/button'
 import { HalfspaceLogo } from '@/components/halfspace-logo'
 import { CompetitionLogo } from '@/features/competitions/competition-logo'
-import { sidebarCompetitions } from '@/features/competitions/sidebar-competitions'
+import {
+  sidebarCompetitionId,
+  sidebarCompetitions
+} from '@/features/competitions/sidebar-competitions'
 import { prefetchCompetitionWorkspace } from '@/features/competitions/use-competition-workspace'
 import { useCompetitions, usePinnedCompetitionIds } from '@/features/competitions/use-competitions'
 import { prefetchFixtureQuery } from '@/features/fixtures/use-fixtures'
@@ -66,13 +69,8 @@ function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): Re
     select: ({ location }) => {
       const competitionContext = (location.search as { competition?: unknown }).competition
       const date = (location.search as { date?: unknown }).date
-      const competitionRoute = /^\/competitions\/(\d+)$/.exec(location.pathname)
-      const routeCompetitionId = competitionRoute ? Number(competitionRoute[1]) : null
-
       return {
-        competitionId:
-          routeCompetitionId ??
-          (typeof competitionContext === 'number' ? competitionContext : null),
+        competitionId: sidebarCompetitionId(location.pathname, competitionContext),
         date: typeof date === 'string' ? date : null,
         pathname: location.pathname
       }

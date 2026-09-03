@@ -1,7 +1,19 @@
 import { describe, expect, it } from 'vitest'
-import { sidebarCompetitions } from './sidebar-competitions'
+import { sidebarCompetitionId, sidebarCompetitions } from './sidebar-competitions'
 
 describe('sidebar competitions', () => {
+  it.each(['fixtures', 'schedule', 'teams', 'stats'])(
+    'keeps the competition context on its %s subpage',
+    (view) => {
+      expect(sidebarCompetitionId(`/competitions/573/${view}`, undefined)).toBe(573)
+    }
+  )
+
+  it('uses the competition route before inherited context and otherwise preserves that context', () => {
+    expect(sidebarCompetitionId('/competitions/573', 8)).toBe(573)
+    expect(sidebarCompetitionId('/teams/37', 384)).toBe(384)
+    expect(sidebarCompetitionId('/competitions', undefined)).toBeNull()
+  })
   it('shows every active competition when exactly ten are available', () => {
     const competitions = Array.from({ length: 10 }, (_, index) => ({
       id: index + 1,

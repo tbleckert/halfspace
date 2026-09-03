@@ -4,6 +4,15 @@ interface CompetitionSummary {
   active: boolean
 }
 
+export function sidebarCompetitionId(pathname: string, competitionContext: unknown): number | null {
+  const competitionRoute = /^\/competitions\/(\d+)(?:\/|$)/.exec(pathname)
+  return competitionRoute
+    ? Number(competitionRoute[1])
+    : typeof competitionContext === 'number'
+      ? competitionContext
+      : null
+}
+
 export function sidebarCompetitions<T extends CompetitionSummary>(
   competitions: readonly T[],
   pinnedCompetitionIds: readonly number[]

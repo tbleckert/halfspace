@@ -1,3 +1,7 @@
+const hoverTimeouts = new WeakMap<HTMLElement, number>()
+
+type PrefetchEvent = { currentTarget: HTMLElement }
+
 export function startPrefetch(prefetch: () => Promise<void>): void {
   void prefetch().catch(() => undefined)
 }
@@ -6,29 +10,32 @@ export function intentPrefetchProps(
   enabled: boolean,
   prefetch: () => Promise<void>
 ): {
-  onFocus: () => void
-  onMouseEnter: () => void
-  onMouseLeave: () => void
+  onFocus: (event: PrefetchEvent) => void
+  onMouseEnter: (event: PrefetchEvent) => void
+  onMouseLeave: (event: PrefetchEvent) => void
 } {
-  let hoverTimeout: number | undefined
-
-  function cancelHover(): void {
-    if (hoverTimeout === undefined) return
-    window.clearTimeout(hoverTimeout)
-    hoverTimeout = undefined
-  }
-
-  function start(): void {
-    cancelHover()
-    if (enabled) startPrefetch(prefetch)
+  function start(element: HTMLElement): void {
+    cancelHover(element)
+    if (enabled && element.isConnected && navigator.onLine) startPrefetch(prefetch)
   }
 
   return {
-    onFocus: start,
-    onMouseEnter: () => {
+    onFocus: ({ currentTarget }) => start(currentTarget),
+    onMouseEnter: ({ currentTarget }) => {
+      cancelHover(currentTarget)
       if (!enabled) return
-      hoverTimeout = window.setTimeout(start, 80)
+      hoverTimeouts.set(
+        currentTarget,
+        window.setTimeout(() => start(currentTarget), 80)
+      )
     },
-    onMouseLeave: cancelHover
+    onMouseLeave: ({ currentTarget }) => cancelHover(currentTarget)
   }
+}
+
+function cancelHover(element: HTMLElement): void {
+  const timeout = hoverTimeouts.get(element)
+  if (timeout === undefined) return
+  window.clearTimeout(timeout)
+  hoverTimeouts.delete(element)
 }
