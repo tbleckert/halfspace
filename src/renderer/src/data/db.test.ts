@@ -280,6 +280,43 @@ describe('entity search cache', () => {
 })
 
 describe('fixture cache', () => {
+  it('does not let an older window response roll back a refreshed matchday', async () => {
+    const older = fixtureRefresh(1, 'City vs Arsenal')
+    older.fixtures[0].starting_at_timestamp = Date.UTC(2026, 7, 28, 18) / 1_000
+    const newer = {
+      ...older,
+      fetchedAt: older.fetchedAt + 60_000,
+      fixtures: [{ ...older.fixtures[0], state_id: 5 }]
+    }
+    await writeFixtureRefresh('2026-08-28', 'UTC', newer)
+    await writeFixtureWindowRefresh(['2026-08-28'], 'UTC', older)
+
+    const cached = await readFixtureQuery('2026-08-28', 'UTC')
+    expect(cached.fixtures[0].stateId).toBe(5)
+    expect(cached.query?.fetchedAt).toBe(newer.fetchedAt)
+  })
+
+  it('keeps newer fixture detail when an older competition request completes', async () => {
+    const older = fixtureRefresh(1, 'City vs Arsenal')
+    const fetchedAt = older.fetchedAt + 60_000
+    await writeFixtureDetailRefresh({
+      fetchedAt,
+      fixture: { ...older.fixtures[0], state_id: 5, events: [] }
+    })
+    await writeCompetitionFixtureRefresh(
+      {
+        competitionId: 8,
+        startDate: '2026-08-01',
+        endDate: '2026-08-31',
+        timeZone: 'UTC'
+      },
+      older
+    )
+
+    const fixture = await db.fixtures.get(1)
+    expect(fixture?.stateId).toBe(5)
+    expect(fixture?.fetchedAt).toBe(fetchedAt)
+  })
   it('writes the query and fixtures together while respecting participant locations', async () => {
     const refresh: FixtureRefresh = {
       fetchedAt: Date.UTC(2026, 7, 27, 10),
@@ -499,6 +536,20 @@ describe('fixture cache', () => {
 })
 
 describe('competition cache', () => {
+  it('retains discovered competitions when the subscription catalogue refreshes', async () => {
+    await writeEntitySearchRefresh({
+      competitions: competitionRefresh([{ id: 301, name: 'Ligue 1' }]).competitions,
+      teams: [],
+      players: [],
+      coaches: [],
+      venues: [],
+      fetchedAt: Date.now()
+    })
+    await writeCompetitionRefresh(competitionRefresh([{ id: 8, name: 'Premier League' }]))
+
+    expect((await readCompetitionCatalog()).competitions.map(({ id }) => id)).toEqual([8])
+    expect((await readEntitySearch('Ligue 1')).map(({ id }) => id)).toEqual([301])
+  })
   it('replaces the subscribed catalogue while preserving local pins', async () => {
     const firstRefresh = competitionRefresh([
       { id: 8, name: 'Premier League' },

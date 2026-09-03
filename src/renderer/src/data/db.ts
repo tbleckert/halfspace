@@ -941,6 +941,8 @@ export async function writeFixtureRefresh(
   }
 
   await db.transaction('rw', db.fixtures, db.fixtureQueries, async () => {
+    const existingQuery = await db.fixtureQueries.get(query.key)
+    if (existingQuery && existingQuery.fetchedAt > refresh.fetchedAt) return
     const fixtures = await toCachedFixtures(refresh.fixtures, refresh.fetchedAt, staleAt)
     await db.fixtures.bulkPut(fixtures)
     await db.fixtureQueries.put(query)
@@ -963,6 +965,9 @@ export async function writeFixtureWindowRefresh(
 
   await db.transaction('rw', db.fixtures, db.fixtureQueries, async () => {
     for (const date of dates) {
+      const key = fixtureQueryKey(date, timeZone)
+      const existingQuery = await db.fixtureQueries.get(key)
+      if (existingQuery && existingQuery.fetchedAt > refresh.fetchedAt) continue
       const fixtures = fixturesByDate.get(date) ?? []
       const staleAt = fixtureRefreshExpiry(
         fixtures,
@@ -973,7 +978,7 @@ export async function writeFixtureWindowRefresh(
 
       await db.fixtures.bulkPut(cachedFixtures)
       await db.fixtureQueries.put({
-        key: fixtureQueryKey(date, timeZone),
+        key,
         date,
         timeZone,
         fixtureIds: fixtures.map(({ id }) => id),
@@ -1004,6 +1009,7 @@ export async function writeFixtureDetailRefresh(refresh: FixtureDetailRefresh): 
       toCachedReferee(referee, refresh.fetchedAt, existingReferees[index])
     )
     const existing = await db.fixtures.get(refresh.fixture.id)
+    if (existing && existing.fetchedAt > refresh.fetchedAt) return
     const fixture = toCachedFixture(
       refresh.fixture,
       refresh.fetchedAt,
@@ -1161,7 +1167,6 @@ export async function writeCompetitionRefresh(refresh: CompetitionRefresh): Prom
   }
 
   await db.transaction('rw', db.competitions, db.competitionCatalogs, async () => {
-    await db.competitions.clear()
     await db.competitions.bulkPut(competitions)
     await db.competitionCatalogs.put(catalog)
   })
@@ -2347,6 +2352,7 @@ function toCachedFixture(
   existing?: CachedFixture,
   preserveDetail = true
 ): CachedFixture {
+  if (existing && existing.fetchedAt > fetchedAt) return existing
   const raw = preserveDetail ? mergeFixtureDetail(existing?.raw, fixture) : fixture
 
   return {

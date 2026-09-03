@@ -165,6 +165,9 @@ abstractions.
   six months rather than a complete career. Preserve fixture and season context on the return link.
 - Refresh fixture pages through the fixture-by-ID endpoint. When fixture lists update shared cache
   records, preserve richer match context already fetched for the entity page.
+- Keep normalized fixture state and daily query snapshots monotonic by request timestamp so late
+  responses cannot roll newer data back. Refresh subscription membership without deleting entity
+  identities discovered elsewhere; catalog membership and cached identity are separate concerns.
 - Show every active subscribed competition in the sidebar when there are 10 or fewer. Above 10,
   show only locally pinned competitions.
 - Global entity search opens from a standard navigation row immediately above Settings or with
