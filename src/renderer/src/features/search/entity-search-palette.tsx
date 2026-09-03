@@ -1,7 +1,10 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from '@tanstack/react-router'
 import { LoaderCircle, Search } from 'lucide-react'
 import type { EntitySearchResult, EntitySearchResultType } from '@/data/db'
+import { Button } from '@/components/ui/button'
+import { Command, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { CoachPhoto } from '@/features/coaches/coach-photo'
 import { prefetchCoachEntity } from '@/features/coaches/use-coach'
 import { CompetitionLogo } from '@/features/competitions/competition-logo'
@@ -28,10 +31,10 @@ export function EntitySearchPalette({ online }: { online: boolean }): React.JSX.
   const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
-  const listboxId = useId()
+  const keyboardSelection = useRef(false)
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const [activeIndex, setActiveIndex] = useState(0)
+  const [selected, setSelected] = useState('')
   const { results, searching, error } = useEntitySearch(query, open, online)
   const hasQuery = query.trim().length > 0
 
@@ -47,19 +50,16 @@ export function EntitySearchPalette({ online }: { online: boolean }): React.JSX.
     return () => document.removeEventListener('keydown', handleShortcut)
   }, [])
 
-  useEffect(() => {
-    if (!open) return
-    inputRef.current?.focus()
-  }, [open])
-
-  function close(): void {
-    triggerRef.current?.focus()
-    setOpen(false)
-    setQuery('')
+  function changeOpen(nextOpen: boolean): void {
+    setOpen(nextOpen)
+    if (!nextOpen) {
+      setQuery('')
+      setSelected('')
+    }
   }
 
   async function openResult(result: EntitySearchResult): Promise<void> {
-    close()
+    changeOpen(false)
 
     if (result.type === 'competition') {
       await router.navigate({
@@ -103,49 +103,16 @@ export function EntitySearchPalette({ online }: { online: boolean }): React.JSX.
     })
   }
 
-  function handleInputKeyDown(event: React.KeyboardEvent<HTMLInputElement>): void {
-    if (event.key === 'Escape') {
-      event.preventDefault()
-      close()
-      return
-    }
-
-    if (event.key === 'ArrowDown') {
-      event.preventDefault()
-      if (results.length === 0) return
-      setActiveIndex((index) => {
-        const nextIndex = Math.min(index + 1, results.length - 1)
-        if (online) startPrefetch(() => prefetchSearchResult(results[nextIndex]))
-        return nextIndex
-      })
-      return
-    }
-
-    if (event.key === 'ArrowUp') {
-      event.preventDefault()
-      setActiveIndex((index) => {
-        const nextIndex = Math.max(index - 1, 0)
-        if (online && results[nextIndex]) {
-          startPrefetch(() => prefetchSearchResult(results[nextIndex]))
-        }
-        return nextIndex
-      })
-      return
-    }
-
-    if (event.key === 'Enter' && results[activeIndex]) {
-      event.preventDefault()
-      void openResult(results[activeIndex])
-    }
-  }
-
   return (
-    <>
-      <button
-        ref={triggerRef}
-        type="button"
-        className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium text-muted-foreground outline-none transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand-blue"
-        onClick={() => setOpen(true)}
+    <Dialog open={open} onOpenChange={changeOpen}>
+      <DialogTrigger
+        render={
+          <Button
+            ref={triggerRef}
+            variant="ghost"
+            className="h-auto w-full justify-start gap-3 px-3 py-2 text-left text-muted-foreground hover:bg-muted/70 hover:text-foreground active:scale-100"
+          />
+        }
       >
         <Search className="size-4" />
         <span>Search</span>
@@ -155,113 +122,97 @@ export function EntitySearchPalette({ online }: { online: boolean }): React.JSX.
         >
           ⌘K
         </kbd>
-      </button>
+      </DialogTrigger>
 
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center bg-black/35 px-4 pt-[12vh]"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) close()
+      <DialogContent initialFocus={inputRef} finalFocus={triggerRef}>
+        <DialogTitle className="sr-only">Search Halfspace</DialogTitle>
+        <Command
+          shouldFilter={false}
+          value={selected}
+          onKeyDownCapture={() => {
+            keyboardSelection.current = true
+          }}
+          onPointerMove={() => {
+            keyboardSelection.current = false
+          }}
+          onValueChange={(value) => {
+            setSelected(value)
+            const result = results.find((item) => `${item.type}-${item.id}` === value)
+            if (keyboardSelection.current && online && result) {
+              startPrefetch(() => prefetchSearchResult(result))
+            }
           }}
         >
-          <section
-            aria-label="Search Halfspace"
-            aria-modal="true"
-            className="w-full max-w-xl overflow-hidden rounded-xl border bg-card text-card-foreground shadow-2xl"
-            role="dialog"
-          >
-            <div className={cn('flex items-center gap-3 px-4', hasQuery && 'border-b')}>
-              <Search className="size-5 shrink-0 text-muted-foreground" />
-              <input
-                ref={inputRef}
-                aria-activedescendant={
-                  results[activeIndex] ? `${listboxId}-${activeIndex}` : undefined
-                }
-                aria-controls={hasQuery ? listboxId : undefined}
-                aria-expanded={hasQuery}
-                aria-label="Search competitions, teams, players, coaches, and venues"
-                autoComplete="off"
-                className="h-14 w-full bg-transparent text-base outline-none placeholder:text-muted-foreground"
-                placeholder="Search competitions, teams, players, coaches, and venues"
-                role="combobox"
-                value={query}
-                onChange={(event) => {
-                  setQuery(event.target.value)
-                  setActiveIndex(0)
-                }}
-                onKeyDown={handleInputKeyDown}
+          <div className={cn('flex items-center gap-3 px-4', hasQuery && 'border-b')}>
+            <Search className="size-5 shrink-0 text-muted-foreground" />
+            <CommandInput
+              ref={inputRef}
+              aria-expanded={hasQuery}
+              aria-label="Search competitions, teams, players, coaches, and venues"
+              autoComplete="off"
+              placeholder="Search competitions, teams, players, coaches, and venues"
+              value={query}
+              onValueChange={(value) => {
+                setQuery(value)
+                setSelected('')
+              }}
+            />
+            {searching && (
+              <LoaderCircle
+                aria-label="Searching Sportmonks"
+                className="size-4 shrink-0 animate-spin text-muted-foreground"
               />
-              {searching && (
-                <LoaderCircle
-                  aria-label="Searching Sportmonks"
-                  className="size-4 shrink-0 animate-spin text-muted-foreground"
-                />
-              )}
-              <kbd
-                aria-hidden="true"
-                className="rounded border bg-muted px-1.5 py-0.5 font-sans text-[10px] font-medium text-muted-foreground"
-              >
-                Esc
-              </kbd>
-            </div>
-
-            {hasQuery && (
-              <div
-                className="max-h-[min(32rem,62vh)] overflow-y-auto p-2"
-                id={listboxId}
-                role="listbox"
-              >
-                {results.map((result, index) => {
-                  const previousType = results[index - 1]?.type
-
-                  return (
-                    <div key={`${result.type}-${result.id}`}>
-                      {result.type !== previousType && (
-                        <p className="px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          {groupLabels[result.type]}
-                        </p>
-                      )}
-                      <button
-                        id={`${listboxId}-${index}`}
-                        type="button"
-                        aria-selected={activeIndex === index}
-                        className={cn(
-                          'flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left outline-none',
-                          activeIndex === index
-                            ? 'bg-accent text-accent-foreground'
-                            : 'hover:bg-muted'
-                        )}
-                        role="option"
-                        onClick={() => void openResult(result)}
-                        onMouseMove={() => setActiveIndex(index)}
-                        {...intentPrefetchProps(online, () => prefetchSearchResult(result))}
-                      >
-                        <ResultImage online={online} result={result} />
-                        <span className="min-w-0">
-                          <span className="block truncate text-sm font-medium">{result.name}</span>
-                          {result.subtitle && (
-                            <span className="block truncate text-xs text-muted-foreground">
-                              {result.subtitle}
-                            </span>
-                          )}
-                        </span>
-                      </button>
-                    </div>
-                  )
-                })}
-
-                {!searching && results.length === 0 && !error && (
-                  <p className="px-3 py-10 text-center text-sm text-muted-foreground">
-                    No results for “{query.trim()}”.
-                  </p>
-                )}
-                {error && <p className="px-3 py-3 text-center text-sm text-destructive">{error}</p>}
-              </div>
             )}
-          </section>
-        </div>
-      )}
-    </>
+            <kbd
+              aria-hidden="true"
+              className="rounded border bg-muted px-1.5 py-0.5 font-sans text-[10px] font-medium text-muted-foreground"
+            >
+              Esc
+            </kbd>
+          </div>
+
+          {hasQuery && (
+            <CommandList>
+              {results.map((result, index) => {
+                const previousType = results[index - 1]?.type
+
+                return (
+                  <div key={`${result.type}-${result.id}`}>
+                    {result.type !== previousType && (
+                      <p className="px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        {groupLabels[result.type]}
+                      </p>
+                    )}
+                    <CommandItem
+                      value={`${result.type}-${result.id}`}
+                      onSelect={() => void openResult(result)}
+                      {...intentPrefetchProps(online, () => prefetchSearchResult(result))}
+                    >
+                      <ResultImage online={online} result={result} />
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium">{result.name}</span>
+                        {result.subtitle && (
+                          <span className="block truncate text-xs text-muted-foreground">
+                            {result.subtitle}
+                          </span>
+                        )}
+                      </span>
+                    </CommandItem>
+                  </div>
+                )
+              })}
+
+              {!searching && results.length === 0 && !error && (
+                <p className="px-3 py-10 text-center text-sm text-muted-foreground">
+                  No results for “{query.trim()}”.
+                </p>
+              )}
+              {error && <p className="px-3 py-3 text-center text-sm text-destructive">{error}</p>}
+            </CommandList>
+          )}
+        </Command>
+      </DialogContent>
+    </Dialog>
   )
 }
 

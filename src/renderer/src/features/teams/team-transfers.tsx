@@ -155,7 +155,7 @@ function TransferDirection({
 }): React.JSX.Element {
   if (incoming) {
     return (
-      <span className="flex items-center gap-1 font-mono text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+      <span className="flex items-center gap-1 font-mono text-xs font-semibold text-success-foreground">
         <ArrowDownLeft className="size-3.5" />
         IN
       </span>

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import {
   createMemoryHistory,
   createRootRoute,
@@ -9,6 +9,7 @@ import {
   RouterProvider
 } from '@tanstack/react-router'
 import { describe, expect, it } from 'vitest'
+import { writeCompetitionRefresh } from '@/data/db'
 import { EntitySearchPalette } from './entity-search-palette'
 
 describe('entity search palette', () => {
@@ -18,11 +19,11 @@ describe('entity search palette', () => {
 
     fireEvent.click(trigger)
     expect(screen.getByRole('dialog', { name: 'Search Halfspace' })).not.toBeNull()
-    expect(document.activeElement).toBe(screen.getByRole('combobox'))
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('combobox')))
 
     fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Escape' })
-    expect(screen.queryByRole('dialog')).toBeNull()
-    expect(document.activeElement).toBe(trigger)
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    await waitFor(() => expect(document.activeElement).toBe(trigger))
 
     fireEvent.keyDown(document, { key: 'k', metaKey: true })
     expect(screen.getByRole('dialog', { name: 'Search Halfspace' })).not.toBeNull()
@@ -36,6 +37,21 @@ describe('entity search palette', () => {
 
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'Arsenal' } })
     expect(screen.getByRole('listbox')).not.toBeNull()
+  })
+
+  it('dismisses with Escape when focus is on a search result', async () => {
+    await writeCompetitionRefresh({
+      competitions: [{ id: 8, country_id: 1, name: 'Premier League', active: true }],
+      fetchedAt: Date.now(),
+      pageCount: 1
+    })
+    renderPalette()
+    fireEvent.click(await screen.findByRole('button', { name: 'Search' }))
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'Premier' } })
+    const option = await screen.findByRole('option', { name: 'Premier League' })
+    option.focus()
+    fireEvent.keyDown(option, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
   })
 })
 

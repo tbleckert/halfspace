@@ -803,7 +803,7 @@ function CombinedFormationPitch({
     <div className="p-3 sm:p-4">
       <div
         aria-label={`Starting lineups, ${fixtureFormationLabel(homeFormation)} and ${fixtureFormationLabel(awayFormation)}`}
-        className="relative mx-auto aspect-[16/9] w-full overflow-hidden rounded-lg bg-[#246044] shadow-inner"
+        className="relative mx-auto aspect-[16/9] w-full overflow-hidden rounded-lg bg-pitch shadow-inner"
         role="group"
       >
         <PitchMarkings />
@@ -876,7 +876,7 @@ function FormationSide({
 
 function PitchMarkings(): React.JSX.Element {
   return (
-    <div aria-hidden="true" className="absolute inset-3 text-white/45">
+    <div aria-hidden="true" className="absolute inset-3 text-pitch-foreground/45">
       <div className="absolute inset-0 border border-current" />
       <div className="absolute inset-y-0 left-1/2 border-l border-current" />
       <div className="absolute left-1/2 top-1/2 size-[20%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-current" />
@@ -918,19 +918,19 @@ function FormationPlayer({
     >
       <span className="relative">
         <PlayerPhoto
-          className="size-10 rounded-full bg-[#fffdfa] text-slate-500 shadow-sm sm:size-11"
+          className="size-10 rounded-full bg-portrait text-portrait-foreground shadow-sm sm:size-11"
           imagePath={entry.player?.image_path ?? null}
           online={online}
         />
         <PlayerEventBadges annotations={annotations} />
         <PlayerRatingBadge rating={rating} />
         {entry.jersey_number !== null && (
-          <span className="absolute -bottom-1 -right-1 grid size-5 place-items-center rounded-full bg-[#071f4f] font-mono text-[10px] font-semibold tabular-nums text-white ring-1 ring-white/80">
+          <span className="absolute -bottom-1 -right-1 grid size-5 place-items-center rounded-full bg-shirt font-mono text-[10px] font-semibold tabular-nums text-shirt-foreground ring-1 ring-pitch-foreground/80">
             {entry.jersey_number}
           </span>
         )}
       </span>
-      <span className="mt-1.5 max-w-full truncate rounded bg-black/45 px-1.5 py-0.5 text-[10px] font-medium text-white shadow-sm sm:text-xs">
+      <span className="mt-1.5 max-w-full truncate rounded bg-overlay/45 px-1.5 py-0.5 text-[10px] font-medium text-pitch-foreground shadow-sm sm:text-xs">
         {name}
       </span>
     </Link>
@@ -1008,7 +1008,7 @@ function BenchPlayer({
     >
       <span className="relative">
         <PlayerPhoto
-          className="size-10 rounded-full bg-[#fffdfa] text-slate-500 shadow-xs sm:size-11"
+          className="size-10 rounded-full bg-portrait text-portrait-foreground shadow-xs sm:size-11"
           imagePath={entry.player?.image_path ?? null}
           online={online}
         />
@@ -1064,7 +1064,7 @@ function LineupGroup({
               </span>
               <span className="relative">
                 <PlayerPhoto
-                  className="size-8 rounded-full bg-[#fffdfa] text-slate-500 shadow-xs"
+                  className="size-8 rounded-full bg-portrait text-portrait-foreground shadow-xs"
                   imagePath={entry.player?.image_path ?? null}
                   online={online}
                 />
@@ -1085,7 +1085,7 @@ function PlayerRatingBadge({ rating }: { rating: number | null }): React.JSX.Ele
 
   return (
     <span
-      className="absolute -bottom-1 -left-2 rounded-full bg-[#fffdfa] px-1.5 py-0.5 font-mono text-[9px] font-semibold tabular-nums text-[#071f4f] shadow-xs"
+      className="absolute -bottom-1 -left-2 rounded-full bg-portrait px-1.5 py-0.5 font-mono text-[9px] font-semibold tabular-nums text-shirt shadow-xs"
       title={`Rating ${formatPlayerRating(rating)}`}
     >
       {formatPlayerRating(rating)}
@@ -1341,7 +1341,7 @@ function PlayerPerformanceRow({
     >
       <div className="flex items-center gap-3">
         <PlayerPhoto
-          className="size-10 rounded-full bg-[#fffdfa] text-slate-500 shadow-xs"
+          className="size-10 rounded-full bg-portrait text-portrait-foreground shadow-xs"
           imagePath={entry.player?.image_path ?? null}
           online={online}
         />

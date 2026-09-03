@@ -181,7 +181,7 @@ function FixtureRow({
       to="/fixtures/$fixtureId"
       params={{ fixtureId: String(fixture.id) }}
       search={{ date }}
-      className="grid grid-cols-[4rem_minmax(0,1fr)_2rem] items-center gap-4 px-4 py-3 outline-none transition-colors hover:bg-brand-blue/[0.08] focus-visible:bg-brand-blue/[0.08]"
+      className="grid grid-cols-[4rem_minmax(0,1fr)_2rem] items-center gap-4 px-4 py-3 outline-none transition-colors hover:bg-sidebar-accent focus-visible:bg-sidebar-accent"
       {...intentPrefetchProps(online, () => prefetchFixtureEntity(fixture.id))}
     >
       <FixtureRowStatus fixture={fixture} />
@@ -251,7 +251,7 @@ function WeekNavigator({
               aria-current={active ? 'date' : undefined}
               aria-label={weekDateAriaLabel(navigationDate)}
               className={cn(
-                'flex min-w-0 flex-col items-center rounded-md px-1 py-0.5 text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand-blue',
+                'flex min-w-0 flex-col items-center rounded-md px-1 py-0.5 text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring',
                 outsideSelectedMonth && 'text-muted-foreground/55',
                 active && 'text-foreground'
               )}
@@ -323,7 +323,7 @@ function FixtureDayCollection({
                 <Link
                   to="/"
                   search={{ date: day.date }}
-                  className="rounded-md px-2 py-1 text-xs font-medium text-brand-blue outline-none transition-colors hover:bg-brand-blue/[0.08] focus-visible:ring-2 focus-visible:ring-brand-blue"
+                  className="rounded-md px-2 py-1 text-xs font-medium text-sidebar-primary outline-none transition-colors hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring"
                 >
                   View all {day.fixtures.length}
                 </Link>
@@ -362,7 +362,7 @@ function FixtureGroups({
               to="/competitions/$competitionId"
               params={{ competitionId: String(leagueId) }}
               search={{ date, season: leagueFixtures[0].seasonId }}
-              className="flex w-fit items-center gap-2.5 rounded-md outline-none transition-colors hover:text-brand-blue focus-visible:ring-2 focus-visible:ring-brand-blue"
+              className="flex w-fit items-center gap-2.5 rounded-md outline-none transition-colors hover:text-sidebar-primary focus-visible:ring-2 focus-visible:ring-sidebar-ring"
               {...intentPrefetchProps(online, () => prefetchCompetitionWorkspace(leagueId))}
             >
               <CompetitionLogo

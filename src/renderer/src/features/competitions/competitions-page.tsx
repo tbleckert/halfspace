@@ -123,7 +123,7 @@ export function CompetitionsPage(): React.JSX.Element {
                     variant="ghost"
                     onClick={() => void togglePin(competition.id)}
                   >
-                    <Star className={cn('size-4', isPinned && 'fill-amber-400 text-amber-500')} />
+                    <Star className={cn('size-4', isPinned && 'fill-warning-muted text-warning')} />
                   </Button>
                 </div>
               )

@@ -103,7 +103,7 @@ function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): Re
 
   return (
     <div className="relative grid h-full grid-cols-[14.5rem_1fr] bg-background">
-      <aside className="flex min-h-0 flex-col border-r border-white bg-card px-3 py-4 text-foreground">
+      <aside className="flex min-h-0 flex-col border-r border-sidebar-border bg-sidebar px-3 py-4 text-foreground">
         <div className="px-3 pb-2.5 pt-7">
           <div className="flex items-center gap-3">
             <HalfspaceLogo alt="" className="size-8 rounded-[0.6rem]" />
@@ -120,9 +120,9 @@ function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): Re
               search={{ date: sidebarDate }}
               aria-current={matchdayActive ? 'page' : undefined}
               className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground outline-none transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand-blue',
+                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground outline-none transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring',
                 matchdayActive &&
-                  'bg-brand-blue/[0.08] font-semibold text-brand-blue hover:bg-brand-blue/[0.1] hover:text-brand-blue'
+                  'bg-sidebar-accent font-semibold text-sidebar-primary hover:bg-sidebar-primary/10 hover:text-sidebar-primary'
               )}
               {...intentPrefetchProps(online, () => prefetchFixtureQuery(sidebarDate, timeZone))}
             >
@@ -152,8 +152,8 @@ function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): Re
                         : undefined
                     }
                     className={cn(
-                      'relative flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-[13px] font-medium text-muted-foreground outline-none transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand-blue',
-                      active && 'bg-brand-blue/[0.08] text-brand-blue'
+                      'relative flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-[13px] font-medium text-muted-foreground outline-none transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring',
+                      active && 'bg-sidebar-accent text-sidebar-primary'
                     )}
                     {...intentPrefetchProps(online, () =>
                       prefetchCompetitionWorkspace(competition.id)
@@ -230,10 +230,10 @@ function SidebarLink({
     <Link
       to={to}
       activeOptions={{ exact }}
-      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground outline-none transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand-blue"
+      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground outline-none transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring"
       activeProps={{
         className:
-          'bg-brand-blue/[0.08] font-semibold text-brand-blue hover:bg-brand-blue/[0.1] hover:text-brand-blue'
+          'bg-sidebar-accent font-semibold text-sidebar-primary hover:bg-sidebar-primary/10 hover:text-sidebar-primary'
       }}
     >
       {icon}

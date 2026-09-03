@@ -317,10 +317,9 @@ function Outcome({ outcome }: { outcome: FixtureOutcome }): React.JSX.Element {
     <span
       className={cn(
         'flex size-5 items-center justify-center rounded-full font-mono text-[10px] font-bold',
-        outcome === 'W' &&
-          'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
+        outcome === 'W' && 'bg-success-subtle text-success-foreground',
         outcome === 'D' && 'bg-muted text-muted-foreground',
-        outcome === 'L' && 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300'
+        outcome === 'L' && 'bg-loss-subtle text-loss-foreground'
       )}
     >
       {outcome}

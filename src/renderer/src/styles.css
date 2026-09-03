@@ -11,6 +11,9 @@
   --foreground: oklch(0.24 0.045 258);
   --card: oklch(0.995 0.003 85);
   --card-foreground: oklch(0.24 0.045 258);
+  --popover: var(--card);
+  --popover-foreground: var(--card-foreground);
+  --overlay: #000;
   --primary: oklch(0.48 0.22 260);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.94 0.013 88);
@@ -25,6 +28,16 @@
   --success-emphasis: var(--color-emerald-600);
   --success-muted: var(--color-emerald-50);
   --success-muted-dark: var(--color-emerald-950);
+  --success-subtle: var(--color-emerald-100);
+  --success-foreground: var(--color-emerald-700);
+  --loss-subtle: var(--color-red-100);
+  --loss-foreground: var(--color-red-700);
+  --pitch: #246044;
+  --pitch-foreground: #fff;
+  --portrait: #fffdfa;
+  --portrait-foreground: var(--color-slate-500);
+  --shirt: #071f4f;
+  --shirt-foreground: #fff;
   --warning: var(--color-amber-500);
   --warning-muted: var(--color-amber-400);
   --warning-foreground: var(--color-amber-800);
@@ -36,7 +49,21 @@
   --border: oklch(0.875 0.015 88);
   --input: oklch(0.875 0.015 88);
   --ring: oklch(0.54 0.18 260);
+  --sidebar: var(--card);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--brand-blue);
+  --sidebar-accent: color-mix(in oklab, var(--brand-blue) 8%, transparent);
+  --sidebar-accent-foreground: var(--brand-blue);
+  --sidebar-border: #fff;
+  --sidebar-ring: var(--brand-blue);
   --radius: 0.625rem;
+}
+
+.dark {
+  --success-subtle: var(--color-emerald-950);
+  --success-foreground: var(--color-emerald-300);
+  --loss-subtle: var(--color-red-950);
+  --loss-foreground: var(--color-red-300);
 }
 
 @theme inline {
@@ -44,6 +71,9 @@
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-overlay: var(--overlay);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
@@ -58,6 +88,16 @@
   --color-success-emphasis: var(--success-emphasis);
   --color-success-muted: var(--success-muted);
   --color-success-muted-dark: var(--success-muted-dark);
+  --color-success-subtle: var(--success-subtle);
+  --color-success-foreground: var(--success-foreground);
+  --color-loss-subtle: var(--loss-subtle);
+  --color-loss-foreground: var(--loss-foreground);
+  --color-pitch: var(--pitch);
+  --color-pitch-foreground: var(--pitch-foreground);
+  --color-portrait: var(--portrait);
+  --color-portrait-foreground: var(--portrait-foreground);
+  --color-shirt: var(--shirt);
+  --color-shirt-foreground: var(--shirt-foreground);
   --color-warning: var(--warning);
   --color-warning-muted: var(--warning-muted);
   --color-warning-foreground: var(--warning-foreground);
@@ -69,6 +109,13 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
   --color-brand-yellow: var(--brand-yellow);
   --color-brand-blue: var(--brand-blue);
   --color-brand-navy: var(--brand-navy);
