@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react'
+import { useRefreshStatus } from '@/lib/use-refresh-status'
+import { useCallback } from 'react'
 import type {
   RefreshPlayerAppearancesInput,
   RefreshPlayerStatisticsInput,
@@ -41,23 +42,13 @@ export function usePlayerEntity(
         : readPlayerIdentity(playerId),
     [playerId]
   )
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { refreshing, error, runRefresh } = useRefreshStatus(playerId)
 
   const refresh = useCallback(async () => {
     if (!enabled || playerId === null) return
 
-    setRefreshing(true)
-    setError(null)
-
-    try {
-      await refreshPlayerEntity(playerId)
-    } catch (refreshError) {
-      setError(refreshError instanceof Error ? refreshError.message : 'Could not refresh player.')
-    } finally {
-      setRefreshing(false)
-    }
-  }, [enabled, playerId])
+    await runRefresh(() => refreshPlayerEntity(playerId), 'Could not refresh player.')
+  }, [enabled, playerId, runRefresh])
 
   useStaleRefresh(
     enabled && playerId !== null,
@@ -81,27 +72,16 @@ export function usePlayerAppearances(
         : readPlayerAppearanceQuery(input),
     [cacheKey]
   )
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { refreshing, error, runRefresh } = useRefreshStatus(cacheKey)
 
   const refresh = useCallback(async () => {
     if (!enabled || input === null) return
 
-    setRefreshing(true)
-    setError(null)
-
-    try {
-      await refreshPlayerAppearanceQuery(input)
-    } catch (refreshError) {
-      setError(
-        refreshError instanceof Error
-          ? refreshError.message
-          : 'Could not refresh player appearances.'
-      )
-    } finally {
-      setRefreshing(false)
-    }
-  }, [enabled, input])
+    await runRefresh(
+      () => refreshPlayerAppearanceQuery(input),
+      'Could not refresh player appearances.'
+    )
+  }, [enabled, input, runRefresh])
 
   useStaleRefresh(enabled && input !== null, cached !== undefined, cached?.query?.staleAt, refresh)
 
@@ -117,27 +97,16 @@ export function usePlayerStatistics(
     () => (input === null ? Promise.resolve(null) : readPlayerStatistics(input)),
     [cacheKey]
   )
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { refreshing, error, runRefresh } = useRefreshStatus(cacheKey)
 
   const refresh = useCallback(async () => {
     if (!enabled || input === null) return
 
-    setRefreshing(true)
-    setError(null)
-
-    try {
-      await refreshPlayerStatisticsQuery(input)
-    } catch (refreshError) {
-      setError(
-        refreshError instanceof Error
-          ? refreshError.message
-          : 'Could not refresh player statistics.'
-      )
-    } finally {
-      setRefreshing(false)
-    }
-  }, [enabled, input])
+    await runRefresh(
+      () => refreshPlayerStatisticsQuery(input),
+      'Could not refresh player statistics.'
+    )
+  }, [enabled, input, runRefresh])
 
   useStaleRefresh(enabled && input !== null, cached !== undefined, cached?.staleAt, refresh)
 
@@ -153,25 +122,13 @@ export function usePlayerTransfers(
       input === null ? Promise.resolve({ query: null, transfers: [] }) : readPlayerTransfers(input),
     [input?.playerId]
   )
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { refreshing, error, runRefresh } = useRefreshStatus(input?.playerId)
 
   const refresh = useCallback(async () => {
     if (!enabled || input === null) return
 
-    setRefreshing(true)
-    setError(null)
-
-    try {
-      await refreshPlayerTransfers(input)
-    } catch (refreshError) {
-      setError(
-        refreshError instanceof Error ? refreshError.message : 'Could not refresh player career.'
-      )
-    } finally {
-      setRefreshing(false)
-    }
-  }, [enabled, input])
+    await runRefresh(() => refreshPlayerTransfers(input), 'Could not refresh player career.')
+  }, [enabled, input, runRefresh])
 
   useStaleRefresh(enabled && input !== null, cached !== undefined, cached?.query?.staleAt, refresh)
 

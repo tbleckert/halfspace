@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react'
+import { useRefreshStatus } from '@/lib/use-refresh-status'
+import { useCallback } from 'react'
 import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import { readTeamRivals, writeTeamRivalsRefresh } from '@/data/db'
 import { type RefreshableQuery, type RefreshRequest, useStaleRefresh } from '@/lib/refresh'
@@ -15,20 +16,11 @@ export function useTeamRivals(
     () => (teamId === null ? Promise.resolve(null) : readTeamRivals(teamId)),
     [teamId]
   )
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { refreshing, error, runRefresh } = useRefreshStatus(teamId)
   const refresh = useCallback(async () => {
     if (!enabled || teamId === null) return
-    setRefreshing(true)
-    setError(null)
-    try {
-      await refreshTeamRivals(teamId)
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Could not refresh rivals.')
-    } finally {
-      setRefreshing(false)
-    }
-  }, [enabled, teamId])
+    await runRefresh(() => refreshTeamRivals(teamId), 'Could not refresh rivals.')
+  }, [enabled, teamId, runRefresh])
   useStaleRefresh(enabled && teamId !== null, cached !== undefined, cached?.staleAt, refresh)
   return { cached, refreshing, error, refresh }
 }

@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react'
+import { useRefreshStatus } from '@/lib/use-refresh-status'
+import { useCallback } from 'react'
 import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import { readCoachIdentity, writeCoachRefresh } from '@/data/db'
 import { type RefreshableQuery, type RefreshRequest, useStaleRefresh } from '@/lib/refresh'
@@ -17,23 +18,13 @@ export function useCoachEntity(
       coachId === null ? Promise.resolve({ coach: null, teams: [] }) : readCoachIdentity(coachId),
     [coachId]
   )
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { refreshing, error, runRefresh } = useRefreshStatus(coachId)
 
   const refresh = useCallback(async () => {
     if (!enabled || coachId === null) return
 
-    setRefreshing(true)
-    setError(null)
-
-    try {
-      await refreshCoachEntity(coachId)
-    } catch (refreshError) {
-      setError(refreshError instanceof Error ? refreshError.message : 'Could not refresh coach.')
-    } finally {
-      setRefreshing(false)
-    }
-  }, [coachId, enabled])
+    await runRefresh(() => refreshCoachEntity(coachId), 'Could not refresh coach.')
+  }, [coachId, enabled, runRefresh])
 
   useStaleRefresh(
     enabled && coachId !== null,

@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react'
+import { useRefreshStatus } from '@/lib/use-refresh-status'
+import { useCallback } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   db,
@@ -15,25 +16,13 @@ type CompetitionCache = Awaited<ReturnType<typeof readCompetitionCatalog>>
 
 export function useCompetitions(enabled = true): RefreshableQuery<CompetitionCache> {
   const cached = useLiveQuery(() => readCompetitionCatalog(), [])
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { refreshing, error, runRefresh } = useRefreshStatus('catalog')
 
   const refresh = useCallback(async () => {
     if (!enabled) return
 
-    setRefreshing(true)
-    setError(null)
-
-    try {
-      await refreshCompetitionCatalog()
-    } catch (refreshError) {
-      setError(
-        refreshError instanceof Error ? refreshError.message : 'Could not refresh competitions.'
-      )
-    } finally {
-      setRefreshing(false)
-    }
-  }, [enabled])
+    await runRefresh(() => refreshCompetitionCatalog(), 'Could not refresh competitions.')
+  }, [enabled, runRefresh])
 
   useStaleRefresh(enabled, cached !== undefined, cached?.catalog?.staleAt, refresh)
 

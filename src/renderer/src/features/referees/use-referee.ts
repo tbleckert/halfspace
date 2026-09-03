@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react'
+import { useRefreshStatus } from '@/lib/use-refresh-status'
+import { useCallback } from 'react'
 import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import { readRefereeIdentity, writeRefereeRefresh } from '@/data/db'
 import { type RefreshableQuery, type RefreshRequest, useStaleRefresh } from '@/lib/refresh'
@@ -18,20 +19,11 @@ export function useRefereeEntity(
         : readRefereeIdentity(refereeId),
     [refereeId]
   )
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { refreshing, error, runRefresh } = useRefreshStatus(refereeId)
   const refresh = useCallback(async () => {
     if (!enabled || refereeId === null) return
-    setRefreshing(true)
-    setError(null)
-    try {
-      await refreshRefereeEntity(refereeId)
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Could not refresh referee.')
-    } finally {
-      setRefreshing(false)
-    }
-  }, [refereeId, enabled])
+    await runRefresh(() => refreshRefereeEntity(refereeId), 'Could not refresh referee.')
+  }, [refereeId, enabled, runRefresh])
   useStaleRefresh(
     enabled && refereeId !== null,
     cached !== undefined,

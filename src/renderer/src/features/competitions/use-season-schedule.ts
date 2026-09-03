@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react'
+import { useRefreshStatus } from '@/lib/use-refresh-status'
+import { useCallback } from 'react'
 import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import { readSeasonSchedule, writeSeasonScheduleRefresh } from '@/data/db'
 import { type RefreshableQuery, type RefreshRequest, useStaleRefresh } from '@/lib/refresh'
@@ -15,20 +16,11 @@ export function useSeasonSchedule(
     () => (seasonId === null ? Promise.resolve(null) : readSeasonSchedule(seasonId)),
     [seasonId]
   )
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { refreshing, error, runRefresh } = useRefreshStatus(seasonId)
   const refresh = useCallback(async () => {
     if (!enabled || seasonId === null) return
-    setRefreshing(true)
-    setError(null)
-    try {
-      await refreshSeasonSchedule(seasonId)
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Could not refresh schedule.')
-    } finally {
-      setRefreshing(false)
-    }
-  }, [enabled, seasonId])
+    await runRefresh(() => refreshSeasonSchedule(seasonId), 'Could not refresh schedule.')
+  }, [enabled, seasonId, runRefresh])
   useStaleRefresh(enabled && seasonId !== null, cached !== undefined, cached?.staleAt, refresh)
   return { cached, refreshing, error, refresh }
 }

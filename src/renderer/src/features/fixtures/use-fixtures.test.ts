@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import type {
   FixtureDetailRefresh,
   FixtureRefresh,
@@ -45,6 +45,42 @@ beforeEach(async () => {
 afterAll(() => db.close())
 
 describe('fixture refresh', () => {
+  it('does not let a previous fixture request replace the current loading or error state', async () => {
+    const previousRequest = deferred<Result<FixtureDetailRefresh>>()
+    const currentRequest = deferred<Result<FixtureDetailRefresh>>()
+    const refreshFixture = vi
+      .fn()
+      .mockReturnValueOnce(previousRequest.promise)
+      .mockReturnValueOnce(currentRequest.promise)
+    installHalfspace({ refreshFixture })
+    const { result, rerender } = renderHook(({ fixtureId }) => useFixtureEntity(fixtureId, true), {
+      initialProps: { fixtureId: 19425456 }
+    })
+    await waitFor(() => expect(refreshFixture).toHaveBeenCalledTimes(1))
+    rerender({ fixtureId: 19425457 })
+    await waitFor(() => expect(refreshFixture).toHaveBeenCalledTimes(2))
+
+    await act(async () => {
+      previousRequest.resolve({
+        ok: false,
+        error: { code: 'network', message: 'Previous fixture failed.' }
+      })
+      await previousRequest.promise
+    })
+    expect(result.current.error).toBeNull()
+    expect(result.current.refreshing).toBe(true)
+
+    const current = fixtureRefresh('Current fixture', Date.now())
+    current.fixture.id = 19425457
+    await act(async () => {
+      currentRequest.resolve({ ok: true, data: current })
+      await currentRequest.promise
+    })
+    await waitFor(() => expect(result.current.refreshing).toBe(false))
+    expect(result.current.error).toBeNull()
+    await waitFor(() => expect(result.current.cached?.fixture?.name).toBe('Current fixture'))
+  })
+
   it('never exposes the previous fixture while the next cached identity is loading', async () => {
     await writeFixtureDetailRefresh(fixtureRefresh('First fixture'))
     const nextFixture = fixtureRefresh('Second fixture')

@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react'
+import { useRefreshStatus } from '@/lib/use-refresh-status'
+import { useCallback } from 'react'
 import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import { readFixtureCommentary, writeFixtureCommentaryRefresh } from '@/data/db'
 import { type RefreshableQuery, type RefreshRequest, useStaleRefresh } from '@/lib/refresh'
@@ -16,20 +17,11 @@ export function useCommentary(
     () => (fixtureId === null ? Promise.resolve(null) : readFixtureCommentary(fixtureId)),
     [fixtureId]
   )
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { refreshing, error, runRefresh } = useRefreshStatus(fixtureId)
   const refresh = useCallback(async () => {
     if (!enabled || fixtureId === null) return
-    setRefreshing(true)
-    setError(null)
-    try {
-      await refreshCommentary(fixtureId)
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Could not refresh commentary.')
-    } finally {
-      setRefreshing(false)
-    }
-  }, [enabled, fixtureId])
+    await runRefresh(() => refreshCommentary(fixtureId), 'Could not refresh commentary.')
+  }, [enabled, fixtureId, runRefresh])
   const staleAt =
     live && cached ? Math.min(cached.staleAt, cached.fetchedAt + 30_000) : cached?.staleAt
   useStaleRefresh(enabled && fixtureId !== null, cached !== undefined, staleAt, refresh)

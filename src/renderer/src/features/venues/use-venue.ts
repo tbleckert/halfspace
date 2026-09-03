@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react'
+import { useRefreshStatus } from '@/lib/use-refresh-status'
+import { useCallback } from 'react'
 import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import { readVenueIdentity, writeVenueRefresh } from '@/data/db'
 import { type RefreshableQuery, type RefreshRequest, useStaleRefresh } from '@/lib/refresh'
@@ -19,22 +20,12 @@ export function useVenueEntity(
         : readVenueIdentity(venueId),
     [venueId]
   )
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { refreshing, error, runRefresh } = useRefreshStatus(venueId)
   const refresh = useCallback(async () => {
     if (!enabled || venueId === null) return
 
-    setRefreshing(true)
-    setError(null)
-
-    try {
-      await refreshVenueEntity(venueId)
-    } catch (refreshError) {
-      setError(refreshError instanceof Error ? refreshError.message : 'Could not refresh venue.')
-    } finally {
-      setRefreshing(false)
-    }
-  }, [enabled, venueId])
+    await runRefresh(() => refreshVenueEntity(venueId), 'Could not refresh venue.')
+  }, [enabled, venueId, runRefresh])
 
   useStaleRefresh(
     enabled && venueId !== null,

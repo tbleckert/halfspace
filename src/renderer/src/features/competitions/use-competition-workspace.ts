@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react'
+import { useRefreshStatus } from '@/lib/use-refresh-status'
+import { useCallback } from 'react'
 import type { RefreshCompetitionFixturesInput } from '@shared/contracts'
 import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import {
@@ -42,25 +43,13 @@ export function useStandings(
         : readStandingsQuery(seasonId),
     [seasonId]
   )
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { refreshing, error, runRefresh } = useRefreshStatus(seasonId)
 
   const refresh = useCallback(async () => {
     if (!enabled || seasonId === null) return
 
-    setRefreshing(true)
-    setError(null)
-
-    try {
-      await refreshStandingsQuery(seasonId)
-    } catch (refreshError) {
-      setError(
-        refreshError instanceof Error ? refreshError.message : 'Could not refresh standings.'
-      )
-    } finally {
-      setRefreshing(false)
-    }
-  }, [enabled, seasonId])
+    await runRefresh(() => refreshStandingsQuery(seasonId), 'Could not refresh standings.')
+  }, [enabled, seasonId, runRefresh])
 
   useStaleRefresh(
     enabled && seasonId !== null,
@@ -80,27 +69,16 @@ export function useCompetitionSeasons(
     () => (competitionId === null ? Promise.resolve(null) : readCompetitionSeasons(competitionId)),
     [competitionId]
   )
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { refreshing, error, runRefresh } = useRefreshStatus(competitionId)
 
   const refresh = useCallback(async () => {
     if (!enabled || competitionId === null) return
 
-    setRefreshing(true)
-    setError(null)
-
-    try {
-      await refreshCompetitionSeasonsQuery(competitionId)
-    } catch (refreshError) {
-      setError(
-        refreshError instanceof Error
-          ? refreshError.message
-          : 'Could not refresh competition seasons.'
-      )
-    } finally {
-      setRefreshing(false)
-    }
-  }, [competitionId, enabled])
+    await runRefresh(
+      () => refreshCompetitionSeasonsQuery(competitionId),
+      'Could not refresh competition seasons.'
+    )
+  }, [competitionId, enabled, runRefresh])
 
   useStaleRefresh(enabled && competitionId !== null, cached !== undefined, cached?.staleAt, refresh)
 
@@ -119,27 +97,16 @@ export function useCompetitionFixtures(
         : readCompetitionFixtureQuery(input),
     [cacheKey]
   )
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { refreshing, error, runRefresh } = useRefreshStatus(cacheKey)
 
   const refresh = useCallback(async () => {
     if (!enabled || input === null) return
 
-    setRefreshing(true)
-    setError(null)
-
-    try {
-      await refreshCompetitionFixtureQuery(input)
-    } catch (refreshError) {
-      setError(
-        refreshError instanceof Error
-          ? refreshError.message
-          : 'Could not refresh competition fixtures.'
-      )
-    } finally {
-      setRefreshing(false)
-    }
-  }, [enabled, input])
+    await runRefresh(
+      () => refreshCompetitionFixtureQuery(input),
+      'Could not refresh competition fixtures.'
+    )
+  }, [enabled, input, runRefresh])
 
   useStaleRefresh(enabled && input !== null, cached !== undefined, cached?.query?.staleAt, refresh)
 
@@ -154,27 +121,16 @@ export function useSeasonStatistics(
     () => (seasonId === null ? Promise.resolve(null) : readSeasonStatistics(seasonId)),
     [seasonId]
   )
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { refreshing, error, runRefresh } = useRefreshStatus(seasonId)
 
   const refresh = useCallback(async () => {
     if (!enabled || seasonId === null) return
 
-    setRefreshing(true)
-    setError(null)
-
-    try {
-      await refreshSeasonStatisticsQuery(seasonId)
-    } catch (refreshError) {
-      setError(
-        refreshError instanceof Error
-          ? refreshError.message
-          : 'Could not refresh season statistics.'
-      )
-    } finally {
-      setRefreshing(false)
-    }
-  }, [enabled, seasonId])
+    await runRefresh(
+      () => refreshSeasonStatisticsQuery(seasonId),
+      'Could not refresh season statistics.'
+    )
+  }, [enabled, seasonId, runRefresh])
 
   useStaleRefresh(enabled && seasonId !== null, cached !== undefined, cached?.staleAt, refresh)
 
@@ -189,23 +145,15 @@ export function useSeasonTopscorers(
     () => (seasonId === null ? Promise.resolve(null) : readSeasonTopscorers(seasonId)),
     [seasonId]
   )
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { refreshing, error, runRefresh } = useRefreshStatus(seasonId)
 
   const refresh = useCallback(async () => {
     if (!enabled || seasonId === null) return
-    setRefreshing(true)
-    setError(null)
-    try {
-      await refreshSeasonTopscorersQuery(seasonId)
-    } catch (refreshError) {
-      setError(
-        refreshError instanceof Error ? refreshError.message : 'Could not refresh player leaders.'
-      )
-    } finally {
-      setRefreshing(false)
-    }
-  }, [enabled, seasonId])
+    await runRefresh(
+      () => refreshSeasonTopscorersQuery(seasonId),
+      'Could not refresh player leaders.'
+    )
+  }, [enabled, seasonId, runRefresh])
 
   useStaleRefresh(enabled && seasonId !== null, cached !== undefined, cached?.staleAt, refresh)
   return { cached, refreshing, error, refresh }

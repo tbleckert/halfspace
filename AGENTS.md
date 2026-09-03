@@ -44,6 +44,8 @@ abstractions.
   navigation view does not remount shared data, headers, or context.
 - Use scoped live queries for identity-dependent cache reads. Retain results during same-query
   background updates, but never show a previous entity, season, or date under a new query identity.
+- Scope refresh errors and loading state to the current query and request as well. A response from
+  a previous page must not overwrite the status of the page the user is viewing.
 - Competition pages use horizontal local navigation for Overview, Fixtures, and Teams. Overview is
   the current-season snapshot, Fixtures browses the complete cached date window without truncating
   it, and Teams combines standings with fixture participants when a table is unavailable. Offer the

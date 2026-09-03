@@ -1,6 +1,7 @@
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
 import type { RefreshFixtureHeadToHeadInput } from '@shared/contracts'
 import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
+import { useRefreshStatus } from '@/lib/use-refresh-status'
 import {
   fixtureHeadToHeadQueryKey,
   readFixtureHeadToHead,
@@ -47,23 +48,13 @@ export function useFixtures(
   enabled: boolean
 ): RefreshableQuery<FixtureCache> {
   const cached = useScopedLiveQuery(() => readFixtureQuery(date, timeZone), [date, timeZone])
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { refreshing, error, runRefresh } = useRefreshStatus(`${date}|${timeZone}`)
 
   const refresh = useCallback(async () => {
     if (!enabled) return
 
-    setRefreshing(true)
-    setError(null)
-
-    try {
-      await refreshFixtureQuery(date, timeZone)
-    } catch (refreshError) {
-      setError(refreshError instanceof Error ? refreshError.message : 'Could not refresh fixtures.')
-    } finally {
-      setRefreshing(false)
-    }
-  }, [date, enabled, timeZone])
+    await runRefresh(() => refreshFixtureQuery(date, timeZone), 'Could not refresh fixtures.')
+  }, [date, enabled, timeZone, runRefresh])
 
   useStaleRefresh(enabled, cached !== undefined, cached?.query?.staleAt, refresh)
 
@@ -100,42 +91,35 @@ export function useMatchdayWindow(
           : undefined
     }
   }, [date, timeZone])
-  const [windowRefreshing, setWindowRefreshing] = useState(false)
-  const [selectedRefreshing, setSelectedRefreshing] = useState(false)
-  const [windowError, setWindowError] = useState<string | null>(null)
-  const [selectedError, setSelectedError] = useState<string | null>(null)
+  const queryKey = `${date}|${timeZone}`
+  const {
+    refreshing: windowRefreshing,
+    error: windowError,
+    runRefresh: runWindowRefresh
+  } = useRefreshStatus(queryKey)
+  const {
+    refreshing: selectedRefreshing,
+    error: selectedError,
+    runRefresh: runSelectedRefresh
+  } = useRefreshStatus(queryKey)
 
   const refresh = useCallback(async () => {
     if (!enabled) return
 
-    setWindowRefreshing(true)
-    setWindowError(null)
-    try {
-      await refreshMatchdayWindow(date, timeZone)
-    } catch (refreshError) {
-      setWindowError(
-        refreshError instanceof Error ? refreshError.message : 'Could not refresh fixtures.'
-      )
-    } finally {
-      setWindowRefreshing(false)
-    }
-  }, [date, enabled, timeZone])
+    await runWindowRefresh(
+      () => refreshMatchdayWindow(date, timeZone),
+      'Could not refresh fixtures.'
+    )
+  }, [date, enabled, timeZone, runWindowRefresh])
 
   const refreshSelected = useCallback(async () => {
     if (!enabled) return
 
-    setSelectedRefreshing(true)
-    setSelectedError(null)
-    try {
-      await refreshFixtureQuery(date, timeZone)
-    } catch (refreshError) {
-      setSelectedError(
-        refreshError instanceof Error ? refreshError.message : 'Could not refresh fixtures.'
-      )
-    } finally {
-      setSelectedRefreshing(false)
-    }
-  }, [date, enabled, timeZone])
+    await runSelectedRefresh(
+      () => refreshFixtureQuery(date, timeZone),
+      'Could not refresh fixtures.'
+    )
+  }, [date, enabled, timeZone, runSelectedRefresh])
 
   useStaleRefresh(enabled, cached !== undefined, cached?.windowStaleAt, refresh)
   useStaleRefresh(
@@ -164,23 +148,13 @@ export function useFixtureEntity(
         : readFixtureIdentity(fixtureId),
     [fixtureId]
   )
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { refreshing, error, runRefresh } = useRefreshStatus(fixtureId)
 
   const refresh = useCallback(async () => {
     if (!enabled || fixtureId === null) return
 
-    setRefreshing(true)
-    setError(null)
-
-    try {
-      await refreshFixtureEntity(fixtureId)
-    } catch (refreshError) {
-      setError(refreshError instanceof Error ? refreshError.message : 'Could not refresh fixture.')
-    } finally {
-      setRefreshing(false)
-    }
-  }, [enabled, fixtureId])
+    await runRefresh(() => refreshFixtureEntity(fixtureId), 'Could not refresh fixture.')
+  }, [enabled, fixtureId, runRefresh])
 
   useStaleRefresh(
     enabled && fixtureId !== null,
@@ -201,25 +175,13 @@ export function useFixtureOdds(
       fixtureId === null ? Promise.resolve({ query: null, odds: [] }) : readFixtureOdds(fixtureId),
     [fixtureId]
   )
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { refreshing, error, runRefresh } = useRefreshStatus(fixtureId)
 
   const refresh = useCallback(async () => {
     if (!enabled || fixtureId === null) return
 
-    setRefreshing(true)
-    setError(null)
-
-    try {
-      await refreshFixtureOdds(fixtureId)
-    } catch (refreshError) {
-      setError(
-        refreshError instanceof Error ? refreshError.message : 'Could not refresh fixture odds.'
-      )
-    } finally {
-      setRefreshing(false)
-    }
-  }, [enabled, fixtureId])
+    await runRefresh(() => refreshFixtureOdds(fixtureId), 'Could not refresh fixture odds.')
+  }, [enabled, fixtureId, runRefresh])
 
   useStaleRefresh(
     enabled && fixtureId !== null,
@@ -243,27 +205,13 @@ export function useFixtureHeadToHead(
         : readFixtureHeadToHead(input),
     [cacheKey]
   )
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { refreshing, error, runRefresh } = useRefreshStatus(cacheKey)
 
   const refresh = useCallback(async () => {
     if (!enabled || input === null) return
 
-    setRefreshing(true)
-    setError(null)
-
-    try {
-      await refreshFixtureHeadToHead(input)
-    } catch (refreshError) {
-      setError(
-        refreshError instanceof Error
-          ? refreshError.message
-          : 'Could not refresh previous meetings.'
-      )
-    } finally {
-      setRefreshing(false)
-    }
-  }, [enabled, input])
+    await runRefresh(() => refreshFixtureHeadToHead(input), 'Could not refresh previous meetings.')
+  }, [enabled, input, runRefresh])
 
   useStaleRefresh(enabled && input !== null, cached !== undefined, cached?.query?.staleAt, refresh)
 

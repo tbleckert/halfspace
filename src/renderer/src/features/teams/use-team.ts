@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react'
+import { useRefreshStatus } from '@/lib/use-refresh-status'
+import { useCallback } from 'react'
 import type {
   RefreshTeamFixturesInput,
   RefreshTeamStatisticsInput,
@@ -47,23 +48,13 @@ export function useTeamEntity(
         : readTeamIdentity(teamId),
     [teamId]
   )
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { refreshing, error, runRefresh } = useRefreshStatus(teamId)
 
   const refresh = useCallback(async () => {
     if (!enabled || teamId === null) return
 
-    setRefreshing(true)
-    setError(null)
-
-    try {
-      await refreshTeamEntity(teamId)
-    } catch (refreshError) {
-      setError(refreshError instanceof Error ? refreshError.message : 'Could not refresh team.')
-    } finally {
-      setRefreshing(false)
-    }
-  }, [enabled, teamId])
+    await runRefresh(() => refreshTeamEntity(teamId), 'Could not refresh team.')
+  }, [enabled, teamId, runRefresh])
 
   useStaleRefresh(enabled && teamId !== null, cached !== undefined, cached?.team?.staleAt, refresh)
 
@@ -80,25 +71,13 @@ export function useTeamFixtures(
       input === null ? Promise.resolve({ query: null, fixtures: [] }) : readTeamFixtureQuery(input),
     [cacheKey]
   )
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { refreshing, error, runRefresh } = useRefreshStatus(cacheKey)
 
   const refresh = useCallback(async () => {
     if (!enabled || input === null) return
 
-    setRefreshing(true)
-    setError(null)
-
-    try {
-      await refreshTeamFixtureQuery(input)
-    } catch (refreshError) {
-      setError(
-        refreshError instanceof Error ? refreshError.message : 'Could not refresh team fixtures.'
-      )
-    } finally {
-      setRefreshing(false)
-    }
-  }, [enabled, input])
+    await runRefresh(() => refreshTeamFixtureQuery(input), 'Could not refresh team fixtures.')
+  }, [enabled, input, runRefresh])
 
   useStaleRefresh(enabled && input !== null, cached !== undefined, cached?.query?.staleAt, refresh)
 
@@ -117,23 +96,15 @@ export function useTeamSquad(
         : readTeamSquad(teamId, seasonId),
     [teamId, seasonId]
   )
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { refreshing, error, runRefresh } = useRefreshStatus(
+    teamId === null ? null : teamSquadQueryKey(teamId, seasonId)
+  )
 
   const refresh = useCallback(async () => {
     if (!enabled || teamId === null) return
 
-    setRefreshing(true)
-    setError(null)
-
-    try {
-      await refreshTeamSquad(teamId, seasonId)
-    } catch (refreshError) {
-      setError(refreshError instanceof Error ? refreshError.message : 'Could not refresh squad.')
-    } finally {
-      setRefreshing(false)
-    }
-  }, [enabled, teamId, seasonId])
+    await runRefresh(() => refreshTeamSquad(teamId, seasonId), 'Could not refresh squad.')
+  }, [enabled, teamId, seasonId, runRefresh])
 
   useStaleRefresh(enabled && teamId !== null, cached !== undefined, cached?.query?.staleAt, refresh)
 
@@ -149,25 +120,13 @@ export function useTeamStatistics(
     () => (input === null ? Promise.resolve(null) : readTeamStatistics(input)),
     [cacheKey]
   )
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { refreshing, error, runRefresh } = useRefreshStatus(cacheKey)
 
   const refresh = useCallback(async () => {
     if (!enabled || input === null) return
 
-    setRefreshing(true)
-    setError(null)
-
-    try {
-      await refreshTeamStatisticsQuery(input)
-    } catch (refreshError) {
-      setError(
-        refreshError instanceof Error ? refreshError.message : 'Could not refresh team statistics.'
-      )
-    } finally {
-      setRefreshing(false)
-    }
-  }, [enabled, input])
+    await runRefresh(() => refreshTeamStatisticsQuery(input), 'Could not refresh team statistics.')
+  }, [enabled, input, runRefresh])
 
   useStaleRefresh(enabled && input !== null, cached !== undefined, cached?.staleAt, refresh)
 
@@ -183,25 +142,13 @@ export function useTeamTransfers(
       input === null ? Promise.resolve({ query: null, transfers: [] }) : readTeamTransfers(input),
     [input?.teamId]
   )
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { refreshing, error, runRefresh } = useRefreshStatus(input?.teamId)
 
   const refresh = useCallback(async () => {
     if (!enabled || input === null) return
 
-    setRefreshing(true)
-    setError(null)
-
-    try {
-      await refreshTeamTransfers(input)
-    } catch (refreshError) {
-      setError(
-        refreshError instanceof Error ? refreshError.message : 'Could not refresh team transfers.'
-      )
-    } finally {
-      setRefreshing(false)
-    }
-  }, [enabled, input])
+    await runRefresh(() => refreshTeamTransfers(input), 'Could not refresh team transfers.')
+  }, [enabled, input, runRefresh])
 
   useStaleRefresh(enabled && input !== null, cached !== undefined, cached?.query?.staleAt, refresh)
 
