@@ -37,6 +37,20 @@ describe('fixture detail data', () => {
     expect(sortedFixtureEvents(events).map(({ id }) => id)).toEqual([3, 2, 1])
   })
 
+  it('keeps match chronology when provider sort order places a substitution before an earlier goal', () => {
+    const events = [event(1, 4, 1), event(2, 46, 3), event(3, 23, 4), event(4, 46, 5)]
+    expect(sortedFixtureEvents(events).map(({ id }) => id)).toEqual([1, 3, 2, 4])
+  })
+
+  it('orders stoppage time before using the provider tie-breaker', () => {
+    const events = [
+      { ...event(1, 45, 1), extra_minute: 3 },
+      { ...event(2, 45, 2), extra_minute: 1 },
+      event(3, 46, 0)
+    ]
+    expect(sortedFixtureEvents(events).map(({ id }) => id)).toEqual([2, 1, 3])
+  })
+
   it('pairs fixture statistics by location', () => {
     const statistics = [
       {

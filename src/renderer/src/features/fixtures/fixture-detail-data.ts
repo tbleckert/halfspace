@@ -84,14 +84,14 @@ export interface PlayerEventAnnotation {
 export function sortedFixtureEvents(events: SportmonksEvent[]): SportmonksEvent[] {
   return events.toSorted(
     (left, right) =>
+      left.minute - right.minute ||
+      (left.extra_minute ?? 0) - (right.extra_minute ?? 0) ||
       (left.sort_order !== null &&
       left.sort_order !== undefined &&
       right.sort_order !== null &&
       right.sort_order !== undefined
         ? left.sort_order - right.sort_order
         : 0) ||
-      left.minute - right.minute ||
-      (left.extra_minute ?? 0) - (right.extra_minute ?? 0) ||
       left.id - right.id
   )
 }
