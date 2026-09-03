@@ -100,16 +100,25 @@ describe('IPC handlers', () => {
     expect(sportmonksMocks.fetchFixturesByDateRange).toHaveBeenCalledWith(input, 'private-token')
   })
 
-  it('rejects untrusted senders outside the recoverable request boundary', async () => {
-    electronMocks.fromWebContents.mockReturnValue(null)
-    const handler = electronMocks.handlers.get(ipcChannels.refreshFixtures)
+  it.each([ipcChannels.refreshFixtures, ipcChannels.refreshFixturePressure])(
+    'rejects untrusted senders for %s outside the recoverable request boundary',
+    async (channel) => {
+      electronMocks.fromWebContents.mockReturnValue(null)
+      const handler = electronMocks.handlers.get(channel)
 
-    await expect(
-      handler?.(
-        { sender: {}, senderFrame: {} },
-        { date: '2026-08-31', timeZone: 'Europe/Stockholm' }
-      )
-    ).rejects.toThrow('Rejected IPC call from an untrusted sender.')
+      await expect(
+        handler?.(
+          { sender: {}, senderFrame: {} },
+          { date: '2026-08-31', timeZone: 'Europe/Stockholm' }
+        )
+      ).rejects.toThrow('Rejected IPC call from an untrusted sender.')
+    }
+  )
+
+  it('validates pressure fixture IDs before reading credentials', async () => {
+    const result = await invokeTrusted(ipcChannels.refreshFixturePressure, { fixtureId: -1 })
+    expect(result).toMatchObject({ ok: false, error: { code: 'invalid_input' } })
+    expect(tokenMocks.readStoredToken).not.toHaveBeenCalled()
   })
 
   it.each([ipcChannels.saveToken, ipcChannels.clearToken])(

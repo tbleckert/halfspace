@@ -36,6 +36,7 @@ describe('competition refresh', () => {
         refreshSubscription: vi.fn(),
         refreshTeamOfWeek: vi.fn(),
         refreshFixtureTv: vi.fn(),
+        refreshFixturePressure: vi.fn(),
         refreshFixtures: vi.fn(),
         refreshFixtureWindow: vi.fn(),
         refreshFixture: vi.fn(),

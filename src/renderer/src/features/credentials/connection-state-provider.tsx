@@ -8,6 +8,7 @@ import { invalidateRefereeRefreshes } from '@/features/referees/use-referee'
 import { invalidateCompetitionWorkspaceRefreshes } from '@/features/competitions/use-competition-workspace'
 import { invalidateFixtureRefreshes } from '@/features/fixtures/use-fixtures'
 import { invalidateCommentaryRefreshes } from '@/features/fixtures/use-commentary'
+import { invalidatePressureRefreshes } from '@/features/fixtures/use-pressure'
 import { invalidatePlayerRefreshes } from '@/features/players/use-player'
 import { invalidateTeamRefreshes } from '@/features/teams/use-team'
 import { invalidateRivalRefreshes } from '@/features/teams/use-team-rivals'
@@ -182,6 +183,7 @@ function invalidateRefreshes(): void {
   invalidateCompetitionWorkspaceRefreshes()
   invalidateFixtureRefreshes()
   invalidateCommentaryRefreshes()
+  invalidatePressureRefreshes()
   invalidatePlayerRefreshes()
   invalidateTeamRefreshes()
   invalidateRivalRefreshes()

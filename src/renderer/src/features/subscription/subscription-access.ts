@@ -5,6 +5,7 @@ export const subscriptionFeatures = [
   { key: 'squads', name: 'Teams & squads', resourceId: 181 },
   { key: 'statistics', name: 'Season statistics', resourceId: 241 },
   { key: 'tv', name: 'TV guide', resourceId: 142, enrichmentId: 96 },
+  { key: 'pressure', name: 'Pressure Index', resourceId: 142, enrichmentId: 138 },
   { key: 'totw', name: 'Team of the Week', resourceId: 263 },
   { key: 'prematch', name: 'Pre-match odds', resourceId: 123 },
   { key: 'inplay', name: 'In-play odds', resourceId: 127 }

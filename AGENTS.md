@@ -93,6 +93,13 @@ abstractions.
 - Sportmonks fixture detail owns events, statistics, and lineups; fixture list refreshes must
   preserve that richer cached detail. Fetch and cache the much larger odds payload only when the
   Odds view opens.
+- Fixture Stats starts with Pressure: per-minute Sportmonks Pressure Index bars, home above zero
+  and away below, on the same scale. Keep original values rather than percentages or smoothed
+  estimates, and leave missing readings absent. Load pressure only on Stats, cache per fixture,
+  and refresh every 30 seconds while an ongoing match's Stats view is open. Annotate goals and
+  dismissals with their original match-minute labels, excluding rescinded events. Pressure records
+  have no period IDs; preserve reported minutes without guessing halftime offsets. Access requires
+  the fixture resource and Pressure Index enrichment; empty data alone is not an access denial.
 - Render both complete starting XIs from Sportmonks `formation_field` coordinates on one shared
   horizontal pitch, mirrored from their own goals. Use nested lineup portraits, link every player,
   and annotate goals, assists, cards, missed penalties, and substitutions from fixture events. Keep

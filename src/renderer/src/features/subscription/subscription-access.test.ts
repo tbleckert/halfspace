@@ -25,4 +25,11 @@ describe('feature access', () => {
     expect(featureAccess(subscription, 'prematch')).toBe('included')
     expect(featureAccess(subscription, 'inplay')).toBe('not-included')
   })
+  it('requires fixture access and the pressure enrichment, not a plan name', () => {
+    const pressure = { ...subscription, enrichments: [{ id: 138, name: 'Access Pressure Index' }] }
+    expect(featureAccess(pressure, 'pressure')).toBe('included')
+    expect(featureAccess({ ...pressure, resources: [] }, 'pressure')).toBe('not-included')
+    expect(featureAccess(subscription, 'pressure')).toBe('not-included')
+    expect(featureAccess(null, 'pressure')).toBe('unknown')
+  })
 })

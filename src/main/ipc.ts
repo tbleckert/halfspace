@@ -60,6 +60,7 @@ import { clearSportmonksRateLimits, SportmonksError } from './sportmonks-client'
 import { clearStoredToken, hasStoredToken, readStoredToken, saveStoredToken } from './token-store'
 import { fetchSubscription } from './subscription'
 import { fetchFixtureTv } from './fixture-tv'
+import { fetchFixturePressure } from './fixture-pressure'
 import { fetchTeamOfWeek, validateTeamOfWeekInput } from './team-of-week'
 
 const missingTokenMessage = 'Add your Sportmonks token in Settings.'
@@ -68,6 +69,12 @@ let currentRateLimit: SportmonksRateLimit | null = null
 let credentialGeneration = 0
 
 export function registerIpcHandlers(): void {
+  registerSportmonksHandler(
+    ipcChannels.refreshFixturePressure,
+    validateFixtureInput,
+    fetchFixturePressure,
+    'Could not refresh pressure.'
+  )
   registerSportmonksHandler(
     ipcChannels.refreshTeamOfWeek,
     validateTeamOfWeekInput,

@@ -27,6 +27,7 @@ include should have a useful place in Halfspace.
 - [x] Season statistics for competitions, teams, and players.
 - [x] Season player leaderboards for goals, assists, yellow cards, and red cards.
 - [x] Fixture previews, event timelines, pitch lineups, match statistics, and pre-match odds.
+- [x] Fixture pressure charts with goal and red-card markers, exact values, and live updates.
 - [x] Live match commentary with key-event filtering and offline history.
 - [x] Fixture Preview TV guides with country-specific broadcast listings.
 - [x] Competition Team of the Week with season and round browsing.

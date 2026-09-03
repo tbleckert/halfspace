@@ -38,6 +38,8 @@ import type { FixtureDetailSearch } from './fixture-route'
 import { FixtureStats } from './fixture-stats'
 import { FixtureTimeline } from './fixture-timeline'
 import { useCommentary } from './use-commentary'
+import { usePressure } from './use-pressure'
+import { FixturePressure } from './fixture-pressure'
 import { prefetchFixturePreview, type FixturePreviewInput } from './use-fixture-preview'
 import { useFixtureEntity, useFixtureOdds } from './use-fixtures'
 
@@ -78,7 +80,13 @@ export function FixtureDetailPage({
   )
   const live = isFixtureOngoing(fixture.cached?.fixture?.stateId ?? 0)
   const selectedFeed = oddsFeed ?? (live ? 'inplay' : 'pre-match')
-  const subscription = useSubscription(online && view === 'odds')
+  const subscription = useSubscription(online && (view === 'odds' || view === 'stats'))
+  const pressureAccess = featureAccess(subscription.cached, 'pressure')
+  const pressure = usePressure(
+    validFixtureId && view === 'stats' ? parsedFixtureId : null,
+    online && view === 'stats' && pressureAccess !== 'not-included',
+    live
+  )
   const oddsAccess = featureAccess(
     subscription.cached,
     selectedFeed === 'inplay' ? 'inplay' : 'prematch'
@@ -126,13 +134,15 @@ export function FixtureDetailPage({
   const away = fixtureParticipantAt(match, 'away')
   const heading = `${home?.name ?? 'Home'} vs ${away?.name ?? 'Away'}`
   const teamParticipant = match.participants.find(({ id }) => id === teamId)
-  const refreshing = fixture.refreshing || odds.refreshing || commentary.refreshing
+  const refreshing =
+    fixture.refreshing || odds.refreshing || commentary.refreshing || pressure.refreshing
 
   async function refresh(): Promise<void> {
     await Promise.all([
       fixture.refresh(),
       view === 'odds' ? odds.refresh() : Promise.resolve(),
-      view === 'commentary' ? commentary.refresh() : Promise.resolve()
+      view === 'commentary' ? commentary.refresh() : Promise.resolve(),
+      view === 'stats' ? pressure.refresh() : Promise.resolve()
     ])
   }
 
@@ -176,6 +186,7 @@ export function FixtureDetailPage({
       {fixture.error && <ErrorAlert>{fixture.error}</ErrorAlert>}
       {view === 'odds' && odds.error && <ErrorAlert>{odds.error}</ErrorAlert>}
       {view === 'commentary' && commentary.error && <ErrorAlert>{commentary.error}</ErrorAlert>}
+      {view === 'stats' && pressure.error && <ErrorAlert>{pressure.error}</ErrorAlert>}
 
       <MatchScore
         competitionId={competitionId ?? cachedFixture.leagueId}
@@ -230,18 +241,30 @@ export function FixtureDetailPage({
         />
       )}
       {view === 'stats' && (
-        <FixtureStats
-          away={away}
-          context={{
-            competition: competitionId ?? cachedFixture.leagueId,
-            date,
-            season: resolvedSeasonId
-          }}
-          home={home}
-          lineups={match.lineups ?? []}
-          online={online}
-          statistics={match.statistics ?? []}
-        />
+        <div className="flex flex-col gap-5">
+          <FixturePressure
+            key={parsedFixtureId}
+            cached={pressure.cached}
+            error={pressure.error}
+            access={pressureAccess}
+            home={home}
+            away={away}
+            events={match.events ?? []}
+            online={online}
+          />
+          <FixtureStats
+            away={away}
+            context={{
+              competition: competitionId ?? cachedFixture.leagueId,
+              date,
+              season: resolvedSeasonId
+            }}
+            home={home}
+            lineups={match.lineups ?? []}
+            online={online}
+            statistics={match.statistics ?? []}
+          />
+        </div>
       )}
       {view === 'odds' && (
         <FixtureOdds

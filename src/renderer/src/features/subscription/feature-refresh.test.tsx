@@ -5,11 +5,14 @@ import {
   clearSportmonksCache,
   db,
   readFixtureTv,
+  readFixturePressure,
   readSubscription,
   readTeamOfWeek,
-  writeTeamOfWeekRefresh
+  writeTeamOfWeekRefresh,
+  writeFixturePressureRefresh
 } from '@/data/db'
 import { invalidateFixtureTvRefreshes, useFixtureTv } from '@/features/fixtures/use-fixture-tv'
+import { invalidatePressureRefreshes, usePressure } from '@/features/fixtures/use-pressure'
 import {
   invalidateTeamOfWeekRefreshes,
   useTeamOfWeek
@@ -19,6 +22,7 @@ import { invalidateSubscriptionRefresh, useSubscription } from './use-subscripti
 beforeEach(async () => {
   invalidateSubscriptionRefresh()
   invalidateFixtureTvRefreshes()
+  invalidatePressureRefreshes()
   invalidateTeamOfWeekRefreshes()
   await clearSportmonksCache()
 })
@@ -26,6 +30,14 @@ afterEach(() => vi.unstubAllGlobals())
 afterAll(() => db.close())
 
 it.each([
+  {
+    name: 'pressure',
+    method: 'refreshFixturePressure',
+    useQuery: () => usePressure(10, true, false),
+    invalidate: invalidatePressureRefreshes,
+    read: () => readFixturePressure(10),
+    data: { points: [], fetchedAt: 1000 }
+  },
   {
     name: 'subscription',
     method: 'refreshSubscription',
@@ -82,4 +94,19 @@ it('switches cached Team of the Week rounds without showing the previous query',
   rerender({ roundId: 5 })
   expect(result.current.cached?.fetchedAt).not.toBe(1000)
   await waitFor(() => expect(result.current.cached?.fetchedAt).toBe(2000))
+})
+
+it('switches offline pressure queries without showing another fixture or making a request', async () => {
+  await writeFixturePressureRefresh(10, { points: [], fetchedAt: 1000 })
+  await writeFixturePressureRefresh(11, { points: [], fetchedAt: 2000 })
+  const refresh = vi.fn()
+  vi.stubGlobal('halfspace', { sportmonks: { refreshFixturePressure: refresh } })
+  const { result, rerender } = renderHook(({ fixtureId }) => usePressure(fixtureId, false, false), {
+    initialProps: { fixtureId: 10 }
+  })
+  await waitFor(() => expect(result.current.cached?.fetchedAt).toBe(1000))
+  rerender({ fixtureId: 11 })
+  expect(result.current.cached?.fetchedAt).not.toBe(1000)
+  await waitFor(() => expect(result.current.cached?.fetchedAt).toBe(2000))
+  expect(refresh).not.toHaveBeenCalled()
 })

@@ -1,6 +1,7 @@
 import Dexie, { type Table } from 'dexie'
 import type {
   FixtureTvRefresh,
+  FixturePressureRefresh,
   SubscriptionRefresh,
   TeamOfWeekRefresh,
   RefreshTeamOfWeekInput,
@@ -493,6 +494,11 @@ export interface FixtureTvQuery extends FixtureTvRefresh {
   staleAt: number
 }
 
+export interface FixturePressureQuery extends FixturePressureRefresh {
+  fixtureId: number
+  staleAt: number
+}
+
 export interface TeamOfWeekQuery extends TeamOfWeekRefresh {
   key: string
   staleAt: number
@@ -501,6 +507,7 @@ export interface TeamOfWeekQuery extends TeamOfWeekRefresh {
 class HalfspaceDatabase extends Dexie {
   subscriptionQueries!: Table<SubscriptionQuery, string>
   fixtureTvQueries!: Table<FixtureTvQuery, number>
+  fixturePressureQueries!: Table<FixturePressureQuery, number>
   teamOfWeekQueries!: Table<TeamOfWeekQuery, string>
   teamRivalsQueries!: Table<TeamRivalsQuery, number>
   fixtureCommentaryQueries!: Table<FixtureCommentaryQuery, number>
@@ -787,6 +794,9 @@ class HalfspaceDatabase extends Dexie {
       fixtureInplayOdds: '&id, fixtureId',
       fixtureInplayOddsQueries: '&fixtureId, staleAt'
     })
+    this.version(25).stores({
+      fixturePressureQueries: '&fixtureId, staleAt'
+    })
   }
 }
 
@@ -847,6 +857,25 @@ export async function readSubscription(): Promise<SubscriptionQuery | null> {
 
 export async function readFixtureTv(fixtureId: number): Promise<FixtureTvQuery | null> {
   return (await db.fixtureTvQueries.get(fixtureId)) ?? null
+}
+
+export async function readFixturePressure(fixtureId: number): Promise<FixturePressureQuery | null> {
+  return (await db.fixturePressureQueries.get(fixtureId)) ?? null
+}
+
+export async function writeFixturePressureRefresh(
+  fixtureId: number,
+  refresh: FixturePressureRefresh
+): Promise<void> {
+  await db.transaction('rw', db.fixturePressureQueries, async () => {
+    const existing = await db.fixturePressureQueries.get(fixtureId)
+    if (existing && existing.fetchedAt > refresh.fetchedAt) return
+    await db.fixturePressureQueries.put({
+      ...refresh,
+      fixtureId,
+      staleAt: refresh.fetchedAt + 60 * 60 * 1000
+    })
+  })
 }
 
 export async function writeFixtureTvRefresh(
@@ -2275,6 +2304,7 @@ export async function clearSportmonksCache(): Promise<void> {
     [
       db.subscriptionQueries,
       db.fixtureTvQueries,
+      db.fixturePressureQueries,
       db.teamOfWeekQueries,
       db.fixtures,
       db.fixtureQueries,
@@ -2314,6 +2344,7 @@ export async function clearSportmonksCache(): Promise<void> {
     async () => {
       await db.subscriptionQueries.clear()
       await db.fixtureTvQueries.clear()
+      await db.fixturePressureQueries.clear()
       await db.teamOfWeekQueries.clear()
       await db.fixtures.clear()
       await db.fixtureQueries.clear()

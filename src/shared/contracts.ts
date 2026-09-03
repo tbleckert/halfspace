@@ -1,6 +1,7 @@
 export const ipcChannels = {
   refreshSubscription: 'sportmonks:refresh-subscription',
   refreshFixtureTv: 'sportmonks:refresh-fixture-tv',
+  refreshFixturePressure: 'sportmonks:refresh-fixture-pressure',
   refreshTeamOfWeek: 'sportmonks:refresh-team-of-week',
   connectionState: 'credentials:connection-state',
   saveToken: 'credentials:save-token',
@@ -85,6 +86,19 @@ export interface SportmonksTvListing {
 
 export interface FixtureTvRefresh {
   listings: SportmonksTvListing[]
+  fetchedAt: number
+}
+
+export interface SportmonksPressure {
+  id: number
+  fixture_id: number
+  participant_id: number
+  minute: number
+  pressure: number
+}
+
+export interface FixturePressureRefresh {
+  points: SportmonksPressure[]
   fetchedAt: number
 }
 
@@ -975,6 +989,7 @@ export interface HalfspaceApi {
   sportmonks: {
     refreshSubscription(): Promise<Result<SubscriptionRefresh>>
     refreshFixtureTv(input: RefreshFixtureInput): Promise<Result<FixtureTvRefresh>>
+    refreshFixturePressure(input: RefreshFixtureInput): Promise<Result<FixturePressureRefresh>>
     refreshTeamOfWeek(input: RefreshTeamOfWeekInput): Promise<Result<TeamOfWeekRefresh>>
     refreshTeamRivals: (input: RefreshTeamInput) => Promise<Result<TeamRivalsRefresh>>
     refreshFixtureCommentary: (
