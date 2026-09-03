@@ -1,8 +1,8 @@
 # Sportmonks API coverage
 
-Halfspace currently covers **34 of 153 endpoints** and **113 of 1320 documented endpoint includes**.
+Halfspace currently covers **36 of 153 endpoints** and **121 of 1320 documented endpoint includes**.
 
-Overall coverage: **10%**
+Overall coverage: **11%**
 
 Source: [Sportmonks Football API 3.0 documentation index](https://docs.sportmonks.com/v3/sitemap.md)
 
@@ -170,8 +170,8 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 
 - [ ] [All Transfers](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfers/get-all-transfers)
 - [ ] [Transfer by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfers/get-transfer-by-id)
-- [ ] [Latest Transfers](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfers/get-latest-transfers)
-- [ ] [Transfers Between Date Range](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfers/get-transfers-between-date-range)
+- [x] [Latest Transfers](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfers/get-latest-transfers) — includes 4/7
+- [x] [Transfers Between Date Range](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfers/get-transfers-between-date-range) — includes 4/7
 - [x] [Transfers by Team ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfers/get-transfers-by-team-id) — includes 4/7
 - [x] [Transfers by Player ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfers/get-transfers-by-player-id) — includes 3/7
 

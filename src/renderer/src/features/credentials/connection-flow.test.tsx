@@ -48,6 +48,7 @@ beforeEach(() => {
       refreshCompetitionSeasons: vi.fn(),
       refreshStandings: vi.fn(),
       refreshRoundStandings: vi.fn(),
+      refreshTransferFeed: vi.fn(),
       refreshSeasonStatistics: vi.fn(),
       refreshSeasonTopscorers: vi.fn(),
       refreshCompetitionFixtures: vi.fn(),

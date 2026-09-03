@@ -212,6 +212,10 @@ abstractions.
 - Player Career shows the complete Sportmonks transfer history as a compact chronological list with
   direct links to both teams. Cache transfers as normalized records so the same foundation can power
   Team Transfers later. Do not display a transfer amount without a trustworthy currency.
+- The Transfers hub browses latest-updated records and transfer-date ranges of at most 31 days.
+  Cache each feed page separately with explicit `hasMore`; do not present a page as a complete feed.
+  Scope local player, club, and status filters to the displayed page. Preserve normalized transfer
+  details across feed and career refreshes, and show unknown clubs as unknown, not free agency.
 - Coach pages keep identity, current club, career history, and recent club fixtures together in one
   focused view. Normalize coaches into the shared entity cache, link them from teams and fixture
   previews, and include them in global search. Team coach includes contain historical assignments;

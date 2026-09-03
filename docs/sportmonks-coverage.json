@@ -83,6 +83,8 @@
     "referees/get-referees-search-by-name": ["country"],
     "coaches/get-coaches-search-by-name": ["nationality"],
     "transfers/get-transfers-by-player-id": ["type", "fromTeam", "toTeam"],
+    "transfers/get-latest-transfers": ["player", "type", "fromTeam", "toTeam"],
+    "transfers/get-transfers-between-date-range": ["player", "type", "fromTeam", "toTeam"],
     "transfers/get-transfers-by-team-id": ["player", "type", "fromTeam", "toTeam"],
     "venues/get-venue-by-id": ["country"],
     "venues/get-venues-by-search-by-name": ["country"]

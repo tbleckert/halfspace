@@ -25,6 +25,8 @@ import {
   fetchSeasonTopscorers,
   fetchStandingsBySeason,
   fetchStandingsByRound,
+  fetchTransferFeed,
+  validateTransferFeedInput,
   validateRoundStandingsInput,
   fetchTeamById,
   fetchTeamRivals,
@@ -71,6 +73,12 @@ let currentRateLimit: SportmonksRateLimit | null = null
 let credentialGeneration = 0
 
 export function registerIpcHandlers(): void {
+  registerSportmonksHandler(
+    ipcChannels.refreshTransferFeed,
+    validateTransferFeedInput,
+    fetchTransferFeed,
+    'Could not refresh transfers.'
+  )
   registerSportmonksHandler(
     ipcChannels.refreshRoundStandings,
     validateRoundStandingsInput,

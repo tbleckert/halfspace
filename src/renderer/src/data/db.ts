@@ -27,6 +27,8 @@ import type {
   PlayerRefresh,
   PlayerStatisticsRefresh,
   TransfersRefresh,
+  RefreshTransferFeedInput,
+  TransferFeedRefresh,
   RefreshCompetitionFixturesInput,
   RefreshFixtureHeadToHeadInput,
   RefreshPlayerAppearancesInput,
@@ -434,6 +436,15 @@ export interface TeamTransferQuery {
   message?: string
 }
 
+export interface TransferFeedQuery {
+  key: string
+  transferIds: number[]
+  page: number
+  hasMore: boolean
+  fetchedAt: number
+  staleAt: number
+}
+
 export interface CompetitionCatalog {
   key: string
   competitionIds: number[]
@@ -550,6 +561,7 @@ class HalfspaceDatabase extends Dexie {
   transfers!: Table<CachedTransfer, number>
   playerTransferQueries!: Table<PlayerTransferQuery, number>
   teamTransferQueries!: Table<TeamTransferQuery, number>
+  transferFeedQueries!: Table<TransferFeedQuery, string>
 
   constructor() {
     super('halfspace')
@@ -805,6 +817,9 @@ class HalfspaceDatabase extends Dexie {
     })
     this.version(26).stores({
       roundStandingQueries: '&key, seasonId, staleAt'
+    })
+    this.version(27).stores({
+      transferFeedQueries: '&key, staleAt'
     })
   }
 }
@@ -2214,6 +2229,52 @@ export async function readTeamTransfers(input: RefreshTeamTransfersInput): Promi
   return { query, transfers }
 }
 
+export function transferFeedQueryKey(input: RefreshTransferFeedInput): string {
+  const scope = input.feed === 'latest' ? 'latest' : `${input.startDate}:${input.endDate}`
+  return `${scope}:${input.page}`
+}
+
+export async function readTransferFeed(
+  input: RefreshTransferFeedInput
+): Promise<{ query: TransferFeedQuery | null; transfers: CachedTransfer[] }> {
+  const query = await db.transferFeedQueries.get(transferFeedQueryKey(input))
+  if (!query) return { query: null, transfers: [] }
+  const transfers = (await db.transfers.bulkGet(query.transferIds)).filter(
+    (transfer): transfer is CachedTransfer => transfer !== undefined
+  )
+  return { query, transfers }
+}
+
+export async function writeTransferFeedRefresh(
+  input: RefreshTransferFeedInput,
+  refresh: TransferFeedRefresh
+): Promise<void> {
+  const key = transferFeedQueryKey(input)
+  await db.transaction(
+    'rw',
+    db.transferFeedQueries,
+    db.transfers,
+    db.teams,
+    db.players,
+    async () => {
+      const existing = await db.transferFeedQueries.get(key)
+      if (existing && existing.fetchedAt > refresh.fetchedAt) return
+      const { players, teams, transfers } = await normalizeTransferRefresh(refresh)
+      await db.transfers.bulkPut(transfers)
+      await db.teams.bulkPut(teams)
+      await db.players.bulkPut(players)
+      await db.transferFeedQueries.put({
+        key,
+        transferIds: [...new Set(refresh.transfers.map(({ id }) => id))],
+        page: refresh.page,
+        hasMore: refresh.hasMore,
+        fetchedAt: refresh.fetchedAt,
+        staleAt: refresh.fetchedAt + 15 * 60 * 1000
+      })
+    }
+  )
+}
+
 export async function writeTeamTransfersRefresh(
   input: RefreshTeamTransfersInput,
   refresh: TransfersRefresh
@@ -2245,20 +2306,41 @@ export async function writeTeamTransfersRefresh(
   )
 }
 
-async function normalizeTransferRefresh(refresh: TransfersRefresh): Promise<{
+async function normalizeTransferRefresh(
+  refresh: Pick<TransfersRefresh, 'transfers' | 'fetchedAt'>
+): Promise<{
   players: CachedPlayer[]
   teams: CachedTeam[]
   transfers: CachedTransfer[]
 }> {
-  const transfers: CachedTransfer[] = refresh.transfers.map((transfer) => ({
-    id: transfer.id,
-    playerId: transfer.player_id,
-    fromTeamId: transfer.from_team_id,
-    toTeamId: transfer.to_team_id,
-    date: transfer.date,
-    raw: transfer,
-    fetchedAt: refresh.fetchedAt
-  }))
+  const existingTransfers = await db.transfers.bulkGet(refresh.transfers.map(({ id }) => id))
+  const transfers: CachedTransfer[] = refresh.transfers.map((transfer, index) => {
+    const existing = existingTransfers[index]
+    if (existing && existing.fetchedAt > refresh.fetchedAt) return existing
+    return {
+      id: transfer.id,
+      playerId: transfer.player_id,
+      fromTeamId: transfer.from_team_id,
+      toTeamId: transfer.to_team_id,
+      date: transfer.date,
+      raw: {
+        ...existing?.raw,
+        ...transfer,
+        player:
+          transfer.player ??
+          (existing?.raw.player?.id === transfer.player_id ? existing.raw.player : undefined),
+        fromTeam:
+          transfer.fromTeam ??
+          (existing?.raw.fromTeam?.id === transfer.from_team_id
+            ? existing.raw.fromTeam
+            : undefined),
+        toTeam:
+          transfer.toTeam ??
+          (existing?.raw.toTeam?.id === transfer.to_team_id ? existing.raw.toTeam : undefined)
+      },
+      fetchedAt: refresh.fetchedAt
+    }
+  })
   const includedTeams = new Map<number, SportmonksTeam>()
   const includedPlayers = new Map<number, SportmonksPlayer>()
 
@@ -2447,7 +2529,8 @@ export async function clearSportmonksCache(): Promise<void> {
       db.playerStatisticsQueries,
       db.transfers,
       db.playerTransferQueries,
-      db.teamTransferQueries
+      db.teamTransferQueries,
+      db.transferFeedQueries
     ],
     async () => {
       await db.subscriptionQueries.clear()
@@ -2489,6 +2572,7 @@ export async function clearSportmonksCache(): Promise<void> {
       await db.transfers.clear()
       await db.playerTransferQueries.clear()
       await db.teamTransferQueries.clear()
+      await db.transferFeedQueries.clear()
     }
   )
 }

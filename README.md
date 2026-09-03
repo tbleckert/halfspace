@@ -66,6 +66,7 @@ include should have a useful place in Halfspace.
 - [x] Complete season schedules with stage and round navigation.
 - [x] Round-by-round league tables with season selection and offline history.
 - [x] Team pages with fixtures, squad profiles, and transfer history.
+- [x] Transfer hub with latest updates, date ranges, paginated browsing, and linked player and club profiles.
 - [x] Historical team squads with season selection and offline browsing.
 - [x] Current team injuries and suspensions with linked player profiles.
 - [x] Team rivalries with direct links to rival clubs.

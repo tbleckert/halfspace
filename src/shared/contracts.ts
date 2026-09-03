@@ -16,6 +16,7 @@ export const ipcChannels = {
   refreshCompetitionSeasons: 'sportmonks:refresh-competition-seasons',
   refreshStandings: 'sportmonks:refresh-standings',
   refreshRoundStandings: 'sportmonks:refresh-round-standings',
+  refreshTransferFeed: 'sportmonks:refresh-transfer-feed',
   refreshSeasonStatistics: 'sportmonks:refresh-season-statistics',
   refreshSeasonTopscorers: 'sportmonks:refresh-season-topscorers',
   refreshSeasonSchedule: 'sportmonks:refresh-season-schedule',
@@ -346,6 +347,15 @@ export interface RefreshPlayerTransfersInput {
 
 export interface RefreshTeamTransfersInput {
   teamId: number
+}
+
+export type RefreshTransferFeedInput =
+  | { feed: 'latest'; page: number }
+  | { feed: 'dates'; page: number; startDate: string; endDate: string }
+
+export interface TransferFeedRefresh extends Omit<TransfersRefresh, 'pageCount'> {
+  page: number
+  hasMore: boolean
 }
 
 export interface EntitySearchInput {
@@ -1110,6 +1120,7 @@ export interface HalfspaceApi {
     refreshTeamSquad(input: RefreshTeamSquadInput): Promise<Result<TeamSquadRefresh>>
     refreshTeamStatistics(input: RefreshTeamStatisticsInput): Promise<Result<TeamStatisticsRefresh>>
     refreshTeamTransfers(input: RefreshTeamTransfersInput): Promise<Result<TransfersRefresh>>
+    refreshTransferFeed(input: RefreshTransferFeedInput): Promise<Result<TransferFeedRefresh>>
     refreshVenue(input: RefreshVenueInput): Promise<Result<VenueRefresh>>
     refreshPlayer(input: RefreshPlayerInput): Promise<Result<PlayerRefresh>>
     refreshCoach(input: RefreshCoachInput): Promise<Result<CoachRefresh>>

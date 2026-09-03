@@ -17,6 +17,8 @@ import type {
   PlayerRefresh,
   PlayerStatisticsRefresh,
   TransfersRefresh,
+  RefreshTransferFeedInput,
+  TransferFeedRefresh,
   RefreshCompetitionFixturesInput,
   RefreshCompetitionSeasonsInput,
   RefreshFixtureHeadToHeadInput,
@@ -1523,6 +1525,59 @@ export async function fetchTeamTransfers(
     token,
     fetcher
   )
+}
+
+export function validateTransferFeedInput(value: unknown): RefreshTransferFeedInput {
+  const page = z.number().int().positive()
+  const date = z.string().refine(isValidIsoDate)
+  const result = z
+    .discriminatedUnion('feed', [
+      z.object({ feed: z.literal('latest'), page }),
+      z.object({ feed: z.literal('dates'), page, startDate: date, endDate: date })
+    ])
+    .safeParse(value)
+  if (!result.success) throw new SportmonksError('invalid_input', 'Choose a valid transfer feed.')
+  const input = result.data
+  if (input.feed === 'dates') {
+    const days = (Date.parse(input.endDate) - Date.parse(input.startDate)) / 86_400_000 + 1
+    if (days < 1 || days > 31)
+      throw new SportmonksError('invalid_input', 'Choose a transfer range of up to 31 days.')
+  }
+  return input
+}
+
+export async function fetchTransferFeed(
+  input: RefreshTransferFeedInput,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<TransferFeedRefresh> {
+  const fetchedAt = Date.now()
+  const path = input.feed === 'latest' ? 'latest' : `between/${input.startDate}/${input.endDate}`
+  const url = new URL(`${apiBaseUrl}/transfers/${path}`)
+  url.searchParams.set('include', 'player;type;fromTeam;toTeam')
+  url.searchParams.set('order', 'desc')
+  url.searchParams.set('per_page', '50')
+  url.searchParams.set('page', String(input.page))
+  const parsed = await requestSportmonks(url, token, playerTransfersResponseSchema, fetcher)
+  if (!parsed.pagination || parsed.pagination.current_page !== input.page) {
+    throw new SportmonksError(
+      'invalid_response',
+      'Sportmonks returned an unexpected transfer page.'
+    )
+  }
+  return {
+    transfers: parsed.data as SportmonksTransfer[],
+    page: input.page,
+    hasMore: parsed.pagination.has_more,
+    fetchedAt,
+    rateLimit: parsed.rate_limit
+      ? {
+          remaining: parsed.rate_limit.remaining,
+          resetsAt: fetchedAt + parsed.rate_limit.resets_in_seconds * 1000
+        }
+      : undefined,
+    message: parsed.message
+  }
 }
 
 async function fetchTransfers(

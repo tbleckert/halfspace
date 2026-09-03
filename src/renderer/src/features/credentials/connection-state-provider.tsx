@@ -4,6 +4,7 @@ import { clearSportmonksCache } from '@/data/db'
 import { invalidateCompetitionRefresh } from '@/features/competitions/use-competitions'
 import { invalidateScheduleRefreshes } from '@/features/competitions/use-season-schedule'
 import { invalidateRoundStandingsRefreshes } from '@/features/competitions/use-round-standings'
+import { invalidateTransferFeedRefreshes } from '@/features/transfers/use-transfer-feed'
 import { invalidateCoachRefreshes } from '@/features/coaches/use-coach'
 import { invalidateRefereeRefreshes } from '@/features/referees/use-referee'
 import { invalidateCompetitionWorkspaceRefreshes } from '@/features/competitions/use-competition-workspace'
@@ -180,6 +181,7 @@ function invalidateRefreshes(): void {
   invalidateCompetitionRefresh()
   invalidateScheduleRefreshes()
   invalidateRoundStandingsRefreshes()
+  invalidateTransferFeedRefreshes()
   invalidateCoachRefreshes()
   invalidateRefereeRefreshes()
   invalidateCompetitionWorkspaceRefreshes()
