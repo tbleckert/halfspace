@@ -1,4 +1,5 @@
-import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import Dexie from 'dexie'
 import type {
   CoachRefresh,
   CompetitionRefresh,
@@ -143,6 +144,26 @@ beforeEach(async () => {
 afterAll(() => db.close())
 
 describe('entity search cache', () => {
+  it('retains team detail written while a search refresh is being prepared', async () => {
+    await writeTeamRefresh(teamRefresh())
+    const detail = teamRefresh()
+    detail.team.sidelined = []
+    detail.team.country = { id: 462, name: 'England' }
+    beforeNextCacheTransaction(() => writeTeamRefresh(detail))
+
+    await writeEntitySearchRefresh({
+      teams: [teamRefresh().team],
+      competitions: [],
+      players: [],
+      coaches: [],
+      venues: [],
+      fetchedAt: detail.fetchedAt + 1_000
+    })
+
+    expect((await readTeamIdentity(9)).team?.raw.country?.name).toBe('England')
+    expect((await readTeamIdentity(9)).team?.raw.sidelined).toEqual([])
+  })
+
   it('retains cached absences when a basic team search result arrives', async () => {
     const refresh = teamRefresh()
     refresh.team.sidelined = [
@@ -468,6 +489,37 @@ describe('fixture cache', () => {
     const cached = await readFixtureOdds(19425456)
     expect(cached.query?.oddIds).toEqual([701])
     expect(cached.odds[0].raw.market?.name).toBe('Fulltime Result')
+  })
+
+  it('removes obsolete odds even when another refresh commits while replacement is prepared', async () => {
+    const refresh: FixtureOddsRefresh = {
+      fetchedAt: Date.UTC(2026, 7, 28, 10),
+      odds: [
+        {
+          id: 701,
+          fixture_id: 19425456,
+          market_id: 1,
+          bookmaker_id: 2,
+          label: 'Home',
+          value: '1.80'
+        }
+      ]
+    }
+    await writeFixtureOddsRefresh(19425456, refresh)
+    beforeNextCacheTransaction(() =>
+      writeFixtureOddsRefresh(19425456, {
+        ...refresh,
+        fetchedAt: refresh.fetchedAt + 1_000,
+        odds: [{ ...refresh.odds[0], id: 702 }]
+      })
+    )
+    await writeFixtureOddsRefresh(19425456, {
+      ...refresh,
+      fetchedAt: refresh.fetchedAt + 2_000,
+      odds: [{ ...refresh.odds[0], id: 703 }]
+    })
+    expect((await readFixtureOdds(19425456)).query?.oddIds).toEqual([703])
+    expect(await db.fixtureOdds.toCollection().primaryKeys()).toEqual([703])
   })
 
   it('caches head-to-head fixtures under a canonical team pair', async () => {
@@ -797,7 +849,71 @@ describe('team entity cache', () => {
   })
 })
 
+describe('included coach cache', () => {
+  it.each(['team', 'fixture', 'search'] as const)(
+    'retains concurrent coach detail during a %s refresh',
+    async (source) => {
+      beforeNextCacheTransaction(() =>
+        writeCoachRefresh({
+          fetchedAt: Date.UTC(2026, 7, 28, 10),
+          coach: { ...coachIdentity(), teams: [], nationality: { id: 462, name: 'Spain' } }
+        })
+      )
+
+      if (source === 'team') {
+        const refresh = teamRefresh()
+        refresh.team.coaches = [
+          {
+            id: 501,
+            team_id: 9,
+            coach_id: 7,
+            position_id: 1,
+            active: true,
+            start: '2016-07-01',
+            end: null,
+            temporary: false,
+            coach: coachIdentity()
+          }
+        ]
+        await writeTeamRefresh(refresh)
+      } else if (source === 'fixture') {
+        const refresh = fixtureRefresh(19425456, 'Manchester City vs Arsenal')
+        await writeFixtureDetailRefresh({
+          fetchedAt: refresh.fetchedAt,
+          fixture: { ...refresh.fixtures[0], coaches: [coachIdentity()] }
+        })
+      } else {
+        await writeEntitySearchRefresh({
+          fetchedAt: Date.UTC(2026, 7, 28, 10),
+          competitions: [],
+          teams: [],
+          players: [],
+          venues: [],
+          coaches: [coachIdentity()]
+        })
+      }
+
+      const coach = (await readCoachIdentity(7)).coach
+      expect(coach?.detailed).toBe(true)
+      expect(coach?.raw.teams).toEqual([])
+      expect(coach?.raw.nationality?.name).toBe('Spain')
+    }
+  )
+})
+
 describe('squad and player cache', () => {
+  it.each([undefined, 100])(
+    'retains a concurrent player detail refresh for squad season %s',
+    async (seasonId) => {
+      beforeNextCacheTransaction(() => writePlayerRefresh(playerRefresh()))
+      await writeTeamSquadRefresh(9, teamSquadRefresh(), seasonId)
+
+      const player = (await readPlayerIdentity(6306068)).player
+      expect(player?.detailed).toBe(true)
+      expect(player?.raw.nationality?.name).toBe('Netherlands')
+    }
+  )
+
   it('keeps season rosters separate from each other and current membership', async () => {
     await writeTeamSquadRefresh(9, teamSquadRefresh())
     const historical = teamSquadRefresh()
@@ -1058,6 +1174,15 @@ function fixtureRefresh(id: number, name: string): FixtureRefresh {
       }
     ]
   }
+}
+
+function beforeNextCacheTransaction(update: () => Promise<void>): void {
+  const transaction = db.transaction.bind(db)
+  const nextTransaction = vi.spyOn(db, 'transaction')
+  nextTransaction.mockImplementationOnce((...args) => {
+    nextTransaction.mockRestore()
+    return Dexie.Promise.resolve(update()).then(() => transaction(...args))
+  })
 }
 
 function coachIdentity(): CoachRefresh['coach'] {

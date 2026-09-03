@@ -172,6 +172,8 @@ abstractions.
 - Keep normalized fixture state and daily query snapshots monotonic by request timestamp so late
   responses cannot roll newer data back. Refresh subscription membership without deleting entity
   identities discovered elsewhere; catalog membership and cached identity are separate concerns.
+- Read existing records and merge or remove cached data inside the same write transaction. Never
+  prepare a replacement from a pre-transaction snapshot that concurrent refreshes can invalidate.
 - Show every active subscribed competition in the sidebar when there are 10 or fewer. Above 10,
   show only locally pinned competitions.
 - Global entity search opens from a standard navigation row immediately above Settings or with

@@ -995,15 +995,15 @@ export async function writeFixtureWindowRefresh(
 
 export async function writeFixtureDetailRefresh(refresh: FixtureDetailRefresh): Promise<void> {
   const fixtureCoaches = refresh.fixture.coaches ?? []
-  const existingCoaches = await db.coaches.bulkGet(fixtureCoaches.map(({ id }) => id))
-  const coaches = fixtureCoaches.map((coach, index) =>
-    toCachedCoach(coach, existingCoaches[index], refresh.fetchedAt, false)
-  )
 
   const fixtureReferees = (refresh.fixture.referees ?? []).flatMap(({ referee }) =>
     referee ? [referee] : []
   )
   await db.transaction('rw', db.fixtures, db.coaches, db.referees, async () => {
+    const existingCoaches = await db.coaches.bulkGet(fixtureCoaches.map(({ id }) => id))
+    const coaches = fixtureCoaches.map((coach, index) =>
+      toCachedCoach(coach, existingCoaches[index], refresh.fetchedAt, false)
+    )
     const existingReferees = await db.referees.bulkGet(fixtureReferees.map(({ id }) => id))
     const referees = fixtureReferees.map((referee, index) =>
       toCachedReferee(referee, refresh.fetchedAt, existingReferees[index])
@@ -1046,7 +1046,6 @@ export async function writeFixtureOddsRefresh(
   fixtureId: number,
   refresh: FixtureOddsRefresh
 ): Promise<void> {
-  const previousQuery = await db.fixtureOddsQueries.get(fixtureId)
   const odds: CachedFixtureOdd[] = refresh.odds.map((odd) => ({
     id: odd.id,
     fixtureId: odd.fixture_id,
@@ -1064,11 +1063,11 @@ export async function writeFixtureOddsRefresh(
     rateLimitResetsAt: refresh.rateLimit?.resetsAt,
     message: refresh.message
   }
-  const removedOddIds = (previousQuery?.oddIds ?? []).filter(
-    (oddId) => !query.oddIds.includes(oddId)
-  )
+  const oddIds = new Set(query.oddIds)
 
   await db.transaction('rw', db.fixtureOdds, db.fixtureOddsQueries, async () => {
+    const previousQuery = await db.fixtureOddsQueries.get(fixtureId)
+    const removedOddIds = (previousQuery?.oddIds ?? []).filter((oddId) => !oddIds.has(oddId))
     await db.fixtureOdds.bulkDelete(removedOddIds)
     await db.fixtureOdds.bulkPut(odds)
     await db.fixtureOddsQueries.put(query)
@@ -1303,10 +1302,6 @@ export async function writeEntitySearchRefresh(refresh: EntitySearchRefresh): Pr
     raw: competition,
     fetchedAt: refresh.fetchedAt
   }))
-  const existingTeams = await db.teams.bulkGet(refresh.teams.map(({ id }) => id))
-  const teams = refresh.teams.map((team, index) =>
-    toCachedIncludedTeam(team, existingTeams[index], refresh.fetchedAt)
-  )
   const players: CachedPlayer[] = refresh.players.map((player) => ({
     id: player.id,
     name: player.name,
@@ -1319,10 +1314,6 @@ export async function writeEntitySearchRefresh(refresh: EntitySearchRefresh): Pr
     fetchedAt: refresh.fetchedAt,
     staleAt
   }))
-  const existingCoaches = await db.coaches.bulkGet(refresh.coaches.map(({ id }) => id))
-  const coaches = refresh.coaches.map((coach, index) =>
-    toCachedCoach(coach, existingCoaches[index], refresh.fetchedAt, false)
-  )
   const venues: CachedVenue[] = refresh.venues.map((venue) => ({
     id: venue.id,
     countryId: venue.country_id ?? null,
@@ -1341,6 +1332,14 @@ export async function writeEntitySearchRefresh(refresh: EntitySearchRefresh): Pr
     db.coaches,
     db.venues,
     async () => {
+      const existingTeams = await db.teams.bulkGet(refresh.teams.map(({ id }) => id))
+      const teams = refresh.teams.map((team, index) =>
+        toCachedIncludedTeam(team, existingTeams[index], refresh.fetchedAt)
+      )
+      const existingCoaches = await db.coaches.bulkGet(refresh.coaches.map(({ id }) => id))
+      const coaches = refresh.coaches.map((coach, index) =>
+        toCachedCoach(coach, existingCoaches[index], refresh.fetchedAt, false)
+      )
       await db.competitions.bulkPut(competitions)
       await db.teams.bulkPut(teams)
       await db.players.bulkPut(players)
@@ -1559,20 +1558,20 @@ export async function writeTeamRefresh(refresh: TeamRefresh): Promise<void> {
   }
 
   const teamCoaches = (refresh.team.coaches ?? []).flatMap(({ coach }) => (coach ? [coach] : []))
-  const existingCoaches = await db.coaches.bulkGet(teamCoaches.map(({ id }) => id))
-  const coaches = teamCoaches.map((coach, index) =>
-    toCachedCoach(coach, existingCoaches[index], refresh.fetchedAt, false)
-  )
 
   const includedPlayers = (refresh.team.sidelined ?? []).flatMap(({ player }) =>
     player ? [player] : []
   )
-  const existingPlayers = await db.players.bulkGet(includedPlayers.map(({ id }) => id))
-  const players = includedPlayers.map((player, index) =>
-    toCachedIncludedPlayer(player, existingPlayers[index], refresh.fetchedAt)
-  )
 
   await db.transaction('rw', db.teams, db.coaches, db.players, async () => {
+    const existingCoaches = await db.coaches.bulkGet(teamCoaches.map(({ id }) => id))
+    const coaches = teamCoaches.map((coach, index) =>
+      toCachedCoach(coach, existingCoaches[index], refresh.fetchedAt, false)
+    )
+    const existingPlayers = await db.players.bulkGet(includedPlayers.map(({ id }) => id))
+    const players = includedPlayers.map((player, index) =>
+      toCachedIncludedPlayer(player, existingPlayers[index], refresh.fetchedAt)
+    )
     await db.teams.put(team)
     await db.coaches.bulkPut(coaches)
     await db.players.bulkPut(players)
@@ -1656,14 +1655,14 @@ export async function readCoachIdentity(coachId: number): Promise<{
 export async function writeCoachRefresh(refresh: CoachRefresh): Promise<void> {
   const assignments = refresh.coach.teams ?? []
   const includedTeams = assignments.flatMap(({ team }) => (team ? [team] : []))
-  const existingCoach = await db.coaches.get(refresh.coach.id)
-  const existingTeams = await db.teams.bulkGet(includedTeams.map(({ id }) => id))
-  const coach = toCachedCoach(refresh.coach, existingCoach, refresh.fetchedAt, true, refresh)
-  const teams = includedTeams.map((team, index) =>
-    toCachedIncludedTeam(team, existingTeams[index], refresh.fetchedAt)
-  )
 
   await db.transaction('rw', db.coaches, db.teams, async () => {
+    const existingCoach = await db.coaches.get(refresh.coach.id)
+    const existingTeams = await db.teams.bulkGet(includedTeams.map(({ id }) => id))
+    const coach = toCachedCoach(refresh.coach, existingCoach, refresh.fetchedAt, true, refresh)
+    const teams = includedTeams.map((team, index) =>
+      toCachedIncludedTeam(team, existingTeams[index], refresh.fetchedAt)
+    )
     await db.coaches.put(coach)
     await db.teams.bulkPut(teams)
   })
@@ -1706,13 +1705,8 @@ export async function writeTeamSquadRefresh(
   refresh: TeamSquadRefresh,
   seasonId?: number
 ): Promise<void> {
-  const previousQuery = await db.teamSquadQueries.get(teamId)
   const squad = refresh.squad.filter(
     (entry): entry is typeof entry & { player: SportmonksPlayer } => Boolean(entry.player)
-  )
-  const existingPlayers = await db.players.bulkGet(squad.map(({ player_id }) => player_id))
-  const players = squad.map(({ player }, index) =>
-    toCachedIncludedPlayer(player, existingPlayers[index], refresh.fetchedAt)
   )
   const entries: CachedSquadEntry[] = squad.map((entry) => ({
     id: entry.id,
@@ -1738,27 +1732,35 @@ export async function writeTeamSquadRefresh(
     rateLimitResetsAt: refresh.rateLimit?.resetsAt,
     message: refresh.message
   }
-  if (seasonId !== undefined) {
-    await db.transaction('rw', db.players, db.teamSeasonSquadQueries, async () => {
+  await db.transaction(
+    'rw',
+    db.players,
+    db.squadEntries,
+    db.teamSquadQueries,
+    db.teamSeasonSquadQueries,
+    async () => {
+      const existingPlayers = await db.players.bulkGet(squad.map(({ player_id }) => player_id))
+      const players = squad.map(({ player }, index) =>
+        toCachedIncludedPlayer(player, existingPlayers[index], refresh.fetchedAt)
+      )
       await db.players.bulkPut(players)
-      await db.teamSeasonSquadQueries.put({
-        ...query,
-        key: teamSquadQueryKey(teamId, seasonId),
-        entries
-      })
-    })
-    return
-  }
-  const removedEntryIds = (previousQuery?.entryIds ?? []).filter(
-    (entryId) => !query.entryIds.includes(entryId)
-  )
+      if (seasonId !== undefined) {
+        await db.teamSeasonSquadQueries.put({
+          ...query,
+          key: teamSquadQueryKey(teamId, seasonId),
+          entries
+        })
+        return
+      }
 
-  await db.transaction('rw', db.players, db.squadEntries, db.teamSquadQueries, async () => {
-    await db.squadEntries.bulkDelete(removedEntryIds)
-    await db.players.bulkPut(players)
-    await db.squadEntries.bulkPut(entries)
-    await db.teamSquadQueries.put(query)
-  })
+      const previousQuery = await db.teamSquadQueries.get(teamId)
+      const entryIds = new Set(query.entryIds)
+      const removedEntryIds = (previousQuery?.entryIds ?? []).filter((id) => !entryIds.has(id))
+      await db.squadEntries.bulkDelete(removedEntryIds)
+      await db.squadEntries.bulkPut(entries)
+      await db.teamSquadQueries.put(query)
+    }
+  )
 }
 
 export async function readPlayerIdentity(playerId: number): Promise<{
@@ -1911,10 +1913,9 @@ export async function writePlayerTransfersRefresh(
   input: RefreshPlayerTransfersInput,
   refresh: TransfersRefresh
 ): Promise<void> {
-  const { players, teams, transfers } = await normalizeTransferRefresh(refresh)
   const query: PlayerTransferQuery = {
     playerId: input.playerId,
-    transferIds: transfers.map(({ id }) => id),
+    transferIds: refresh.transfers.map(({ id }) => id),
     fetchedAt: refresh.fetchedAt,
     staleAt: refresh.fetchedAt + transfersCacheDuration,
     pageCount: refresh.pageCount,
@@ -1930,6 +1931,7 @@ export async function writePlayerTransfersRefresh(
     db.teams,
     db.players,
     async () => {
+      const { players, teams, transfers } = await normalizeTransferRefresh(refresh)
       await db.transfers.bulkPut(transfers)
       await db.playerTransferQueries.put(query)
       await db.teams.bulkPut(teams)
@@ -1956,10 +1958,9 @@ export async function writeTeamTransfersRefresh(
   input: RefreshTeamTransfersInput,
   refresh: TransfersRefresh
 ): Promise<void> {
-  const { players, teams, transfers } = await normalizeTransferRefresh(refresh)
   const query: TeamTransferQuery = {
     teamId: input.teamId,
-    transferIds: transfers.map(({ id }) => id),
+    transferIds: refresh.transfers.map(({ id }) => id),
     fetchedAt: refresh.fetchedAt,
     staleAt: refresh.fetchedAt + transfersCacheDuration,
     pageCount: refresh.pageCount,
@@ -1975,6 +1976,7 @@ export async function writeTeamTransfersRefresh(
     db.teams,
     db.players,
     async () => {
+      const { players, teams, transfers } = await normalizeTransferRefresh(refresh)
       await db.transfers.bulkPut(transfers)
       await db.teamTransferQueries.put(query)
       await db.teams.bulkPut(teams)
