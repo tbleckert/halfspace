@@ -4,7 +4,7 @@ import type {
   RefreshTeamStatisticsInput,
   RefreshTeamTransfersInput
 } from '@shared/contracts'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import {
   readTeamFixtureQuery,
   readTeamIdentity,
@@ -40,7 +40,7 @@ export function useTeamEntity(
   teamId: number | null,
   enabled: boolean
 ): RefreshableQuery<TeamIdentityCache> {
-  const cached = useLiveQuery(
+  const cached = useScopedLiveQuery(
     () =>
       teamId === null
         ? Promise.resolve({ team: null, participant: null })
@@ -75,7 +75,7 @@ export function useTeamFixtures(
   enabled: boolean
 ): RefreshableQuery<TeamFixturesCache> {
   const cacheKey = input ? teamFixtureQueryKey(input) : null
-  const cached = useLiveQuery(
+  const cached = useScopedLiveQuery(
     () =>
       input === null ? Promise.resolve({ query: null, fixtures: [] }) : readTeamFixtureQuery(input),
     [cacheKey]
@@ -110,17 +110,13 @@ export function useTeamSquad(
   enabled: boolean,
   seasonId?: number
 ): RefreshableQuery<TeamSquadCache> {
-  const result = useLiveQuery(
+  const cached = useScopedLiveQuery(
     () =>
       teamId === null
         ? Promise.resolve({ query: null, members: [] })
         : readTeamSquad(teamId, seasonId),
     [teamId, seasonId]
   )
-  const cached =
-    result?.query && (result.query.teamId !== teamId || result.query.seasonId !== seasonId)
-      ? undefined
-      : result
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -149,7 +145,7 @@ export function useTeamStatistics(
   enabled: boolean
 ): RefreshableQuery<TeamStatisticsCache> {
   const cacheKey = input ? teamStatisticsQueryKey(input) : null
-  const cached = useLiveQuery(
+  const cached = useScopedLiveQuery(
     () => (input === null ? Promise.resolve(null) : readTeamStatistics(input)),
     [cacheKey]
   )
@@ -182,7 +178,7 @@ export function useTeamTransfers(
   input: RefreshTeamTransfersInput | null,
   enabled: boolean
 ): RefreshableQuery<TeamTransfersCache> {
-  const cached = useLiveQuery(
+  const cached = useScopedLiveQuery(
     () =>
       input === null ? Promise.resolve({ query: null, transfers: [] }) : readTeamTransfers(input),
     [input?.teamId]

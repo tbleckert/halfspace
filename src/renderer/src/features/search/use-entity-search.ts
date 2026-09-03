@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import { readEntitySearch, writeEntitySearchRefresh } from '@/data/db'
 
 interface RemoteSearchState {
@@ -19,11 +19,7 @@ export function useEntitySearch(
 } {
   const normalizedQuery = query.trim()
   const results =
-    useLiveQuery(
-      () => readEntitySearch(normalizedQuery),
-      [normalizedQuery],
-      [] as Awaited<ReturnType<typeof readEntitySearch>>
-    ) ?? []
+    useScopedLiveQuery(() => readEntitySearch(normalizedQuery), [normalizedQuery]) ?? []
   const [remote, setRemote] = useState<RemoteSearchState>({
     query: '',
     searching: false,

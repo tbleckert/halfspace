@@ -1,13 +1,20 @@
 // @vitest-environment jsdom
 
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { renderHook, waitFor } from '@testing-library/react'
 import type {
   FixtureDetailRefresh,
   FixtureRefresh,
   RefreshFixtureHeadToHeadInput,
   Result
 } from '@shared/contracts'
-import { db, readFixtureHeadToHead, readFixtureIdentity, readFixtureQuery } from '@/data/db'
+import {
+  db,
+  readFixtureHeadToHead,
+  readFixtureIdentity,
+  readFixtureQuery,
+  writeFixtureDetailRefresh
+} from '@/data/db'
 import { currentTimeZone, todayInTimeZone } from '@/lib/date'
 import {
   invalidateFixtureRefreshes,
@@ -15,7 +22,8 @@ import {
   prefetchFixtureHeadToHead,
   prefetchMatchdayWindow,
   prefetchFixtureQuery,
-  refreshFixtureEntity
+  refreshFixtureEntity,
+  useFixtureEntity
 } from './use-fixtures'
 
 beforeEach(async () => {
@@ -37,6 +45,21 @@ beforeEach(async () => {
 afterAll(() => db.close())
 
 describe('fixture refresh', () => {
+  it('never exposes the previous fixture while the next cached identity is loading', async () => {
+    await writeFixtureDetailRefresh(fixtureRefresh('First fixture'))
+    const nextFixture = fixtureRefresh('Second fixture')
+    nextFixture.fixture.id = 19425457
+    await writeFixtureDetailRefresh(nextFixture)
+    const { result, rerender } = renderHook(({ fixtureId }) => useFixtureEntity(fixtureId, false), {
+      initialProps: { fixtureId: 19425456 }
+    })
+    await waitFor(() => expect(result.current.cached?.fixture?.name).toBe('First fixture'))
+
+    rerender({ fixtureId: 19425457 })
+    expect(result.current.cached?.fixture?.name).not.toBe('First fixture')
+    await waitFor(() => expect(result.current.cached?.fixture?.name).toBe('Second fixture'))
+  })
+
   it('prefetches a missing matchday query without refetching fresh data', async () => {
     const date = todayInTimeZone(currentTimeZone())
     const refreshFixtures = vi.fn().mockResolvedValue({ ok: true, data: fixtureListRefresh() })

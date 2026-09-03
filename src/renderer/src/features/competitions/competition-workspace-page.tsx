@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import {
   CalendarDays,
   ChevronLeft,
@@ -87,7 +87,7 @@ export function CompetitionWorkspacePage({
 }): React.JSX.Element {
   const parsedCompetitionId = Number(competitionId)
   const validCompetitionId = Number.isSafeInteger(parsedCompetitionId) && parsedCompetitionId > 0
-  const competition = useLiveQuery(
+  const competition = useScopedLiveQuery(
     async () =>
       validCompetitionId ? ((await db.competitions.get(parsedCompetitionId)) ?? null) : null,
     [parsedCompetitionId, validCompetitionId]

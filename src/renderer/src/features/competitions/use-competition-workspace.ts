@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import type { RefreshCompetitionFixturesInput } from '@shared/contracts'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import {
   competitionFixtureQueryKey,
   db,
@@ -35,7 +35,7 @@ export function useStandings(
   seasonId: number | null,
   enabled: boolean
 ): RefreshableQuery<StandingsCache> {
-  const cached = useLiveQuery(
+  const cached = useScopedLiveQuery(
     () =>
       seasonId === null
         ? Promise.resolve({ query: null, standings: [] })
@@ -76,7 +76,7 @@ export function useCompetitionSeasons(
   competitionId: number | null,
   enabled: boolean
 ): RefreshableQuery<CompetitionSeasonsCache> {
-  const cached = useLiveQuery(
+  const cached = useScopedLiveQuery(
     () => (competitionId === null ? Promise.resolve(null) : readCompetitionSeasons(competitionId)),
     [competitionId]
   )
@@ -112,7 +112,7 @@ export function useCompetitionFixtures(
   enabled: boolean
 ): RefreshableQuery<CompetitionFixturesCache> {
   const cacheKey = input ? competitionFixtureQueryKey(input) : null
-  const cached = useLiveQuery(
+  const cached = useScopedLiveQuery(
     () =>
       input === null
         ? Promise.resolve({ query: null, fixtures: [] })
@@ -150,7 +150,7 @@ export function useSeasonStatistics(
   seasonId: number | null,
   enabled: boolean
 ): RefreshableQuery<SeasonStatisticsCache> {
-  const cached = useLiveQuery(
+  const cached = useScopedLiveQuery(
     () => (seasonId === null ? Promise.resolve(null) : readSeasonStatistics(seasonId)),
     [seasonId]
   )
@@ -185,7 +185,7 @@ export function useSeasonTopscorers(
   seasonId: number | null,
   enabled: boolean
 ): RefreshableQuery<SeasonTopscorersCache> {
-  const cached = useLiveQuery(
+  const cached = useScopedLiveQuery(
     () => (seasonId === null ? Promise.resolve(null) : readSeasonTopscorers(seasonId)),
     [seasonId]
   )

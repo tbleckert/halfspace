@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import type { RefreshFixtureHeadToHeadInput } from '@shared/contracts'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import {
   fixtureHeadToHeadQueryKey,
   readFixtureHeadToHead,
@@ -46,7 +46,7 @@ export function useFixtures(
   timeZone: string,
   enabled: boolean
 ): RefreshableQuery<FixtureCache> {
-  const cached = useLiveQuery(() => readFixtureQuery(date, timeZone), [date, timeZone])
+  const cached = useScopedLiveQuery(() => readFixtureQuery(date, timeZone), [date, timeZone])
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -76,7 +76,7 @@ export function useMatchdayWindow(
   enabled: boolean
 ): RefreshableQuery<MatchdayWindowCache> {
   const fixtureWindow = matchdayWindow(date)
-  const cached = useLiveQuery(async () => {
+  const cached = useScopedLiveQuery(async () => {
     const days = await Promise.all(
       fixtureWindow.dates.map(async (windowDate) => ({
         date: windowDate,
@@ -157,7 +157,7 @@ export function useFixtureEntity(
   fixtureId: number | null,
   enabled: boolean
 ): RefreshableQuery<FixtureIdentityCache> {
-  const cached = useLiveQuery(
+  const cached = useScopedLiveQuery(
     () =>
       fixtureId === null
         ? Promise.resolve({ fixture: null, competition: null })
@@ -196,7 +196,7 @@ export function useFixtureOdds(
   fixtureId: number | null,
   enabled: boolean
 ): RefreshableQuery<FixtureOddsCache> {
-  const cached = useLiveQuery(
+  const cached = useScopedLiveQuery(
     () =>
       fixtureId === null ? Promise.resolve({ query: null, odds: [] }) : readFixtureOdds(fixtureId),
     [fixtureId]
@@ -236,7 +236,7 @@ export function useFixtureHeadToHead(
   enabled: boolean
 ): RefreshableQuery<FixtureHeadToHeadCache> {
   const cacheKey = input ? fixtureHeadToHeadQueryKey(input) : null
-  const cached = useLiveQuery(
+  const cached = useScopedLiveQuery(
     () =>
       input === null
         ? Promise.resolve({ query: null, fixtures: [] })

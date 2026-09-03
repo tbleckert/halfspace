@@ -42,6 +42,8 @@ abstractions.
   inherit its color from the active text and layer it directly over the shared rule.
 - Keep entity subpages nested beneath one persistent entity route shell so changing a horizontal
   navigation view does not remount shared data, headers, or context.
+- Use scoped live queries for identity-dependent cache reads. Retain results during same-query
+  background updates, but never show a previous entity, season, or date under a new query identity.
 - Competition pages use horizontal local navigation for Overview, Fixtures, and Teams. Overview is
   the current-season snapshot, Fixtures browses the complete cached date window without truncating
   it, and Teams combines standings with fixture participants when a table is unavailable. Offer the

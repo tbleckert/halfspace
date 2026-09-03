@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import type { SportmonksVenue } from '@shared/contracts'
 import { readVenueIdentity } from '@/data/db'
 import { intentPrefetchProps } from '@/lib/prefetch'
@@ -21,7 +21,7 @@ export function VenueCard({
   venueId: number
   venueSummary: SportmonksVenue
 }): React.JSX.Element {
-  const cached = useLiveQuery(() => readVenueIdentity(venueId), [venueId])
+  const cached = useScopedLiveQuery(() => readVenueIdentity(venueId), [venueId])
   const venue = cached?.venue?.raw ?? cached?.summary ?? venueSummary
   const location = [venue.city_name, venue.country?.name ?? countryName].filter(Boolean).join(', ')
   const capacity = venue.capacity ? new Intl.NumberFormat().format(venue.capacity) : null

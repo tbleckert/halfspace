@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import type { SportmonksSeason, SportmonksTeam } from '@shared/contracts'
 import {
   ArrowLeft,
@@ -97,7 +97,7 @@ export function TeamPage({
   const today = useMemo(() => todayInTimeZone(timeZone), [timeZone])
   const team = useTeamEntity(validTeamId ? parsedTeamId : null, online)
   const rivals = useTeamRivals(validTeamId ? parsedTeamId : null, online && view === 'overview')
-  const competitionContexts = useLiveQuery(
+  const competitionContexts = useScopedLiveQuery(
     () =>
       validTeamId
         ? readTeamCompetitionContexts(parsedTeamId, competitionId, requestedSeasonId)

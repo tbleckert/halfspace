@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import { readCoachIdentity, writeCoachRefresh } from '@/data/db'
 import { type RefreshableQuery, type RefreshRequest, useStaleRefresh } from '@/lib/refresh'
 
@@ -12,7 +12,7 @@ export function useCoachEntity(
   coachId: number | null,
   enabled: boolean
 ): RefreshableQuery<CoachIdentityCache> {
-  const cached = useLiveQuery(
+  const cached = useScopedLiveQuery(
     () =>
       coachId === null ? Promise.resolve({ coach: null, teams: [] }) : readCoachIdentity(coachId),
     [coachId]

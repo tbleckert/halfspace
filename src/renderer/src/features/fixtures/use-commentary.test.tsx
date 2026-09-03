@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { invalidateCommentaryRefreshes, useCommentary } from './use-commentary'
 
 const cache = vi.hoisted(() => ({ fixtureId: 50, commentaries: [], fetchedAt: 0, staleAt: 0 }))
-vi.mock('dexie-react-hooks', () => ({ useLiveQuery: () => cache }))
+vi.mock('@/lib/use-scoped-live-query', () => ({ useScopedLiveQuery: () => cache }))
 vi.mock('@/data/db', () => ({
   readFixtureCommentary: vi.fn(),
   writeFixtureCommentaryRefresh: vi.fn()

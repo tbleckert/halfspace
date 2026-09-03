@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import { readVenueIdentity, writeVenueRefresh } from '@/data/db'
 import { type RefreshableQuery, type RefreshRequest, useStaleRefresh } from '@/lib/refresh'
 
@@ -12,7 +12,7 @@ export function useVenueEntity(
   venueId: number | null,
   enabled: boolean
 ): RefreshableQuery<VenueIdentityCache> {
-  const cached = useLiveQuery(
+  const cached = useScopedLiveQuery(
     () =>
       venueId === null
         ? Promise.resolve({ venue: null, summary: null })

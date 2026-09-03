@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import { readRefereeIdentity, writeRefereeRefresh } from '@/data/db'
 import { type RefreshableQuery, type RefreshRequest, useStaleRefresh } from '@/lib/refresh'
 
@@ -11,14 +11,13 @@ export function useRefereeEntity(
   refereeId: number | null,
   enabled: boolean
 ): RefreshableQuery<RefereeCache> {
-  const result = useLiveQuery(
+  const cached = useScopedLiveQuery(
     () =>
       refereeId === null
         ? Promise.resolve({ referee: null, appointments: [] })
         : readRefereeIdentity(refereeId),
     [refereeId]
   )
-  const cached = result?.referee && result.referee.id !== refereeId ? undefined : result
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const refresh = useCallback(async () => {

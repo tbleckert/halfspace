@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import { ArrowLeft, RefreshCw, Users } from 'lucide-react'
 import type { SportmonksVenue } from '@shared/contracts'
 import { Button } from '@/components/ui/button'
@@ -29,7 +29,7 @@ export function VenuePage({
   const validVenueId = Number.isSafeInteger(parsedVenueId) && parsedVenueId > 0
   const online = useOnline()
   const venue = useVenueEntity(validVenueId ? parsedVenueId : null, online)
-  const teams = useLiveQuery(
+  const teams = useScopedLiveQuery(
     () => (validVenueId ? readVenueTeams(parsedVenueId) : Promise.resolve([])),
     [parsedVenueId, validVenueId]
   )

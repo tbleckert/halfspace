@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import {
   ArrowLeft,
   CalendarDays,
@@ -98,7 +98,7 @@ export function PlayerPage({
     [parsedPlayerId, validPlayerId]
   )
   const transfers = usePlayerTransfers(transferInput, online && view === 'career')
-  const competition = useLiveQuery(
+  const competition = useScopedLiveQuery(
     async () => (competitionId ? ((await db.competitions.get(competitionId)) ?? null) : null),
     [competitionId]
   )

@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import { readFixtureCommentary, writeFixtureCommentaryRefresh } from '@/data/db'
 import { type RefreshableQuery, type RefreshRequest, useStaleRefresh } from '@/lib/refresh'
 
@@ -12,11 +12,10 @@ export function useCommentary(
   enabled: boolean,
   live: boolean
 ): RefreshableQuery<CommentaryCache> {
-  const result = useLiveQuery(
+  const cached = useScopedLiveQuery(
     () => (fixtureId === null ? Promise.resolve(null) : readFixtureCommentary(fixtureId)),
     [fixtureId]
   )
-  const cached = result && result.fixtureId !== fixtureId ? undefined : result
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const refresh = useCallback(async () => {

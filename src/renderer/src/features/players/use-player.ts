@@ -4,7 +4,7 @@ import type {
   RefreshPlayerStatisticsInput,
   RefreshPlayerTransfersInput
 } from '@shared/contracts'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import {
   playerAppearanceQueryKey,
   readPlayerAppearanceQuery,
@@ -34,7 +34,7 @@ export function usePlayerEntity(
   playerId: number | null,
   enabled: boolean
 ): RefreshableQuery<PlayerIdentityCache> {
-  const cached = useLiveQuery(
+  const cached = useScopedLiveQuery(
     () =>
       playerId === null
         ? Promise.resolve({ player: null, teams: [] })
@@ -74,7 +74,7 @@ export function usePlayerAppearances(
   enabled: boolean
 ): RefreshableQuery<PlayerAppearancesCache> {
   const cacheKey = input ? playerAppearanceQueryKey(input) : null
-  const cached = useLiveQuery(
+  const cached = useScopedLiveQuery(
     () =>
       input === null
         ? Promise.resolve({ query: null, appearances: [] })
@@ -113,7 +113,7 @@ export function usePlayerStatistics(
   enabled: boolean
 ): RefreshableQuery<PlayerStatisticsCache> {
   const cacheKey = input ? playerStatisticsQueryKey(input) : null
-  const cached = useLiveQuery(
+  const cached = useScopedLiveQuery(
     () => (input === null ? Promise.resolve(null) : readPlayerStatistics(input)),
     [cacheKey]
   )
@@ -148,7 +148,7 @@ export function usePlayerTransfers(
   input: RefreshPlayerTransfersInput | null,
   enabled: boolean
 ): RefreshableQuery<PlayerTransfersCache> {
-  const cached = useLiveQuery(
+  const cached = useScopedLiveQuery(
     () =>
       input === null ? Promise.resolve({ query: null, transfers: [] }) : readPlayerTransfers(input),
     [input?.playerId]

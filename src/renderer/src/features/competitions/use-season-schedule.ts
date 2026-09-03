@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
+import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import { readSeasonSchedule, writeSeasonScheduleRefresh } from '@/data/db'
 import { type RefreshableQuery, type RefreshRequest, useStaleRefresh } from '@/lib/refresh'
 
@@ -11,11 +11,10 @@ export function useSeasonSchedule(
   seasonId: number | null,
   enabled: boolean
 ): RefreshableQuery<ScheduleCache> {
-  const result = useLiveQuery(
+  const cached = useScopedLiveQuery(
     () => (seasonId === null ? Promise.resolve(null) : readSeasonSchedule(seasonId)),
     [seasonId]
   )
-  const cached = result && result.seasonId !== seasonId ? undefined : result
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const refresh = useCallback(async () => {
