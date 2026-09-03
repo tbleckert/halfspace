@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { ConnectionState, SportmonksRateLimit } from '@shared/contracts'
 import { clearSportmonksCache } from '@/data/db'
 import { invalidateCompetitionRefresh } from '@/features/competitions/use-competitions'
@@ -12,74 +12,91 @@ import { invalidatePlayerRefreshes } from '@/features/players/use-player'
 import { invalidateTeamRefreshes } from '@/features/teams/use-team'
 import { invalidateRivalRefreshes } from '@/features/teams/use-team-rivals'
 import { invalidateVenueRefreshes } from '@/features/venues/use-venue'
+import { invalidateSearchRefreshes } from '@/features/search/use-entity-search'
 import { ConnectionStateContext } from './connection-state-context'
 
 export function ConnectionStateProvider({ children }: { children: ReactNode }): React.JSX.Element {
   const [connection, setConnection] = useState<ConnectionState | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [rateLimit, setRateLimit] = useState<SportmonksRateLimit | null>(null)
+  const [workspaceVersion, setWorkspaceVersion] = useState(0)
+  const cacheResetPending = useRef(false)
 
   const reload = useCallback(async () => {
     setError(null)
 
     try {
+      if (cacheResetPending.current) {
+        await clearSportmonksCache()
+        cacheResetPending.current = false
+      }
       setConnection(await window.halfspace.credentials.getConnectionState())
     } catch {
-      setError('Could not access the stored Sportmonks token.')
+      setError(
+        cacheResetPending.current
+          ? 'Could not reset cached football data.'
+          : 'Could not access the stored Sportmonks token.'
+      )
     }
   }, [])
 
-  const saveToken = useCallback(async (token: string) => {
+  const resetConnection = useCallback(async (nextConnection: ConnectionState) => {
+    invalidateRefreshes()
+    cacheResetPending.current = true
+    setConnection(null)
+    setError(null)
+    setRateLimit(null)
+    setWorkspaceVersion((version) => version + 1)
+
     try {
-      const result = await window.halfspace.credentials.saveToken({ token })
-
-      if (result.ok) {
-        invalidateCompetitionRefresh()
-        invalidateScheduleRefreshes()
-        invalidateCoachRefreshes()
-        invalidateRefereeRefreshes()
-        invalidateCompetitionWorkspaceRefreshes()
-        invalidateFixtureRefreshes()
-        invalidateCommentaryRefreshes()
-        invalidatePlayerRefreshes()
-        invalidateTeamRefreshes()
-        invalidateRivalRefreshes()
-        invalidateVenueRefreshes()
-        await clearSportmonksCache().catch(() => undefined)
-        setConnection(result.data)
-        setError(null)
-        setRateLimit(null)
-      }
-
-      return result
+      await clearSportmonksCache()
+      cacheResetPending.current = false
+      setConnection(nextConnection)
+      return true
     } catch {
-      return {
-        ok: false as const,
-        error: { code: 'storage' as const, message: 'Could not save the token.' }
-      }
+      setError('Could not reset cached football data.')
+      return false
     }
   }, [])
+
+  const saveToken = useCallback(
+    async (token: string) => {
+      try {
+        const result = await window.halfspace.credentials.saveToken({ token })
+
+        if (result.ok && !(await resetConnection(result.data))) {
+          return {
+            ok: false as const,
+            error: {
+              code: 'storage' as const,
+              message: 'Token saved, but cached football data could not be reset.'
+            }
+          }
+        }
+
+        return result
+      } catch {
+        return {
+          ok: false as const,
+          error: { code: 'storage' as const, message: 'Could not save the token.' }
+        }
+      }
+    },
+    [resetConnection]
+  )
 
   const clearToken = useCallback(async () => {
     try {
       const result = await window.halfspace.credentials.clearToken()
 
-      if (result.ok) {
-        invalidateCompetitionRefresh()
-        invalidateScheduleRefreshes()
-        invalidateCoachRefreshes()
-        invalidateRefereeRefreshes()
-        invalidateCompetitionWorkspaceRefreshes()
-        invalidateFixtureRefreshes()
-        invalidateCommentaryRefreshes()
-        invalidatePlayerRefreshes()
-        invalidateTeamRefreshes()
-        invalidateRivalRefreshes()
-        invalidateVenueRefreshes()
-        await clearSportmonksCache().catch(() => undefined)
-        setConnection({ configured: false })
-        setError(null)
-        setRateLimit(null)
+      if (result.ok && !(await resetConnection({ configured: false }))) {
+        return {
+          ok: false as const,
+          error: {
+            code: 'storage' as const,
+            message: 'Token removed, but cached football data could not be reset.'
+          }
+        }
       }
 
       return result
@@ -89,7 +106,7 @@ export function ConnectionStateProvider({ children }: { children: ReactNode }): 
         error: { code: 'storage' as const, message: 'Could not remove the token.' }
       }
     }
-  }, [])
+  }, [resetConnection])
 
   useEffect(() => {
     let active = true
@@ -113,12 +130,16 @@ export function ConnectionStateProvider({ children }: { children: ReactNode }): 
 
   useEffect(() => {
     let active = true
-    const unsubscribe = window.halfspace.sportmonks.onRateLimitChange(setRateLimit)
+    let snapshotCurrent = true
+    const unsubscribe = window.halfspace.sportmonks.onRateLimitChange((current) => {
+      snapshotCurrent = false
+      setRateLimit(current)
+    })
 
     void window.halfspace.sportmonks
       .getRateLimit()
       .then((current) => {
-        if (active && current) setRateLimit(current)
+        if (active && snapshotCurrent) setRateLimit(current)
       })
       .catch(() => undefined)
 
@@ -142,7 +163,22 @@ export function ConnectionStateProvider({ children }: { children: ReactNode }): 
     <ConnectionStateContext.Provider
       value={{ connection, error, rateLimit, clearToken, reload, saveToken }}
     >
-      {children}
+      <Fragment key={workspaceVersion}>{children}</Fragment>
     </ConnectionStateContext.Provider>
   )
+}
+
+function invalidateRefreshes(): void {
+  invalidateCompetitionRefresh()
+  invalidateScheduleRefreshes()
+  invalidateCoachRefreshes()
+  invalidateRefereeRefreshes()
+  invalidateCompetitionWorkspaceRefreshes()
+  invalidateFixtureRefreshes()
+  invalidateCommentaryRefreshes()
+  invalidatePlayerRefreshes()
+  invalidateTeamRefreshes()
+  invalidateRivalRefreshes()
+  invalidateVenueRefreshes()
+  invalidateSearchRefreshes()
 }

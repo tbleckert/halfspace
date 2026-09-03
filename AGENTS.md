@@ -194,6 +194,9 @@ abstractions.
 - Keep authentication, timeouts, response parsing, and rate-limit backoff in the shared main-process
   Sportmonks client. Honor each entity's cooldown without blocking unrelated entities, and clear
   cooldowns and notices when credentials change. Never cache a partial paginated response as complete.
+- Changing credentials resets the mounted workspace and all pending refresh/search generations.
+  Gate the workspace until cached football data has been cleared; surface reset failures and retry
+  the reset before reopening. Stop abandoned sidebar warming queues on unmount or disconnect.
 - Track the goal of complete Sportmonks Football API coverage against the official endpoint index.
   Update `docs/sportmonks-coverage.json` whenever an endpoint or include becomes fully usable in the
   product, regenerate the report and badge with `pnpm coverage`, and refresh the upstream catalog

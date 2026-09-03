@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useMemo } from 'react'
 import { Link, Outlet, useRouterState } from '@tanstack/react-router'
 import { CalendarDays, Circle, Clock3, Settings, Trophy } from 'lucide-react'
 import type { SportmonksRateLimit } from '@shared/contracts'
@@ -13,10 +13,11 @@ import {
 } from '@/features/competitions/sidebar-competitions'
 import { prefetchCompetitionWorkspace } from '@/features/competitions/use-competition-workspace'
 import { useCompetitions, usePinnedCompetitionIds } from '@/features/competitions/use-competitions'
+import { useSidebarPrefetch } from '@/features/competitions/use-sidebar-prefetch'
 import { prefetchFixtureQuery } from '@/features/fixtures/use-fixtures'
 import { EntitySearchPalette } from '@/features/search/entity-search-palette'
 import { currentTimeZone } from '@/lib/date'
-import { intentPrefetchProps, startPrefetch } from '@/lib/prefetch'
+import { intentPrefetchProps } from '@/lib/prefetch'
 import { useTodayInTimeZone } from '@/lib/use-today'
 import { cn } from '@/lib/utils'
 import { useOnline } from '@/lib/use-online'
@@ -58,7 +59,6 @@ export function AppShell(): React.JSX.Element {
 
 function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): React.JSX.Element {
   const online = useOnline()
-  const warmedCompetitionIds = useRef(new Set<number>())
   const { cached } = useCompetitions()
   const pinnedCompetitionIds = usePinnedCompetitionIds() ?? noPinnedCompetitionIds
   const quickCompetitions = useMemo(
@@ -81,23 +81,7 @@ function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): Re
   const sidebarDate = sidebarLocation.date ?? currentDate
   const matchdayActive = sidebarLocation.pathname === '/'
 
-  useEffect(() => {
-    if (!online) return
-
-    startPrefetch(() => prefetchFixtureQuery(currentDate, timeZone))
-    startPrefetch(async () => {
-      for (const competition of quickCompetitions) {
-        if (warmedCompetitionIds.current.has(competition.id)) continue
-
-        try {
-          await prefetchCompetitionWorkspace(competition.id)
-          warmedCompetitionIds.current.add(competition.id)
-        } catch {
-          continue
-        }
-      }
-    })
-  }, [currentDate, online, quickCompetitions, timeZone])
+  useSidebarPrefetch(quickCompetitions, currentDate, timeZone, online)
 
   return (
     <div className="relative grid h-full grid-cols-[14.5rem_1fr] bg-background">

@@ -8,6 +8,12 @@ interface RemoteSearchState {
   error: string | null
 }
 
+let refreshGeneration = 0
+
+export function invalidateSearchRefreshes(): void {
+  refreshGeneration += 1
+}
+
 export function useEntitySearch(
   query: string,
   enabled: boolean,
@@ -31,12 +37,15 @@ export function useEntitySearch(
     if (!remoteEnabled) return
 
     let cancelled = false
+    const generation = refreshGeneration
+    const isCurrent = (): boolean => !cancelled && generation === refreshGeneration
     const timeout = window.setTimeout(async () => {
+      if (!isCurrent()) return
       setRemote({ query: normalizedQuery, searching: true, error: null })
 
       try {
         const result = await window.halfspace.sportmonks.searchEntities({ query: normalizedQuery })
-        if (cancelled) return
+        if (!isCurrent()) return
 
         if (!result.ok) {
           setRemote({ query: normalizedQuery, searching: false, error: result.error.message })
@@ -44,9 +53,9 @@ export function useEntitySearch(
         }
 
         await writeEntitySearchRefresh(result.data)
-        if (!cancelled) setRemote({ query: normalizedQuery, searching: false, error: null })
+        if (isCurrent()) setRemote({ query: normalizedQuery, searching: false, error: null })
       } catch {
-        if (!cancelled) {
+        if (isCurrent()) {
           setRemote({
             query: normalizedQuery,
             searching: false,
