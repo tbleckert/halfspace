@@ -69,3 +69,24 @@ pnpm dev
 ```
 
 Run `pnpm check` before submitting changes.
+
+### Sportmonks coverage
+
+When shipping endpoint or include support, update `docs/sportmonks-coverage.json` and run
+`pnpm coverage`. Commit the generated report and badge alongside the implementation. CI runs
+`pnpm check` and `pnpm build` on pull requests and pushes to `main`, rejecting stale coverage
+artifacts. The README badge reads the generated file on `main`.
+
+The **Refresh Sportmonks catalog** workflow checks the official documentation every Monday at
+05:17 UTC and can also be run manually from Actions. Changes open or update one draft PR with
+the upstream catalog, report, and badge; declared product support is never changed automatically.
+If upstream changes invalidate a declaration, the workflow fails for manual review.
+
+The refresh needs **Settings → Actions → General → Allow GitHub Actions to create and approve
+pull requests** enabled. It uses the built-in `GITHUB_TOKEN`; no Sportmonks token or personal
+access token is needed. The workflow does not approve or merge PRs.
+
+Review the draft and mark it **Ready for review** to trigger PR checks. GitHub does not trigger
+CI when its built-in token creates or updates a PR, so the refresh runs checks and builds before
+opening it. Later updates return the PR to draft. The badge updates after the PR is merged,
+subject to GitHub and Shields caching.

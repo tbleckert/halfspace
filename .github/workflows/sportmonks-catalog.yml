@@ -1,0 +1,64 @@
+name: Refresh Sportmonks catalog
+
+on:
+  schedule:
+    - cron: '17 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sportmonks-catalog
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    name: Refresh catalog and propose changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - uses: pnpm/setup@703c52620218391530e48b9e8870d5c0082e1b9b # v2.1.0
+        with:
+          runtime: node@24
+          cache: true
+          require-lockfile: true
+
+      - name: Refresh upstream catalog and coverage artifacts
+        run: pnpm coverage:refresh
+
+      - name: Check refreshed artifacts and app
+        run: pnpm check
+
+      - name: Build app
+        run: pnpm build
+
+      - name: Open or update draft pull request
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          branch: feature/sportmonks-catalog
+          base: ${{ github.event.repository.default_branch }}
+          add-paths: |
+            docs/sportmonks-api.json
+            docs/sportmonks-coverage.md
+            .github/badges/sportmonks-coverage.json
+          commit-message: 'chore: refresh Sportmonks API catalog'
+          title: 'chore: refresh Sportmonks API catalog'
+          draft: always-true
+          body: |
+            Refreshes the official Sportmonks endpoint and include catalog, then regenerates
+            the coverage report and badge. Product coverage declarations are unchanged.
+
+            `pnpm check` and `pnpm build` passed in the refresh workflow.
+
+            Review the catalog changes, then mark this draft **Ready for review** to run
+            PR checks. GitHub's built-in token does not trigger CI when it creates or
+            updates a pull request. Further catalog updates return this PR to draft.
