@@ -1,11 +1,57 @@
-# Halfspace
+<p align="center">
+  <img src="resources/halfspace-logo.svg" alt="Halfspace logo" width="112" height="112" />
+</p>
 
-The open, local-first football workbench.
+<h1 align="center">Halfspace</h1>
 
-[![Sportmonks coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Ftbleckert%2Fhalfspace%2Fmain%2F.github%2Fbadges%2Fsportmonks-coverage.json)](docs/sportmonks-coverage.md)
+<p align="center">The open, local-first football workbench.</p>
 
-Halfspace runs on your machine, uses your own Sportmonks token, and keeps fetched football
-data available locally for fast browsing and inspection.
+<p align="center">
+  <a href="https://github.com/tbleckert/halfspace/actions/workflows/ci.yml">
+    <img src="https://github.com/tbleckert/halfspace/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI" />
+  </a>
+  <a href="docs/sportmonks-coverage.md">
+    <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Ftbleckert%2Fhalfspace%2Fmain%2F.github%2Fbadges%2Fsportmonks-coverage.json" alt="Sportmonks coverage" />
+  </a>
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license" />
+  </a>
+</p>
+
+<p align="center">
+  <a href="#run-locally">Run locally</a> ·
+  <a href="#roadmap">Roadmap</a> ·
+  <a href="#contributing">Contribute</a>
+</p>
+
+Follow a match, explore a season, or trace a player's career. Halfspace brings fixtures,
+lineups, stats, odds, and connected football profiles into one desktop workspace.
+
+Bring your own Sportmonks token. Fetched data stays on your machine, ready for fast browsing
+and available when you're offline.
+
+## Explore the game
+
+- **Follow matchday.** Live scores, upcoming fixtures, and recent results in a rolling calendar.
+- **Go inside a match.** Previews, pressure charts, event timelines, pitch lineups, commentary,
+  statistics, broadcast listings, and odds.
+- **Connect the dots.** Move between competitions, teams, players, coaches, referees, and venues.
+  Explore season statistics, squads, leaderboards, and transfer histories along the way.
+
+## Run locally
+
+You'll need Node.js 22.12 or newer, pnpm 11.1.2, and your own Sportmonks Football API token.
+
+```sh
+git clone https://github.com/tbleckert/halfspace.git
+cd halfspace
+pnpm install
+pnpm dev
+```
+
+Add your token when the app opens. Available leagues and data depend on your Sportmonks plan
+and add-ons. Settings shows what your token can access; an included feature may still have no
+data for a particular league or fixture.
 
 ## Roadmap
 
@@ -52,10 +98,6 @@ include should have a useful place in Halfspace.
 Checked items describe the features available today, not exhaustive API coverage. Every addition
 should stay local-first, with typed requests, durable caching, and natural links between entities.
 
-Data availability depends on your Sportmonks plan, add-ons, selected leagues, and the individual
-fixture. Settings shows what your token can access; an included feature may still have no data for
-a particular selection.
-
 An endpoint or include is considered covered when its data can be fetched safely, cached locally,
 reached through the interface, and understood in the context of the related entities.
 
@@ -63,12 +105,14 @@ reached through the interface, and understood in the context of the related enti
 
 ## Development
 
-```sh
-pnpm install
-pnpm dev
-```
+Built with **Electron**, **React + TypeScript**, **shadcn/ui + Tailwind**, **TanStack Router**, and
+**Dexie/IndexedDB**, with electron-vite for development and builds.
 
-Run `pnpm check` before submitting changes.
+Electron's main process handles token storage and Sportmonks requests. The renderer reads cached
+football data from IndexedDB and refreshes it in the background.
+
+Run `pnpm check` for type checks, tests, lint, formatting, and coverage validation.
+Run `pnpm build` for a production build.
 
 ### Sportmonks coverage
 
@@ -90,3 +134,13 @@ Review the draft and mark it **Ready for review** to trigger PR checks. GitHub d
 CI when its built-in token creates or updates a PR, so the refresh runs checks and builds before
 opening it. Later updates return the PR to draft. The badge updates after the PR is merged,
 subject to GitHub and Shields caching.
+
+## Contributing
+
+Bug reports, football use cases, and focused pull requests are welcome. Pick something from the
+roadmap or open an issue to discuss a larger change. Keep cached browsing fast, link related
+entities, and run `pnpm check` before submitting your work.
+
+## License
+
+[MIT](LICENSE).

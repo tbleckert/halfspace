@@ -238,6 +238,9 @@ abstractions.
   Mark refresh PRs ready for review to trigger CI after checking the upstream changes.
 - Keep the README roadmap as a major-feature checklist. Check off shipped feature scope while the
   coverage catalog tracks the remaining endpoint and include detail.
+- Keep the public README product-first, with the canonical logo centered at the top. Leave app
+  screenshots out until the planned subscription upgrade and news work are ready to show; describe
+  unshipped features only in the roadmap.
 
 ## Mindset & Process
 
