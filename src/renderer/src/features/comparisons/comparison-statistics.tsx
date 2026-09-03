@@ -93,6 +93,7 @@ export function PlayerComparisonStatistics({
       <div className="grid grid-cols-2 gap-4">
         <PlayerComparisonClub
           label="First player's club"
+          loaded={!!first.cached}
           records={first.cached?.statistics ?? []}
           teamId={leftRecord?.team_id}
           online={online}
@@ -100,6 +101,7 @@ export function PlayerComparisonStatistics({
         />
         <PlayerComparisonClub
           label="Second player's club"
+          loaded={!!second.cached}
           records={second.cached?.statistics ?? []}
           teamId={rightRecord?.team_id}
           online={online}
@@ -121,12 +123,14 @@ export function PlayerComparisonStatistics({
 
 function PlayerComparisonClub({
   label,
+  loaded,
   records,
   teamId,
   online,
   onChange
 }: {
   label: string
+  loaded: boolean
   records: SportmonksPlayerStatistic[]
   teamId?: number
   online: boolean
@@ -135,6 +139,7 @@ function PlayerComparisonClub({
   const teamIds = [...new Set(records.map((record) => record.team_id))]
   const clubs = useScopedLiveQuery(() => db.teams.bulkGet(teamIds), [teamIds.join(',')])
   const selected = useTeamEntity(teamId ?? null, online)
+  if (!loaded) return <div />
   if (!teamIds.length)
     return <p className="text-sm text-muted-foreground">No club record this season</p>
   if (teamIds.length === 1)

@@ -100,6 +100,8 @@ abstractions.
   match has started, including breaks and completed matches. Keep postponed and cancelled fixtures
   on Preview. Record that initial choice in the URL; explicit subpages always win, and background
   status updates must not change the active view. Preview stacks the venue card below Details.
+  Before recording a default fixture subpage, check the router's latest destination so an early
+  explicit navigation cannot be overwritten by a delayed render effect.
 - Keep fixture subview presentation in focused components. The persistent entity shell owns shared
   queries, header, and navigation; reuse the shared Card surface for each view's data panels.
 - Fixture Preview pairs that supporting column with season table context, each team’s five most

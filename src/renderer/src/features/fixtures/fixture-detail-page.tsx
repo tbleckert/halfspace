@@ -22,7 +22,7 @@ import { intentPrefetchProps } from '@/lib/prefetch'
 import { useOnline } from '@/lib/use-online'
 import { cn } from '@/lib/utils'
 import type { SportmonksCoach, SportmonksFixture, SportmonksParticipant } from '@shared/contracts'
-import { Link, useNavigate } from '@tanstack/react-router'
+import { Link, useNavigate, useRouter } from '@tanstack/react-router'
 import { useSubscription } from '@/features/subscription/use-subscription'
 import { featureAccess } from '@/features/subscription/subscription-access'
 import type { OddsFeed } from '@shared/contracts'
@@ -69,6 +69,7 @@ export function FixtureDetailPage({
   bookmakerId
 }: FixtureDetailPageProps): React.JSX.Element {
   const navigate = useNavigate()
+  const router = useRouter()
   const parsedFixtureId = Number(fixtureId)
   const validFixtureId = Number.isSafeInteger(parsedFixtureId) && parsedFixtureId > 0
   const online = useOnline()
@@ -78,6 +79,7 @@ export function FixtureDetailPage({
 
   useEffect(() => {
     if (requestedView || cachedStateId === undefined) return
+    if (router.latestLocation.pathname.replace(/\/$/, '') !== `/fixtures/${fixtureId}`) return
     void navigate({
       to:
         defaultFixtureView(cachedStateId) === 'game'
@@ -88,7 +90,7 @@ export function FixtureDetailPage({
       replace: true,
       resetScroll: false
     })
-  }, [requestedView, cachedStateId, fixtureId, navigate])
+  }, [requestedView, cachedStateId, fixtureId, navigate, router])
 
   const commentary = useCommentary(
     validFixtureId && view === 'commentary' ? parsedFixtureId : null,
