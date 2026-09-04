@@ -174,12 +174,12 @@ abstractions.
   headers on the normal card surface rather than filling them with solid brand color. Use a muted
   outer border and header divider, and link each competition name together with its logo. Use the
   sidebar active-item background for fixture-row hover and separators between rows. Keep header and
-  row padding compact. Keep the Matchday heading consistent with the other page headings rather
-  than giving it separate oversized brand treatment.
+  row padding compact. Keep the Matchday page heading screen-reader-only so the week navigator
+  has the available header space.
 - Treat Matchday as a rolling fixture hub around the selected date. Use a compact seven-day
   Monday-to-Sunday navigator with only a small weekday and a two-digit day in the interface font,
-  no fixture counts or container chrome, and place it in the page header between Matchday and the
-  date and refresh controls. Put previous- and next-week chevrons on its edges. Distinguish the
+  no fixture counts or container chrome, and place it first in the page header beside the date and
+  refresh controls. Put previous- and next-week chevrons on its edges. Distinguish the
   selected day through text emphasis. When the week spans months, mute dates outside the selected
   month slightly. Separate current live fixtures, keep an empty selected day quiet, and surface the
   next three fixture days plus the two latest result days as compact previews linking to the
@@ -305,6 +305,11 @@ abstractions.
   reports, and call the fixture date Match date rather than inventing a publication time. Fixture
   Preview and Game show their related news. Sparse fixture context from news must never overwrite
   richer shared fixture records; nested fixture includes are unsupported on news endpoints.
+- Matchday has a quiet, edge-to-edge news rail on the right, with independent scrolling, compact
+  headlines, competition logos, and Previews / Reports controls. Reuse the first page of the shared
+  news cache and article reader; keep the feed independent of the selected fixture date. At narrower
+  widths, place news below fixtures rather than squeezing the match list. Adapt the Matchday header
+  to its available column width, not only the viewport width.
 - Match facts belong in Fixture Preview with team, category, and scope filters. Fetch every page
   before caching the response; show provider-written facts verbatim and omit records without wording.
   A fact labelled streak can mean X of Y recent matches, not consecutive matches. Preserve that

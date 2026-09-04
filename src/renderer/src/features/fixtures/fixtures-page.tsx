@@ -21,6 +21,7 @@ import { currentFixtureScore, fixtureParticipantAt } from '@/lib/fixture'
 import { intentPrefetchProps } from '@/lib/prefetch'
 import { useTodayInTimeZone } from '@/lib/use-today'
 import { useOnline } from '@/lib/use-online'
+import { MatchdayNews } from '@/features/news/matchday-news'
 
 interface FixturesPageProps {
   date: string
@@ -52,112 +53,120 @@ export function FixturesPage({ date }: FixturesPageProps): React.JSX.Element {
   )
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 p-6 lg:p-8">
-      <header className="flex flex-col gap-3 lg:grid lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:items-center lg:gap-6">
-        <h1 className="text-3xl font-semibold tracking-tight">Matchday</h1>
+    <div className="grid min-h-full min-w-0 items-start min-[1120px]:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="mx-auto flex w-full min-w-0 max-w-6xl flex-col gap-5 p-6 lg:p-8">
+        <header className="flex flex-wrap items-center gap-x-4 gap-y-4">
+          <h1 className="sr-only">Matchday</h1>
 
-        <WeekNavigator
-          date={date}
-          navigationDates={navigationDates}
-          onSelect={(nextDate) =>
-            void navigate({
-              search: (previous) => ({ ...previous, date: nextDate }),
-              replace: true
-            })
-          }
-        />
-
-        <div className="flex items-center gap-1 rounded-lg border bg-card p-0.5 shadow-xs">
-          <Input
-            aria-label="Fixture date"
-            className="w-40 border-0 bg-transparent font-mono font-semibold tabular-nums text-brand-navy shadow-none focus-visible:ring-0"
-            type="date"
-            value={date}
-            onChange={(event) => {
-              void navigate({
-                search: (previous) => ({ ...previous, date: event.target.value }),
-                replace: true
-              })
-            }}
-          />
-          {date !== today && (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() =>
+          <div className="min-w-72 flex-1">
+            <WeekNavigator
+              date={date}
+              navigationDates={navigationDates}
+              onSelect={(nextDate) =>
                 void navigate({
-                  search: (previous) => ({ ...previous, date: today })
+                  search: (previous) => ({ ...previous, date: nextDate }),
+                  replace: true
                 })
               }
+            />
+          </div>
+
+          <div className="ml-auto flex items-center gap-1 rounded-lg border bg-card p-0.5 shadow-xs">
+            <Input
+              aria-label="Fixture date"
+              className="w-40 border-0 bg-transparent font-mono font-semibold tabular-nums text-brand-navy shadow-none focus-visible:ring-0"
+              type="date"
+              value={date}
+              onChange={(event) => {
+                void navigate({
+                  search: (previous) => ({ ...previous, date: event.target.value }),
+                  replace: true
+                })
+              }}
+            />
+            {date !== today && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() =>
+                  void navigate({
+                    search: (previous) => ({ ...previous, date: today })
+                  })
+                }
+              >
+                Today
+              </Button>
+            )}
+            <Button
+              aria-label="Refresh fixtures"
+              disabled={refreshing}
+              size="icon"
+              variant="ghost"
+              onClick={() => void refresh()}
             >
-              Today
+              <RefreshCw className={cn('size-4', refreshing && 'animate-spin')} />
             </Button>
-          )}
-          <Button
-            aria-label="Refresh fixtures"
-            disabled={refreshing}
-            size="icon"
-            variant="ghost"
-            onClick={() => void refresh()}
-          >
-            <RefreshCw className={cn('size-4', refreshing && 'animate-spin')} />
-          </Button>
-        </div>
-      </header>
+          </div>
+        </header>
 
-      {error && <ErrorAlert>{error}</ErrorAlert>}
+        {error && <ErrorAlert>{error}</ErrorAlert>}
 
-      {cached === undefined || (!cached.complete && refreshing && !hasAnyCachedDay(cached.days)) ? (
-        <FixtureListSkeleton />
-      ) : (
-        <div className="flex flex-col gap-7">
-          {sections.live.length > 0 && (
-            <FixtureSection title="Live now">
-              <FixtureGroups
-                competitionImagePaths={competitionImagePaths}
-                date={date}
-                fixtures={sections.live}
-                online={online}
-              />
-            </FixtureSection>
-          )}
-
-          {(sections.selected.length > 0 || sections.live.length === 0) && (
-            <FixtureSection title={formatHubDate(date, today)}>
-              {sections.selected.length > 0 ? (
+        {cached === undefined ||
+        (!cached.complete && refreshing && !hasAnyCachedDay(cached.days)) ? (
+          <FixtureListSkeleton />
+        ) : (
+          <div className="flex flex-col gap-7">
+            {sections.live.length > 0 && (
+              <FixtureSection title="Live now">
                 <FixtureGroups
                   competitionImagePaths={competitionImagePaths}
                   date={date}
-                  fixtures={sections.selected}
+                  fixtures={sections.live}
                   online={online}
                 />
-              ) : (
-                <p className="py-2 text-sm text-muted-foreground">{emptyDateLabel(date, today)}</p>
-              )}
-            </FixtureSection>
-          )}
+              </FixtureSection>
+            )}
 
-          {sections.following.length > 0 && (
-            <FixtureDayCollection
-              competitionImagePaths={competitionImagePaths}
-              days={sections.following}
-              online={online}
-              title={date === today ? 'Up next' : 'Following'}
-              today={today}
-            />
-          )}
+            {(sections.selected.length > 0 || sections.live.length === 0) && (
+              <FixtureSection title={formatHubDate(date, today)}>
+                {sections.selected.length > 0 ? (
+                  <FixtureGroups
+                    competitionImagePaths={competitionImagePaths}
+                    date={date}
+                    fixtures={sections.selected}
+                    online={online}
+                  />
+                ) : (
+                  <p className="py-2 text-sm text-muted-foreground">
+                    {emptyDateLabel(date, today)}
+                  </p>
+                )}
+              </FixtureSection>
+            )}
 
-          {sections.earlier.length > 0 && (
-            <FixtureDayCollection
-              competitionImagePaths={competitionImagePaths}
-              days={sections.earlier}
-              online={online}
-              title={date === today ? 'Latest results' : 'Earlier'}
-              today={today}
-            />
-          )}
-        </div>
-      )}
+            {sections.following.length > 0 && (
+              <FixtureDayCollection
+                competitionImagePaths={competitionImagePaths}
+                days={sections.following}
+                online={online}
+                title={date === today ? 'Up next' : 'Following'}
+                today={today}
+              />
+            )}
+
+            {sections.earlier.length > 0 && (
+              <FixtureDayCollection
+                competitionImagePaths={competitionImagePaths}
+                days={sections.earlier}
+                online={online}
+                title={date === today ? 'Latest results' : 'Earlier'}
+                today={today}
+              />
+            )}
+          </div>
+        )}
+      </div>
+      <MatchdayNews online={online} />
     </div>
   )
 }
