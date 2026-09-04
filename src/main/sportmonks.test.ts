@@ -18,6 +18,7 @@ import {
   fetchFixtureOdds,
   fetchFixturesByDate,
   fetchFixturesByDateRange,
+  fetchLiveFixtures,
   fetchPlayerAppearances,
   fetchPlayerById,
   fetchPlayerStatistics,
@@ -37,6 +38,7 @@ import {
   validateFixtureInput,
   validateFixtureHeadToHeadInput,
   validateFixtureWindowInput,
+  validateLiveFixturesInput,
   validateRefreshInput,
   validatePlayerAppearancesInput,
   validatePlayerInput,
@@ -113,6 +115,38 @@ describe('Sportmonks client', () => {
     const url = new URL(fetcher.mock.calls[0][0].toString())
     expect(url.pathname).toBe('/v3/football/fixtures/between/2026-08-30/2026-09-09')
     expect(url.searchParams.has('filters')).toBe(false)
+  })
+
+  it('fetches the complete in-play livescore feed without pagination', async () => {
+    const fetcher = vi.fn<typeof fetch>(async () =>
+      Response.json({
+        data: [{ ...makeFixture(), state_id: 2 }],
+        timezone: 'Europe/Stockholm'
+      })
+    )
+
+    const refresh = await fetchLiveFixtures(
+      validateLiveFixturesInput({ timeZone: 'Europe/Stockholm' }),
+      'private-token',
+      fetcher
+    )
+
+    expect(refresh.fixtures).toHaveLength(1)
+    expect(refresh.pageCount).toBe(1)
+    expect(refresh.timeZone).toBe('Europe/Stockholm')
+
+    const url = new URL(fetcher.mock.calls[0][0].toString())
+    expect(url.pathname).toBe('/v3/football/livescores/inplay')
+    expect(url.searchParams.get('include')).toBe('participants;league;state;scores;periods')
+    expect(url.searchParams.get('timezone')).toBe('Europe/Stockholm')
+    expect(url.searchParams.has('page')).toBe(false)
+    expect(url.searchParams.has('per_page')).toBe(false)
+  })
+
+  it('rejects invalid livescore time zones before making a request', () => {
+    expect(() => validateLiveFixturesInput({ timeZone: 'Mars/Olympus_Mons' })).toThrow(
+      'The selected time zone is not valid.'
+    )
   })
 
   it('keeps the complete Matchday window when a shootout period has no reported minute', async () => {

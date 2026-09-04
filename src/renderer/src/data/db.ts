@@ -138,6 +138,16 @@ export interface FixtureQuery {
   message?: string
 }
 
+export interface LiveFixtureQuery {
+  key: 'inplay'
+  fixtureIds: number[]
+  fetchedAt: number
+  staleAt: number
+  rateLimitRemaining?: number
+  rateLimitResetsAt?: number
+  message?: string
+}
+
 export interface CachedFixtureOdd {
   id: number
   fixtureId: number
@@ -547,6 +557,7 @@ class HalfspaceDatabase extends Dexie {
   honoursQueries!: Table<HonoursQuery, string>
   fixtures!: Table<CachedFixture, number>
   fixtureQueries!: Table<FixtureQuery, string>
+  liveFixtureQueries!: Table<LiveFixtureQuery, string>
   fixtureOdds!: Table<CachedFixtureOdd, number>
   fixtureOddsQueries!: Table<FixtureOddsQuery, number>
   fixtureInplayOdds!: Table<CachedFixtureOdd, number>
@@ -849,6 +860,7 @@ class HalfspaceDatabase extends Dexie {
       matchFactsQueries: '&fixtureId, staleAt'
     })
     this.version(32).stores({ honoursQueries: '&key, staleAt' })
+    this.version(33).stores({ liveFixtureQueries: '&key, staleAt' })
   }
 }
 
@@ -1356,6 +1368,20 @@ export async function readFixtureQuery(
   return { query, fixtures }
 }
 
+export async function readLiveFixtureQuery(): Promise<{
+  query: LiveFixtureQuery | null
+  fixtures: CachedFixture[]
+}> {
+  const query = await db.liveFixtureQueries.get('inplay')
+  if (!query) return { query: null, fixtures: [] }
+
+  const fixtures = (await db.fixtures.bulkGet(query.fixtureIds)).filter(
+    (fixture): fixture is CachedFixture => fixture !== undefined
+  )
+
+  return { query, fixtures }
+}
+
 export async function readFixtureIdentity(fixtureId: number): Promise<{
   fixture: CachedFixture | null
   competition: CachedCompetition | null
@@ -1398,6 +1424,27 @@ export async function writeFixtureRefresh(
     const fixtures = await toCachedFixtures(refresh.fixtures, refresh.fetchedAt, staleAt)
     await db.fixtures.bulkPut(fixtures)
     await db.fixtureQueries.put(query)
+  })
+}
+
+export async function writeLiveFixtureRefresh(refresh: FixtureRefresh): Promise<void> {
+  const staleAt = refresh.fetchedAt + liveFixtureCacheDuration
+  const query: LiveFixtureQuery = {
+    key: 'inplay',
+    fixtureIds: refresh.fixtures.map(({ id }) => id),
+    fetchedAt: refresh.fetchedAt,
+    staleAt,
+    rateLimitRemaining: refresh.rateLimit?.remaining,
+    rateLimitResetsAt: refresh.rateLimit?.resetsAt,
+    message: refresh.message
+  }
+
+  await db.transaction('rw', db.fixtures, db.liveFixtureQueries, async () => {
+    const existingQuery = await db.liveFixtureQueries.get('inplay')
+    if (existingQuery && existingQuery.fetchedAt > refresh.fetchedAt) return
+
+    await db.fixtures.bulkPut(await toCachedFixtures(refresh.fixtures, refresh.fetchedAt, staleAt))
+    await db.liveFixtureQueries.put(query)
   })
 }
 
@@ -2745,6 +2792,7 @@ export async function clearSportmonksCache(): Promise<void> {
       db.teamOfWeekQueries,
       db.fixtures,
       db.fixtureQueries,
+      db.liveFixtureQueries,
       db.fixtureOdds,
       db.fixtureOddsQueries,
       db.fixtureInplayOdds,
@@ -2794,6 +2842,7 @@ export async function clearSportmonksCache(): Promise<void> {
       await db.teamOfWeekQueries.clear()
       await db.fixtures.clear()
       await db.fixtureQueries.clear()
+      await db.liveFixtureQueries.clear()
       await db.fixtureOdds.clear()
       await db.fixtureOddsQueries.clear()
       await db.fixtureInplayOdds.clear()

@@ -20,6 +20,7 @@ import {
   fetchFixtureCommentary,
   fetchFixturesByDate,
   fetchFixturesByDateRange,
+  fetchLiveFixtures,
   fetchPlayerAppearances,
   fetchPlayerById,
   fetchPlayerStatistics,
@@ -47,6 +48,7 @@ import {
   validateFixtureOddsInput,
   validateFixtureHeadToHeadInput,
   validateFixtureWindowInput,
+  validateLiveFixturesInput,
   validatePlayerAppearancesInput,
   validatePlayerInput,
   validatePlayerStatisticsInput,
@@ -191,6 +193,12 @@ export function registerIpcHandlers(): void {
     }
   })
 
+  registerSportmonksHandler(
+    ipcChannels.refreshLiveFixtures,
+    validateLiveFixturesInput,
+    fetchLiveFixtures,
+    'Could not refresh live fixtures.'
+  )
   registerSportmonksHandler(
     ipcChannels.refreshFixtures,
     validateRefreshInput,

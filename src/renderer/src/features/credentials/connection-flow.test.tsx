@@ -45,6 +45,7 @@ beforeEach(() => {
       refreshTeamOfWeek: vi.fn(),
       refreshFixtureTv: vi.fn(),
       refreshFixturePressure: vi.fn(),
+      refreshLiveFixtures: vi.fn(),
       refreshFixtures: vi.fn(),
       refreshFixtureWindow: vi.fn(),
       refreshFixture: vi.fn(),

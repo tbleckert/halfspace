@@ -26,6 +26,7 @@ const halfspaceApi: HalfspaceApi = {
     refreshFixtureCommentary: (input) =>
       ipcRenderer.invoke(ipcChannels.refreshFixtureCommentary, input),
     refreshSeasonSchedule: (input) => ipcRenderer.invoke(ipcChannels.refreshSeasonSchedule, input),
+    refreshLiveFixtures: (input) => ipcRenderer.invoke(ipcChannels.refreshLiveFixtures, input),
     refreshFixtures: (input) => ipcRenderer.invoke(ipcChannels.refreshFixtures, input),
     refreshFixtureWindow: (input) => ipcRenderer.invoke(ipcChannels.refreshFixtureWindow, input),
     refreshFixture: (input) => ipcRenderer.invoke(ipcChannels.refreshFixture, input),

@@ -145,6 +145,11 @@ abstractions.
   supplied; otherwise say it will be available within an hour rather than inventing a timestamp.
 - Treat Sportmonks states 2, 6, 9, and 22 as live. Show a reduced-motion-safe live indicator and
   refresh live fixture data every 30 seconds.
+- Keep current matches visible in a global top ticker backed by the complete in-play livescore
+  endpoint. Hide the ticker when no matches are in play, link each score to its fixture, and use
+  horizontal overflow rather than an automatic marquee. Cache the live snapshot separately,
+  refresh it every 30 seconds only while online and visible, and keep its requests in the shared
+  Fixture rate-limit bucket.
 - Present squads as position-grouped player profile cards with rounded portraits and only essential
   identity and football data rather than a dense table or list.
 - Squad season selection offers the current squad plus the competition's ten most recent seasons.

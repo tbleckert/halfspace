@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "endpoints": {
+    "livescores/get-inplay-livescores": ["participants", "league", "state", "scores", "periods"],
     "fixtures/get-fixtures-by-date": ["participants", "league", "state", "scores", "periods"],
     "fixtures/get-fixtures-by-date-range": ["participants", "league", "state", "scores", "periods"],
     "fixtures/get-fixtures-by-search-by-name": [

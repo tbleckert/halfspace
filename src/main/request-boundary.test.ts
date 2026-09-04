@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { clearSportmonksRateLimits } from './sportmonks-client'
-import { fetchFixtureById, fetchFixturesByDate, fetchTeamById } from './sportmonks'
+import {
+  fetchFixtureById,
+  fetchFixturesByDate,
+  fetchLiveFixtures,
+  fetchTeamById
+} from './sportmonks'
 
 describe('Sportmonks request boundaries', () => {
   beforeEach(clearSportmonksRateLimits)
@@ -21,6 +26,9 @@ describe('Sportmonks request boundaries', () => {
     ).rejects.toMatchObject({ code: 'rate_limited' })
     await expect(
       fetchFixturesByDate({ date: '2026-09-03', timeZone: 'UTC' }, 'limited-token', fetcher)
+    ).rejects.toMatchObject({ code: 'rate_limited' })
+    await expect(
+      fetchLiveFixtures({ timeZone: 'UTC' }, 'limited-token', fetcher)
     ).rejects.toMatchObject({ code: 'rate_limited' })
     expect(fetcher).toHaveBeenCalledTimes(1)
 

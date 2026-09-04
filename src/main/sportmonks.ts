@@ -28,6 +28,7 @@ import type {
   RefreshFixtureOddsInput,
   RefreshFixturesInput,
   RefreshFixtureWindowInput,
+  RefreshLiveFixturesInput,
   RefreshPlayerAppearancesInput,
   RefreshCoachInput,
   RefreshPlayerInput,
@@ -1147,6 +1148,17 @@ export function validateRefreshInput(value: unknown): RefreshFixturesInput {
   return { date: input.date, timeZone: input.timeZone }
 }
 
+export function validateLiveFixturesInput(value: unknown): RefreshLiveFixturesInput {
+  const timeZone =
+    value && typeof value === 'object' ? (value as { timeZone?: unknown }).timeZone : undefined
+
+  if (typeof timeZone !== 'string' || !isValidTimeZone(timeZone)) {
+    throw new SportmonksError('invalid_input', 'The selected time zone is not valid.')
+  }
+
+  return { timeZone }
+}
+
 export function validateFixtureWindowInput(value: unknown): RefreshFixtureWindowInput {
   return validateDateRange(value)
 }
@@ -1385,6 +1397,32 @@ export async function fetchFixturesByDate(
   fetcher: typeof fetch = fetch
 ): Promise<FixtureRefresh> {
   return fetchFixturePages(`fixtures/date/${input.date}`, input.timeZone, token, fetcher)
+}
+
+export async function fetchLiveFixtures(
+  input: RefreshLiveFixturesInput,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<FixtureRefresh> {
+  const fetchedAt = Date.now()
+  const url = new URL(`${apiBaseUrl}/livescores/inplay`)
+  url.searchParams.set('include', 'participants;league;state;scores;periods')
+  url.searchParams.set('timezone', input.timeZone)
+  const parsed = await requestSportmonks(url, token, fixtureResponseSchema, fetcher)
+
+  return {
+    fixtures: parsed.data as SportmonksFixture[],
+    fetchedAt,
+    pageCount: 1,
+    timeZone: parsed.timezone ?? input.timeZone,
+    rateLimit: parsed.rate_limit
+      ? {
+          remaining: parsed.rate_limit.remaining,
+          resetsAt: fetchedAt + parsed.rate_limit.resets_in_seconds * 1000
+        }
+      : undefined,
+    message: parsed.message
+  }
 }
 
 export async function fetchFixturesByDateRange(

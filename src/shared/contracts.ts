@@ -10,6 +10,7 @@ export const ipcChannels = {
   connectionState: 'credentials:connection-state',
   saveToken: 'credentials:save-token',
   clearToken: 'credentials:clear-token',
+  refreshLiveFixtures: 'sportmonks:refresh-live-fixtures',
   refreshFixtures: 'sportmonks:refresh-fixtures',
   refreshFixtureWindow: 'sportmonks:refresh-fixture-window',
   refreshFixture: 'sportmonks:refresh-fixture',
@@ -147,6 +148,10 @@ export interface SaveTokenInput {
 
 export interface RefreshFixturesInput {
   date: string
+  timeZone: string
+}
+
+export interface RefreshLiveFixturesInput {
   timeZone: string
 }
 
@@ -1241,6 +1246,7 @@ export interface HalfspaceApi {
     refreshSeasonBracket: (
       input: RefreshSeasonScheduleInput
     ) => Promise<Result<SeasonBracketRefresh>>
+    refreshLiveFixtures(input: RefreshLiveFixturesInput): Promise<Result<FixtureRefresh>>
     refreshFixtures(input: RefreshFixturesInput): Promise<Result<FixtureRefresh>>
     refreshFixtureWindow(input: RefreshFixtureWindowInput): Promise<Result<FixtureRefresh>>
     refreshFixture(input: RefreshFixtureInput): Promise<Result<FixtureDetailRefresh>>

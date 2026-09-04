@@ -17,6 +17,7 @@ const tokenMocks = vi.hoisted(() => ({
 }))
 
 const sportmonksMocks = vi.hoisted(() => ({
+  fetchLiveFixtures: vi.fn(),
   fetchFixturesByDate: vi.fn(),
   fetchFixturesByDateRange: vi.fn()
 }))
@@ -35,6 +36,7 @@ vi.mock('./token-store', () => tokenMocks)
 
 vi.mock('./sportmonks', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./sportmonks')>()),
+  fetchLiveFixtures: sportmonksMocks.fetchLiveFixtures,
   fetchFixturesByDate: sportmonksMocks.fetchFixturesByDate,
   fetchFixturesByDateRange: sportmonksMocks.fetchFixturesByDateRange
 }))
@@ -64,6 +66,17 @@ describe('IPC handlers', () => {
       { date: '2026-08-31', timeZone: 'Europe/Stockholm' },
       'private-token'
     )
+  })
+
+  it('validates and forwards in-play livescore requests', async () => {
+    const refresh = { fixtures: [] }
+    sportmonksMocks.fetchLiveFixtures.mockResolvedValue(refresh)
+
+    const input = { timeZone: 'Europe/Stockholm' }
+    const result = await invokeTrusted(ipcChannels.refreshLiveFixtures, input)
+
+    expect(result).toEqual({ ok: true, data: refresh })
+    expect(sportmonksMocks.fetchLiveFixtures).toHaveBeenCalledWith(input, 'private-token')
   })
 
   it('returns the shared missing-token result before making a request', async () => {

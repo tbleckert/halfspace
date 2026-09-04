@@ -24,6 +24,7 @@ import { prefetchCompetitionWorkspace } from '@/features/competitions/use-compet
 import { useCompetitions, usePinnedCompetitionIds } from '@/features/competitions/use-competitions'
 import { useSidebarPrefetch } from '@/features/competitions/use-sidebar-prefetch'
 import { prefetchFixtureQuery } from '@/features/fixtures/use-fixtures'
+import { LiveFixtureTicker } from '@/features/fixtures/live-fixture-ticker'
 import { EntitySearchPalette } from '@/features/search/entity-search-palette'
 import { currentTimeZone } from '@/lib/date'
 import { intentPrefetchProps } from '@/lib/prefetch'
@@ -178,9 +179,12 @@ function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): Re
         </nav>
       </aside>
 
-      <main className="min-h-0 overflow-y-auto bg-background">
-        <Outlet />
-      </main>
+      <div className="flex min-h-0 min-w-0 flex-col overflow-hidden bg-background">
+        <LiveFixtureTicker timeZone={timeZone} />
+        <main className="min-h-0 flex-1 overflow-y-auto">
+          <Outlet />
+        </main>
+      </div>
 
       <div className="pointer-events-none absolute right-5 top-2.5 z-20 flex items-center gap-3">
         {rateLimit && <RateLimitNotice rateLimit={rateLimit} />}

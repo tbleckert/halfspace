@@ -26,7 +26,8 @@ export async function requestSportmonks<T>(
   fetcher: typeof fetch
 ): Promise<T> {
   const requestGeneration = generation
-  const entity = url.pathname.split('/')[3]
+  const resource = url.pathname.split('/')[3]
+  const entity = resource === 'livescores' ? 'fixtures' : resource
   const cooldown = cooldowns.get(token)?.get(entity)
   if (cooldown?.rateLimit && cooldown.rateLimit.resetsAt > Date.now()) throw cooldown
   cooldowns.get(token)?.delete(entity)

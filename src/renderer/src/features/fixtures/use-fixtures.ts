@@ -6,10 +6,12 @@ import {
   fixtureHeadToHeadQueryKey,
   readFixtureHeadToHead,
   readFixtureIdentity,
+  readLiveFixtureQuery,
   readFixtureOdds,
   readFixtureQuery,
   writeFixtureDetailRefresh,
   writeFixtureHeadToHeadRefresh,
+  writeLiveFixtureRefresh,
   writeFixtureOddsRefresh,
   writeFixtureRefresh,
   writeFixtureWindowRefresh
@@ -20,12 +22,14 @@ import { type RefreshableQuery, type RefreshRequest, useStaleRefresh } from '@/l
 
 let refreshGeneration = 0
 const refreshes = new Map<string, RefreshRequest>()
+let liveRefresh: RefreshRequest | null = null
 const windowRefreshes = new Map<string, RefreshRequest>()
 const entityRefreshes = new Map<number, RefreshRequest>()
 const oddsRefreshes = new Map<string, RefreshRequest>()
 const headToHeadRefreshes = new Map<string, RefreshRequest>()
 
 type FixtureCache = Awaited<ReturnType<typeof readFixtureQuery>>
+type LiveFixtureCache = Awaited<ReturnType<typeof readLiveFixtureQuery>>
 
 type FixtureIdentityCache = Awaited<ReturnType<typeof readFixtureIdentity>>
 type FixtureOddsCache = Awaited<ReturnType<typeof readFixtureOdds>>
@@ -40,6 +44,24 @@ interface MatchdayWindowCache {
   complete: boolean
   selectedStaleAt?: number
   windowStaleAt?: number
+}
+
+export function useLiveFixtures(
+  timeZone: string,
+  enabled: boolean
+): RefreshableQuery<LiveFixtureCache> {
+  const cached = useScopedLiveQuery(() => readLiveFixtureQuery(), [])
+  const { refreshing, error, runRefresh } = useRefreshStatus('live-fixtures')
+
+  const refresh = useCallback(async () => {
+    if (!enabled) return
+
+    await runRefresh(() => refreshLiveFixtureQuery(timeZone), 'Could not refresh live fixtures.')
+  }, [enabled, runRefresh, timeZone])
+
+  useStaleRefresh(enabled, cached !== undefined, cached?.query?.staleAt, refresh)
+
+  return { cached, refreshing, error, refresh }
 }
 
 export function useFixtures(
@@ -285,6 +307,27 @@ export async function refreshFixtureQuery(date: string, timeZone: string): Promi
   }
 }
 
+export async function refreshLiveFixtureQuery(timeZone: string): Promise<void> {
+  if (liveRefresh?.generation === refreshGeneration) return liveRefresh.promise
+
+  const generation = refreshGeneration
+  const promise = (async () => {
+    const result = await window.halfspace.sportmonks.refreshLiveFixtures({ timeZone })
+    if (generation !== refreshGeneration) return
+    if (!result.ok) throw new Error(result.error.message)
+
+    await writeLiveFixtureRefresh(result.data)
+  })()
+
+  liveRefresh = { generation, promise }
+
+  try {
+    await promise
+  } finally {
+    if (liveRefresh?.promise === promise) liveRefresh = null
+  }
+}
+
 async function refreshMatchdayWindow(date: string, timeZone: string): Promise<void> {
   const fixtureWindow = matchdayWindow(date)
   const key = `${fixtureWindow.startDate}|${fixtureWindow.endDate}|${timeZone}`
@@ -380,6 +423,7 @@ async function refreshFixtureHeadToHead(input: RefreshFixtureHeadToHeadInput): P
 
 export function invalidateFixtureRefreshes(): void {
   refreshGeneration += 1
+  liveRefresh = null
   refreshes.clear()
   windowRefreshes.clear()
   entityRefreshes.clear()

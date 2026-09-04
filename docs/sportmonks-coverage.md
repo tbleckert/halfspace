@@ -1,6 +1,6 @@
 # Sportmonks API coverage
 
-Halfspace currently covers **43 of 153 endpoints** and **145 of 1320 documented endpoint includes**.
+Halfspace currently covers **44 of 153 endpoints** and **150 of 1320 documented endpoint includes**.
 
 Overall coverage: **13%**
 
@@ -20,7 +20,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 
 ### Livescores
 
-- [ ] [Inplay Livescores](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/livescores/get-inplay-livescores)
+- [x] [Inplay Livescores](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/livescores/get-inplay-livescores) — includes 5/35
 - [ ] [All Livescores](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/livescores/get-all-livescores)
 - [ ] [Latest Updated Livescores](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/livescores/get-latest-updated-livescores)
 

@@ -62,6 +62,7 @@ include should have a useful place in Halfspace.
 
 - [x] Local-first desktop app with personal Sportmonks tokens and offline browsing.
 - [x] Matchday hub with calendar navigation, live updates, upcoming fixtures, and recent results.
+- [x] Global live-score ticker with direct links into every match in play.
 - [x] Competition pages with standings, qualification and relegation places, linked form, and season selection.
 - [x] Complete season schedules with stage and round navigation.
 - [x] Knockout brackets with two-leg ties, aggregate results, and tournament progression.

@@ -12,6 +12,7 @@ import {
   db,
   readFixtureHeadToHead,
   readFixtureIdentity,
+  readLiveFixtureQuery,
   readFixtureQuery,
   writeFixtureDetailRefresh
 } from '@/data/db'
@@ -23,6 +24,7 @@ import {
   prefetchMatchdayWindow,
   prefetchFixtureQuery,
   refreshFixtureEntity,
+  useLiveFixtures,
   useFixtureEntity
 } from './use-fixtures'
 
@@ -33,10 +35,12 @@ beforeEach(async () => {
     'rw',
     db.fixtures,
     db.fixtureQueries,
+    db.liveFixtureQueries,
     db.fixtureHeadToHeadQueries,
     async () => {
       await db.fixtures.clear()
       await db.fixtureQueries.clear()
+      await db.liveFixtureQueries.clear()
       await db.fixtureHeadToHeadQueries.clear()
     }
   )
@@ -45,6 +49,20 @@ beforeEach(async () => {
 afterAll(() => db.close())
 
 describe('fixture refresh', () => {
+  it('refreshes the global in-play feed into its own live snapshot', async () => {
+    const liveRefresh = fixtureListRefresh()
+    liveRefresh.fixtures[0].state_id = 2
+    const refreshLiveFixtures = vi.fn().mockResolvedValue({ ok: true, data: liveRefresh })
+    installHalfspace({ refreshLiveFixtures })
+
+    const { result } = renderHook(() => useLiveFixtures(currentTimeZone(), true))
+
+    await waitFor(() => expect(refreshLiveFixtures).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(result.current.cached?.fixtures).toHaveLength(1))
+    expect(refreshLiveFixtures).toHaveBeenCalledWith({ timeZone: currentTimeZone() })
+    expect((await readLiveFixtureQuery()).fixtures[0].stateId).toBe(2)
+  })
+
   it('does not let a previous fixture request replace the current loading or error state', async () => {
     const previousRequest = deferred<Result<FixtureDetailRefresh>>()
     const currentRequest = deferred<Result<FixtureDetailRefresh>>()
@@ -243,6 +261,7 @@ function installHalfspace(overrides: Partial<Window['halfspace']['sportmonks']>)
       refreshTeamOfWeek: vi.fn(),
       refreshFixtureTv: vi.fn(),
       refreshFixturePressure: vi.fn(),
+      refreshLiveFixtures: vi.fn(),
       refreshFixtures: vi.fn(),
       refreshFixtureWindow: vi.fn(),
       refreshFixture: vi.fn(),
