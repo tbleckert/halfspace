@@ -36,6 +36,7 @@ import { useOnline } from '@/lib/use-online'
 import { intentPrefetchProps } from '@/lib/prefetch'
 import { cn } from '@/lib/utils'
 import { PlayerCareer } from './player-career'
+import { HonoursPanel } from '@/features/honours/honours-panel'
 import { PlayerPhoto } from './player-photo'
 import {
   prefetchPlayerAppearances,
@@ -308,14 +309,22 @@ export function PlayerPage({
       )}
 
       {view === 'career' && (
-        <PlayerCareer
-          competitionId={competitionId}
-          date={matchWindowEnd}
-          loading={transfers.refreshing}
-          online={online}
-          season={season}
-          transfers={transfers.cached?.transfers}
-        />
+        <>
+          <HonoursPanel
+            key={parsedPlayerId}
+            entity="players"
+            entityId={parsedPlayerId}
+            online={online}
+          />
+          <PlayerCareer
+            competitionId={competitionId}
+            date={matchWindowEnd}
+            loading={transfers.refreshing}
+            online={online}
+            season={season}
+            transfers={transfers.cached?.transfers}
+          />
+        </>
       )}
 
       {view === 'stats' && (

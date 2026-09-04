@@ -438,7 +438,7 @@ const transferSchema = z
     toTeam: transfer.toTeam ?? toteam
   }))
 
-const lineupSchema = z
+export const lineupSchema = z
   .object({
     id: z.number().int(),
     fixture_id: z.number().int(),
@@ -631,8 +631,11 @@ const fixtureAbsenceSchema = z
   })
   .passthrough()
 
-const fixtureSchema = z
+export const fixtureSchema = z
   .object({
+    aggregate_id: z.number().int().nullish(),
+    leg: z.string().nullish(),
+    details: z.string().nullish(),
     id: z.number().int(),
     league_id: z.number().int(),
     season_id: z.number().int(),
@@ -2056,13 +2059,23 @@ export async function fetchSeasonSchedule(
       round.extend({
         season_id: z.number().int(),
         sort_order: z.number().int(),
-        rounds: z.array(round).default([])
+        rounds: z.array(round).default([]),
+        aggregates: z.array(z.object({ fixtures: z.array(fixtureSchema).default([]) })).default([])
       })
     )
   })
   const parsed = await requestSportmonks(url, token, schema, fetcher)
   return {
-    stages: parsed.data,
+    stages: parsed.data.map(({ aggregates, ...stage }) => ({
+      ...stage,
+      fixtures: [
+        ...new Map(
+          [...stage.fixtures, ...aggregates.flatMap((aggregate) => aggregate.fixtures)].map(
+            (fixture) => [fixture.id, fixture]
+          )
+        ).values()
+      ]
+    })),
     fetchedAt,
     message: parsed.message,
     rateLimit: parsed.rate_limit

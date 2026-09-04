@@ -14,6 +14,14 @@ import type {
   RefreshRoundStandingsInput,
   FixtureCommentaryRefresh,
   SeasonScheduleRefresh,
+  SeasonBracketRefresh,
+  PredictedLineupsRefresh,
+  NewsRefresh,
+  RefreshNewsInput,
+  SportmonksNewsArticle,
+  MatchFactsRefresh,
+  HonoursRefresh,
+  RefreshHonoursInput,
   SportmonksScheduleStage,
   SportmonksScheduleRound,
   RefereeRefresh,
@@ -531,6 +539,12 @@ class HalfspaceDatabase extends Dexie {
   teamRivalsQueries!: Table<TeamRivalsQuery, number>
   fixtureCommentaryQueries!: Table<FixtureCommentaryQuery, number>
   seasonScheduleQueries!: Table<SeasonScheduleQuery, number>
+  seasonBracketQueries!: Table<SeasonBracketQuery, number>
+  predictedLineupQueries!: Table<PredictedLineupQuery, number>
+  newsQueries!: Table<NewsQuery, string>
+  newsArticles!: Table<CachedNewsArticle, number>
+  matchFactsQueries!: Table<MatchFactsQuery, number>
+  honoursQueries!: Table<HonoursQuery, string>
   fixtures!: Table<CachedFixture, number>
   fixtureQueries!: Table<FixtureQuery, string>
   fixtureOdds!: Table<CachedFixtureOdd, number>
@@ -827,10 +841,207 @@ class HalfspaceDatabase extends Dexie {
     this.version(28).stores({
       statisticSeasonQueries: '&key, staleAt'
     })
+    this.version(29).stores({ seasonBracketQueries: '&seasonId, staleAt' })
+    this.version(30).stores({ predictedLineupQueries: '&fixtureId, staleAt' })
+    this.version(31).stores({
+      newsQueries: '&key, staleAt',
+      newsArticles: '&id, fixture_id, league_id',
+      matchFactsQueries: '&fixtureId, staleAt'
+    })
+    this.version(32).stores({ honoursQueries: '&key, staleAt' })
   }
 }
 
 export const db = new HalfspaceDatabase()
+
+export interface HonoursQuery extends HonoursRefresh {
+  key: string
+  staleAt: number
+}
+export function honoursQueryKey(input: RefreshHonoursInput): string {
+  return `${input.entity}:${input.entityId}`
+}
+export async function readHonours(input: RefreshHonoursInput): Promise<HonoursQuery | null> {
+  return (await db.honoursQueries.get(honoursQueryKey(input))) ?? null
+}
+export async function writeHonoursRefresh(
+  input: RefreshHonoursInput,
+  refresh: HonoursRefresh
+): Promise<void> {
+  if (
+    refresh.entity !== input.entity ||
+    refresh.entityId !== input.entityId ||
+    refresh.honours.some((item) => item.participant_id !== input.entityId)
+  )
+    throw new Error('Honours do not match the selected entity.')
+  const key = honoursQueryKey(input)
+  await db.transaction('rw', db.honoursQueries, async () => {
+    const previous = await db.honoursQueries.get(key)
+    if (previous && previous.fetchedAt > refresh.fetchedAt) return
+    await db.honoursQueries.put({ ...refresh, key, staleAt: refresh.fetchedAt + 24 * 60 * 60_000 })
+  })
+}
+
+export interface CachedNewsArticle extends SportmonksNewsArticle {
+  fetchedAt: number
+}
+export interface NewsQuery {
+  key: string
+  articleIds: number[]
+  hasMore: boolean
+  fetchedAt: number
+  staleAt: number
+}
+export interface MatchFactsQuery extends MatchFactsRefresh {
+  staleAt: number
+}
+export function newsQueryKey(input: RefreshNewsInput): string {
+  return input.kind === 'fixture'
+    ? `fixture:${input.fixtureId}`
+    : `feed:${input.feed}:${input.seasonId ?? 'all'}:${input.page}`
+}
+export async function readNews(
+  input: RefreshNewsInput
+): Promise<(NewsQuery & { articles: CachedNewsArticle[] }) | null> {
+  const query = await db.newsQueries.get(newsQueryKey(input))
+  if (!query) return null
+  const articles = (await db.newsArticles.bulkGet(query.articleIds)).filter(
+    (article): article is CachedNewsArticle => !!article
+  )
+  return { ...query, articles }
+}
+export async function writeNewsRefresh(
+  input: RefreshNewsInput,
+  refresh: NewsRefresh
+): Promise<void> {
+  if (
+    refresh.articles.some((article) =>
+      input.kind === 'fixture'
+        ? article.fixture_id !== input.fixtureId
+        : article.type !== (input.feed === 'pre-match' ? 'prematch' : 'postmatch') ||
+          (input.seasonId !== undefined && article.fixture?.season_id !== input.seasonId)
+    )
+  )
+    throw new Error('News does not match the selected query.')
+  const key = newsQueryKey(input)
+  const staleAt = refresh.fetchedAt + 15 * 60_000
+  await db.transaction('rw', db.newsQueries, db.newsArticles, async () => {
+    const previous = await db.newsQueries.get(key)
+    if (previous && previous.fetchedAt > refresh.fetchedAt) return
+    for (const article of refresh.articles) {
+      const cached = await db.newsArticles.get(article.id)
+      if (cached && cached.fetchedAt > refresh.fetchedAt) continue
+      await db.newsArticles.put({
+        ...article,
+        fixture: article.fixture ?? cached?.fixture,
+        league: article.league ?? cached?.league,
+        fetchedAt: refresh.fetchedAt
+      })
+    }
+    await db.newsQueries.put({
+      key,
+      articleIds: refresh.articles.map((article) => article.id),
+      hasMore: refresh.hasMore,
+      fetchedAt: refresh.fetchedAt,
+      staleAt
+    })
+  })
+}
+export async function readMatchFacts(fixtureId: number): Promise<MatchFactsQuery | null> {
+  return (await db.matchFactsQueries.get(fixtureId)) ?? null
+}
+export async function writeMatchFactsRefresh(
+  fixtureId: number,
+  refresh: MatchFactsRefresh
+): Promise<void> {
+  if (
+    refresh.fixtureId !== fixtureId ||
+    refresh.facts.some((fact) => fact.fixture_id !== fixtureId)
+  )
+    throw new Error('Facts do not match the selected fixture.')
+  await db.transaction('rw', db.matchFactsQueries, async () => {
+    const previous = await db.matchFactsQueries.get(fixtureId)
+    if (previous && previous.fetchedAt > refresh.fetchedAt) return
+    await db.matchFactsQueries.put({ ...refresh, staleAt: refresh.fetchedAt + 60 * 60_000 })
+  })
+}
+
+export interface PredictedLineupQuery extends PredictedLineupsRefresh {
+  staleAt: number
+}
+
+export async function readPredictedLineups(
+  fixtureId: number
+): Promise<PredictedLineupQuery | null> {
+  return (await db.predictedLineupQueries.get(fixtureId)) ?? null
+}
+
+export async function writePredictedLineupsRefresh(
+  fixtureId: number,
+  refresh: PredictedLineupsRefresh
+): Promise<void> {
+  if (
+    refresh.fixtureId !== fixtureId ||
+    refresh.lineups.some((entry) => entry.fixture_id !== fixtureId || entry.type_id !== 111384)
+  )
+    throw new Error('Predictions do not match the selected fixture.')
+  await db.transaction('rw', db.predictedLineupQueries, async () => {
+    const previous = await db.predictedLineupQueries.get(fixtureId)
+    if (previous && previous.fetchedAt > refresh.fetchedAt) return
+    await db.predictedLineupQueries.put({ ...refresh, staleAt: refresh.fetchedAt + 5 * 60_000 })
+  })
+}
+
+export interface SeasonBracketQuery extends Omit<SeasonBracketRefresh, 'stages'> {
+  seasonId: number
+  stages: { stage_id: number; stage_name: string; fixtureIds: number[] }[]
+  staleAt: number
+}
+
+export async function readSeasonBracket(
+  seasonId: number
+): Promise<(SeasonBracketQuery & { fixtures: CachedFixture[] }) | null> {
+  const query = await db.seasonBracketQueries.get(seasonId)
+  if (!query) return null
+  const fixtures = (
+    await db.fixtures.bulkGet([...new Set(query.stages.flatMap((stage) => stage.fixtureIds))])
+  ).filter(
+    (fixture): fixture is CachedFixture => fixture !== undefined && fixture.seasonId === seasonId
+  )
+  return { ...query, fixtures }
+}
+
+export async function writeSeasonBracketRefresh(
+  seasonId: number,
+  refresh: SeasonBracketRefresh
+): Promise<void> {
+  const fixtures = refresh.stages.flatMap((stage) => stage.fixtures)
+  if (
+    fixtures.some((fixture) => fixture.season_id !== seasonId) ||
+    refresh.edges.some((edge) => edge.season_id !== seasonId) ||
+    refresh.catalog.some((stage) => stage.season_id !== seasonId)
+  )
+    throw new Error('Bracket does not match the selected season.')
+  const staleAt = fixtureRefreshExpiry(
+    fixtures,
+    refresh.fetchedAt,
+    refresh.fetchedAt + competitionFixturesCacheDuration
+  )
+  await db.transaction('rw', db.seasonBracketQueries, db.fixtures, async () => {
+    const previous = await db.seasonBracketQueries.get(seasonId)
+    if (previous && previous.fetchedAt > refresh.fetchedAt) return
+    await db.fixtures.bulkPut(await toCachedFixtures(fixtures, refresh.fetchedAt, staleAt))
+    await db.seasonBracketQueries.put({
+      ...refresh,
+      seasonId,
+      staleAt,
+      stages: refresh.stages.map(({ fixtures, ...stage }) => ({
+        ...stage,
+        fixtureIds: fixtures.map((fixture) => fixture.id)
+      }))
+    })
+  })
+}
 
 export interface StatisticSeasonQuery extends StatisticSeasonsRefresh {
   key: string
@@ -2568,7 +2779,13 @@ export async function clearSportmonksCache(): Promise<void> {
       db.playerTransferQueries,
       db.teamTransferQueries,
       db.transferFeedQueries,
-      db.statisticSeasonQueries
+      db.statisticSeasonQueries,
+      db.seasonBracketQueries,
+      db.predictedLineupQueries,
+      db.newsQueries,
+      db.newsArticles,
+      db.matchFactsQueries,
+      db.honoursQueries
     ],
     async () => {
       await db.subscriptionQueries.clear()
@@ -2612,6 +2829,12 @@ export async function clearSportmonksCache(): Promise<void> {
       await db.teamTransferQueries.clear()
       await db.transferFeedQueries.clear()
       await db.statisticSeasonQueries.clear()
+      await db.seasonBracketQueries.clear()
+      await db.predictedLineupQueries.clear()
+      await db.newsQueries.clear()
+      await db.newsArticles.clear()
+      await db.matchFactsQueries.clear()
+      await db.honoursQueries.clear()
     }
   )
 }

@@ -2,6 +2,7 @@ import type { IpcMainInvokeEvent } from 'electron'
 import { BrowserWindow, ipcMain } from 'electron'
 import type { ApiErrorCode, Result, SportmonksRateLimit } from '@shared/contracts'
 import { ipcChannels } from '@shared/contracts'
+import { fetchSeasonBracket } from './season-bracket'
 import {
   fetchStatisticSeasons,
   validateStatisticSeasonsInput,
@@ -66,6 +67,10 @@ import { clearSportmonksRateLimits, SportmonksError } from './sportmonks-client'
 import { clearStoredToken, hasStoredToken, readStoredToken, saveStoredToken } from './token-store'
 import { fetchSubscription } from './subscription'
 import { fetchFixtureTv } from './fixture-tv'
+import { fetchPredictedLineups } from './predicted-lineups'
+import { fetchNews, validateNewsInput } from './news'
+import { fetchMatchFacts } from './match-facts'
+import { fetchHonours, validateHonoursInput } from './honours'
 import { fetchFixturePressure } from './fixture-pressure'
 import { fetchTeamOfWeek, validateTeamOfWeekInput } from './team-of-week'
 
@@ -75,6 +80,36 @@ let currentRateLimit: SportmonksRateLimit | null = null
 let credentialGeneration = 0
 
 export function registerIpcHandlers(): void {
+  registerSportmonksHandler(
+    ipcChannels.refreshHonours,
+    validateHonoursInput,
+    fetchHonours,
+    'Could not refresh honours.'
+  )
+  registerSportmonksHandler(
+    ipcChannels.refreshNews,
+    validateNewsInput,
+    fetchNews,
+    'Could not refresh news.'
+  )
+  registerSportmonksHandler(
+    ipcChannels.refreshMatchFacts,
+    validateFixtureInput,
+    fetchMatchFacts,
+    'Could not refresh match facts.'
+  )
+  registerSportmonksHandler(
+    ipcChannels.refreshPredictedLineups,
+    validateFixtureInput,
+    fetchPredictedLineups,
+    'Could not refresh predicted lineups.'
+  )
+  registerSportmonksHandler(
+    ipcChannels.refreshSeasonBracket,
+    validateSeasonScheduleInput,
+    fetchSeasonBracket,
+    'Could not refresh knockout progression.'
+  )
   registerSportmonksHandler(
     ipcChannels.refreshStatisticSeasons,
     validateStatisticSeasonsInput,

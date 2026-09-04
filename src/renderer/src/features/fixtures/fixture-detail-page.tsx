@@ -31,7 +31,9 @@ import { useEffect, useMemo } from 'react'
 import { FixtureCommentary } from './fixture-commentary'
 import { FixtureTv } from './fixture-tv'
 import { FixtureWeather } from './fixture-weather'
-import { FixtureLineups } from './fixture-lineups'
+import { FixtureNews } from '@/features/news/fixture-news'
+import { FixtureMatchFacts } from './fixture-match-facts'
+import { FixtureLineupView } from './fixture-lineup-view'
 import { FixtureLiveIndicator } from './fixture-live-indicator'
 import { FixtureOdds } from './fixture-odds'
 import { FixturePreviewWorkspace } from './fixture-preview'
@@ -230,12 +232,15 @@ export function FixtureDetailPage({
         />
       )}
       {view === 'game' && (
-        <FixtureGame
-          fixture={match}
-          context={{ competition: competitionId, date, season: resolvedSeasonId, team: teamId }}
-          pressure={pressure.cached}
-          online={online}
-        />
+        <>
+          <FixtureGame
+            fixture={match}
+            context={{ competition: competitionId, date, season: resolvedSeasonId, team: teamId }}
+            pressure={pressure.cached}
+            online={online}
+          />
+          <FixtureNews fixture={match} online={online} />
+        </>
       )}
       {view === 'commentary' && (
         <FixtureCommentary
@@ -251,16 +256,13 @@ export function FixtureDetailPage({
         />
       )}
       {view === 'lineups' && (
-        <FixtureLineups
-          away={away}
+        <FixtureLineupView
+          fixture={match}
           context={{
             competition: competitionId ?? cachedFixture.leagueId,
             date,
             season: resolvedSeasonId
           }}
-          events={match.events ?? []}
-          home={home}
-          lineups={match.lineups ?? []}
           online={online}
         />
       )}
@@ -496,12 +498,16 @@ function FixturePreview({
 
   return (
     <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
-      <FixturePreviewWorkspace
-        context={context}
-        fixture={cachedFixture}
-        input={previewInput}
-        online={online}
-      />
+      <div className="flex min-w-0 flex-col gap-5">
+        <FixtureNews fixture={cachedFixture.raw} online={online} />
+        <FixtureMatchFacts key={cachedFixture.id} fixture={cachedFixture.raw} online={online} />
+        <FixturePreviewWorkspace
+          context={context}
+          fixture={cachedFixture}
+          input={previewInput}
+          online={online}
+        />
+      </div>
       <aside className="order-first flex flex-col gap-5 lg:order-last">
         <FixtureDetails
           competition={competition}

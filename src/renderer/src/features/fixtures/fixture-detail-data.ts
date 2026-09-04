@@ -165,8 +165,11 @@ function addPlayerAnnotation(
   annotations.set(playerId, playerAnnotations)
 }
 
-export function fixtureFormationLines(lineups: SportmonksLineup[]): FormationLine[] | null {
-  const starters = lineups.filter(({ type_id }) => type_id === 11)
+export function fixtureFormationLines(
+  lineups: SportmonksLineup[],
+  starterTypeId = 11
+): FormationLine[] | null {
+  const starters = lineups.filter(({ type_id }) => type_id === starterTypeId)
   if (starters.length !== 11) return null
 
   const rows = new Map<number, Array<{ entry: SportmonksLineup; slot: number }>>()

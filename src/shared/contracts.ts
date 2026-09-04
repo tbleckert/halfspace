@@ -1,4 +1,8 @@
 export const ipcChannels = {
+  refreshHonours: 'sportmonks:refresh-honours',
+  refreshNews: 'sportmonks:refresh-news',
+  refreshMatchFacts: 'sportmonks:refresh-match-facts',
+  refreshPredictedLineups: 'sportmonks:refresh-predicted-lineups',
   refreshSubscription: 'sportmonks:refresh-subscription',
   refreshFixtureTv: 'sportmonks:refresh-fixture-tv',
   refreshFixturePressure: 'sportmonks:refresh-fixture-pressure',
@@ -21,6 +25,7 @@ export const ipcChannels = {
   refreshStatisticSeasons: 'sportmonks:refresh-statistic-seasons',
   refreshSeasonTopscorers: 'sportmonks:refresh-season-topscorers',
   refreshSeasonSchedule: 'sportmonks:refresh-season-schedule',
+  refreshSeasonBracket: 'sportmonks:refresh-season-bracket',
   refreshCompetitionFixtures: 'sportmonks:refresh-competition-fixtures',
   refreshTeam: 'sportmonks:refresh-team',
   refreshTeamRivals: 'sportmonks:refresh-team-rivals',
@@ -222,6 +227,45 @@ export interface SeasonScheduleRefresh {
   message?: string
 }
 
+export interface SportmonksAggregate {
+  id: number
+  league_id: number
+  season_id: number
+  stage_id: number
+  name: string
+  fixture_ids: number[]
+  result: string | null
+  detail: string | null
+  winner_participant_id: number | null
+}
+
+export interface SportmonksBracketEdge {
+  id: number
+  season_id: number
+  parent_fixture_id: number
+  child_fixture_id: number
+  parent_outcome: 'winner' | 'loser'
+  child_slot: 'home' | 'away'
+}
+
+export interface SportmonksKnockoutStage {
+  id: number
+  season_id: number
+  type_id: number
+  name: string
+  sort_order: number
+  starting_at?: string | null
+  ending_at?: string | null
+  aggregates: SportmonksAggregate[]
+}
+
+export interface SeasonBracketRefresh {
+  stages: { stage_id: number; stage_name: string; fixtures: SportmonksFixture[] }[]
+  edges: SportmonksBracketEdge[]
+  catalog: SportmonksKnockoutStage[]
+  fetchedAt: number
+}
+
 export interface RefreshSeasonStatisticsInput {
   seasonId: number
 }
@@ -412,6 +456,7 @@ export interface SportmonksCompetition {
 }
 
 export interface SportmonksParticipant {
+  placeholder?: boolean
   id: number
   name: string
   short_code?: string | null
@@ -712,6 +757,9 @@ export interface SportmonksOdd {
 }
 
 export interface SportmonksFixture {
+  aggregate_id?: number | null
+  leg?: string | null
+  details?: string | null
   id: number
   league_id: number
   season_id: number
@@ -798,6 +846,77 @@ export interface SportmonksLineup {
   jersey_number: number | null
   player?: SportmonksPlayer | null
   details?: SportmonksLineupDetail[]
+}
+
+export interface PredictedLineupsRefresh {
+  fixtureId: number
+  lineups: SportmonksLineup[]
+  fetchedAt: number
+}
+
+export type NewsFeed = 'pre-match' | 'post-match'
+export type RefreshNewsInput =
+  | { kind: 'feed'; feed: NewsFeed; page: number; seasonId?: number }
+  | { kind: 'fixture'; fixtureId: number }
+export interface SportmonksNewsArticle {
+  id: number
+  fixture_id: number
+  league_id: number
+  title: string
+  type: 'prematch' | 'postmatch'
+  lines: { id: number; newsitem_id: number; text: string; type: string }[]
+  fixture?: SportmonksFixture | null
+  league?: { id: number; name: string; image_path?: string | null } | null
+}
+export interface NewsRefresh {
+  articles: SportmonksNewsArticle[]
+  hasMore: boolean
+  fetchedAt: number
+}
+export interface SportmonksMatchFact {
+  id: number
+  fixture_id: number
+  type_id: number
+  participant: 'home' | 'away' | 'both'
+  basis: string
+  scope: string
+  category: string
+  natural_language: string | null
+  type: { id: number; name: string } | null
+}
+export interface MatchFactsRefresh {
+  fixtureId: number
+  facts: SportmonksMatchFact[]
+  fetchedAt: number
+}
+
+export interface RefreshHonoursInput {
+  entity: 'teams' | 'players' | 'coaches'
+  entityId: number
+}
+export interface SportmonksHonour {
+  id: number
+  participant_id: number
+  team_id: number | null
+  league_id: number
+  season_id: number | null
+  trophy_id: number
+  trophy: { id: number; name: string; position: number } | null
+  league: { id: number; name: string; image_path?: string | null } | null
+  season: {
+    id: number
+    league_id: number
+    name: string
+    starting_at?: string | null
+    ending_at?: string | null
+  } | null
+  team?: { id: number; name: string; image_path?: string | null } | null
+}
+export interface HonoursRefresh {
+  entity: RefreshHonoursInput['entity']
+  entityId: number
+  honours: SportmonksHonour[]
+  fetchedAt: number
 }
 
 export interface SportmonksLineupDetail {
@@ -1104,6 +1223,10 @@ export interface HalfspaceApi {
     clearToken(): Promise<Result<null>>
   }
   sportmonks: {
+    refreshHonours(input: RefreshHonoursInput): Promise<Result<HonoursRefresh>>
+    refreshNews(input: RefreshNewsInput): Promise<Result<NewsRefresh>>
+    refreshMatchFacts(input: RefreshFixtureInput): Promise<Result<MatchFactsRefresh>>
+    refreshPredictedLineups(input: RefreshFixtureInput): Promise<Result<PredictedLineupsRefresh>>
     refreshSubscription(): Promise<Result<SubscriptionRefresh>>
     refreshFixtureTv(input: RefreshFixtureInput): Promise<Result<FixtureTvRefresh>>
     refreshFixturePressure(input: RefreshFixtureInput): Promise<Result<FixturePressureRefresh>>
@@ -1115,6 +1238,9 @@ export interface HalfspaceApi {
     refreshSeasonSchedule: (
       input: RefreshSeasonScheduleInput
     ) => Promise<Result<SeasonScheduleRefresh>>
+    refreshSeasonBracket: (
+      input: RefreshSeasonScheduleInput
+    ) => Promise<Result<SeasonBracketRefresh>>
     refreshFixtures(input: RefreshFixturesInput): Promise<Result<FixtureRefresh>>
     refreshFixtureWindow(input: RefreshFixtureWindowInput): Promise<Result<FixtureRefresh>>
     refreshFixture(input: RefreshFixtureInput): Promise<Result<FixtureDetailRefresh>>

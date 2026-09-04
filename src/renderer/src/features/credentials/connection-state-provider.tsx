@@ -3,6 +3,7 @@ import type { ConnectionState, SportmonksRateLimit } from '@shared/contracts'
 import { clearSportmonksCache } from '@/data/db'
 import { invalidateCompetitionRefresh } from '@/features/competitions/use-competitions'
 import { invalidateScheduleRefreshes } from '@/features/competitions/use-season-schedule'
+import { invalidateBracketRefreshes } from '@/features/competitions/use-season-bracket'
 import { invalidateRoundStandingsRefreshes } from '@/features/competitions/use-round-standings'
 import { invalidateTransferFeedRefreshes } from '@/features/transfers/use-transfer-feed'
 import { invalidateCoachRefreshes } from '@/features/coaches/use-coach'
@@ -19,6 +20,10 @@ import { invalidateSearchRefreshes } from '@/features/search/use-entity-search'
 import { ConnectionStateContext } from './connection-state-context'
 import { invalidateSubscriptionRefresh } from '@/features/subscription/use-subscription'
 import { invalidateFixtureTvRefreshes } from '@/features/fixtures/use-fixture-tv'
+import { invalidatePredictedLineupsRefreshes } from '@/features/fixtures/use-predicted-lineups'
+import { invalidateNewsRefreshes } from '@/features/news/use-news'
+import { invalidateHonoursRefreshes } from '@/features/honours/use-honours'
+import { invalidateMatchFactsRefreshes } from '@/features/fixtures/use-match-facts'
 import { invalidateTeamOfWeekRefreshes } from '@/features/competitions/use-team-of-week'
 import { invalidateStatisticSeasonRefreshes } from '@/features/comparisons/use-statistic-seasons'
 
@@ -176,6 +181,11 @@ export function ConnectionStateProvider({ children }: { children: ReactNode }): 
 }
 
 function invalidateRefreshes(): void {
+  invalidateBracketRefreshes()
+  invalidatePredictedLineupsRefreshes()
+  invalidateNewsRefreshes()
+  invalidateHonoursRefreshes()
+  invalidateMatchFactsRefreshes()
   invalidateStatisticSeasonRefreshes()
   invalidateSubscriptionRefresh()
   invalidateFixtureTvRefreshes()

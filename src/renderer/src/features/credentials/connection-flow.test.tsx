@@ -36,6 +36,11 @@ beforeEach(() => {
     },
     sportmonks: {
       refreshStatisticSeasons: vi.fn(),
+      refreshSeasonBracket: vi.fn(),
+      refreshPredictedLineups: vi.fn(),
+      refreshNews: vi.fn(),
+      refreshMatchFacts: vi.fn(),
+      refreshHonours: vi.fn(),
       refreshSubscription: vi.fn(),
       refreshTeamOfWeek: vi.fn(),
       refreshFixtureTv: vi.fn(),

@@ -40,6 +40,8 @@ abstractions.
   access, or error context makes it useful. Align headings and team rows across adjacent match cards.
 - Build the product outward through dedicated football entity pages and natural links between
   them. Prioritize entity depth before secondary tools or dashboards.
+- Prioritize football data presentation, then dedicated design passes. Defer image exports and
+  sharing until the visual design is settled; do not build export layouts ahead of that work.
 - Horizontal local navigation uses one shared rule. Only the active item has its own indicator;
   inherit its color from the active text and layer it directly over the shared rule.
 - Keep entity subpages nested beneath one persistent entity route shell so changing a horizontal
@@ -288,6 +290,29 @@ abstractions.
   record, with at least four shared metrics and positive reported minutes on both sides. Scale each
   axis to the pair's larger value, explicitly not a league percentile or league-strength adjustment;
   show actual values and playing time alongside the chart. Keep exact season totals below.
+
+## Expanded Football Data
+
+- Competition Knockout reuses the season schedule, bracket edges, and stage aggregates. Preserve
+  fixtures nested inside schedule aggregates. Group legs only by explicit aggregate IDs, distinguish
+  placeholders from real teams, and use reported aggregate winners. Prefer provider advancement
+  edges; infer a result link only when the winner is a known participant in the immediately following
+  round. Never skip an unreported round or invent an undrawn path. Keep season context in links.
+- News uses separately cached feed pages with explicit pagination, competition/season filters, and
+  a plain-text article reader. Order article lines by ID, preserve paragraphs, label AI-written
+  reports, and call the fixture date Match date rather than inventing a publication time. Fixture
+  Preview and Game show their related news. Sparse fixture context from news must never overwrite
+  richer shared fixture records; nested fixture includes are unsupported on news endpoints.
+- Match facts belong in Fixture Preview with team, category, and scope filters. Fetch every page
+  before caching the response; show provider-written facts verbatim and omit records without wording.
+  A fact labelled streak can mean X of Y recent matches, not consecutive matches. Preserve that
+  distinction and keep empty results separate from denied access.
+- Predicted lineups use their own fixture-keyed cache and only appear before play when confirmed
+  team sheets are absent. Label them explicitly, reuse the shared pitch, and never add predictions to
+  confirmed lineups, appearances, event annotations, or ratings. Confirmed sheets take precedence.
+- Honours use separately cached trophy includes for teams, players, and coaches. Show competition,
+  season, club, and reported placing; distinguish winners from runners-up and preserve unknown
+  metadata. Never present every trophy record as a title or imply the available history is complete.
 
 ## Mindset & Process
 

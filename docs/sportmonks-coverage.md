@@ -1,8 +1,8 @@
 # Sportmonks API coverage
 
-Halfspace currently covers **36 of 153 endpoints** and **121 of 1320 documented endpoint includes**.
+Halfspace currently covers **43 of 153 endpoints** and **145 of 1320 documented endpoint includes**.
 
-Overall coverage: **11%**
+Overall coverage: **13%**
 
 Source: [Sportmonks Football API 3.0 documentation index](https://docs.sportmonks.com/v3/sitemap.md)
 
@@ -27,7 +27,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 ### Fixtures
 
 - [ ] [All Fixtures](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-all-fixtures)
-- [x] [Fixture by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixture-by-id) — includes 17/38
+- [x] [Fixture by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixture-by-id) — includes 20/38
 - [ ] [Fixtures by Multiple IDs](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixtures-by-multiple-ids)
 - [x] [Fixtures by Date](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixtures-by-date) — includes 5/38
 - [x] [Fixtures by Date Range](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixtures-by-date-range) — includes 5/38
@@ -67,7 +67,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 - [x] [Seasons by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/seasons/get-seasons-by-id) — includes 1/9
 - [ ] [Seasons by Team ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/seasons/get-seasons-by-team-id)
 - [ ] [Seasons by Search by Name](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/seasons/get-seasons-by-search-by-name)
-- [ ] [Brackets by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/seasons/get-brackets-by-season-id)
+- [x] [Brackets by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/seasons/get-brackets-by-season-id) — includes 4/35
 
 ### Statistics
 
@@ -85,7 +85,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 
 - [ ] [All Stages](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/stages/get-all-stages)
 - [ ] [Stage by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/stages/get-stage-by-id)
-- [ ] [Stages by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/stages/get-stages-by-season-id)
+- [x] [Stages by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/stages/get-stages-by-season-id) — includes 1/11
 - [ ] [Stages by Search by Name](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/stages/get-stages-by-search-by-name)
 
 ### Rounds
@@ -112,7 +112,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 ### Teams
 
 - [ ] [All Teams](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/teams/get-all-teams)
-- [x] [Team by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/teams/get-team-by-id) — includes 6/16
+- [x] [Team by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/teams/get-team-by-id) — includes 7/16
 - [ ] [Teams by Country ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/teams/get-teams-by-country-id)
 - [ ] [Teams by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/teams/get-teams-by-season-id)
 - [x] [Teams by Search by Name](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/teams/get-teams-by-search-by-name) — includes 2/16
@@ -120,7 +120,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 ### Players
 
 - [ ] [All Players](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/players/get-all-players)
-- [x] [Player by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/players/get-player-by-id) — includes 4/14
+- [x] [Player by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/players/get-player-by-id) — includes 5/14
 - [ ] [Players by Country ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/players/get-players-by-country-id)
 - [x] [Players by Search by Name](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/players/get-players-by-search-by-name) — includes 3/14
 - [ ] [Last Updated Players](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/players/get-last-updated-players)
@@ -134,7 +134,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 ### Match Facts
 
 - [ ] [All available Match Facts](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/match-facts/get-all-available-match-facts)
-- [ ] [Match Facts by fixture ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/match-facts/get-match-facts-by-fixture-id)
+- [x] [Match Facts by fixture ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/match-facts/get-match-facts-by-fixture-id) — includes 1/3
 - [ ] [Match Facts by date range](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/match-facts/get-match-facts-by-date-range)
 - [ ] [Match Facts by league ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/match-facts/get-match-facts-by-league-id)
 
@@ -153,7 +153,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 ### Coaches
 
 - [ ] [All Coaches](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/coaches/get-all-coaches)
-- [x] [Coach by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/coaches/get-coach-by-id) — includes 2/9
+- [x] [Coach by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/coaches/get-coach-by-id) — includes 3/9
 - [ ] [Coaches by Country ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/coaches/get-coaches-by-country-id)
 - [x] [Coaches Search by Name](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/coaches/get-coaches-search-by-name) — includes 1/9
 - [ ] [Last Updated Coaches](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/coaches/get-last-updated-coaches)
@@ -260,11 +260,11 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 
 ### News
 
-- [ ] [Pre-Match News](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/news/get-pre-match-news)
-- [ ] [Pre-Match News by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/news/get-pre-match-news-by-season-id)
+- [x] [Pre-Match News](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/news/get-pre-match-news) — includes 3/3
+- [x] [Pre-Match News by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/news/get-pre-match-news-by-season-id) — includes 3/3
 - [ ] [Pre-Match News for Upcoming Fixtures](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/news/get-pre-match-news-for-upcoming-fixtures)
-- [ ] [Post-Match News](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/news/get-post-match-news)
-- [ ] [Post-Match News by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/news/get-post-match-news-by-season-id)
+- [x] [Post-Match News](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/news/get-post-match-news) — includes 3/3
+- [x] [Post-Match News by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/news/get-post-match-news-by-season-id) — includes 3/3
 
 ### Rivals
 

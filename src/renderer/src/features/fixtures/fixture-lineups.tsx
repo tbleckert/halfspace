@@ -25,7 +25,8 @@ export function FixtureLineups({
   events,
   home,
   lineups,
-  online
+  online,
+  predicted = false
 }: {
   away?: SportmonksParticipant
   context: FixturePlayerContext
@@ -33,11 +34,13 @@ export function FixtureLineups({
   home?: SportmonksParticipant
   lineups: SportmonksLineup[]
   online: boolean
+  predicted?: boolean
 }): React.JSX.Element {
   const homeEntries = lineups.filter(({ team_id }) => team_id === home?.id)
   const awayEntries = lineups.filter(({ team_id }) => team_id === away?.id)
-  const homeFormation = fixtureFormationLines(homeEntries)
-  const awayFormation = fixtureFormationLines(awayEntries)
+  const starterTypeId = predicted ? 111384 : 11
+  const homeFormation = fixtureFormationLines(homeEntries, starterTypeId)
+  const awayFormation = fixtureFormationLines(awayEntries, starterTypeId)
   const annotations = fixturePlayerAnnotations(events)
   const homeSubstitutes = lineupGroup(homeEntries, 12)
   const awaySubstitutes = lineupGroup(awayEntries, 12)
@@ -60,6 +63,7 @@ export function FixtureLineups({
 
         {homeFormation && awayFormation ? (
           <CombinedFormationPitch
+            predicted={predicted}
             annotations={annotations}
             context={context}
             awayFormation={awayFormation}
@@ -73,16 +77,16 @@ export function FixtureLineups({
             <LineupGroup
               annotations={annotations}
               context={context}
-              entries={lineupGroup(homeEntries, 11)}
-              label="Starting XI"
+              entries={lineupGroup(homeEntries, starterTypeId)}
+              label={predicted ? 'Predicted XI' : 'Starting XI'}
               online={online}
               teamId={home?.id}
             />
             <LineupGroup
               annotations={annotations}
               context={context}
-              entries={lineupGroup(awayEntries, 11)}
-              label="Starting XI"
+              entries={lineupGroup(awayEntries, starterTypeId)}
+              label={predicted ? 'Predicted XI' : 'Starting XI'}
               online={online}
               teamId={away?.id}
             />
@@ -153,6 +157,7 @@ function LineupTeamHeader({
 }
 
 function CombinedFormationPitch({
+  predicted,
   annotations,
   awayFormation,
   awayTeamId,
@@ -161,6 +166,7 @@ function CombinedFormationPitch({
   homeTeamId,
   online
 }: {
+  predicted: boolean
   annotations: Map<number, PlayerEventAnnotation[]>
   awayFormation: Formation
   awayTeamId?: number
@@ -172,7 +178,7 @@ function CombinedFormationPitch({
   return (
     <div className="p-3 sm:p-4">
       <div
-        aria-label={`Starting lineups, ${fixtureFormationLabel(homeFormation)} and ${fixtureFormationLabel(awayFormation)}`}
+        aria-label={`${predicted ? 'Predicted' : 'Starting'} lineups, ${fixtureFormationLabel(homeFormation)} and ${fixtureFormationLabel(awayFormation)}`}
         className="relative mx-auto aspect-[16/9] w-full overflow-hidden rounded-lg bg-pitch shadow-inner"
         role="group"
       >

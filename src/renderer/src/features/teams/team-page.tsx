@@ -54,6 +54,7 @@ import { TeamRivals } from './team-rivals'
 import { TeamRankings } from './team-rankings'
 import { useTeamRivals } from './use-team-rivals'
 import { TeamTransfers } from './team-transfers'
+import { HonoursPanel } from '@/features/honours/honours-panel'
 import {
   prefetchTeamEntity,
   prefetchTeamFixtures,
@@ -409,6 +410,12 @@ export function TeamPage({
                 />
               </>
             )}
+            <HonoursPanel
+              key={parsedTeamId}
+              entity="teams"
+              entityId={parsedTeamId}
+              online={online}
+            />
           </div>
         </div>
       )}

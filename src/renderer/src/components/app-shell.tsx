@@ -6,6 +6,7 @@ import {
   Circle,
   Clock3,
   Repeat2,
+  Newspaper,
   Settings,
   Trophy
 } from 'lucide-react'
@@ -161,6 +162,7 @@ function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): Re
             </div>
           )}
           <div className="mt-3 flex flex-col gap-1">
+            <SidebarLink icon={<Newspaper className="size-4" />} label="News" to="/news" />
             <SidebarLink icon={<Repeat2 className="size-4" />} label="Transfers" to="/transfers" />
             <SidebarLink
               icon={<ArrowLeftRight className="size-4" />}
@@ -222,7 +224,7 @@ function SidebarLink({
   exact?: boolean
   icon: React.ReactNode
   label: string
-  to: '/competitions' | '/settings' | '/transfers' | '/compare'
+  to: '/competitions' | '/settings' | '/transfers' | '/compare' | '/news'
 }): React.JSX.Element {
   return (
     <Link

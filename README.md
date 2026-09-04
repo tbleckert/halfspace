@@ -64,6 +64,7 @@ include should have a useful place in Halfspace.
 - [x] Matchday hub with calendar navigation, live updates, upcoming fixtures, and recent results.
 - [x] Competition pages with standings, qualification and relegation places, linked form, and season selection.
 - [x] Complete season schedules with stage and round navigation.
+- [x] Knockout brackets with two-leg ties, aggregate results, and tournament progression.
 - [x] Round-by-round league tables with season selection and offline history.
 - [x] Team pages with fixtures, squad profiles, and transfer history.
 - [x] Transfer hub with latest updates, date ranges, paginated browsing, and linked player and club profiles.
@@ -74,11 +75,15 @@ include should have a useful place in Halfspace.
 - [x] Referee profiles and recent match appointments, linked from fixture officials.
 - [x] Referee season statistics with reported disciplinary totals and per-match averages.
 - [x] Player pages with match records and career history, plus coach and venue profiles.
+- [x] Team, player, and coach honours with competition, season, club, and reported placing.
 - [x] Season statistics for competitions, teams, and players.
 - [x] Cross-league team and player comparisons with entity-specific season selection, independent records, and per-90 player radars.
 - [x] Season player leaderboards for goals, assists, yellow cards, and red cards.
 - [x] Fixture previews, event timelines, pitch lineups, match statistics, and pre-match odds.
 - [x] Fixture weather and match-specific absences with linked player profiles.
+- [x] Match facts with team, category, and scope filters in fixture previews.
+- [x] Predicted lineups on the shared pitch before confirmed team sheets are available.
+- [x] Football news with competition and season browsing, article readers, and fixture previews and reports.
 - [x] Match-aware Game view combining pressure, key statistics, and the event timeline.
 - [x] Fixture pressure charts with goal and red-card markers, exact values, and live updates.
 - [x] Live match commentary with key-event filtering and offline history.
@@ -91,14 +96,16 @@ include should have a useful place in Halfspace.
 
 ### Ahead
 
-- [ ] Knockout brackets and tournament progression.
+Prioritize football data presentation, then dedicated design passes. Sharing and image exports
+follow once the visual design is settled.
+
 - [ ] Complete referee appointment history beyond the recent six-month window.
 - [ ] Transfer rumours and pending transfers.
 - [ ] Expected goals, predictions, and expected lineups.
-- [ ] Match facts and deeper in-play analysis.
-- [ ] Football news.
+- [ ] Deeper in-play analysis.
 - [ ] Premium odds and deeper bookmaker coverage.
 - [ ] Deeper comparison and analysis tools built on the local data foundation.
+- [ ] Dedicated design passes across football views.
 - [ ] Shareable image exports of comparisons and other football views for social media.
 - [ ] Complete Sportmonks endpoint and include coverage.
 

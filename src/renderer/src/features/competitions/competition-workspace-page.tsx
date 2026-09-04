@@ -35,6 +35,9 @@ import { CompetitionLogo } from './competition-logo'
 import { CompetitionLeaderCards } from './competition-leader-cards'
 import { PlayerLeaders } from './player-leaders'
 import { SeasonSchedule } from './season-schedule'
+import { KnockoutBracket } from './knockout-bracket'
+import { useSeasonBracket } from './use-season-bracket'
+import { isFixtureOngoing } from '@/lib/fixture-state'
 import { TeamOfWeek } from './team-of-week'
 import { StandingsTable } from './standings-table'
 import { CompetitionTable } from './competition-table'
@@ -62,7 +65,7 @@ import {
 } from './use-competition-workspace'
 
 type CompetitionView =
-  'overview' | 'fixtures' | 'stats' | 'teams' | 'schedule' | 'team-of-week' | 'table'
+  'overview' | 'fixtures' | 'stats' | 'teams' | 'schedule' | 'team-of-week' | 'table' | 'knockout'
 
 export function CompetitionWorkspacePage({
   competitionId,
@@ -116,7 +119,12 @@ export function CompetitionWorkspacePage({
   const [workspaceOpenedAt] = useState(() => Date.now())
   const fixtures = useCompetitionFixtures(
     fixtureInput,
-    online && view !== 'stats' && view !== 'schedule' && view !== 'team-of-week' && view !== 'table'
+    online &&
+      view !== 'stats' &&
+      view !== 'schedule' &&
+      view !== 'team-of-week' &&
+      view !== 'table' &&
+      view !== 'knockout'
   )
   const observedSeasonId = useMemo(
     () => nearestFixtureSeasonId(fixtures.cached?.fixtures ?? [], workspaceOpenedAt),
@@ -128,9 +136,14 @@ export function CompetitionWorkspacePage({
     observedSeasonId
   const showCurrentStandings =
     view === 'overview' || view === 'teams' || (view === 'table' && !round)
-  const showSchedule = view === 'schedule' || view === 'table'
+  const showSchedule = view === 'schedule' || view === 'table' || view === 'knockout'
   const standings = useStandings(seasonId, online && showCurrentStandings)
   const schedule = useSeasonSchedule(seasonId, online && showSchedule)
+  const bracket = useSeasonBracket(
+    seasonId,
+    online && view === 'knockout',
+    schedule.cached?.fixtures.some((fixture) => isFixtureOngoing(fixture.stateId))
+  )
   const roundInput = useMemo(
     () => (seasonId && round ? { seasonId, roundId: round } : null),
     [seasonId, round]
@@ -167,6 +180,7 @@ export function CompetitionWorkspacePage({
     [seasonFixtures, standings.cached?.standings]
   )
   const refreshing =
+    (view === 'knockout' && bracket.refreshing) ||
     seasons.refreshing ||
     (showSchedule
       ? schedule.refreshing
@@ -177,6 +191,7 @@ export function CompetitionWorkspacePage({
     (showCurrentStandings && standings.refreshing) ||
     (view === 'table' && roundStandings.refreshing)
   const errors = [
+    view === 'knockout' ? bracket.error : null,
     seasons.error,
     showSchedule
       ? schedule.error
@@ -195,6 +210,7 @@ export function CompetitionWorkspacePage({
 
   async function refresh(): Promise<void> {
     await Promise.all([
+      view === 'knockout' ? bracket.refresh() : Promise.resolve(),
       seasons.refresh(),
       showSchedule
         ? schedule.refresh()
@@ -295,6 +311,18 @@ export function CompetitionWorkspacePage({
       </div>
 
       {errors.length > 0 && <ErrorAlert>{errors.join(' ')}</ErrorAlert>}
+
+      {view === 'knockout' && (
+        <KnockoutBracket
+          key={seasonId}
+          schedule={schedule.cached}
+          bracket={bracket.cached}
+          loading={schedule.refreshing || bracket.refreshing}
+          online={online}
+          competitionId={competition.id}
+          seasonId={seasonId}
+        />
+      )}
 
       {view === 'team-of-week' && (
         <TeamOfWeek
@@ -500,6 +528,15 @@ function CompetitionNavigation({
         )}
       >
         Schedule
+      </Link>
+      <Link
+        to="/competitions/$competitionId/knockout"
+        params={{ competitionId: String(competitionId) }}
+        search={{ date, season }}
+        aria-current={view === 'knockout' ? 'page' : undefined}
+        className={entitySubpageNavigationItemClassName(view === 'knockout')}
+      >
+        Knockout
       </Link>
       <Link
         aria-current={view === 'teams' ? 'page' : undefined}

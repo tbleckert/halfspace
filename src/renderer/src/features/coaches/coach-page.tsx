@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils'
 import { prefetchTeamEntity } from '@/features/teams/use-team'
 import { CoachPhoto } from './coach-photo'
 import { useCoachEntity } from './use-coach'
+import { HonoursPanel } from '@/features/honours/honours-panel'
 
 export function CoachPage({
   coachId,
@@ -148,6 +149,12 @@ export function CoachPage({
             online={online}
             season={season}
             teams={teams}
+          />
+          <HonoursPanel
+            key={parsedCoachId}
+            entity="coaches"
+            entityId={parsedCoachId}
+            online={online}
           />
         </div>
 
