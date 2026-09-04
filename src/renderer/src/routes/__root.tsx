@@ -9,11 +9,8 @@ export const Route = createRootRoute({
 
 function Root(): React.JSX.Element {
   return (
-    <>
-      <div aria-hidden="true" className="window-drag-region" />
-      <ConnectionStateProvider>
-        <AppShell />
-      </ConnectionStateProvider>
-    </>
+    <ConnectionStateProvider>
+      <AppShell />
+    </ConnectionStateProvider>
   )
 }

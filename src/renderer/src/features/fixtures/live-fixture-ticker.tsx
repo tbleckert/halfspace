@@ -21,7 +21,7 @@ export function LiveFixtureTicker({ timeZone }: { timeZone: string }): React.JSX
   return (
     <section
       aria-label={current ? 'Live scores' : 'Last seen live scores'}
-      className="mt-7 flex h-16 min-w-0 shrink-0 border-y border-border/70 bg-card"
+      className="flex h-16 min-w-0 shrink-0 border-b border-border/70 bg-card"
     >
       <div className="flex w-28 shrink-0 items-center gap-2 border-r border-border/70 px-4">
         {current ? (

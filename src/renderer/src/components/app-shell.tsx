@@ -39,29 +39,43 @@ export function AppShell(): React.JSX.Element {
 
   if (connection === null && error) {
     return (
-      <main className="grid h-full place-items-center bg-background p-8">
-        <div className="w-full max-w-sm">
-          <HalfspaceLogo className="mb-8 size-10 rounded-xl" />
-          <h1 className="text-3xl font-semibold tracking-tight">Couldn’t open Halfspace</h1>
-          <p className="mt-3 text-sm text-muted-foreground">{error}</p>
-          <Button className="mt-6" onClick={() => void reload()}>
-            Try again
-          </Button>
-        </div>
-      </main>
+      <>
+        <WindowDragRegion />
+        <main className="grid h-full place-items-center bg-background p-8">
+          <div className="w-full max-w-sm">
+            <HalfspaceLogo className="mb-8 size-10 rounded-xl" />
+            <h1 className="text-3xl font-semibold tracking-tight">Couldn’t open Halfspace</h1>
+            <p className="mt-3 text-sm text-muted-foreground">{error}</p>
+            <Button className="mt-6" onClick={() => void reload()}>
+              Try again
+            </Button>
+          </div>
+        </main>
+      </>
     )
   }
 
   if (connection === null) {
     return (
-      <main aria-label="Loading Halfspace" className="grid h-full place-items-center bg-background">
-        <HalfspaceLogo className="size-10 rounded-xl" />
-      </main>
+      <>
+        <WindowDragRegion />
+        <main
+          aria-label="Loading Halfspace"
+          className="grid h-full place-items-center bg-background"
+        >
+          <HalfspaceLogo className="size-10 rounded-xl" />
+        </main>
+      </>
     )
   }
 
   if (!connection?.configured) {
-    return <TokenSetup />
+    return (
+      <>
+        <WindowDragRegion />
+        <TokenSetup />
+      </>
+    )
   }
 
   return <Workspace rateLimit={rateLimit} />
@@ -95,14 +109,24 @@ function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): Re
 
   return (
     <div className="relative grid h-full grid-cols-[14.5rem_1fr] bg-background">
+      <WindowDragRegion sidebar />
       <aside className="flex min-h-0 flex-col border-r border-sidebar-border bg-sidebar px-3 py-4 text-foreground">
         <div className="px-3 pb-2.5 pt-7">
           <div className="flex items-center gap-3">
             <HalfspaceLogo alt="" className="size-8 rounded-[0.6rem]" />
             <div className="min-w-0">
-              <p className="truncate text-[15px] font-bold tracking-[-0.02em]">Halfspace</p>
+              <p className="truncate text-[15px] font-bold leading-none tracking-[-0.02em]">
+                Halfspace
+              </p>
+              <div className="mt-1 flex items-center gap-1.5 text-[11px] font-medium leading-none text-muted-foreground">
+                <Circle
+                  className={cn('size-1.5 fill-current', online ? 'text-success' : 'text-warning')}
+                />
+                <span>{online ? 'Online' : 'Offline'}</span>
+              </div>
             </div>
           </div>
+          {rateLimit && <RateLimitNotice rateLimit={rateLimit} />}
         </div>
 
         <nav aria-label="Workspace" className="mt-5 flex min-h-0 flex-1 flex-col">
@@ -185,15 +209,16 @@ function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): Re
           <Outlet />
         </main>
       </div>
-
-      <div className="pointer-events-none absolute right-5 top-2.5 z-20 flex items-center gap-3">
-        {rateLimit && <RateLimitNotice rateLimit={rateLimit} />}
-        <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-          <Circle className={cn('size-2 fill-current', online ? 'text-success' : 'text-warning')} />
-          {online ? 'Online' : 'Offline'}
-        </div>
-      </div>
     </div>
+  )
+}
+
+function WindowDragRegion({ sidebar = false }: { sidebar?: boolean }): React.JSX.Element {
+  return (
+    <div
+      aria-hidden="true"
+      className={cn('window-drag-region', sidebar && 'window-drag-region-sidebar')}
+    />
   )
 }
 
@@ -207,14 +232,15 @@ function RateLimitNotice({ rateLimit }: { rateLimit: SportmonksRateLimit }): Rea
   return (
     <div
       role="status"
-      className="flex items-center gap-1.5 rounded-md bg-warning-muted/15 px-2 py-1 text-xs font-medium text-warning-foreground"
+      className="mt-3 flex items-start gap-2 rounded-md bg-warning-muted/15 p-2 text-[11px] font-medium text-warning-foreground"
     >
-      <Clock3 className="size-3.5 shrink-0" />
-      <span>{subject} limit reached</span>
-      <span className="opacity-65">·</span>
-      <span className="opacity-75">
-        {rateLimit.estimated ? 'Available within an hour' : `Resets ${resetTime}`}
-      </span>
+      <Clock3 className="mt-0.5 size-3.5 shrink-0" />
+      <div className="min-w-0">
+        <p>{subject} limit reached</p>
+        <p className="font-normal opacity-75">
+          {rateLimit.estimated ? 'Available within an hour' : `Resets ${resetTime}`}
+        </p>
+      </div>
     </div>
   )
 }

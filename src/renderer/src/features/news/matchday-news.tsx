@@ -20,7 +20,7 @@ export function MatchdayNews({ online }: { online: boolean }): React.JSX.Element
       aria-label="Matchday news"
       className="flex min-h-0 flex-col border-t bg-sidebar min-[1120px]:sticky min-[1120px]:top-0 min-[1120px]:h-dvh min-[1120px]:border-l min-[1120px]:border-t-0 min-[1120px]:border-l-sidebar-border"
     >
-      <div className="flex shrink-0 items-center justify-between px-5 pb-4 pt-6 min-[1120px]:pt-10">
+      <div className="flex shrink-0 items-center justify-between px-5 pb-4 pt-6 min-[1120px]:pt-3">
         <h2 className="text-lg font-semibold tracking-tight">News</h2>
         <Button
           size="icon"

@@ -156,6 +156,11 @@ body {
   -webkit-app-region: drag;
 }
 
+.window-drag-region-sidebar {
+  right: auto;
+  width: 14.5rem;
+}
+
 button,
 input {
   font: inherit;

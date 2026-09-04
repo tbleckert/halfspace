@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { createMemoryHistory, createRouter, RouterProvider } from '@tanstack/react-router'
 import { afterAll, beforeEach, expect, it, vi } from 'vitest'
 import { clearSportmonksCache, db, writeNewsRefresh } from '@/data/db'
@@ -51,15 +51,32 @@ beforeEach(async () => {
 afterAll(() => db.close())
 
 function openMatchday(): void {
-  render(
-    <RouterProvider
-      router={createRouter({
-        routeTree,
-        history: createMemoryHistory({ initialEntries: ['/?date=2026-09-04'] })
-      })}
-    />
-  )
+  const router = createRouter({
+    routeTree,
+    history: createMemoryHistory({ initialEntries: ['/?date=2026-09-04'] })
+  })
+
+  render(<RouterProvider router={router} />)
 }
+
+it('chooses the Matchday date from the compact calendar control', async () => {
+  openMatchday()
+
+  expect(screen.queryByLabelText('Fixture date')).toBeNull()
+  fireEvent.click(
+    await screen.findByRole('button', {
+      name: /Choose fixture date/
+    })
+  )
+  fireEvent.click(await screen.findByRole('button', { name: /Friday, September 11/ }))
+
+  await waitFor(() =>
+    expect(
+      document.querySelector('[data-slot="popover-trigger"]')?.getAttribute('aria-label')
+    ).toMatch(/September 11/)
+  )
+  expect(screen.queryByText('Choose fixture date')).toBeNull()
+})
 
 it('opens cached news from Matchday with fixture and season context', async () => {
   openMatchday()

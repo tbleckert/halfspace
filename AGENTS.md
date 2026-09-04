@@ -24,9 +24,9 @@ abstractions.
 - Keep the application shell quiet. The sidebar is only slightly lighter than the content canvas,
   with a subtle white boundary; use muted active-item backgrounds and brand blue for active text
   instead of large areas of solid brand color.
-- Keep a dedicated drag region across the empty top strip of the hidden-title-bar window. It must
-  remain available in setup states as well as the main workspace; keep interactive controls outside
-  it or explicitly mark them as non-draggable.
+- Keep a dedicated drag region across the empty top strip of setup states. In the main workspace,
+  limit that region to the sidebar so the live ticker can sit flush against the top edge; keep
+  interactive controls outside it or explicitly mark them as non-draggable.
 - Use shadcn/ui's Nova style (`b0`) as the density reference: compact 32px default controls,
   restrained radii, and tighter page and card spacing. Preserve Halfspace's own palette and
   football-specific presentation rather than applying a preset as a wholesale visual reset.
@@ -139,8 +139,8 @@ abstractions.
   in the Fixture Stats view, grouped by team and linked to the existing player pages.
 - Give lineup portraits solid warm-white circular backplates with a subtle shadow rather than
   outline rings. Keep shirt numbers and event annotations offset as separate, smaller markers.
-- Keep provider rate limits distinct from connectivity. Show connectivity persistently in the
-  upper-right app chrome and place a compact rate-limit status beside it, retain cached data, and
+- Keep provider rate limits distinct from connectivity. Show connectivity persistently beneath the
+  Halfspace name in the sidebar and place a compact rate-limit status below it, retain cached data, and
   remove the status automatically when the limit resets. Use Sportmonks' exact reset time when
   supplied; otherwise say it will be available within an hour rather than inventing a timestamp.
 - Treat Sportmonks states 2, 6, 9, and 22 as live. Show a reduced-motion-safe live indicator and
@@ -183,8 +183,9 @@ abstractions.
   has the available header space.
 - Treat Matchday as a rolling fixture hub around the selected date. Use a compact seven-day
   Monday-to-Sunday navigator with only a small weekday and a two-digit day in the interface font,
-  no fixture counts or container chrome, and place it first in the page header beside the date and
-  refresh controls. Put previous- and next-week chevrons on its edges. Distinguish the
+  no fixture counts or container chrome, and place it first in the page header beside calendar and
+  refresh icon controls. Use the compact shadcn date picker rather than showing the selected date
+  again; keep Today inside that picker. Put previous- and next-week chevrons on its edges. Distinguish the
   selected day through text emphasis. When the week spans months, mute dates outside the selected
   month slightly. Separate current live fixtures, keep an empty selected day quiet, and surface the
   next three fixture days plus the two latest result days as compact previews linking to the
@@ -314,7 +315,8 @@ abstractions.
   headlines, competition logos, and Previews / Reports controls. Reuse the first page of the shared
   news cache and article reader; keep the feed independent of the selected fixture date. At narrower
   widths, place news below fixtures rather than squeezing the match list. Adapt the Matchday header
-  to its available column width, not only the viewport width.
+  to its available column width, not only the viewport width. Keep both the week navigation and News
+  heading close beneath the live ticker rather than reserving title-bar spacing below it.
 - Match facts belong in Fixture Preview with participant, category, and scope filters. Fetch every page
   before caching the response; show provider-written facts verbatim and omit records without wording.
   Facts can describe the referee as well as home, away, or both teams. Accept referee records even
