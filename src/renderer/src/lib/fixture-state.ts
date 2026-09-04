@@ -16,7 +16,8 @@ export function fixtureProgressLabel(fixture: SportmonksFixture): string | null 
   if (fixture.state_id === 3) return fixture.state?.short_name ?? 'HT'
 
   const period = fixture.periods?.find(({ ticking }) => ticking)
-  if (!period) return fixture.state?.short_name ?? fixture.state?.name ?? 'Live'
+  if (!period || period.minutes === null)
+    return fixture.state?.short_name ?? fixture.state?.name ?? 'Live'
 
   const regularPeriodEnd = period.counts_from + period.period_length
   if (period.minutes > regularPeriodEnd) {

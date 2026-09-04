@@ -550,7 +550,7 @@ const periodSchema = z
     description: z.string(),
     time_added: z.number().int().nullable(),
     period_length: z.number().int(),
-    minutes: z.number().int(),
+    minutes: z.number().int().nullable(),
     seconds: z.number().int(),
     has_timer: z.boolean()
   })

@@ -42,6 +42,28 @@ describe('fixture state', () => {
     ).toBe('45+2′')
   })
 
+  it('uses the match phase when a ticking period has no reported minute', () => {
+    expect(
+      fixtureRowStatus(
+        fixture({
+          state_id: 9,
+          state: { id: 9, name: 'Penalties', short_name: 'PEN' },
+          periods: [
+            period({ type_id: 5, description: 'penalties', minutes: null, period_length: 0 })
+          ]
+        })
+      )
+    ).toEqual({ kind: 'in-play', label: 'PEN' })
+  })
+
+  it('keeps a reported zero minute distinct from a missing minute', () => {
+    expect(
+      fixtureProgressLabel(
+        fixture({ state_id: 2, periods: [period({ counts_from: 0, minutes: 0 })] })
+      )
+    ).toBe('0′')
+  })
+
   it('shows a status label while the fixture is at half-time', () => {
     expect(
       fixtureProgressLabel(

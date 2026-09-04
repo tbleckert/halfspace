@@ -115,6 +115,46 @@ describe('Sportmonks client', () => {
     expect(url.searchParams.has('filters')).toBe(false)
   })
 
+  it('keeps the complete Matchday window when a shootout period has no reported minute', async () => {
+    const shootout = {
+      id: 7070698,
+      fixture_id: 19728368,
+      type_id: 5,
+      started: 1788357993,
+      ended: 1788361785,
+      counts_from: 120,
+      ticking: false,
+      sort_order: 5,
+      description: 'penalties',
+      time_added: null,
+      period_length: 0,
+      minutes: null,
+      seconds: 0,
+      has_timer: false
+    }
+    const fetcher = vi.fn<typeof fetch>(async (input) => {
+      const page = Number(new URL(String(input)).searchParams.get('page'))
+      return Response.json({
+        data:
+          page === 1
+            ? [{ ...makeFixture(), id: 19728368, state_id: 8, periods: [shootout] }]
+            : [{ ...makeFixture(), id: 2 }],
+        pagination: { current_page: page, has_more: page === 1 },
+        timezone: 'Europe/Stockholm'
+      })
+    })
+
+    const result = await fetchFixturesByDateRange(
+      { startDate: '2026-08-31', endDate: '2026-09-11', timeZone: 'Europe/Stockholm' },
+      'private-token',
+      fetcher
+    )
+
+    expect(result.fixtures.map(({ id }) => id)).toEqual([19728368, 2])
+    expect(result.fixtures[0].periods?.[0]).toEqual(shootout)
+    expect(result.pageCount).toBe(2)
+  })
+
   it('fetches a fixture entity with match context and workspace data', async () => {
     const baseFixture = makeFixture()
     const fixture = {

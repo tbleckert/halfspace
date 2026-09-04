@@ -659,7 +659,7 @@ export interface SportmonksPeriod {
   description: string
   time_added: number | null
   period_length: number
-  minutes: number
+  minutes: number | null
   seconds: number
   has_timer: boolean
 }

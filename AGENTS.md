@@ -187,6 +187,8 @@ abstractions.
   existing daily Dexie queries, and refresh the selected day separately so live updates do not
   refetch the full window.
 - Derive live match time from Sportmonks periods rather than elapsed wall-clock time.
+- Period minutes can be null, including penalty shootouts. Preserve the missing value and fall
+  back to the match phase; never reject the entire fixture window or invent a zero-minute clock.
 - Fixture timelines include the event player relationship so player portraits can accompany events.
   Respect Sportmonks `sort_order` when sequencing events that share a match minute.
 - Fixture Commentary is lazy-loaded from the dedicated non-paginated endpoint. Keep it cached per
