@@ -1,4 +1,4 @@
-import type { CachedFixture, CachedStanding } from '@/data/db'
+import type { CachedFixture, CachedStanding, CachedTeam } from '@/data/db'
 import type { SportmonksSeason } from '@shared/contracts'
 
 export interface StandingGroup {
@@ -11,6 +11,7 @@ export interface CompetitionTeam {
   id: number
   imagePath: string | null
   name: string
+  countryName?: string | null
   points: number | null
   position: number | null
 }
@@ -36,7 +37,8 @@ export function groupStandings(standings: readonly CachedStanding[]): StandingGr
 
 export function competitionTeams(
   standings: readonly CachedStanding[],
-  fixtures: readonly CachedFixture[]
+  fixtures: readonly CachedFixture[],
+  seasonTeams?: readonly CachedTeam[]
 ): CompetitionTeam[] {
   const teams = new Map<number, CompetitionTeam>()
 
@@ -61,6 +63,23 @@ export function competitionTeams(
         name: participant.name,
         points: null,
         position: null
+      })
+    }
+  }
+
+  if (seasonTeams) {
+    const seasonIds = new Set(seasonTeams.map(({ id }) => id))
+    for (const id of teams.keys()) {
+      if (!seasonIds.has(id)) teams.delete(id)
+    }
+    for (const team of seasonTeams) {
+      teams.set(team.id, {
+        id: team.id,
+        name: team.name,
+        imagePath: team.imagePath,
+        countryName: team.raw.country?.name ?? null,
+        position: teams.get(team.id)?.position ?? null,
+        points: teams.get(team.id)?.points ?? null
       })
     }
   }

@@ -33,6 +33,9 @@ import type {
   SportmonksReferee,
   CoachRefresh,
   CompetitionRefresh,
+  CompetitionDetailRefresh,
+  TeamCompetitionsRefresh,
+  SeasonTeamsRefresh,
   CompetitionSeasonsRefresh,
   EntitySearchRefresh,
   FixtureDetailRefresh,
@@ -470,6 +473,26 @@ export interface TransferFeedQuery {
   staleAt: number
 }
 
+export interface CompetitionDetailQuery {
+  competitionId: number
+  fetchedAt: number
+  staleAt: number
+}
+
+export interface TeamCompetitionQuery {
+  teamId: number
+  competitionIds: number[]
+  fetchedAt: number
+  staleAt: number
+}
+
+export interface SeasonTeamQuery {
+  seasonId: number
+  teamIds: number[]
+  fetchedAt: number
+  staleAt: number
+}
+
 export interface CompetitionCatalog {
   key: string
   competitionIds: number[]
@@ -580,6 +603,9 @@ class HalfspaceDatabase extends Dexie {
   broadcasterQueries!: Table<BroadcasterQuery, number>
   broadcastScheduleQueries!: Table<BroadcastScheduleQuery, string>
   teamOfWeekQueries!: Table<TeamOfWeekQuery, string>
+  competitionDetailQueries!: Table<CompetitionDetailQuery, number>
+  teamCompetitionQueries!: Table<TeamCompetitionQuery, number>
+  seasonTeamQueries!: Table<SeasonTeamQuery, number>
   teamRivalsQueries!: Table<TeamRivalsQuery, number>
   fixtureCommentaryQueries!: Table<FixtureCommentaryQuery, number>
   seasonScheduleQueries!: Table<SeasonScheduleQuery, number>
@@ -900,6 +926,11 @@ class HalfspaceDatabase extends Dexie {
       fixtureTrendsQueries: '&fixtureId, staleAt',
       broadcasterQueries: '&stationId, staleAt',
       broadcastScheduleQueries: '&key, stationId, staleAt'
+    })
+    this.version(35).stores({
+      competitionDetailQueries: '&competitionId, staleAt',
+      teamCompetitionQueries: '&teamId, staleAt',
+      seasonTeamQueries: '&seasonId, staleAt'
     })
   }
 }
@@ -1812,6 +1843,122 @@ export async function writeFixtureHeadToHeadRefresh(
   })
 }
 
+export async function readCompetitionDetail(competitionId: number): Promise<{
+  competition: CachedCompetition | null
+  query: CompetitionDetailQuery | null
+}> {
+  const [competition, query] = await Promise.all([
+    db.competitions.get(competitionId),
+    db.competitionDetailQueries.get(competitionId)
+  ])
+  return { competition: competition ?? null, query: query ?? null }
+}
+
+export async function writeCompetitionDetailRefresh(
+  competitionId: number,
+  refresh: CompetitionDetailRefresh
+): Promise<void> {
+  if (refresh.competition.id !== competitionId)
+    throw new Error('Competition does not match the selected query.')
+  await db.transaction('rw', db.competitions, db.competitionDetailQueries, async () => {
+    const existing = await db.competitionDetailQueries.get(competitionId)
+    if (existing && existing.fetchedAt > refresh.fetchedAt) return
+    await cacheIncludedCompetitions([refresh.competition], refresh.fetchedAt)
+    await db.competitionDetailQueries.put({
+      competitionId,
+      fetchedAt: refresh.fetchedAt,
+      staleAt: refresh.fetchedAt + competitionCacheDuration
+    })
+  })
+}
+
+export async function readTeamCompetitions(
+  teamId: number
+): Promise<(TeamCompetitionQuery & { competitions: CachedCompetition[] }) | null> {
+  const query = await db.teamCompetitionQueries.get(teamId)
+  if (!query) return null
+  const competitions = (await db.competitions.bulkGet(query.competitionIds)).filter(
+    (competition): competition is CachedCompetition => competition !== undefined
+  )
+  return { ...query, competitions }
+}
+
+export async function writeTeamCompetitionsRefresh(
+  teamId: number,
+  refresh: TeamCompetitionsRefresh
+): Promise<void> {
+  if (refresh.teamId !== teamId) throw new Error('Competitions do not match the selected team.')
+  await db.transaction('rw', db.competitions, db.teamCompetitionQueries, async () => {
+    const existing = await db.teamCompetitionQueries.get(teamId)
+    if (existing && existing.fetchedAt > refresh.fetchedAt) return
+    await cacheIncludedCompetitions(refresh.competitions, refresh.fetchedAt)
+    await db.teamCompetitionQueries.put({
+      teamId,
+      competitionIds: [...new Set(refresh.competitions.map(({ id }) => id))],
+      fetchedAt: refresh.fetchedAt,
+      staleAt: refresh.fetchedAt + competitionCacheDuration
+    })
+  })
+}
+
+export async function readSeasonTeams(
+  seasonId: number
+): Promise<(SeasonTeamQuery & { teams: CachedTeam[] }) | null> {
+  const query = await db.seasonTeamQueries.get(seasonId)
+  if (!query) return null
+  const teams = (await db.teams.bulkGet(query.teamIds)).filter(
+    (team): team is CachedTeam => team !== undefined
+  )
+  return { ...query, teams }
+}
+
+export async function writeSeasonTeamsRefresh(
+  seasonId: number,
+  refresh: SeasonTeamsRefresh
+): Promise<void> {
+  if (refresh.seasonId !== seasonId) throw new Error('Teams do not match the selected season.')
+  await db.transaction('rw', db.teams, db.seasonTeamQueries, async () => {
+    const query = await db.seasonTeamQueries.get(seasonId)
+    if (query && query.fetchedAt > refresh.fetchedAt) return
+    const teams = [...new Map(refresh.teams.map((team) => [team.id, team])).values()]
+    const existing = await db.teams.bulkGet(teams.map(({ id }) => id))
+    await db.teams.bulkPut(
+      teams.map((team, index) => toCachedIncludedTeam(team, existing[index], refresh.fetchedAt))
+    )
+    await db.seasonTeamQueries.put({
+      seasonId,
+      teamIds: teams.map(({ id }) => id),
+      fetchedAt: refresh.fetchedAt,
+      staleAt: refresh.fetchedAt + competitionCacheDuration
+    })
+  })
+}
+
+async function cacheIncludedCompetitions(
+  competitions: SportmonksCompetition[],
+  fetchedAt: number
+): Promise<void> {
+  const existing = await db.competitions.bulkGet(competitions.map(({ id }) => id))
+  await db.competitions.bulkPut(
+    competitions.map((competition, index) => {
+      const previous = existing[index]
+      if (previous && previous.fetchedAt > fetchedAt) return previous
+      const raw = { ...previous?.raw, ...competition }
+      return {
+        id: raw.id,
+        countryId: raw.country_id,
+        name: raw.name,
+        active: raw.active,
+        imagePath: raw.image_path ?? null,
+        currentSeasonId: raw.currentseason?.id ?? null,
+        currentSeasonName: raw.currentseason?.name ?? null,
+        raw,
+        fetchedAt
+      }
+    })
+  )
+}
+
 export async function readCompetitionCatalog(): Promise<{
   catalog: CompetitionCatalog | null
   competitions: CachedCompetition[]
@@ -1827,20 +1974,9 @@ export async function readCompetitionCatalog(): Promise<{
 }
 
 export async function writeCompetitionRefresh(refresh: CompetitionRefresh): Promise<void> {
-  const competitions = refresh.competitions.map((competition) => ({
-    id: competition.id,
-    countryId: competition.country_id,
-    name: competition.name,
-    active: competition.active,
-    imagePath: competition.image_path ?? null,
-    currentSeasonId: competition.currentseason?.id ?? null,
-    currentSeasonName: competition.currentseason?.name ?? null,
-    raw: competition,
-    fetchedAt: refresh.fetchedAt
-  }))
   const catalog: CompetitionCatalog = {
     key: subscribedCompetitionCatalog,
-    competitionIds: competitions.map(({ id }) => id),
+    competitionIds: refresh.competitions.map(({ id }) => id),
     fetchedAt: refresh.fetchedAt,
     staleAt: refresh.fetchedAt + competitionCacheDuration,
     pageCount: refresh.pageCount,
@@ -1850,7 +1986,9 @@ export async function writeCompetitionRefresh(refresh: CompetitionRefresh): Prom
   }
 
   await db.transaction('rw', db.competitions, db.competitionCatalogs, async () => {
-    await db.competitions.bulkPut(competitions)
+    const existingCatalog = await db.competitionCatalogs.get(subscribedCompetitionCatalog)
+    if (existingCatalog && existingCatalog.fetchedAt > refresh.fetchedAt) return
+    await cacheIncludedCompetitions(refresh.competitions, refresh.fetchedAt)
     await db.competitionCatalogs.put(catalog)
   })
 }
@@ -2012,17 +2150,6 @@ export async function readEntitySearch(query: string): Promise<EntitySearchResul
 
 export async function writeEntitySearchRefresh(refresh: EntitySearchRefresh): Promise<void> {
   const staleAt = refresh.fetchedAt + teamCacheDuration
-  const competitions: CachedCompetition[] = refresh.competitions.map((competition) => ({
-    id: competition.id,
-    countryId: competition.country_id,
-    name: competition.name,
-    active: competition.active,
-    imagePath: competition.image_path ?? null,
-    currentSeasonId: competition.currentseason?.id ?? null,
-    currentSeasonName: competition.currentseason?.name ?? null,
-    raw: competition,
-    fetchedAt: refresh.fetchedAt
-  }))
   const players: CachedPlayer[] = refresh.players.map((player) => ({
     id: player.id,
     name: player.name,
@@ -2062,7 +2189,7 @@ export async function writeEntitySearchRefresh(refresh: EntitySearchRefresh): Pr
         toCachedReferee(referee, refresh.fetchedAt, existingReferees[index])
       )
       const fixtures = await toCachedFixtures(refresh.fixtures, refresh.fetchedAt, staleAt)
-      await db.competitions.bulkPut(competitions)
+      await cacheIncludedCompetitions(refresh.competitions, refresh.fetchedAt)
       await db.teams.bulkPut(teams)
       await db.players.bulkPut(players)
       await db.coaches.bulkPut(coaches)
@@ -2985,6 +3112,9 @@ export async function clearSportmonksCache(): Promise<void> {
       db.teams,
       db.teamFixtureQueries,
       db.teamRivalsQueries,
+      db.competitionDetailQueries,
+      db.teamCompetitionQueries,
+      db.seasonTeamQueries,
       db.teamStatisticsQueries,
       db.venues,
       db.players,
@@ -3039,6 +3169,9 @@ export async function clearSportmonksCache(): Promise<void> {
       await db.teams.clear()
       await db.teamFixtureQueries.clear()
       await db.teamRivalsQueries.clear()
+      await db.competitionDetailQueries.clear()
+      await db.teamCompetitionQueries.clear()
+      await db.seasonTeamQueries.clear()
       await db.teamStatisticsQueries.clear()
       await db.venues.clear()
       await db.players.clear()
@@ -3169,6 +3302,7 @@ function toCachedIncludedTeam(
   existing: CachedTeam | undefined,
   fetchedAt: number
 ): CachedTeam {
+  if (existing && existing.fetchedAt > fetchedAt) return existing
   const raw = existing
     ? {
         ...existing.raw,

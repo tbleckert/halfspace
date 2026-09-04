@@ -52,7 +52,8 @@ abstractions.
   a previous page must not overwrite the status of the page the user is viewing.
 - Competition pages use horizontal local navigation for Overview, Fixtures, and Teams. Overview is
   the current-season snapshot, Fixtures browses the complete cached date window without truncating
-  it, and Teams combines standings with fixture participants when a table is unavailable. Offer the
+  it, and Teams fetches the complete paginated season team list, adds reported standings, and falls back to
+  cached standings and fixture participants only until that list is available. Offer the
   ten most recent seasons in a compact URL-backed selector; keep standings and fixture windows
   season-scoped, and keep the selected season when changing competition views or opening a fixture.
   Changing the selected season must retain the active competition subpage.
@@ -71,6 +72,12 @@ abstractions.
   in the URL. Default to the current stage and round; clear those selections when switching seasons.
   The schedules endpoint is non-paginated and does not accept includes.
   While a schedule contains ongoing matches, shorten its cache window to 30 seconds.
+- Competition pages refresh their identity directly through League by ID. Cache detail freshness
+  separately from subscription catalog membership; search and discovery must preserve newer identities.
+- Team Overview shows Current competitions from the complete paginated current-leagues endpoint,
+  with each competition's own current season. Keep this membership separate from historical standings,
+  originating season context, and subscribed sidebar membership. Cache it for a day and retain identities
+  when membership changes. Unknown current seasons must not borrow an old standing's season.
 - Team pages use horizontal local navigation beneath the team header and above their competition
   context. Keep Overview, Fixtures, and Squad there, and extend that menu when more team views are
   added. Make the active item prominent with the shared active-indicator treatment.

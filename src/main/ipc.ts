@@ -9,6 +9,9 @@ import {
   fetchSeasonSchedule,
   validateSeasonScheduleInput,
   fetchCompetitions,
+  fetchCompetitionById,
+  fetchSeasonTeams,
+  fetchTeamCompetitions,
   fetchCoachById,
   fetchRefereeById,
   fetchCompetitionFixtures,
@@ -268,6 +271,24 @@ export function registerIpcHandlers(): void {
     validateFixtureInput,
     fetchFixtureCommentary,
     'Could not refresh commentary.'
+  )
+  registerSportmonksHandler(
+    ipcChannels.refreshCompetition,
+    validateCompetitionSeasonsInput,
+    fetchCompetitionById,
+    'Could not refresh competition.'
+  )
+  registerSportmonksHandler(
+    ipcChannels.refreshSeasonTeams,
+    validateStandingsInput,
+    fetchSeasonTeams,
+    'Could not refresh season teams.'
+  )
+  registerSportmonksHandler(
+    ipcChannels.refreshTeamCompetitions,
+    validateTeamInput,
+    fetchTeamCompetitions,
+    'Could not refresh current competitions.'
   )
   registerSportmonksHandlerWithoutInput(
     ipcChannels.refreshCompetitions,

@@ -9,7 +9,7 @@ import {
   Trophy,
   UsersRound
 } from 'lucide-react'
-import { db, readLiveFixtureQuery } from '@/data/db'
+import { readLiveFixtureQuery } from '@/data/db'
 import { EntitySubpageNavigation } from '@/components/entity-subpage-navigation'
 import { entitySubpageNavigationItemClassName } from '@/components/entity-subpage-navigation-variants'
 import { ErrorAlert } from '@/components/error-alert'
@@ -32,6 +32,8 @@ import { intentPrefetchProps } from '@/lib/prefetch'
 import { cn } from '@/lib/utils'
 import { useOnline } from '@/lib/use-online'
 import { CompetitionLogo } from './competition-logo'
+import { useCompetitionDetail } from './use-competition-detail'
+import { useSeasonTeams } from './use-season-teams'
 import { CompetitionLeaderCards } from './competition-leader-cards'
 import { PlayerLeaders } from './player-leaders'
 import { SeasonSchedule } from './season-schedule'
@@ -89,12 +91,9 @@ export function CompetitionWorkspacePage({
 }): React.JSX.Element {
   const parsedCompetitionId = Number(competitionId)
   const validCompetitionId = Number.isSafeInteger(parsedCompetitionId) && parsedCompetitionId > 0
-  const competition = useScopedLiveQuery(
-    async () =>
-      validCompetitionId ? ((await db.competitions.get(parsedCompetitionId)) ?? null) : null,
-    [parsedCompetitionId, validCompetitionId]
-  )
   const online = useOnline()
+  const detail = useCompetitionDetail(validCompetitionId ? parsedCompetitionId : null, online)
+  const competition = detail.cached?.competition
   const navigate = useNavigate({ from: '/competitions/$competitionId' })
   const timeZone = useMemo(() => currentTimeZone(), [])
   const today = todayInTimeZone(timeZone)
@@ -137,6 +136,7 @@ export function CompetitionWorkspacePage({
     (requestedSeasonId && !seasons.cached ? requestedSeasonId : selectedSeason?.id) ??
     competition?.currentSeasonId ??
     observedSeasonId
+  const seasonTeams = useSeasonTeams(seasonId, online && view === 'teams')
   const currentSeason = selectedSeason?.is_current ?? seasonId === competition?.currentSeasonId
   const liveTable = view === 'table' && table === 'live' && !round && currentSeason
   const liveFixtures = useScopedLiveQuery(readLiveFixtureQuery, [])
@@ -197,10 +197,17 @@ export function CompetitionWorkspacePage({
     [seasonFixtures, timeZone]
   )
   const teams = useMemo(
-    () => competitionTeams(standings.cached?.standings ?? [], seasonFixtures),
-    [seasonFixtures, standings.cached?.standings]
+    () =>
+      competitionTeams(
+        standings.cached?.standings ?? [],
+        seasonFixtures,
+        seasonTeams.cached?.teams
+      ),
+    [seasonFixtures, standings.cached?.standings, seasonTeams.cached?.teams]
   )
   const refreshing =
+    detail.refreshing ||
+    (view === 'teams' && seasonTeams.refreshing) ||
     (view === 'knockout' && bracket.refreshing) ||
     seasons.refreshing ||
     (showSchedule
@@ -213,6 +220,8 @@ export function CompetitionWorkspacePage({
     (view === 'table' && roundStandings.refreshing) ||
     (liveTable && liveStandings.refreshing)
   const errors = [
+    detail.error,
+    view === 'teams' ? seasonTeams.error : null,
     view === 'knockout' ? bracket.error : null,
     seasons.error,
     showSchedule
@@ -228,11 +237,16 @@ export function CompetitionWorkspacePage({
     view === 'table' ? roundStandings.error : null
   ].filter((error): error is string => Boolean(error))
 
-  if (competition === undefined) return <CompetitionWorkspaceSkeleton />
-  if (!competition) return <MissingCompetition />
+  if (!validCompetitionId) return <MissingCompetition />
+  if (detail.cached === undefined || (!competition && online && !detail.error))
+    return <CompetitionWorkspaceSkeleton />
+  if (!competition)
+    return <MissingCompetition message={detail.error ?? 'Competition not available offline.'} />
 
   async function refresh(): Promise<void> {
     await Promise.all([
+      detail.refresh(),
+      view === 'teams' ? seasonTeams.refresh() : Promise.resolve(),
       view === 'knockout' ? bracket.refresh() : Promise.resolve(),
       seasons.refresh(),
       showSchedule
@@ -490,8 +504,13 @@ export function CompetitionWorkspacePage({
 
       {view === 'teams' && (
         <CompetitionTeams
+          available={Boolean(seasonTeams.cached)}
           competitionId={competition.id}
-          loaded={fixtures.cached !== undefined && standings.cached !== undefined}
+          loaded={
+            seasonTeams.cached !== undefined &&
+            fixtures.cached !== undefined &&
+            standings.cached !== undefined
+          }
           loading={refreshing}
           online={online}
           season={seasonId ?? undefined}
@@ -831,6 +850,7 @@ function CompetitionFixtures({
 }
 
 function CompetitionTeams({
+  available,
   competitionId,
   loaded,
   loading,
@@ -838,6 +858,7 @@ function CompetitionTeams({
   season,
   teams
 }: {
+  available: boolean
   competitionId: number
   loaded: boolean
   loading: boolean
@@ -851,7 +872,15 @@ function CompetitionTeams({
     return (
       <EmptyPanel
         icon={<UsersRound className="size-6" />}
-        label={loading ? 'Loading teams…' : 'No teams'}
+        label={
+          loading
+            ? 'Loading teams…'
+            : available
+              ? 'No teams reported'
+              : online
+                ? 'Teams unavailable'
+                : 'Teams not available offline'
+        }
       />
     )
   }
@@ -876,6 +905,9 @@ function CompetitionTeams({
               />
               <div className="min-w-0">
                 <h3 className="truncate font-semibold">{team.name}</h3>
+                {team.countryName && (
+                  <p className="mt-1 text-xs text-muted-foreground">{team.countryName}</p>
+                )}
                 {team.position !== null && (
                   <p className="mt-1 font-mono text-sm tabular-nums text-muted-foreground">
                     #{team.position} · {team.points} pts
@@ -910,12 +942,16 @@ function formatFixtureGroupDate(date: string): string {
   }).format(new Date(`${date}T12:00:00Z`))
 }
 
-function MissingCompetition(): React.JSX.Element {
+function MissingCompetition({
+  message = 'Competition not found.'
+}: {
+  message?: string
+}): React.JSX.Element {
   return (
     <div className="mx-auto max-w-3xl p-10">
       <Card>
         <CardContent className="p-6">
-          <p className="font-medium">Competition not found.</p>
+          <p className="font-medium">{message}</p>
           <Link to="/competitions" className={cn(buttonVariants({ variant: 'outline' }), 'mt-4')}>
             Competitions
           </Link>

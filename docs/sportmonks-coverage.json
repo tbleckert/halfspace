@@ -138,6 +138,9 @@
       "form",
       "rule"
     ],
-    "tv-stations/get-tv-station-by-id": []
+    "tv-stations/get-tv-station-by-id": [],
+    "leagues/get-league-by-id": ["country", "currentSeason"],
+    "leagues/get-current-leagues-by-team-id": ["country", "currentSeason"],
+    "teams/get-teams-by-season-id": ["country"]
   }
 }

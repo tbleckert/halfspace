@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { SportmonksSeason } from '@shared/contracts'
-import type { CachedFixture, CachedStanding } from '@/data/db'
+import type { CachedFixture, CachedStanding, CachedTeam } from '@/data/db'
 import {
   competitionSeasonOptions,
   competitionTeams,
@@ -77,6 +77,43 @@ describe('competition workspace data', () => {
       { id: 2, imagePath: 'north.png', name: 'North FC', points: 10, position: 2 },
       { id: 3, imagePath: 'west.png', name: 'West FC', points: null, position: null }
     ])
+  })
+
+  it('uses reported season membership while retaining table positions and teams outside the fixture window', () => {
+    const seasonTeams: CachedTeam[] = [1, 3].map((id) => ({
+      id,
+      name: `Club ${id}`,
+      imagePath: null,
+      countryId: 1,
+      venueId: null,
+      fetchedAt: 1,
+      staleAt: 2,
+      raw: {
+        id,
+        name: `Club ${id}`,
+        country_id: 1,
+        sport_id: 1,
+        venue_id: null,
+        gender: 'male',
+        founded: null,
+        placeholder: false,
+        country: { id: 1, name: 'England' }
+      }
+    }))
+    const standings = [standing(1, 1, 'overall', { id: 1, name: 'Club 1', image_path: null })]
+    const fixtures = [fixture(1, 1, [{ id: 2, name: 'Unlisted Club' }])]
+    expect(competitionTeams(standings, fixtures, seasonTeams)).toEqual([
+      { id: 1, name: 'Club 1', imagePath: null, countryName: 'England', position: 1, points: 10 },
+      {
+        id: 3,
+        name: 'Club 3',
+        imagePath: null,
+        countryName: 'England',
+        position: null,
+        points: null
+      }
+    ])
+    expect(competitionTeams(standings, fixtures, [])).toEqual([])
   })
 
   it('offers the ten most recent seasons in recency order', () => {

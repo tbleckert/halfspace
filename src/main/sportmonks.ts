@@ -9,6 +9,9 @@ import type {
   RefreshRefereeInput,
   CoachRefresh,
   CompetitionRefresh,
+  CompetitionDetailRefresh,
+  TeamCompetitionsRefresh,
+  SeasonTeamsRefresh,
   CompetitionSeasonsRefresh,
   EntitySearchInput,
   EntitySearchRefresh,
@@ -1813,6 +1816,27 @@ export async function fetchCompetitions(
   token: string,
   fetcher: typeof fetch = fetch
 ): Promise<CompetitionRefresh> {
+  return fetchCompetitionList('/leagues', token, fetcher)
+}
+
+export async function fetchTeamCompetitions(
+  input: RefreshTeamInput,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<TeamCompetitionsRefresh> {
+  const result = await fetchCompetitionList(
+    `/leagues/teams/${input.teamId}/current`,
+    token,
+    fetcher
+  )
+  return { ...result, teamId: input.teamId }
+}
+
+async function fetchCompetitionList(
+  path: string,
+  token: string,
+  fetcher: typeof fetch
+): Promise<CompetitionRefresh> {
   const competitions: SportmonksCompetition[] = []
   const fetchedAt = Date.now()
   let page = 1
@@ -1820,13 +1844,19 @@ export async function fetchCompetitions(
   let message: string | undefined
 
   while (page <= maximumPages) {
-    const url = new URL(`${apiBaseUrl}/leagues`)
+    const url = new URL(`${apiBaseUrl}${path}`)
     url.searchParams.set('include', 'country;currentSeason')
     url.searchParams.set('per_page', '50')
     url.searchParams.set('page', String(page))
 
     const parsed = await requestSportmonks(url, token, competitionResponseSchema, fetcher)
 
+    if (parsed.pagination.current_page !== page) {
+      throw new SportmonksError(
+        'invalid_response',
+        'Sportmonks returned an unexpected competition page.'
+      )
+    }
     competitions.push(...(parsed.data as SportmonksCompetition[]))
     message = parsed.message ?? message
 
@@ -1850,6 +1880,74 @@ export async function fetchCompetitions(
     page += 1
   }
 
+  throw new SportmonksError('invalid_response', 'Sportmonks returned too many result pages.')
+}
+
+export async function fetchCompetitionById(
+  input: RefreshCompetitionSeasonsInput,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<CompetitionDetailRefresh> {
+  const fetchedAt = Date.now()
+  const url = new URL(`${apiBaseUrl}/leagues/${input.competitionId}`)
+  url.searchParams.set('include', 'country;currentSeason')
+  const schema = competitionResponseSchema
+    .omit({ pagination: true })
+    .extend({ data: competitionSchema })
+  const parsed = await requestSportmonks(url, token, schema, fetcher)
+  if (
+    parsed.data.id !== input.competitionId ||
+    (parsed.data.currentseason && parsed.data.currentseason.league_id !== input.competitionId)
+  ) {
+    throw new SportmonksError(
+      'invalid_response',
+      'Competition response does not match the selected competition.'
+    )
+  }
+  return {
+    competition: parsed.data,
+    fetchedAt,
+    rateLimit: parsed.rate_limit
+      ? {
+          remaining: parsed.rate_limit.remaining,
+          resetsAt: fetchedAt + parsed.rate_limit.resets_in_seconds * 1000
+        }
+      : undefined,
+    message: parsed.message
+  }
+}
+
+export async function fetchSeasonTeams(
+  input: RefreshStandingsInput,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<SeasonTeamsRefresh> {
+  const fetchedAt = Date.now()
+  const teams: SportmonksTeam[] = []
+  const schema = competitionResponseSchema.extend({ data: z.array(teamSchema) })
+  let rateLimit: SeasonTeamsRefresh['rateLimit']
+  let message: string | undefined
+  for (let page = 1; page <= maximumPages; page += 1) {
+    const url = new URL(`${apiBaseUrl}/teams/seasons/${input.seasonId}`)
+    url.searchParams.set('include', 'country')
+    url.searchParams.set('per_page', '50')
+    url.searchParams.set('page', String(page))
+    const parsed = await requestSportmonks(url, token, schema, fetcher)
+    if (parsed.pagination.current_page !== page) {
+      throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected team page.')
+    }
+    teams.push(...parsed.data)
+    message = parsed.message ?? message
+    if (parsed.rate_limit) {
+      rateLimit = {
+        remaining: parsed.rate_limit.remaining,
+        resetsAt: fetchedAt + parsed.rate_limit.resets_in_seconds * 1000
+      }
+    }
+    if (!parsed.pagination.has_more) {
+      return { seasonId: input.seasonId, teams, fetchedAt, pageCount: page, rateLimit, message }
+    }
+  }
   throw new SportmonksError('invalid_response', 'Sportmonks returned too many result pages.')
 }
 

@@ -1,6 +1,6 @@
 # Sportmonks API coverage
 
-Halfspace currently covers **48 of 153 endpoints** and **169 of 1320 documented endpoint includes**.
+Halfspace currently covers **51 of 153 endpoints** and **174 of 1320 documented endpoint includes**.
 
 Overall coverage: **15%**
 
@@ -53,13 +53,13 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 ### Leagues
 
 - [x] [All Leagues](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/leagues/get-all-leagues) — includes 2/9
-- [ ] [League by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/leagues/get-league-by-id)
+- [x] [League by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/leagues/get-league-by-id) — includes 2/9
 - [ ] [Leagues by Live](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/leagues/get-leagues-by-live)
 - [ ] [Leagues by Fixture Date](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/leagues/get-leagues-by-fixture-date)
 - [ ] [Leagues by Country ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/leagues/get-leagues-by-country-id)
 - [x] [Leagues Search by Name](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/leagues/get-leagues-search-by-name) — includes 2/9
 - [ ] [All Leagues by Team ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/leagues/get-all-leagues-by-team-id)
-- [ ] [Current Leagues by Team ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/leagues/get-current-leagues-by-team-id)
+- [x] [Current Leagues by Team ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/leagues/get-current-leagues-by-team-id) — includes 2/9
 
 ### Seasons
 
@@ -114,7 +114,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 - [ ] [All Teams](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/teams/get-all-teams)
 - [x] [Team by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/teams/get-team-by-id) — includes 7/16
 - [ ] [Teams by Country ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/teams/get-teams-by-country-id)
-- [ ] [Teams by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/teams/get-teams-by-season-id)
+- [x] [Teams by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/teams/get-teams-by-season-id) — includes 1/16
 - [x] [Teams by Search by Name](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/teams/get-teams-by-search-by-name) — includes 2/16
 
 ### Players

@@ -116,6 +116,9 @@ describe('IPC handlers', () => {
   it.each([
     ipcChannels.refreshFixtures,
     ipcChannels.refreshFixturePressure,
+    ipcChannels.refreshCompetition,
+    ipcChannels.refreshSeasonTeams,
+    ipcChannels.refreshTeamCompetitions,
     ipcChannels.refreshLiveStandings,
     ipcChannels.refreshFixtureTrends,
     ipcChannels.refreshBroadcaster,
@@ -136,6 +139,9 @@ describe('IPC handlers', () => {
   )
 
   it.each([
+    [ipcChannels.refreshCompetition, { competitionId: -1 }],
+    [ipcChannels.refreshSeasonTeams, { seasonId: 0 }],
+    [ipcChannels.refreshTeamCompetitions, { teamId: '1' }],
     [ipcChannels.refreshLiveStandings, { competitionId: 8 }],
     [ipcChannels.refreshFixtureTrends, { fixtureId: -1 }],
     [ipcChannels.refreshBroadcaster, { stationId: 0 }],

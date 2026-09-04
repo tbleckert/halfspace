@@ -1,3 +1,6 @@
+import { invalidateCompetitionDetailRefreshes } from '@/features/competitions/use-competition-detail'
+import { invalidateSeasonTeamsRefreshes } from '@/features/competitions/use-season-teams'
+import { invalidateTeamCompetitionsRefreshes } from '@/features/teams/use-team-competitions'
 import { invalidateLiveStandingsRefreshes } from '@/features/competitions/use-live-standings'
 import { invalidateTrendsRefreshes } from '@/features/fixtures/use-trends'
 import { invalidateBroadcasterRefreshes } from '@/features/broadcasts/use-broadcaster'
@@ -211,6 +214,9 @@ function invalidateRefreshes(): void {
   invalidatePlayerRefreshes()
   invalidateTeamRefreshes()
   invalidateRivalRefreshes()
+  invalidateCompetitionDetailRefreshes()
+  invalidateSeasonTeamsRefreshes()
+  invalidateTeamCompetitionsRefreshes()
   invalidateVenueRefreshes()
   invalidateSearchRefreshes()
 }

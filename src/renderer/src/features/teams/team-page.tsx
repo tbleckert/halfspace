@@ -53,6 +53,7 @@ import { TeamAvailability } from './team-availability'
 import { TeamRivals } from './team-rivals'
 import { TeamRankings } from './team-rankings'
 import { useTeamRivals } from './use-team-rivals'
+import { useTeamCompetitions } from './use-team-competitions'
 import { TeamTransfers } from './team-transfers'
 import { HonoursPanel } from '@/features/honours/honours-panel'
 import {
@@ -98,12 +99,20 @@ export function TeamPage({
   const navigate = useNavigate({ from: '/teams/$teamId' })
   const timeZone = useMemo(() => currentTimeZone(), [])
   const today = useMemo(() => todayInTimeZone(timeZone), [timeZone])
+  const currentCompetitions = useTeamCompetitions(validTeamId ? parsedTeamId : null, online)
+  const currentCompetitionContexts = useScopedLiveQuery(
+    () =>
+      validTeamId
+        ? readTeamCompetitionContexts(parsedTeamId, { currentOnly: true })
+        : Promise.resolve([]),
+    [parsedTeamId, validTeamId]
+  )
   const team = useTeamEntity(validTeamId ? parsedTeamId : null, online)
   const rivals = useTeamRivals(validTeamId ? parsedTeamId : null, online && view === 'overview')
   const competitionContexts = useScopedLiveQuery(
     () =>
       validTeamId
-        ? readTeamCompetitionContexts(parsedTeamId, competitionId, requestedSeasonId)
+        ? readTeamCompetitionContexts(parsedTeamId, { competitionId, requestedSeasonId })
         : Promise.resolve([]),
     [competitionId, parsedTeamId, requestedSeasonId, validTeamId]
   )
@@ -176,6 +185,7 @@ export function TeamPage({
   )
   const refreshing =
     team.refreshing ||
+    currentCompetitions.refreshing ||
     (view === 'overview' && rivals.refreshing) ||
     (view === 'squad'
       ? squad.refreshing || competitionSeasons.refreshing
@@ -186,6 +196,7 @@ export function TeamPage({
           : fixtures.refreshing)
   const errors = [
     team.error,
+    currentCompetitions.error,
     view === 'squad'
       ? (squad.error ?? competitionSeasons.error)
       : view === 'stats'
@@ -217,6 +228,7 @@ export function TeamPage({
   async function refresh(): Promise<void> {
     await Promise.all([
       team.refresh(),
+      currentCompetitions.refresh(),
       view === 'overview' ? rivals.refresh() : Promise.resolve(),
       view === 'stats' || view === 'squad' ? competitionSeasons.refresh() : Promise.resolve(),
       view === 'squad'
@@ -339,7 +351,13 @@ export function TeamPage({
       {view === 'overview' && (
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(16rem,0.65fr)_minmax(24rem,1.35fr)]">
           <div className="flex flex-col gap-5">
-            <TeamCompetitions contexts={competitionContexts} online={online} />
+            <TeamCompetitions
+              contexts={currentCompetitionContexts ?? []}
+              online={online}
+              loading={currentCompetitions.cached === undefined || currentCompetitions.refreshing}
+              available={Boolean(currentCompetitions.cached)}
+              error={currentCompetitions.error}
+            />
             <TeamRankings rankings={detailedTeam?.rankings} />
             <TeamRivals
               cached={rivals.cached}
@@ -823,20 +841,34 @@ function compareSquadMembers(left: SquadMember, right: SquadMember): number {
 
 function TeamCompetitions({
   contexts,
-  online
+  online,
+  loading,
+  available,
+  error
 }: {
   contexts: TeamCompetitionContext[]
   online: boolean
+  loading: boolean
+  available: boolean
+  error: string | null
 }): React.JSX.Element {
   return (
     <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
       <div className="border-b px-4 py-3">
-        <h2 className="text-sm font-semibold">Competitions</h2>
+        <h2 className="text-sm font-semibold">Current competitions</h2>
       </div>
       {contexts.length === 0 ? (
         <div className="flex min-h-40 flex-col items-center justify-center gap-3 px-4 text-center text-muted-foreground">
           <Trophy className="size-6" />
-          <p className="text-sm font-medium text-foreground">No competitions</p>
+          <p className="text-sm font-medium text-foreground">
+            {!available && loading
+              ? 'Loading competitions…'
+              : !available
+                ? error
+                  ? 'Competitions unavailable'
+                  : 'Competitions not available offline'
+                : 'No current competitions reported'}
+          </p>
         </div>
       ) : (
         <div className="divide-y">
@@ -934,30 +966,44 @@ function TeamCoaches({
 
 async function readTeamCompetitionContexts(
   teamId: number,
-  competitionId?: number,
-  requestedSeasonId?: number
+  {
+    competitionId,
+    requestedSeasonId,
+    currentOnly = false
+  }: {
+    competitionId?: number
+    requestedSeasonId?: number
+    currentOnly?: boolean
+  } = {}
 ): Promise<TeamCompetitionContext[]> {
   const standings = await readTeamStandings(teamId)
-  const competitionIds = [
-    ...new Set([
-      ...standings.map(({ leagueId }) => leagueId),
-      ...(competitionId ? [competitionId] : [])
-    ])
-  ]
+  const current = await db.teamCompetitionQueries.get(teamId)
+  const competitionIds = currentOnly
+    ? (current?.competitionIds ?? [])
+    : [
+        ...new Set([
+          ...(current?.competitionIds ?? []),
+          ...standings.map(({ leagueId }) => leagueId),
+          ...(competitionId ? [competitionId] : [])
+        ])
+      ]
   const competitions = (await db.competitions.bulkGet(competitionIds)).filter(
     (competition): competition is CachedCompetition => competition !== undefined
   )
   const seasonQueries = await db.competitionSeasonQueries.bulkGet(competitionIds)
 
   return competitions
-    .map((competition, index) => {
+    .map((competition) => {
       const fallbackStanding = standings.find(({ leagueId }) => leagueId === competition.id)
-      const seasonId =
-        competition.id === competitionId && requestedSeasonId
+      const seasonId = currentOnly
+        ? competition.currentSeasonId
+        : competition.id === competitionId && requestedSeasonId
           ? requestedSeasonId
           : (competition.currentSeasonId ?? fallbackStanding?.seasonId ?? null)
       const season =
-        seasonQueries[index]?.seasons.find(({ id }) => id === seasonId) ??
+        seasonQueries
+          .find((query) => query?.competitionId === competition.id)
+          ?.seasons.find(({ id }) => id === seasonId) ??
         (competition.raw.currentseason?.id === seasonId ? competition.raw.currentseason : null)
       const seasonName =
         season?.name ??
@@ -971,7 +1017,8 @@ async function readTeamCompetitionContexts(
         standing:
           standings.find(
             ({ leagueId, seasonId: standingSeasonId }) =>
-              leagueId === competition.id && (seasonId === null || standingSeasonId === seasonId)
+              leagueId === competition.id &&
+              (seasonId === null ? !currentOnly : standingSeasonId === seasonId)
           ) ?? null
       }
     })
