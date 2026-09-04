@@ -31,7 +31,8 @@
       "sidelined",
       "prematchNews",
       "postmatchNews",
-      "predictedLineups"
+      "predictedLineups",
+      "trends"
     ],
     "fixtures/get-fixtures-by-head-to-head": [
       "participants",
@@ -112,6 +113,31 @@
     "transfers/get-transfers-between-date-range": ["player", "type", "fromTeam", "toTeam"],
     "transfers/get-transfers-by-team-id": ["player", "type", "fromTeam", "toTeam"],
     "venues/get-venue-by-id": ["country"],
-    "venues/get-venues-by-search-by-name": ["country"]
+    "venues/get-venues-by-search-by-name": ["country"],
+    "fixtures/get-past-fixtures-by-tv-station-id": [
+      "participants",
+      "league",
+      "state",
+      "scores",
+      "periods",
+      "tvStations"
+    ],
+    "fixtures/get-upcoming-fixtures-by-tv-station-id": [
+      "participants",
+      "league",
+      "state",
+      "scores",
+      "periods",
+      "tvStations"
+    ],
+    "standings/get-live-standings-by-league-id": [
+      "participant",
+      "stage",
+      "group",
+      "details",
+      "form",
+      "rule"
+    ],
+    "tv-stations/get-tv-station-by-id": []
   }
 }

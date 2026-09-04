@@ -41,6 +41,7 @@ import { defaultFixtureView, type FixtureDetailSearch } from './fixture-route'
 import { FixtureStats } from './fixture-stats'
 import { FixtureGame } from './fixture-game'
 import { useCommentary } from './use-commentary'
+import { useTrends } from './use-trends'
 import { usePressure } from './use-pressure'
 import { prefetchFixturePreview, type FixturePreviewInput } from './use-fixture-preview'
 import { useFixtureEntity, useFixtureOdds } from './use-fixtures'
@@ -108,6 +109,12 @@ export function FixtureDetailPage({
     online && view === 'game' && pressureAccess !== 'not-included',
     live
   )
+  const trendsAccess = featureAccess(subscription.cached, 'trends')
+  const trends = useTrends(
+    validFixtureId && view === 'game' ? parsedFixtureId : null,
+    online && view === 'game' && trendsAccess !== 'not-included',
+    live
+  )
   const oddsAccess = featureAccess(
     subscription.cached,
     selectedFeed === 'inplay' ? 'inplay' : 'prematch'
@@ -156,14 +163,19 @@ export function FixtureDetailPage({
   const heading = `${home?.name ?? 'Home'} vs ${away?.name ?? 'Away'}`
   const teamParticipant = match.participants.find(({ id }) => id === teamId)
   const refreshing =
-    fixture.refreshing || odds.refreshing || commentary.refreshing || pressure.refreshing
+    fixture.refreshing ||
+    odds.refreshing ||
+    commentary.refreshing ||
+    pressure.refreshing ||
+    trends.refreshing
 
   async function refresh(): Promise<void> {
     await Promise.all([
       fixture.refresh(),
       view === 'odds' ? odds.refresh() : Promise.resolve(),
       view === 'commentary' ? commentary.refresh() : Promise.resolve(),
-      view === 'game' && pressureAccess !== 'not-included' ? pressure.refresh() : Promise.resolve()
+      view === 'game' && pressureAccess !== 'not-included' ? pressure.refresh() : Promise.resolve(),
+      view === 'game' ? trends.refresh() : Promise.resolve()
     ])
   }
 
@@ -208,6 +220,7 @@ export function FixtureDetailPage({
       {view === 'odds' && odds.error && <ErrorAlert>{odds.error}</ErrorAlert>}
       {view === 'commentary' && commentary.error && <ErrorAlert>{commentary.error}</ErrorAlert>}
       {view === 'game' && pressure.error && <ErrorAlert>{pressure.error}</ErrorAlert>}
+      {view === 'game' && trends.error && <ErrorAlert>{trends.error}</ErrorAlert>}
 
       <MatchScore
         competitionId={competitionId ?? cachedFixture.leagueId}
@@ -237,6 +250,7 @@ export function FixtureDetailPage({
             fixture={match}
             context={{ competition: competitionId, date, season: resolvedSeasonId, team: teamId }}
             pressure={pressure.cached}
+            trends={trends.cached}
             online={online}
           />
           <FixtureNews fixture={match} online={online} />
@@ -543,7 +557,13 @@ function FixturePreview({
           />
         )}
         <FixtureWeather report={cachedFixture.raw.weatherreport} />
-        <FixtureTv key={cachedFixture.id} fixtureId={cachedFixture.id} online={online} />
+        <FixtureTv
+          key={cachedFixture.id}
+          fixtureId={cachedFixture.id}
+          competitionId={competitionId}
+          seasonId={seasonId}
+          online={online}
+        />
       </aside>
     </div>
   )

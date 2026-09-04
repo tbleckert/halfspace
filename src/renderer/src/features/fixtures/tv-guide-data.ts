@@ -4,7 +4,6 @@ export interface TvGuideStation {
   id: number
   name: string
   imagePath: string | null
-  url: string | null
   countries: string[]
 }
 
@@ -19,7 +18,6 @@ export function tvGuideStations(
       id: listing.tvstation_id,
       name: listing.tvstation?.name ?? 'Unknown broadcaster',
       imagePath: listing.tvstation?.image_path ?? null,
-      url: listing.tvstation?.url?.startsWith('https://') ? listing.tvstation.url : null,
       countries: []
     }
     const country = listing.country?.name ?? 'Region not specified'

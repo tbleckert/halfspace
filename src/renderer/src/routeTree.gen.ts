@@ -15,6 +15,7 @@ import { Route as CompetitionsRouteImport } from './routes/competitions'
 import { Route as NewsRouteImport } from './routes/news'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TransfersRouteImport } from './routes/transfers'
+import { Route as BroadcastersStationIdRouteImport } from './routes/broadcasters_.$stationId'
 import { Route as CoachesCoachIdRouteImport } from './routes/coaches_.$coachId'
 import { Route as CompetitionsCompetitionIdRouteImport } from './routes/competitions_.$competitionId'
 import { Route as FixturesFixtureIdRouteImport } from './routes/fixtures.$fixtureId'
@@ -72,6 +73,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const TransfersRoute = TransfersRouteImport.update({
   id: '/transfers',
   path: '/transfers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BroadcastersStationIdRoute = BroadcastersStationIdRouteImport.update({
+  id: '/broadcasters_/$stationId',
+  path: '/broadcasters/$stationId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CoachesCoachIdRoute = CoachesCoachIdRouteImport.update({
@@ -233,6 +239,7 @@ export interface FileRoutesByFullPath {
   '/news': typeof NewsRoute
   '/settings': typeof SettingsRoute
   '/transfers': typeof TransfersRoute
+  '/broadcasters/$stationId': typeof BroadcastersStationIdRoute
   '/coaches/$coachId': typeof CoachesCoachIdRoute
   '/competitions/$competitionId': typeof CompetitionsCompetitionIdRouteWithChildren
   '/fixtures/$fixtureId': typeof FixturesFixtureIdRouteWithChildren
@@ -269,6 +276,7 @@ export interface FileRoutesByTo {
   '/news': typeof NewsRoute
   '/settings': typeof SettingsRoute
   '/transfers': typeof TransfersRoute
+  '/broadcasters/$stationId': typeof BroadcastersStationIdRoute
   '/coaches/$coachId': typeof CoachesCoachIdRoute
   '/competitions/$competitionId': typeof CompetitionsCompetitionIdRouteWithChildren
   '/fixtures/$fixtureId': typeof FixturesFixtureIdRouteWithChildren
@@ -306,6 +314,7 @@ export interface FileRoutesById {
   '/news': typeof NewsRoute
   '/settings': typeof SettingsRoute
   '/transfers': typeof TransfersRoute
+  '/broadcasters_/$stationId': typeof BroadcastersStationIdRoute
   '/coaches_/$coachId': typeof CoachesCoachIdRoute
   '/competitions_/$competitionId': typeof CompetitionsCompetitionIdRouteWithChildren
   '/fixtures/$fixtureId': typeof FixturesFixtureIdRouteWithChildren
@@ -344,6 +353,7 @@ export interface FileRouteTypes {
     | '/news'
     | '/settings'
     | '/transfers'
+    | '/broadcasters/$stationId'
     | '/coaches/$coachId'
     | '/competitions/$competitionId'
     | '/fixtures/$fixtureId'
@@ -380,6 +390,7 @@ export interface FileRouteTypes {
     | '/news'
     | '/settings'
     | '/transfers'
+    | '/broadcasters/$stationId'
     | '/coaches/$coachId'
     | '/competitions/$competitionId'
     | '/fixtures/$fixtureId'
@@ -416,6 +427,7 @@ export interface FileRouteTypes {
     | '/news'
     | '/settings'
     | '/transfers'
+    | '/broadcasters_/$stationId'
     | '/coaches_/$coachId'
     | '/competitions_/$competitionId'
     | '/fixtures/$fixtureId'
@@ -453,6 +465,7 @@ export interface RootRouteChildren {
   NewsRoute: typeof NewsRoute
   SettingsRoute: typeof SettingsRoute
   TransfersRoute: typeof TransfersRoute
+  BroadcastersStationIdRoute: typeof BroadcastersStationIdRoute
   CoachesCoachIdRoute: typeof CoachesCoachIdRoute
   CompetitionsCompetitionIdRoute: typeof CompetitionsCompetitionIdRouteWithChildren
   FixturesFixtureIdRoute: typeof FixturesFixtureIdRouteWithChildren
@@ -505,6 +518,13 @@ declare module '@tanstack/react-router' {
       path: '/transfers'
       fullPath: '/transfers'
       preLoaderRoute: typeof TransfersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/broadcasters_/$stationId': {
+      id: '/broadcasters_/$stationId'
+      path: '/broadcasters/$stationId'
+      fullPath: '/broadcasters/$stationId'
+      preLoaderRoute: typeof BroadcastersStationIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/coaches_/$coachId': {
@@ -798,6 +818,7 @@ const rootRouteChildren: RootRouteChildren = {
   NewsRoute: NewsRoute,
   SettingsRoute: SettingsRoute,
   TransfersRoute: TransfersRoute,
+  BroadcastersStationIdRoute: BroadcastersStationIdRoute,
   CoachesCoachIdRoute: CoachesCoachIdRoute,
   CompetitionsCompetitionIdRoute: CompetitionsCompetitionIdRouteWithChildren,
   FixturesFixtureIdRoute: FixturesFixtureIdRouteWithChildren,

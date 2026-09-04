@@ -25,6 +25,21 @@ describe('feature access', () => {
     expect(featureAccess(subscription, 'prematch')).toBe('included')
     expect(featureAccess(subscription, 'inplay')).toBe('not-included')
   })
+  it('requires broadcaster identity and both schedule feeds', () => {
+    const broadcasts = {
+      ...subscription,
+      resources: [235, 239, 240].map((id) => ({ id, description: 'TV station resource' }))
+    }
+    expect(featureAccess(broadcasts, 'broadcasts')).toBe('included')
+    for (const missingId of [235, 239, 240]) {
+      expect(
+        featureAccess(
+          { ...broadcasts, resources: broadcasts.resources.filter(({ id }) => id !== missingId) },
+          'broadcasts'
+        )
+      ).toBe('not-included')
+    }
+  })
   it('requires fixture access and the pressure enrichment, not a plan name', () => {
     const pressure = { ...subscription, enrichments: [{ id: 138, name: 'Access Pressure Index' }] }
     expect(featureAccess(pressure, 'pressure')).toBe('included')

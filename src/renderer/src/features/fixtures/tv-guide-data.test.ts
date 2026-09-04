@@ -24,17 +24,16 @@ describe('TV guide presentation', () => {
     expect(tvGuideStations(listings, '251')).toMatchObject([{ name: 'DAZN', countries: ['Italy'] }])
     expect(tvGuideStations(listings, '999')).toEqual([])
   })
-  it('does not invent a region or turn unsafe provider URLs into links', () => {
+  it('does not invent a broadcast region', () => {
     const stations = tvGuideStations(
       [
         {
           ...listing,
-          country: null,
-          tvstation: { ...listing.tvstation!, url: 'javascript:alert(1)' }
+          country: null
         }
       ],
       'all'
     )
-    expect(stations[0]).toMatchObject({ url: null, countries: ['Region not specified'] })
+    expect(stations[0]).toMatchObject({ countries: ['Region not specified'] })
   })
 })

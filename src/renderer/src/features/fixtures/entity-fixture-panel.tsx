@@ -65,7 +65,7 @@ export function EntityFixturePanel({
   )
 }
 
-function EntityFixtureRow({
+export function EntityFixtureRow({
   context,
   dateDisplay,
   fixture,

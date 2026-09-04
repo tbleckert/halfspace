@@ -29,6 +29,8 @@ import {
   fetchSeasonTopscorers,
   fetchStandingsBySeason,
   fetchStandingsByRound,
+  fetchLiveStandings,
+  validateLiveStandingsInput,
   fetchTransferFeed,
   validateTransferFeedInput,
   validateRoundStandingsInput,
@@ -73,6 +75,13 @@ import { fetchPredictedLineups } from './predicted-lineups'
 import { fetchNews, validateNewsInput } from './news'
 import { fetchMatchFacts } from './match-facts'
 import { fetchHonours, validateHonoursInput } from './honours'
+import { fetchFixtureTrends } from './fixture-trends'
+import {
+  fetchBroadcaster,
+  fetchBroadcastSchedule,
+  validateBroadcasterInput,
+  validateBroadcastScheduleInput
+} from './broadcasts'
 import { fetchFixturePressure } from './fixture-pressure'
 import { fetchTeamOfWeek, validateTeamOfWeekInput } from './team-of-week'
 
@@ -82,6 +91,31 @@ let currentRateLimit: SportmonksRateLimit | null = null
 let credentialGeneration = 0
 
 export function registerIpcHandlers(): void {
+  registerSportmonksHandler(
+    ipcChannels.refreshLiveStandings,
+    validateLiveStandingsInput,
+    fetchLiveStandings,
+    'Could not refresh live standings.'
+  )
+  registerSportmonksHandler(
+    ipcChannels.refreshFixtureTrends,
+    validateFixtureInput,
+    fetchFixtureTrends,
+    'Could not refresh match trends.'
+  )
+  registerSportmonksHandler(
+    ipcChannels.refreshBroadcaster,
+    validateBroadcasterInput,
+    fetchBroadcaster,
+    'Could not refresh broadcaster.'
+  )
+  registerSportmonksHandler(
+    ipcChannels.refreshBroadcastSchedule,
+    validateBroadcastScheduleInput,
+    fetchBroadcastSchedule,
+    'Could not refresh broadcast schedule.'
+  )
+
   registerSportmonksHandler(
     ipcChannels.refreshHonours,
     validateHonoursInput,

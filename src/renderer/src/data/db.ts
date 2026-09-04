@@ -4,6 +4,11 @@ import type {
   StatisticSeasonsRefresh,
   FixtureTvRefresh,
   FixturePressureRefresh,
+  FixtureTrendsRefresh,
+  RefreshLiveStandingsInput,
+  RefreshBroadcastScheduleInput,
+  BroadcastScheduleRefresh,
+  BroadcasterRefresh,
   SubscriptionRefresh,
   TeamOfWeekRefresh,
   RefreshTeamOfWeekInput,
@@ -535,6 +540,31 @@ export interface FixturePressureQuery extends FixturePressureRefresh {
   staleAt: number
 }
 
+export interface LiveStandingQuery extends RefreshLiveStandingsInput {
+  key: string
+  standings: CachedStanding[]
+  fetchedAt: number
+  staleAt: number
+}
+
+export interface FixtureTrendsQuery extends FixtureTrendsRefresh {
+  staleAt: number
+}
+
+export interface BroadcasterQuery extends BroadcasterRefresh {
+  stationId: number
+  staleAt: number
+}
+
+export interface BroadcastScheduleQuery extends RefreshBroadcastScheduleInput {
+  key: string
+  fixtureIds: number[]
+  listings: BroadcastScheduleRefresh['listings']
+  hasMore: boolean
+  fetchedAt: number
+  staleAt: number
+}
+
 export interface TeamOfWeekQuery extends TeamOfWeekRefresh {
   key: string
   staleAt: number
@@ -545,6 +575,10 @@ class HalfspaceDatabase extends Dexie {
   subscriptionQueries!: Table<SubscriptionQuery, string>
   fixtureTvQueries!: Table<FixtureTvQuery, number>
   fixturePressureQueries!: Table<FixturePressureQuery, number>
+  fixtureTrendsQueries!: Table<FixtureTrendsQuery, number>
+  liveStandingQueries!: Table<LiveStandingQuery, string>
+  broadcasterQueries!: Table<BroadcasterQuery, number>
+  broadcastScheduleQueries!: Table<BroadcastScheduleQuery, string>
   teamOfWeekQueries!: Table<TeamOfWeekQuery, string>
   teamRivalsQueries!: Table<TeamRivalsQuery, number>
   fixtureCommentaryQueries!: Table<FixtureCommentaryQuery, number>
@@ -861,10 +895,145 @@ class HalfspaceDatabase extends Dexie {
     })
     this.version(32).stores({ honoursQueries: '&key, staleAt' })
     this.version(33).stores({ liveFixtureQueries: '&key, staleAt' })
+    this.version(34).stores({
+      liveStandingQueries: '&key, competitionId, seasonId, staleAt',
+      fixtureTrendsQueries: '&fixtureId, staleAt',
+      broadcasterQueries: '&stationId, staleAt',
+      broadcastScheduleQueries: '&key, stationId, staleAt'
+    })
   }
 }
 
 export const db = new HalfspaceDatabase()
+
+export function liveStandingsQueryKey(input: RefreshLiveStandingsInput): string {
+  return `${input.competitionId}:${input.seasonId}`
+}
+
+export async function readLiveStandings(
+  input: RefreshLiveStandingsInput
+): Promise<LiveStandingQuery | null> {
+  return (await db.liveStandingQueries.get(liveStandingsQueryKey(input))) ?? null
+}
+
+export async function writeLiveStandingsRefresh(
+  input: RefreshLiveStandingsInput,
+  refresh: StandingsRefresh
+): Promise<void> {
+  if (
+    refresh.standings.some(
+      (standing) =>
+        standing.league_id !== input.competitionId || standing.season_id !== input.seasonId
+    )
+  ) {
+    throw new Error('Live standings do not match the selected competition and season.')
+  }
+  const key = liveStandingsQueryKey(input)
+  await db.transaction('rw', db.liveStandingQueries, async () => {
+    const previous = await db.liveStandingQueries.get(key)
+    if (previous && previous.fetchedAt > refresh.fetchedAt) return
+    await db.liveStandingQueries.put({
+      ...input,
+      key,
+      standings: refresh.standings.map((standing) => toCachedStanding(standing, refresh.fetchedAt)),
+      fetchedAt: refresh.fetchedAt,
+      staleAt: refresh.fetchedAt + 5 * 60_000
+    })
+  })
+}
+
+export async function readFixtureTrends(fixtureId: number): Promise<FixtureTrendsQuery | null> {
+  return (await db.fixtureTrendsQueries.get(fixtureId)) ?? null
+}
+
+export async function writeFixtureTrendsRefresh(
+  fixtureId: number,
+  refresh: FixtureTrendsRefresh
+): Promise<void> {
+  if (
+    refresh.fixtureId !== fixtureId ||
+    [...refresh.points, ...refresh.periods].some((point) => point.fixture_id !== fixtureId)
+  ) {
+    throw new Error('Trends do not match the selected fixture.')
+  }
+  await db.transaction('rw', db.fixtureTrendsQueries, async () => {
+    const previous = await db.fixtureTrendsQueries.get(fixtureId)
+    if (previous && previous.fetchedAt > refresh.fetchedAt) return
+    await db.fixtureTrendsQueries.put({ ...refresh, staleAt: refresh.fetchedAt + 60 * 60_000 })
+  })
+}
+
+export async function readBroadcaster(stationId: number): Promise<BroadcasterQuery | null> {
+  return (await db.broadcasterQueries.get(stationId)) ?? null
+}
+
+export async function writeBroadcasterRefresh(
+  stationId: number,
+  refresh: BroadcasterRefresh
+): Promise<void> {
+  if (refresh.station.id !== stationId)
+    throw new Error('Broadcaster does not match the selected station.')
+  await db.transaction('rw', db.broadcasterQueries, async () => {
+    const previous = await db.broadcasterQueries.get(stationId)
+    if (previous && previous.fetchedAt > refresh.fetchedAt) return
+    await db.broadcasterQueries.put({
+      ...refresh,
+      stationId,
+      staleAt: refresh.fetchedAt + 24 * 60 * 60_000
+    })
+  })
+}
+
+export function broadcastScheduleQueryKey(input: RefreshBroadcastScheduleInput): string {
+  return `${input.stationId}:${input.feed}:${input.page}`
+}
+
+export async function readBroadcastSchedule(
+  input: RefreshBroadcastScheduleInput
+): Promise<(BroadcastScheduleQuery & { fixtures: CachedFixture[] }) | null> {
+  const query = await db.broadcastScheduleQueries.get(broadcastScheduleQueryKey(input))
+  if (!query) return null
+  const fixtures = (await db.fixtures.bulkGet(query.fixtureIds)).filter(
+    (fixture): fixture is CachedFixture => !!fixture
+  )
+  return { ...query, fixtures }
+}
+
+export async function writeBroadcastScheduleRefresh(
+  input: RefreshBroadcastScheduleInput,
+  refresh: BroadcastScheduleRefresh
+): Promise<void> {
+  if (
+    broadcastScheduleQueryKey(input) !== broadcastScheduleQueryKey(refresh) ||
+    refresh.listings.some(
+      (listing) =>
+        listing.tvstation_id !== input.stationId ||
+        !refresh.fixtures.some((fixture) => fixture.id === listing.fixture_id)
+    )
+  ) {
+    throw new Error('Broadcast schedule does not match the selected page.')
+  }
+  const key = broadcastScheduleQueryKey(input)
+  const staleAt = fixtureRefreshExpiry(
+    refresh.fixtures,
+    refresh.fetchedAt,
+    refresh.fetchedAt + 15 * 60_000
+  )
+  await db.transaction('rw', db.broadcastScheduleQueries, db.fixtures, async () => {
+    const previous = await db.broadcastScheduleQueries.get(key)
+    if (previous && previous.fetchedAt > refresh.fetchedAt) return
+    await db.fixtures.bulkPut(await toCachedFixtures(refresh.fixtures, refresh.fetchedAt, staleAt))
+    await db.broadcastScheduleQueries.put({
+      ...input,
+      key,
+      fixtureIds: refresh.fixtures.map((fixture) => fixture.id),
+      listings: refresh.listings,
+      hasMore: refresh.hasMore,
+      fetchedAt: refresh.fetchedAt,
+      staleAt
+    })
+  })
+}
 
 export interface HonoursQuery extends HonoursRefresh {
   key: string
@@ -2789,6 +2958,10 @@ export async function clearSportmonksCache(): Promise<void> {
       db.subscriptionQueries,
       db.fixtureTvQueries,
       db.fixturePressureQueries,
+      db.fixtureTrendsQueries,
+      db.liveStandingQueries,
+      db.broadcasterQueries,
+      db.broadcastScheduleQueries,
       db.teamOfWeekQueries,
       db.fixtures,
       db.fixtureQueries,
@@ -2839,6 +3012,10 @@ export async function clearSportmonksCache(): Promise<void> {
       await db.subscriptionQueries.clear()
       await db.fixtureTvQueries.clear()
       await db.fixturePressureQueries.clear()
+      await db.fixtureTrendsQueries.clear()
+      await db.liveStandingQueries.clear()
+      await db.broadcasterQueries.clear()
+      await db.broadcastScheduleQueries.clear()
       await db.teamOfWeekQueries.clear()
       await db.fixtures.clear()
       await db.fixtureQueries.clear()

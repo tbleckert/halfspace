@@ -67,6 +67,7 @@ include should have a useful place in Halfspace.
 - [x] Complete season schedules with stage and round navigation.
 - [x] Knockout brackets with two-leg ties, aggregate results, and tournament progression.
 - [x] Round-by-round league tables with season selection and offline history.
+- [x] Live league tables with in-play standings and automatic updates.
 - [x] Team pages with fixtures, squad profiles, and transfer history.
 - [x] Transfer hub with latest updates, date ranges, paginated browsing, and linked player and club profiles.
 - [x] Historical team squads with season selection and offline browsing.
@@ -87,8 +88,10 @@ include should have a useful place in Halfspace.
 - [x] Football news with competition and season browsing, article readers, and fixture previews and reports.
 - [x] Match-aware Game view combining pressure, key statistics, and the event timeline.
 - [x] Fixture pressure charts with goal and red-card markers, exact values, and live updates.
+- [x] Match trends for possession, shots, shots on target, and corners, with period selection and live updates.
 - [x] Live match commentary with key-event filtering and offline history.
 - [x] Fixture Preview TV guides with country-specific broadcast listings.
+- [x] Broadcaster pages with paginated upcoming and past schedules and match-specific broadcast regions.
 - [x] Competition Team of the Week with season and round browsing.
 - [x] Pre-match and in-play odds explorer with market and bookmaker comparison.
 - [x] Subscription overview showing plans, add-ons, and feature access for your token.

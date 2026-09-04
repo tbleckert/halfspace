@@ -1,5 +1,11 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen, within } from '@testing-library/react'
+import {
+  createRootRoute,
+  createRouter,
+  createMemoryHistory,
+  RouterProvider
+} from '@tanstack/react-router'
 import { afterAll, beforeEach, expect, it } from 'vitest'
 import { clearSportmonksCache, db, writeFixtureTvRefresh } from '@/data/db'
 import type { SportmonksTvListing } from '@shared/contracts'
@@ -38,7 +44,11 @@ it('filters cached broadcast listings by country while offline', async () => {
       }
     ]
   })
-  render(<FixtureTv fixtureId={10} online={false} />)
+  const router = createRouter({
+    routeTree: createRootRoute({ component: () => <FixtureTv fixtureId={10} online={false} /> }),
+    history: createMemoryHistory({ initialEntries: ['/'] })
+  })
+  render(<RouterProvider router={router} />)
   const region = await screen.findByRole('region', { name: 'TV listings' })
   expect(within(region).getAllByRole('listitem')).toHaveLength(3)
   fireEvent.change(screen.getByRole('combobox', { name: 'Broadcast country' }), {

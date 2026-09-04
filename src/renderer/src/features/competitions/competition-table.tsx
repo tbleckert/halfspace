@@ -17,7 +17,12 @@ export function CompetitionTable({
   available,
   loading,
   roundId,
-  onRoundChange
+  onRoundChange,
+  live = false,
+  liveAvailable = false,
+  liveFetchedAt,
+  activeTeamIds = [],
+  onLiveChange
 }: {
   competitionId: number
   seasonId: number | null
@@ -30,6 +35,11 @@ export function CompetitionTable({
   loading: boolean
   roundId?: number
   onRoundChange: (roundId?: number) => void
+  live?: boolean
+  liveAvailable?: boolean
+  liveFetchedAt?: number
+  activeTeamIds?: number[]
+  onLiveChange?: () => void
 }): React.JSX.Element {
   const stages = [...(schedule?.stages ?? [])].sort((a, b) => a.sort_order - b.sort_order)
   const rounds = stages.flatMap((stage) =>
@@ -45,11 +55,31 @@ export function CompetitionTable({
   const roundIndex = rounds.findIndex(({ id }) => id === roundId)
   const selectedRound = rounds[roundIndex]
   const groups = groupStandings(standings)
-  const tableName = roundId ? (selectedRound?.label ?? 'Selected round') : 'Current table'
+  const tableName = live
+    ? 'Live table'
+    : roundId
+      ? (selectedRound?.label ?? 'Selected round')
+      : 'Current table'
 
   return (
     <section aria-label="Season table" className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-xs text-muted-foreground">
+          {live &&
+            (liveFetchedAt ? (
+              <>
+                {online ? 'Updated' : 'Saved'}{' '}
+                <time
+                  className="font-mono tabular-nums"
+                  dateTime={new Date(liveFetchedAt).toISOString()}
+                >
+                  {new Date(liveFetchedAt).toLocaleString()}
+                </time>
+              </>
+            ) : (
+              'Standings with in-play scores'
+            ))}
+        </p>
         <div className="flex items-center gap-1">
           <Button
             aria-label="Previous table round"
@@ -62,14 +92,17 @@ export function CompetitionTable({
           </Button>
           <NativeSelect
             aria-label="Table round"
-            value={roundId ?? 'current'}
+            value={live ? 'live' : (roundId ?? 'current')}
             onChange={(event) =>
-              onRoundChange(
-                event.target.value === 'current' ? undefined : Number(event.target.value)
-              )
+              event.target.value === 'live'
+                ? onLiveChange?.()
+                : onRoundChange(
+                    event.target.value === 'current' ? undefined : Number(event.target.value)
+                  )
             }
           >
             <NativeSelectOption value="current">Current table</NativeSelectOption>
+            {liveAvailable && <NativeSelectOption value="live">Live table</NativeSelectOption>}
             {roundId && !selectedRound && (
               <NativeSelectOption value={roundId}>Selected round</NativeSelectOption>
             )}
@@ -100,6 +133,7 @@ export function CompetitionTable({
             online={online}
             season={seasonId ?? undefined}
             standings={group.standings}
+            activeTeamIds={live && online ? activeTeamIds : []}
           />
         ))
       ) : (
@@ -107,9 +141,13 @@ export function CompetitionTable({
           <CardContent className="p-8 text-center text-sm text-muted-foreground">
             {!loaded || loading
               ? 'Loading table…'
-              : !available && !online
-                ? 'Table not available offline'
-                : 'No table available'}
+              : !available
+                ? online
+                  ? 'Table unavailable'
+                  : 'Table not available offline'
+                : live
+                  ? 'No live table reported for this season'
+                  : 'No table available'}
           </CardContent>
         </Card>
       )}

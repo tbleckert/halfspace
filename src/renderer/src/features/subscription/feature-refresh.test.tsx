@@ -1,8 +1,25 @@
 // @vitest-environment jsdom
+import {
+  invalidateLiveStandingsRefreshes,
+  useLiveStandings
+} from '@/features/competitions/use-live-standings'
+import { invalidateTrendsRefreshes, useTrends } from '@/features/fixtures/use-trends'
+import {
+  invalidateBroadcasterRefreshes,
+  useBroadcaster
+} from '@/features/broadcasts/use-broadcaster'
+import {
+  invalidateBroadcastScheduleRefreshes,
+  useBroadcastSchedule
+} from '@/features/broadcasts/use-broadcast-schedule'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterAll, afterEach, beforeEach, expect, it, vi } from 'vitest'
 import {
   clearSportmonksCache,
+  readLiveStandings,
+  readFixtureTrends,
+  readBroadcaster,
+  readBroadcastSchedule,
   db,
   readFixtureTv,
   readFixturePressure,
@@ -20,6 +37,10 @@ import {
 import { invalidateSubscriptionRefresh, useSubscription } from './use-subscription'
 
 beforeEach(async () => {
+  invalidateLiveStandingsRefreshes()
+  invalidateTrendsRefreshes()
+  invalidateBroadcasterRefreshes()
+  invalidateBroadcastScheduleRefreshes()
   invalidateSubscriptionRefresh()
   invalidateFixtureTvRefreshes()
   invalidatePressureRefreshes()
@@ -30,6 +51,46 @@ afterEach(() => vi.unstubAllGlobals())
 afterAll(() => db.close())
 
 it.each([
+  {
+    name: 'live standings',
+    method: 'refreshLiveStandings',
+    useQuery: () => useLiveStandings({ competitionId: 8, seasonId: 12 }, true, false),
+    invalidate: invalidateLiveStandingsRefreshes,
+    read: () => readLiveStandings({ competitionId: 8, seasonId: 12 }),
+    data: { standings: [], fetchedAt: 1000 }
+  },
+  {
+    name: 'match trends',
+    method: 'refreshFixtureTrends',
+    useQuery: () => useTrends(10, true, false),
+    invalidate: invalidateTrendsRefreshes,
+    read: () => readFixtureTrends(10),
+    data: { fixtureId: 10, points: [], periods: [], fetchedAt: 1000 }
+  },
+  {
+    name: 'broadcaster',
+    method: 'refreshBroadcaster',
+    useQuery: () => useBroadcaster(34, true),
+    invalidate: invalidateBroadcasterRefreshes,
+    read: () => readBroadcaster(34),
+    data: { station: { id: 34, name: 'Station', image_path: null, url: null }, fetchedAt: 1000 }
+  },
+  {
+    name: 'broadcast schedule',
+    method: 'refreshBroadcastSchedule',
+    useQuery: () => useBroadcastSchedule({ stationId: 34, feed: 'past', page: 1 }, true),
+    invalidate: invalidateBroadcastScheduleRefreshes,
+    read: () => readBroadcastSchedule({ stationId: 34, feed: 'past', page: 1 }),
+    data: {
+      stationId: 34,
+      feed: 'past',
+      page: 1,
+      fixtures: [],
+      listings: [],
+      hasMore: false,
+      fetchedAt: 1000
+    }
+  },
   {
     name: 'pressure',
     method: 'refreshFixturePressure',

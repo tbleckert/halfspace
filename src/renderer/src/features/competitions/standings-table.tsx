@@ -14,6 +14,7 @@ import { prefetchTeamEntity } from '@/features/teams/use-team'
 import { prefetchFixtureEntity } from '@/features/fixtures/use-fixtures'
 import { intentPrefetchProps } from '@/lib/prefetch'
 import { cn } from '@/lib/utils'
+import { FixtureLiveIndicator } from '@/features/fixtures/fixture-live-indicator'
 import { recentStandingForm, standingDetailValue } from './standing-details'
 
 const resultLabels: Record<string, string> = { W: 'Win', D: 'Draw', L: 'Loss' }
@@ -32,7 +33,8 @@ export function StandingsTable({
   name,
   online,
   season,
-  standings
+  standings,
+  activeTeamIds = []
 }: {
   competitionId: number
   date: string
@@ -40,6 +42,7 @@ export function StandingsTable({
   online: boolean
   season?: number
   standings: CachedStanding[]
+  activeTeamIds?: number[]
 }): React.JSX.Element {
   const rules = [
     ...new Map(
@@ -109,6 +112,9 @@ export function StandingsTable({
                       online={online}
                     />
                     <span className="truncate font-medium">{teamName}</span>
+                    {activeTeamIds.includes(standing.participantId) && (
+                      <FixtureLiveIndicator showLabel={false} />
+                    )}
                   </Link>
                   {form.length > 0 && (
                     <div

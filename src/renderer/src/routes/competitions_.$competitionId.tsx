@@ -13,6 +13,7 @@ const competitionSearchSchema = z.object({
   season: optionalPositiveId,
   stage: optionalPositiveId,
   round: optionalPositiveId,
+  table: z.literal('live').optional().catch(undefined),
   leaderboard: z.enum(['goals', 'assists', 'yellow-cards', 'red-cards']).optional().catch(undefined)
 })
 
@@ -23,7 +24,7 @@ export const Route = createFileRoute('/competitions_/$competitionId')({
 
 function CompetitionWorkspaceRoute(): React.JSX.Element {
   const { competitionId } = Route.useParams()
-  const { date, season, leaderboard, stage, round } = Route.useSearch()
+  const { date, season, leaderboard, stage, round, table } = Route.useSearch()
   const matchRoute = useMatchRoute()
   const view = matchRoute({
     to: '/competitions/$competitionId/knockout',
@@ -78,6 +79,7 @@ function CompetitionWorkspaceRoute(): React.JSX.Element {
         leaderboard={leaderboard}
         stage={stage}
         round={round}
+        table={table}
         view={view}
       />
       <Outlet />

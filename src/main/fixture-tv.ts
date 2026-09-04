@@ -1,33 +1,12 @@
 import { z } from 'zod'
+import { tvListingSchema } from './tv-schema'
 import type { FixtureTvRefresh, RefreshFixtureInput } from '@shared/contracts'
 import { requestSportmonks, SportmonksError } from './sportmonks-client'
 
 const responseSchema = z.object({
   data: z.object({
     id: z.number().int(),
-    tvstations: z.array(
-      z.object({
-        id: z.number().int(),
-        fixture_id: z.number().int(),
-        tvstation_id: z.number().int(),
-        country_id: z.number().int().nullable(),
-        tvstation: z
-          .object({
-            id: z.number().int(),
-            name: z.string(),
-            url: z.string().nullable(),
-            image_path: z.string().nullable()
-          })
-          .nullable(),
-        country: z
-          .object({
-            id: z.number().int(),
-            name: z.string(),
-            image_path: z.string().nullable()
-          })
-          .nullable()
-      })
-    )
+    tvstations: z.array(tvListingSchema)
   })
 })
 

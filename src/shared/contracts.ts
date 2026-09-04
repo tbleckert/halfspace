@@ -6,6 +6,10 @@ export const ipcChannels = {
   refreshSubscription: 'sportmonks:refresh-subscription',
   refreshFixtureTv: 'sportmonks:refresh-fixture-tv',
   refreshFixturePressure: 'sportmonks:refresh-fixture-pressure',
+  refreshFixtureTrends: 'sportmonks:refresh-fixture-trends',
+  refreshLiveStandings: 'sportmonks:refresh-live-standings',
+  refreshBroadcaster: 'sportmonks:refresh-broadcaster',
+  refreshBroadcastSchedule: 'sportmonks:refresh-broadcast-schedule',
   refreshTeamOfWeek: 'sportmonks:refresh-team-of-week',
   connectionState: 'credentials:connection-state',
   saveToken: 'credentials:save-token',
@@ -108,6 +112,49 @@ export interface SportmonksPressure {
 
 export interface FixturePressureRefresh {
   points: SportmonksPressure[]
+  fetchedAt: number
+}
+
+export interface SportmonksTrend {
+  id: number
+  fixture_id: number
+  participant_id: number
+  type_id: number
+  period_id: number | null
+  minute: number
+  value: number | null
+}
+
+export interface FixtureTrendsRefresh {
+  fixtureId: number
+  points: SportmonksTrend[]
+  periods: SportmonksPeriod[]
+  fetchedAt: number
+}
+
+export interface RefreshLiveStandingsInput {
+  competitionId: number
+  seasonId: number
+}
+
+export interface RefreshBroadcasterInput {
+  stationId: number
+}
+
+export interface BroadcasterRefresh {
+  station: NonNullable<SportmonksTvListing['tvstation']>
+  fetchedAt: number
+}
+
+export interface RefreshBroadcastScheduleInput extends RefreshBroadcasterInput {
+  feed: 'upcoming' | 'past'
+  page: number
+}
+
+export interface BroadcastScheduleRefresh extends RefreshBroadcastScheduleInput {
+  fixtures: SportmonksFixture[]
+  listings: SportmonksTvListing[]
+  hasMore: boolean
   fetchedAt: number
 }
 
@@ -1235,6 +1282,12 @@ export interface HalfspaceApi {
     refreshSubscription(): Promise<Result<SubscriptionRefresh>>
     refreshFixtureTv(input: RefreshFixtureInput): Promise<Result<FixtureTvRefresh>>
     refreshFixturePressure(input: RefreshFixtureInput): Promise<Result<FixturePressureRefresh>>
+    refreshFixtureTrends(input: RefreshFixtureInput): Promise<Result<FixtureTrendsRefresh>>
+    refreshLiveStandings(input: RefreshLiveStandingsInput): Promise<Result<StandingsRefresh>>
+    refreshBroadcaster(input: RefreshBroadcasterInput): Promise<Result<BroadcasterRefresh>>
+    refreshBroadcastSchedule(
+      input: RefreshBroadcastScheduleInput
+    ): Promise<Result<BroadcastScheduleRefresh>>
     refreshTeamOfWeek(input: RefreshTeamOfWeekInput): Promise<Result<TeamOfWeekRefresh>>
     refreshTeamRivals: (input: RefreshTeamInput) => Promise<Result<TeamRivalsRefresh>>
     refreshFixtureCommentary: (

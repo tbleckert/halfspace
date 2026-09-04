@@ -1,8 +1,8 @@
 # Sportmonks API coverage
 
-Halfspace currently covers **44 of 153 endpoints** and **150 of 1320 documented endpoint includes**.
+Halfspace currently covers **48 of 153 endpoints** and **169 of 1320 documented endpoint includes**.
 
-Overall coverage: **13%**
+Overall coverage: **15%**
 
 Source: [Sportmonks Football API 3.0 documentation index](https://docs.sportmonks.com/v3/sitemap.md)
 
@@ -27,7 +27,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 ### Fixtures
 
 - [ ] [All Fixtures](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-all-fixtures)
-- [x] [Fixture by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixture-by-id) — includes 20/38
+- [x] [Fixture by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixture-by-id) — includes 21/38
 - [ ] [Fixtures by Multiple IDs](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixtures-by-multiple-ids)
 - [x] [Fixtures by Date](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixtures-by-date) — includes 5/38
 - [x] [Fixtures by Date Range](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixtures-by-date-range) — includes 5/38
@@ -35,8 +35,8 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 - [x] [Fixtures by Head To Head](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixtures-by-head-to-head) — includes 5/38
 - [x] [Fixtures by Search by Name](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixtures-by-search-by-name) — includes 5/38
 - [ ] [Upcoming Fixtures by Market ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-upcoming-fixtures-by-market-id)
-- [ ] [Upcoming Fixtures by TV Station ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-upcoming-fixtures-by-tv-station-id)
-- [ ] [Past Fixtures by TV Station ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-past-fixtures-by-tv-station-id)
+- [x] [Upcoming Fixtures by TV Station ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-upcoming-fixtures-by-tv-station-id) — includes 6/38
+- [x] [Past Fixtures by TV Station ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-past-fixtures-by-tv-station-id) — includes 6/38
 - [ ] [Latest Updated Fixtures](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-latest-updated-fixtures)
 
 ### States
@@ -101,7 +101,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 - [x] [Standings by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-standings-by-season-id) — includes 6/10
 - [x] [Standings by Round ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-standings-by-round-id) — includes 6/10
 - [ ] [Standing Correction by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-standing-correction-by-season-id)
-- [ ] [Live Standings by League ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-live-standings-by-league-id)
+- [x] [Live Standings by League ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-live-standings-by-league-id) — includes 6/10
 - [ ] [Grouped Standings by Round ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-grouped-standings-by-round-id)
 
 ### Topscorers
@@ -193,7 +193,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 ### TV Stations
 
 - [ ] [All TV Stations](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/tv-stations/get-all-tv-stations)
-- [ ] [TV Station by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/tv-stations/get-tv-station-by-id)
+- [x] [TV Station by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/tv-stations/get-tv-station-by-id) — includes 0/2
 - [ ] [TV Stations by Fixture ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/tv-stations/get-tv-stations-by-fixture-id)
 
 ### Expected (xG)

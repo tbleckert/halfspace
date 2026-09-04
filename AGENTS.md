@@ -330,6 +330,21 @@ abstractions.
   season, club, and reported placing; distinguish winners from runners-up and preserve unknown
   metadata. Never present every trophy record as a title or imply the available history is complete.
 
+- Live competition tables are an explicit current-season Table selection. Cache provider snapshots
+  separately by league and season, validate both identities, and retain provider positions, values,
+  form, and rules. Refresh every 30 seconds while that league has matches in play and once when its
+  final live match ends. Keep the snapshot time visible, clear live selection when seasons change,
+  and distinguish unavailable data from an empty response; no active stage can mean no live table.
+- Fixture Game loads match trends lazily for possession, shots, shots on target, and corners.
+  Preserve reported values and minute labels, keep periods separate, and leave missing readings
+  absent. Never guess half-time offsets, smooth observations, or treat missing values as zero.
+  Cache by fixture, refresh every 30 seconds while an ongoing match's Game view is active, and
+  fetch final readings when it ends.
+- Fixture TV listings link to broadcaster pages with Upcoming and Past schedules. Cache each station,
+  feed, and page separately with explicit pagination; preserve richer and newer shared fixtures.
+  Show regions from each fixture's listings for that station, never from general station countries.
+  Retain the originating fixture, competition, and season on the return link.
+
 ## Mindset & Process
 
 - Fix issues from first principles. Do not apply bandaids when the root cause can be identified and

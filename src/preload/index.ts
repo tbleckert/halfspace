@@ -9,6 +9,11 @@ const halfspaceApi: HalfspaceApi = {
     clearToken: () => ipcRenderer.invoke(ipcChannels.clearToken)
   },
   sportmonks: {
+    refreshLiveStandings: (input) => ipcRenderer.invoke(ipcChannels.refreshLiveStandings, input),
+    refreshFixtureTrends: (input) => ipcRenderer.invoke(ipcChannels.refreshFixtureTrends, input),
+    refreshBroadcaster: (input) => ipcRenderer.invoke(ipcChannels.refreshBroadcaster, input),
+    refreshBroadcastSchedule: (input) =>
+      ipcRenderer.invoke(ipcChannels.refreshBroadcastSchedule, input),
     refreshHonours: (input) => ipcRenderer.invoke(ipcChannels.refreshHonours, input),
     refreshNews: (input) => ipcRenderer.invoke(ipcChannels.refreshNews, input),
     refreshMatchFacts: (input) => ipcRenderer.invoke(ipcChannels.refreshMatchFacts, input),

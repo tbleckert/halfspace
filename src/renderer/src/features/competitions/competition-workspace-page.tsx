@@ -9,7 +9,7 @@ import {
   Trophy,
   UsersRound
 } from 'lucide-react'
-import { db } from '@/data/db'
+import { db, readLiveFixtureQuery } from '@/data/db'
 import { EntitySubpageNavigation } from '@/components/entity-subpage-navigation'
 import { entitySubpageNavigationItemClassName } from '@/components/entity-subpage-navigation-variants'
 import { ErrorAlert } from '@/components/error-alert'
@@ -41,6 +41,7 @@ import { isFixtureOngoing } from '@/lib/fixture-state'
 import { TeamOfWeek } from './team-of-week'
 import { StandingsTable } from './standings-table'
 import { CompetitionTable } from './competition-table'
+import { useLiveStandings } from './use-live-standings'
 import { useRoundStandings } from './use-round-standings'
 import { prefetchSeasonSchedule, useSeasonSchedule } from './use-season-schedule'
 import type { PlayerLeaderboardCategory } from './player-leaders-data'
@@ -74,6 +75,7 @@ export function CompetitionWorkspacePage({
   leaderboard = 'goals',
   stage,
   round,
+  table,
   view = 'overview'
 }: {
   competitionId: string
@@ -82,6 +84,7 @@ export function CompetitionWorkspacePage({
   leaderboard?: PlayerLeaderboardCategory
   stage?: number
   round?: number
+  table?: 'live'
   view?: CompetitionView
 }): React.JSX.Element {
   const parsedCompetitionId = Number(competitionId)
@@ -134,8 +137,26 @@ export function CompetitionWorkspacePage({
     (requestedSeasonId && !seasons.cached ? requestedSeasonId : selectedSeason?.id) ??
     competition?.currentSeasonId ??
     observedSeasonId
+  const currentSeason = selectedSeason?.is_current ?? seasonId === competition?.currentSeasonId
+  const liveTable = view === 'table' && table === 'live' && !round && currentSeason
+  const liveFixtures = useScopedLiveQuery(readLiveFixtureQuery, [])
+  const competitionLiveFixtures = (liveFixtures?.fixtures ?? []).filter(
+    (fixture) =>
+      fixture.leagueId === parsedCompetitionId &&
+      fixture.seasonId === seasonId &&
+      isFixtureOngoing(fixture.stateId)
+  )
+  const liveInput = useMemo(
+    () => (liveTable && seasonId ? { competitionId: parsedCompetitionId, seasonId } : null),
+    [liveTable, parsedCompetitionId, seasonId]
+  )
+  const liveStandings = useLiveStandings(
+    liveInput,
+    online && liveTable,
+    competitionLiveFixtures.length > 0
+  )
   const showCurrentStandings =
-    view === 'overview' || view === 'teams' || (view === 'table' && !round)
+    view === 'overview' || view === 'teams' || (view === 'table' && !round && !liveTable)
   const showSchedule = view === 'schedule' || view === 'table' || view === 'knockout'
   const standings = useStandings(seasonId, online && showCurrentStandings)
   const schedule = useSeasonSchedule(seasonId, online && showSchedule)
@@ -189,7 +210,8 @@ export function CompetitionWorkspacePage({
         : view !== 'team-of-week' && fixtures.refreshing) ||
     (showPlayerLeaders && topscorers.refreshing) ||
     (showCurrentStandings && standings.refreshing) ||
-    (view === 'table' && roundStandings.refreshing)
+    (view === 'table' && roundStandings.refreshing) ||
+    (liveTable && liveStandings.refreshing)
   const errors = [
     view === 'knockout' ? bracket.error : null,
     seasons.error,
@@ -202,6 +224,7 @@ export function CompetitionWorkspacePage({
           : fixtures.error,
     showPlayerLeaders ? topscorers.error : null,
     showCurrentStandings ? standings.error : null,
+    liveTable ? liveStandings.error : null,
     view === 'table' ? roundStandings.error : null
   ].filter((error): error is string => Boolean(error))
 
@@ -221,6 +244,7 @@ export function CompetitionWorkspacePage({
             : fixtures.refresh(),
       showPlayerLeaders ? topscorers.refresh() : Promise.resolve(),
       showCurrentStandings ? standings.refresh() : Promise.resolve(),
+      liveTable ? liveStandings.refresh() : Promise.resolve(),
       view === 'table' ? roundStandings.refresh() : Promise.resolve()
     ])
   }
@@ -239,7 +263,8 @@ export function CompetitionWorkspacePage({
         date: seasonFixtureDate(nextSeason, today),
         season: nextSeason.id,
         stage: undefined,
-        round: undefined
+        round: undefined,
+        table: undefined
       }),
       replace: true
     })
@@ -335,7 +360,7 @@ export function CompetitionWorkspacePage({
           onRoundChange={(round) =>
             void navigate({
               to: '/competitions/$competitionId/team-of-week',
-              search: (previous) => ({ ...previous, round, stage: undefined }),
+              search: (previous) => ({ ...previous, round, stage: undefined, table: undefined }),
               resetScroll: false
             })
           }
@@ -407,14 +432,56 @@ export function CompetitionWorkspacePage({
           online={online}
           schedule={schedule.cached}
           roundId={round}
-          standings={(round ? roundStandings.cached?.standings : standings.cached?.standings) ?? []}
-          loaded={round ? roundStandings.cached !== undefined : standings.cached !== undefined}
-          available={round ? !!roundStandings.cached : !!standings.cached?.query}
-          loading={round ? roundStandings.refreshing : standings.refreshing}
+          live={liveTable}
+          liveAvailable={currentSeason}
+          liveFetchedAt={liveStandings.cached?.fetchedAt}
+          activeTeamIds={competitionLiveFixtures
+            .flatMap((fixture) => [fixture.homeTeamId, fixture.awayTeamId])
+            .filter((id): id is number => id !== null)}
+          onLiveChange={() =>
+            void navigate({
+              to: '/competitions/$competitionId/table',
+              search: (previous) => ({
+                ...previous,
+                table: 'live',
+                round: undefined,
+                stage: undefined
+              }),
+              resetScroll: false
+            })
+          }
+          standings={
+            (liveTable
+              ? liveStandings.cached?.standings
+              : round
+                ? roundStandings.cached?.standings
+                : standings.cached?.standings) ?? []
+          }
+          loaded={
+            liveTable
+              ? liveStandings.cached !== undefined
+              : round
+                ? roundStandings.cached !== undefined
+                : standings.cached !== undefined
+          }
+          available={
+            liveTable
+              ? !!liveStandings.cached
+              : round
+                ? !!roundStandings.cached
+                : !!standings.cached?.query
+          }
+          loading={
+            liveTable
+              ? liveStandings.refreshing
+              : round
+                ? roundStandings.refreshing
+                : standings.refreshing
+          }
           onRoundChange={(round) =>
             void navigate({
               to: '/competitions/$competitionId/table',
-              search: (previous) => ({ ...previous, round, stage: undefined }),
+              search: (previous) => ({ ...previous, round, stage: undefined, table: undefined }),
               resetScroll: false
             })
           }

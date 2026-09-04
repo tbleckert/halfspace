@@ -1,3 +1,7 @@
+import { invalidateLiveStandingsRefreshes } from '@/features/competitions/use-live-standings'
+import { invalidateTrendsRefreshes } from '@/features/fixtures/use-trends'
+import { invalidateBroadcasterRefreshes } from '@/features/broadcasts/use-broadcaster'
+import { invalidateBroadcastScheduleRefreshes } from '@/features/broadcasts/use-broadcast-schedule'
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { ConnectionState, SportmonksRateLimit } from '@shared/contracts'
 import { clearSportmonksCache } from '@/data/db'
@@ -181,6 +185,10 @@ export function ConnectionStateProvider({ children }: { children: ReactNode }): 
 }
 
 function invalidateRefreshes(): void {
+  invalidateLiveStandingsRefreshes()
+  invalidateTrendsRefreshes()
+  invalidateBroadcasterRefreshes()
+  invalidateBroadcastScheduleRefreshes()
   invalidateBracketRefreshes()
   invalidatePredictedLineupsRefreshes()
   invalidateNewsRefreshes()

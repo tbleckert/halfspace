@@ -1,12 +1,13 @@
 import { Link } from '@tanstack/react-router'
 import { Card, CardHeader, CardTitle } from '@/components/ui/card'
-import type { FixturePressureQuery } from '@/data/db'
+import type { FixturePressureQuery, FixtureTrendsQuery } from '@/data/db'
 import { TeamLogo } from '@/features/teams/team-logo'
 import { fixtureParticipantAt } from '@/lib/fixture'
 import { cn } from '@/lib/utils'
 import type { SportmonksFixture } from '@shared/contracts'
 import { fixtureKeyStatisticRows } from './fixture-detail-data'
 import { FixtureEmptyState } from './fixture-empty-state'
+import { FixtureTrends } from './fixture-trends'
 import { FixturePressure } from './fixture-pressure'
 import type { FixtureDetailSearch } from './fixture-route'
 import { FixtureStatisticRow } from './fixture-statistic-row'
@@ -16,11 +17,13 @@ export function FixtureGame({
   fixture,
   context,
   pressure,
+  trends,
   online
 }: {
   fixture: SportmonksFixture
   context: FixtureDetailSearch
   pressure: FixturePressureQuery | null | undefined
+  trends?: FixtureTrendsQuery | null
   online: boolean
 }): React.JSX.Element {
   const home = fixtureParticipantAt(fixture, 'home')
@@ -96,6 +99,7 @@ export function FixtureGame({
           )}
         </Card>
       </div>
+      <FixtureTrends cached={trends} home={home} away={away} />
       <section>
         <h2 className="mb-3 text-xl font-semibold tracking-tight">Timeline</h2>
         <FixtureTimeline home={home} away={away} events={fixture.events ?? []} online={online} />

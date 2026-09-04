@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import { ArrowUpRight, RefreshCw, Tv } from 'lucide-react'
+import { ChevronRight, RefreshCw, Tv } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { NativeSelect } from '@/components/ui/native-select'
@@ -13,9 +13,13 @@ import { tvGuideStations } from './tv-guide-data'
 
 export function FixtureTv({
   fixtureId,
+  competitionId,
+  seasonId,
   online
 }: {
   fixtureId: number
+  competitionId?: number
+  seasonId?: number
   online: boolean
 }): React.JSX.Element {
   const [countryId, setCountryId] = useState('all')
@@ -119,29 +123,23 @@ export function FixtureTv({
                         </span>
                       )}
                     </span>
-                    {station.url && (
-                      <ArrowUpRight
-                        aria-hidden="true"
-                        className="size-4 shrink-0 text-muted-foreground"
-                      />
-                    )}
+                    <ChevronRight
+                      aria-hidden="true"
+                      className="size-4 shrink-0 text-muted-foreground"
+                    />
                   </>
                 )
                 const className = 'flex items-center gap-2 py-2'
                 return (
                   <li key={station.id}>
-                    {station.url ? (
-                      <a
-                        className={`${className} hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-ring`}
-                        href={station.url}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        {content}
-                      </a>
-                    ) : (
-                      <div className={className}>{content}</div>
-                    )}
+                    <Link
+                      to="/broadcasters/$stationId"
+                      params={{ stationId: String(station.id) }}
+                      search={{ fixture: fixtureId, competition: competitionId, season: seasonId }}
+                      className={`${className} hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-ring`}
+                    >
+                      {content}
+                    </Link>
                   </li>
                 )
               })}

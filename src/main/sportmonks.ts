@@ -38,6 +38,7 @@ import type {
   RefreshSeasonTopscorersInput,
   RefreshStandingsInput,
   RefreshRoundStandingsInput,
+  RefreshLiveStandingsInput,
   RefreshTeamFixturesInput,
   RefreshTeamInput,
   RefreshTeamSquadInput,
@@ -538,7 +539,7 @@ const oddSchema = z
   })
   .passthrough()
 
-const periodSchema = z
+export const periodSchema = z
   .object({
     id: z.number().int(),
     fixture_id: z.number().int(),
@@ -1858,6 +1859,35 @@ export async function fetchStandingsBySeason(
   fetcher: typeof fetch = fetch
 ): Promise<StandingsRefresh> {
   return fetchStandings(`/seasons/${input.seasonId}`, token, fetcher)
+}
+
+export function validateLiveStandingsInput(value: unknown): RefreshLiveStandingsInput {
+  const parsed = z
+    .object({ competitionId: z.number().int().positive(), seasonId: z.number().int().positive() })
+    .safeParse(value)
+  if (!parsed.success)
+    throw new SportmonksError('invalid_input', 'Choose a valid competition and season.')
+  return parsed.data
+}
+
+export async function fetchLiveStandings(
+  input: RefreshLiveStandingsInput,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<StandingsRefresh> {
+  const result = await fetchStandings(`/live/leagues/${input.competitionId}`, token, fetcher)
+  if (
+    result.standings.some(
+      (standing) =>
+        standing.league_id !== input.competitionId || standing.season_id !== input.seasonId
+    )
+  ) {
+    throw new SportmonksError(
+      'invalid_response',
+      'Live standings do not match the selected competition and season.'
+    )
+  }
+  return result
 }
 
 export function validateRoundStandingsInput(value: unknown): RefreshRoundStandingsInput {
