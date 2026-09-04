@@ -7,7 +7,7 @@ const responseSchema = z.object({
       id: z.number().int(),
       fixture_id: z.number().int(),
       type_id: z.number().int(),
-      participant: z.enum(['home', 'away', 'both']),
+      participant: z.enum(['home', 'away', 'both', 'referee']),
       basis: z.string(),
       scope: z.string(),
       category: z.string(),

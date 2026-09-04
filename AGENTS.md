@@ -310,8 +310,10 @@ abstractions.
   news cache and article reader; keep the feed independent of the selected fixture date. At narrower
   widths, place news below fixtures rather than squeezing the match list. Adapt the Matchday header
   to its available column width, not only the viewport width.
-- Match facts belong in Fixture Preview with team, category, and scope filters. Fetch every page
+- Match facts belong in Fixture Preview with participant, category, and scope filters. Fetch every page
   before caching the response; show provider-written facts verbatim and omit records without wording.
+  Facts can describe the referee as well as home, away, or both teams. Accept referee records even
+  without wording so they cannot invalidate a complete response; label written referee facts explicitly.
   A fact labelled streak can mean X of Y recent matches, not consecutive matches. Preserve that
   distinction and keep empty results separate from denied access.
 - Predicted lineups use their own fixture-keyed cache and only appear before play when confirmed

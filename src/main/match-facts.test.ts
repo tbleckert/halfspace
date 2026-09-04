@@ -23,6 +23,33 @@ it('loads every page without interpreting counts as consecutive streaks', async 
   expect(result.facts).toHaveLength(2)
   expect(result.facts[0].natural_language).toBe(fact.natural_language)
 })
+it('retains the complete result when a later page contains referee facts without wording', async () => {
+  const refereeFact = {
+    id: 68337869,
+    fixture_id: 19735470,
+    type_id: 109575,
+    participant: 'referee',
+    basis: 'global',
+    scope: 'league_matches',
+    category: 'referees',
+    natural_language: null,
+    type: { id: 109575, name: 'Match Fact Cards Per Foul Ref Comparison' }
+  }
+  const teamFact = { ...fact, fixture_id: 19735470 }
+  const fetcher = vi.fn<typeof fetch>(async (url) => {
+    const page = Number(new URL(String(url)).searchParams.get('page'))
+    return Response.json({
+      data: [page === 1 ? teamFact : refereeFact],
+      pagination: { current_page: page, has_more: page === 1 }
+    })
+  })
+
+  const result = await fetchMatchFacts({ fixtureId: 19735470 }, 'token', fetcher)
+
+  expect(fetcher).toHaveBeenCalledTimes(2)
+  expect(result.fixtureId).toBe(19735470)
+  expect(result.facts).toEqual([teamFact, refereeFact])
+})
 it('rejects a partial paginated result and wrong-fixture data', async () => {
   await expect(
     fetchMatchFacts({ fixtureId: 10 }, 'token', async (url) =>

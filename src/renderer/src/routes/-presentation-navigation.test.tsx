@@ -97,16 +97,31 @@ it('filters written facts without changing their statistical claims', async () =
         participant: 'home',
         natural_language: 'Home are unbeaten in 87 of 100 matches.'
       },
-      { ...base, id: 2, participant: 'away', natural_language: 'Away have won 3 of 5 matches.' }
+      { ...base, id: 2, participant: 'away', natural_language: 'Away have won 3 of 5 matches.' },
+      {
+        ...base,
+        id: 3,
+        participant: 'referee',
+        basis: 'global',
+        category: 'referees',
+        natural_language: 'A written referee fact.'
+      },
+      { ...base, id: 4, participant: 'referee', natural_language: null }
     ]
   })
   open('/fixtures/10/preview')
   await screen.findByText('Home are unbeaten in 87 of 100 matches.')
-  fireEvent.change(screen.getByRole('combobox', { name: 'Facts team' }), {
+  fireEvent.change(screen.getByRole('combobox', { name: 'Facts participant' }), {
     target: { value: 'away' }
   })
   expect(screen.queryByText('Home are unbeaten in 87 of 100 matches.')).toBeNull()
   expect(screen.getByText('Away have won 3 of 5 matches.')).toBeTruthy()
+  fireEvent.change(screen.getByRole('combobox', { name: 'Facts participant' }), {
+    target: { value: 'referee' }
+  })
+  expect(screen.queryByText('Away have won 3 of 5 matches.')).toBeNull()
+  expect(screen.getByText('A written referee fact.')).toBeTruthy()
+  expect(screen.getByText('Referee · Global · League matches')).toBeTruthy()
 })
 it('keeps honours placement explicit and links the reported season and club', async () => {
   await writePlayerRefresh({ player: makeTopscorer().player!, fetchedAt: 100 })

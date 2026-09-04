@@ -877,7 +877,7 @@ export interface SportmonksMatchFact {
   id: number
   fixture_id: number
   type_id: number
-  participant: 'home' | 'away' | 'both'
+  participant: 'home' | 'away' | 'both' | 'referee'
   basis: string
   scope: string
   category: string

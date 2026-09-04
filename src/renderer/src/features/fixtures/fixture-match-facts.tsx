@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { SportmonksFixture } from '@shared/contracts'
+import type { SportmonksFixture, SportmonksMatchFact } from '@shared/contracts'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
@@ -32,10 +32,11 @@ export function FixtureMatchFacts({
   )
   const categories = [...new Set(written.map((fact) => fact.category))].sort()
   const scopes = [...new Set(written.map((fact) => fact.scope))].sort()
-  const teamName = (side: string): string =>
-    side === 'both'
-      ? 'Both teams'
-      : (fixtureParticipantAt(fixture, side === 'home' ? 'home' : 'away')?.name ?? side)
+  const participantName = (side: SportmonksMatchFact['participant']): string => {
+    if (side === 'both') return 'Both teams'
+    if (side === 'referee') return 'Referee'
+    return fixtureParticipantAt(fixture, side)?.name ?? factLabel(side)
+  }
   return (
     <Card className="gap-0 overflow-hidden py-0">
       <CardHeader className="border-b px-4 py-3">
@@ -49,19 +50,19 @@ export function FixtureMatchFacts({
       {!!written.length && (
         <div className="flex flex-wrap gap-2 border-b px-4 py-3">
           <NativeSelect
-            aria-label="Facts team"
+            aria-label="Facts participant"
             value={participant}
             onChange={(event) => {
               setParticipant(event.target.value)
               setExpanded(false)
             }}
           >
-            <NativeSelectOption value="all">All teams</NativeSelectOption>
-            {(['home', 'away', 'both'] as const)
+            <NativeSelectOption value="all">All participants</NativeSelectOption>
+            {(['home', 'away', 'both', 'referee'] as const)
               .filter((side) => written.some((fact) => fact.participant === side))
               .map((side) => (
                 <NativeSelectOption key={side} value={side}>
-                  {teamName(side)}
+                  {participantName(side)}
                 </NativeSelectOption>
               ))}
           </NativeSelect>
@@ -103,7 +104,7 @@ export function FixtureMatchFacts({
             <p className="text-sm leading-relaxed">{fact.natural_language}</p>
             <p className="mt-1.5 text-xs text-muted-foreground">
               {[
-                teamName(fact.participant),
+                participantName(fact.participant),
                 fact.basis === 'h2h' ? 'Head-to-head' : factLabel(fact.basis),
                 factLabel(fact.scope),
                 fact.type?.name.replace(/^Match Facts?\s*/i, '')
