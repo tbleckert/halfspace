@@ -21,27 +21,21 @@ export function LiveFixtureTicker({ timeZone }: { timeZone: string }): React.JSX
   return (
     <section
       aria-label={current ? 'Live scores' : 'Last seen live scores'}
-      className="flex h-16 min-w-0 shrink-0 bg-card"
+      data-slot="live-fixture-ticker"
+      className="col-span-2 row-start-1 flex h-9 min-w-0 bg-card"
     >
-      <div className="flex w-28 shrink-0 items-center gap-2 px-4">
+      <div className="flex w-58 shrink-0 items-center gap-2 pl-24 pr-4">
         {current ? (
-          <span aria-hidden="true">
+          <span aria-hidden="true" className="flex items-center">
             <FixtureLiveIndicator showLabel={false} />
           </span>
         ) : (
           <span aria-hidden="true" className="size-2 rounded-full bg-muted-foreground" />
         )}
-        <div className="min-w-0">
-          <p className="text-xs font-bold tracking-[-0.01em]">
-            {current ? 'Live now' : 'Last seen'}
-          </p>
-          <p className="font-mono text-[10px] tabular-nums text-muted-foreground">
-            {fixtures.length} {fixtures.length === 1 ? 'match' : 'matches'}
-          </p>
-        </div>
+        <p className="text-xs font-semibold">{current ? 'Live' : 'Last seen'}</p>
       </div>
 
-      <div className="flex min-w-0 flex-1 gap-3 overflow-x-auto">
+      <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
         {fixtures.map((fixture) => (
           <LiveFixture key={fixture.id} fixture={fixture} online={online} />
         ))}
@@ -70,27 +64,28 @@ function LiveFixture({
       params={{ fixtureId: String(fixture.id) }}
       search={{ competition: fixture.leagueId, season: fixture.seasonId }}
       aria-label={`${homeName} ${score.home ?? 'unknown'}, ${awayName} ${score.away ?? 'unknown'}, ${status}`}
-      className="group flex w-64 shrink-0 flex-col justify-center px-4 outline-none transition-colors hover:bg-sidebar-accent focus-visible:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sidebar-ring"
+      title={`${homeName} vs ${awayName}`}
+      className="grid w-52 shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5 px-2 outline-none transition-colors hover:bg-sidebar-accent focus-visible:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sidebar-ring"
       {...intentPrefetchProps(online, () => prefetchFixtureEntity(fixture.id))}
     >
-      <div className="mb-1 flex items-center justify-between gap-3 text-[10px] font-medium text-muted-foreground">
-        <span className="truncate">{fixture.raw.league?.name ?? `League ${fixture.leagueId}`}</span>
-        <span className="shrink-0 font-mono font-semibold tabular-nums text-success-emphasis">
+      <TickerTeam
+        className="flex-row-reverse text-right"
+        imagePath={home?.image_path ?? null}
+        name={home?.short_code?.trim() || homeName}
+        online={online}
+      />
+      <span className="flex items-center gap-1.5 font-mono text-sm font-bold leading-5 tabular-nums text-foreground">
+        <span>{score.home ?? '–'}</span>
+        <span className="flex h-5 items-center rounded-full bg-white px-1.5 text-[10px] font-bold leading-none whitespace-nowrap text-success-emphasis">
           {status}
         </span>
-      </div>
-      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
-        <TickerTeam imagePath={home?.image_path ?? null} name={homeName} online={online} />
-        <span className="font-mono text-sm font-extrabold tabular-nums text-foreground">
-          {score.home ?? '–'}–{score.away ?? '–'}
-        </span>
-        <TickerTeam
-          className="flex-row-reverse text-right"
-          imagePath={away?.image_path ?? null}
-          name={awayName}
-          online={online}
-        />
-      </div>
+        <span>{score.away ?? '–'}</span>
+      </span>
+      <TickerTeam
+        imagePath={away?.image_path ?? null}
+        name={away?.short_code?.trim() || awayName}
+        online={online}
+      />
     </Link>
   )
 }
@@ -107,8 +102,8 @@ function TickerTeam({
   online: boolean
 }): React.JSX.Element {
   return (
-    <span className={cn('flex min-w-0 items-center gap-1.5', className)}>
-      <TeamLogo className="size-5 bg-background" imagePath={imagePath} online={online} />
+    <span className={cn('flex min-w-0 items-center gap-1', className)}>
+      <TeamLogo className="size-4.5 shrink-0" imagePath={imagePath} online={online} />
       <span className="truncate text-xs font-semibold">{name}</span>
     </span>
   )

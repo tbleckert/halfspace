@@ -28,7 +28,7 @@ export function MatchdayNews({ online }: { online: boolean }): React.JSX.Element
   return (
     <aside
       aria-label="Matchday news"
-      className="flex min-h-0 flex-col bg-sidebar min-[1120px]:sticky min-[1120px]:top-0 min-[1120px]:h-dvh"
+      className="flex min-h-0 flex-col bg-sidebar min-[1120px]:sticky min-[1120px]:top-0 min-[1120px]:h-[calc(100dvh-var(--workspace-top-inset,0px))]"
     >
       <div className="min-h-0 space-y-3 px-4 pb-4 pt-3 min-[1120px]:flex-1 min-[1120px]:overflow-y-auto min-[1120px]:overscroll-contain">
         {previews.error && <ErrorAlert>Previews: {previews.error}</ErrorAlert>}

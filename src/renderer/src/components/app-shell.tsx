@@ -109,10 +109,11 @@ function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): Re
   useSidebarPrefetch(quickCompetitions, currentDate, timeZone, online)
 
   return (
-    <div className="relative grid h-full grid-cols-[14.5rem_1fr] bg-background">
+    <div className="app-workspace relative grid h-full grid-cols-[14.5rem_minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] bg-background">
       <WindowDragRegion sidebar />
-      <aside className="flex min-h-0 flex-col bg-sidebar px-3 py-4 text-foreground">
-        <div className="px-3 pb-2.5 pt-7">
+      <LiveFixtureTicker timeZone={timeZone} />
+      <aside className="row-start-2 flex min-h-0 flex-col bg-sidebar px-3 py-4 text-foreground">
+        <div className="sidebar-brand px-3 pb-2.5 pt-7">
           <div className="flex items-center gap-3">
             <HalfspaceLogo alt="" className="size-8 rounded-[0.6rem]" />
             <div className="min-w-0">
@@ -205,8 +206,7 @@ function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): Re
         </nav>
       </aside>
 
-      <div className="flex min-h-0 min-w-0 flex-col overflow-hidden bg-background">
-        <LiveFixtureTicker timeZone={timeZone} />
+      <div className="row-start-2 flex min-h-0 min-w-0 flex-col overflow-hidden bg-background">
         <main className="min-h-0 flex-1 overflow-y-auto">
           <Outlet />
         </main>

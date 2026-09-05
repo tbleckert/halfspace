@@ -147,6 +147,18 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+.app-workspace {
+  --workspace-top-inset: 0px;
+}
+
+.app-workspace:has([data-slot='live-fixture-ticker']) {
+  --workspace-top-inset: 2.25rem;
+}
+
+.app-workspace:has([data-slot='live-fixture-ticker']) .sidebar-brand {
+  padding-top: 0;
+}
+
 .window-drag-region {
   position: fixed;
   inset: 0 0 auto;

@@ -168,6 +168,14 @@ abstractions.
   horizontal overflow rather than an automatic marquee. Cache the live snapshot separately,
   refresh it every 30 seconds only while online and visible, and keep its requests in the shared
   Fixture rate-limit bucket.
+- Keep that ticker 36px high and span the full window above the sidebar and content. Align its contents
+  with the macOS traffic lights and center the Live dot beside its label. Place Live
+  after the macOS traffic lights, without a match count. Omit competition names; use reported team
+  short codes with full-name fallbacks and accessible labels. Keep both logos beside the score,
+  inside their team names, and place the minute or phase in a bold, rounded white pill between the
+  two scores in place of a dash. Reserve the left label area for window dragging and keep fixture
+  links outside it. Account for the ticker
+  height in the news rail so its footer and independent scrolling remain within the workspace.
 - Present squads as position-grouped player profile cards with rounded portraits and only essential
   identity and football data rather than a dense table or list.
 - Squad season selection offers the current squad plus the competition's ten most recent seasons.
