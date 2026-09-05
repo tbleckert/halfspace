@@ -85,6 +85,14 @@ export function EntityFixtureRow({
   const { home: homeScore, away: awayScore } = currentFixtureScore(fixture.raw)
   const hasScore = homeScore !== undefined || awayScore !== undefined
   const progressLabel = fixtureProgressLabel(fixture.raw)
+  const stateLabel =
+    fixture.raw.state?.short_name ??
+    fixture.raw.state?.name ??
+    (fixture.stateId === 1
+      ? 'Scheduled'
+      : [5, 7, 8].includes(fixture.stateId)
+        ? 'FT'
+        : 'Status unavailable')
 
   return (
     <Link
@@ -119,9 +127,9 @@ export function EntityFixtureRow({
             </>
           )}
         </div>
-        {!hasScore && (
+        {!hasScore && !progressLabel && (
           <Badge className="shrink-0 font-mono" variant="outline">
-            {fixture.raw.state?.short_name ?? 'Scheduled'}
+            {stateLabel}
           </Badge>
         )}
       </div>

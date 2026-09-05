@@ -64,12 +64,15 @@ include should have a useful place in Halfspace.
 - [x] Matchday hub with calendar navigation, live updates, upcoming fixtures, and recent results.
 - [x] Global live-score ticker with direct links into every match in play.
 - [x] Competition pages with standings, qualification and relegation places, linked form, season selection, and complete season team lists.
-- [x] Complete season schedules with stage and round navigation.
+- [x] Complete competition and team season schedules with stage navigation and competition rounds.
+- [x] Season referee and venue directories with linked profiles.
+- [x] Standings adjustments with reported points, calculation direction, and active status.
 - [x] Knockout brackets with two-leg ties, aggregate results, and tournament progression.
 - [x] Round-by-round league tables with season selection and offline history.
 - [x] Live league tables with in-play standings and automatic updates.
 - [x] Team pages with current competitions, fixtures, squad profiles, and transfer history.
 - [x] Transfer hub with latest updates, date ranges, paginated browsing, and linked player and club profiles.
+- [x] Team and player transfer rumours with sources, reported likelihood, and paginated browsing.
 - [x] Historical team squads with season selection and offline browsing.
 - [x] Current team injuries and suspensions with linked player profiles.
 - [x] Team rivalries with direct links to rival clubs.
@@ -104,7 +107,7 @@ Prioritize football data presentation, then dedicated design passes. Sharing and
 follow once the visual design is settled.
 
 - [ ] Complete referee appointment history beyond the recent six-month window.
-- [ ] Transfer rumours and pending transfers.
+- [ ] Pending transfers.
 - [ ] Expected goals, predictions, and expected lineups.
 - [ ] Deeper in-play analysis.
 - [ ] Premium odds and deeper bookmaker coverage.

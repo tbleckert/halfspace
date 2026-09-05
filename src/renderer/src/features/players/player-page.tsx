@@ -1,3 +1,8 @@
+import { TransferRumours } from '@/features/transfers/transfer-rumours'
+import {
+  useTransferRumours,
+  prefetchTransferRumours
+} from '@/features/transfers/use-transfer-rumours'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { CompareLink } from '@/features/comparisons/compare-link'
@@ -49,7 +54,7 @@ import {
   usePlayerTransfers
 } from './use-player'
 
-type PlayerView = 'career' | 'matches' | 'overview' | 'stats'
+type PlayerView = 'career' | 'matches' | 'overview' | 'stats' | 'rumours'
 
 const playerMatchWindowDays = 90
 
@@ -59,6 +64,7 @@ export function PlayerPage({
   playerId,
   season,
   teamId,
+  rumourPage = 1,
   view = 'overview'
 }: {
   competitionId?: number
@@ -66,6 +72,7 @@ export function PlayerPage({
   playerId: string
   season?: number
   teamId?: number
+  rumourPage?: number
   view?: PlayerView
 }): React.JSX.Element {
   const parsedPlayerId = Number(playerId)
@@ -100,6 +107,14 @@ export function PlayerPage({
     [parsedPlayerId, validPlayerId]
   )
   const transfers = usePlayerTransfers(transferInput, online && view === 'career')
+  const rumourInput = useMemo(
+    () =>
+      validPlayerId
+        ? { entity: 'players' as const, entityId: parsedPlayerId, page: rumourPage }
+        : null,
+    [parsedPlayerId, validPlayerId, rumourPage]
+  )
+  const rumours = useTransferRumours(rumourInput, online && view === 'rumours')
   const competition = useScopedLiveQuery(
     async () => (competitionId ? ((await db.competitions.get(competitionId)) ?? null) : null),
     [competitionId]
@@ -141,21 +156,25 @@ export function PlayerPage({
   const currentTeam = player.cached?.teams.find(({ id }) => id === currentTeamId)
   const refreshing =
     player.refreshing ||
-    (view === 'stats'
-      ? statistics.refreshing ||
-        competitionSeasons.refreshing ||
-        (statisticsInput === null && appearances.refreshing)
-      : view === 'career'
-        ? transfers.refreshing
-        : appearances.refreshing)
+    (view === 'rumours'
+      ? rumours.refreshing
+      : view === 'stats'
+        ? statistics.refreshing ||
+          competitionSeasons.refreshing ||
+          (statisticsInput === null && appearances.refreshing)
+        : view === 'career'
+          ? transfers.refreshing
+          : appearances.refreshing)
   const playerDataError =
-    view === 'stats'
-      ? (statistics.error ??
-        competitionSeasons.error ??
-        (statisticsInput === null ? appearances.error : null))
-      : view === 'career'
-        ? transfers.error
-        : appearances.error
+    view === 'rumours'
+      ? rumours.error
+      : view === 'stats'
+        ? (statistics.error ??
+          competitionSeasons.error ??
+          (statisticsInput === null ? appearances.error : null))
+        : view === 'career'
+          ? transfers.error
+          : appearances.error
   const errors = [player.error, playerDataError].filter((error): error is string => Boolean(error))
 
   if (!validPlayerId) return <MissingPlayer />
@@ -174,11 +193,13 @@ export function PlayerPage({
     await Promise.all([
       player.refresh(),
       view === 'stats' ? competitionSeasons.refresh() : Promise.resolve(),
-      view === 'stats' && statisticsInput
-        ? statistics.refresh()
-        : view === 'career'
-          ? transfers.refresh()
-          : appearances.refresh()
+      view === 'rumours'
+        ? rumours.refresh()
+        : view === 'stats' && statisticsInput
+          ? statistics.refresh()
+          : view === 'career'
+            ? transfers.refresh()
+            : appearances.refresh()
     ])
   }
 
@@ -305,6 +326,25 @@ export function PlayerPage({
           season={season}
           teamId={currentTeamId ?? undefined}
           timeZone={timeZone}
+        />
+      )}
+
+      {view === 'rumours' && (
+        <TransferRumours
+          cached={rumours.cached}
+          loading={rumours.refreshing}
+          online={online}
+          page={rumourPage}
+          competitionId={competitionId}
+          season={season}
+          date={matchWindowEnd}
+          onPageChange={(rumourPage) =>
+            void navigate({
+              to: '/players/$playerId/rumours',
+              search: (previous) => ({ ...previous, rumourPage }),
+              resetScroll: false
+            })
+          }
         />
       )}
 
@@ -491,6 +531,18 @@ function PlayerNavigation({
         )}
       >
         Career
+      </Link>
+      <Link
+        to="/players/$playerId/rumours"
+        params={{ playerId: String(playerId) }}
+        search={search}
+        aria-current={view === 'rumours' ? 'page' : undefined}
+        className={entitySubpageNavigationItemClassName(view === 'rumours')}
+        {...intentPrefetchProps(online, () =>
+          prefetchTransferRumours({ entity: 'players', entityId: playerId, page: 1 })
+        )}
+      >
+        Rumours
       </Link>
       <Link
         aria-current={view === 'stats' ? 'page' : undefined}

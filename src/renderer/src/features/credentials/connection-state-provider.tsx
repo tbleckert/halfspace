@@ -1,3 +1,8 @@
+import { invalidateSeasonRefereesRefreshes } from '@/features/competitions/use-season-referees'
+import { invalidateSeasonVenuesRefreshes } from '@/features/competitions/use-season-venues'
+import { invalidateStandingCorrectionsRefreshes } from '@/features/competitions/use-standing-corrections'
+import { invalidateTeamScheduleRefreshes } from '@/features/teams/use-team-schedule'
+import { invalidateTransferRumoursRefreshes } from '@/features/transfers/use-transfer-rumours'
 import { invalidateCompetitionDetailRefreshes } from '@/features/competitions/use-competition-detail'
 import { invalidateSeasonTeamsRefreshes } from '@/features/competitions/use-season-teams'
 import { invalidateTeamCompetitionsRefreshes } from '@/features/teams/use-team-competitions'
@@ -188,6 +193,12 @@ export function ConnectionStateProvider({ children }: { children: ReactNode }): 
 }
 
 function invalidateRefreshes(): void {
+  invalidateSeasonRefereesRefreshes()
+  invalidateSeasonVenuesRefreshes()
+  invalidateStandingCorrectionsRefreshes()
+  invalidateTeamScheduleRefreshes()
+  invalidateTransferRumoursRefreshes()
+
   invalidateLiveStandingsRefreshes()
   invalidateTrendsRefreshes()
   invalidateBroadcasterRefreshes()

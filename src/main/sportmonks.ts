@@ -1,3 +1,4 @@
+import type { RefreshTeamScheduleInput, TeamScheduleRefresh } from '@shared/season-resources'
 import type {
   RefreshStatisticSeasonsInput,
   StatisticSeasonsRefresh,
@@ -226,7 +227,7 @@ const participantSchema = z
   })
   .passthrough()
 
-const venueSchema = z
+export const venueSchema = z
   .object({
     id: z.number().int(),
     name: z.string(),
@@ -568,7 +569,7 @@ const fixtureContextSchema = z
   })
   .passthrough()
 
-const refereeBaseSchema = z
+export const refereeBaseSchema = z
   .object({
     id: z.number().int(),
     name: z.string(),
@@ -2209,8 +2210,45 @@ export async function fetchSeasonSchedule(
   token: string,
   fetcher: typeof fetch = fetch
 ): Promise<SeasonScheduleRefresh> {
+  return fetchSchedule(`/schedules/seasons/${input.seasonId}`, token, fetcher)
+}
+
+export function validateTeamScheduleInput(value: unknown): RefreshTeamScheduleInput {
+  return { ...validateSeasonScheduleInput(value), ...validateTeamInput(value) }
+}
+
+export async function fetchTeamSchedule(
+  input: RefreshTeamScheduleInput,
+  token: string,
+  fetcher: typeof fetch = fetch
+): Promise<TeamScheduleRefresh> {
+  const result = await fetchSchedule(
+    `/schedules/seasons/${input.seasonId}/teams/${input.teamId}`,
+    token,
+    fetcher
+  )
+  if (
+    result.stages.some(
+      (stage) =>
+        stage.season_id !== input.seasonId ||
+        [...stage.fixtures, ...stage.rounds.flatMap((round) => round.fixtures)].some(
+          (fixture) =>
+            fixture.season_id !== input.seasonId ||
+            (!fixture.placeholder && !fixture.participants.some((team) => team.id === input.teamId))
+        )
+    )
+  )
+    throw new SportmonksError('invalid_response', 'Sportmonks returned a different team schedule.')
+  return { ...input, ...result }
+}
+
+async function fetchSchedule(
+  path: string,
+  token: string,
+  fetcher: typeof fetch
+): Promise<SeasonScheduleRefresh> {
   const fetchedAt = Date.now()
-  const url = new URL(`${apiBaseUrl}/schedules/seasons/${input.seasonId}`)
+  const url = new URL(`${apiBaseUrl}${path}`)
   const round = z.object({
     id: z.number().int(),
     name: z.string(),

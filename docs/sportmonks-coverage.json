@@ -141,6 +141,12 @@
     "tv-stations/get-tv-station-by-id": [],
     "leagues/get-league-by-id": ["country", "currentSeason"],
     "leagues/get-current-leagues-by-team-id": ["country", "currentSeason"],
-    "teams/get-teams-by-season-id": ["country"]
+    "teams/get-teams-by-season-id": ["country"],
+    "schedules/get-schedules-by-season-id-and-team-id": [],
+    "referees/get-referees-by-season-id": ["country"],
+    "venues/get-venues-by-season-id": ["country"],
+    "standings/get-standing-correction-by-season-id": ["participant", "stage", "group"],
+    "transfer-rumours/get-transfer-rumours-by-team-id": ["player", "fromTeam", "toTeam", "type"],
+    "transfer-rumours/get-transfer-rumours-by-player-id": ["player", "fromTeam", "toTeam", "type"]
   }
 }

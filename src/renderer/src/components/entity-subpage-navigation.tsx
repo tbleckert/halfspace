@@ -5,5 +5,7 @@ export function EntitySubpageNavigation({
   className,
   ...props
 }: React.ComponentProps<'nav'>): React.JSX.Element {
-  return <nav className={cn('flex gap-6', className)} {...props} />
+  return (
+    <nav className={cn('flex gap-6 overflow-x-auto whitespace-nowrap', className)} {...props} />
+  )
 }

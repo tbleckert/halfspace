@@ -1,3 +1,8 @@
+import { SeasonReferees, SeasonVenues } from './season-directory'
+import { StandingCorrections } from './standing-corrections'
+import { useSeasonReferees, prefetchSeasonReferees } from './use-season-referees'
+import { useSeasonVenues, prefetchSeasonVenues } from './use-season-venues'
+import { useStandingCorrections, prefetchStandingCorrections } from './use-standing-corrections'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
@@ -68,7 +73,16 @@ import {
 } from './use-competition-workspace'
 
 type CompetitionView =
-  'overview' | 'fixtures' | 'stats' | 'teams' | 'schedule' | 'team-of-week' | 'table' | 'knockout'
+  | 'overview'
+  | 'fixtures'
+  | 'stats'
+  | 'teams'
+  | 'schedule'
+  | 'team-of-week'
+  | 'table'
+  | 'knockout'
+  | 'referees'
+  | 'venues'
 
 export function CompetitionWorkspacePage({
   competitionId,
@@ -119,15 +133,8 @@ export function CompetitionWorkspacePage({
     [fixtureDate, parsedCompetitionId, timeZone, validCompetitionId]
   )
   const [workspaceOpenedAt] = useState(() => Date.now())
-  const fixtures = useCompetitionFixtures(
-    fixtureInput,
-    online &&
-      view !== 'stats' &&
-      view !== 'schedule' &&
-      view !== 'team-of-week' &&
-      view !== 'table' &&
-      view !== 'knockout'
-  )
+  const showFixtureWindow = view === 'overview' || view === 'fixtures' || view === 'teams'
+  const fixtures = useCompetitionFixtures(fixtureInput, online && showFixtureWindow)
   const observedSeasonId = useMemo(
     () => nearestFixtureSeasonId(fixtures.cached?.fixtures ?? [], workspaceOpenedAt),
     [fixtures.cached?.fixtures, workspaceOpenedAt]
@@ -155,6 +162,10 @@ export function CompetitionWorkspacePage({
     online && liveTable,
     competitionLiveFixtures.length > 0
   )
+  const referees = useSeasonReferees(seasonId, online && view === 'referees')
+  const venues = useSeasonVenues(seasonId, online && view === 'venues')
+  const showAdjustments = view === 'table' && !round && !liveTable
+  const corrections = useStandingCorrections(seasonId, online && showAdjustments)
   const showCurrentStandings =
     view === 'overview' || view === 'teams' || (view === 'table' && !round && !liveTable)
   const showSchedule = view === 'schedule' || view === 'table' || view === 'knockout'
@@ -207,6 +218,9 @@ export function CompetitionWorkspacePage({
   )
   const refreshing =
     detail.refreshing ||
+    (view === 'referees' && referees.refreshing) ||
+    (view === 'venues' && venues.refreshing) ||
+    (showAdjustments && corrections.refreshing) ||
     (view === 'teams' && seasonTeams.refreshing) ||
     (view === 'knockout' && bracket.refreshing) ||
     seasons.refreshing ||
@@ -214,13 +228,16 @@ export function CompetitionWorkspacePage({
       ? schedule.refreshing
       : view === 'stats'
         ? statistics.refreshing
-        : view !== 'team-of-week' && fixtures.refreshing) ||
+        : showFixtureWindow && fixtures.refreshing) ||
     (showPlayerLeaders && topscorers.refreshing) ||
     (showCurrentStandings && standings.refreshing) ||
     (view === 'table' && roundStandings.refreshing) ||
     (liveTable && liveStandings.refreshing)
   const errors = [
     detail.error,
+    view === 'referees' ? referees.error : null,
+    view === 'venues' ? venues.error : null,
+    showAdjustments ? corrections.error : null,
     view === 'teams' ? seasonTeams.error : null,
     view === 'knockout' ? bracket.error : null,
     seasons.error,
@@ -228,9 +245,9 @@ export function CompetitionWorkspacePage({
       ? schedule.error
       : view === 'stats'
         ? statistics.error
-        : view === 'team-of-week'
-          ? null
-          : fixtures.error,
+        : showFixtureWindow
+          ? fixtures.error
+          : null,
     showPlayerLeaders ? topscorers.error : null,
     showCurrentStandings ? standings.error : null,
     liveTable ? liveStandings.error : null,
@@ -246,6 +263,9 @@ export function CompetitionWorkspacePage({
   async function refresh(): Promise<void> {
     await Promise.all([
       detail.refresh(),
+      view === 'referees' ? referees.refresh() : Promise.resolve(),
+      view === 'venues' ? venues.refresh() : Promise.resolve(),
+      showAdjustments ? corrections.refresh() : Promise.resolve(),
       view === 'teams' ? seasonTeams.refresh() : Promise.resolve(),
       view === 'knockout' ? bracket.refresh() : Promise.resolve(),
       seasons.refresh(),
@@ -253,9 +273,9 @@ export function CompetitionWorkspacePage({
         ? schedule.refresh()
         : view === 'stats'
           ? statistics.refresh()
-          : view === 'team-of-week'
-            ? Promise.resolve()
-            : fixtures.refresh(),
+          : showFixtureWindow
+            ? fixtures.refresh()
+            : Promise.resolve(),
       showPlayerLeaders ? topscorers.refresh() : Promise.resolve(),
       showCurrentStandings ? standings.refresh() : Promise.resolve(),
       liveTable ? liveStandings.refresh() : Promise.resolve(),
@@ -351,6 +371,28 @@ export function CompetitionWorkspacePage({
 
       {errors.length > 0 && <ErrorAlert>{errors.join(' ')}</ErrorAlert>}
 
+      {view === 'referees' && (
+        <SeasonReferees
+          key={seasonId}
+          cached={referees.cached}
+          competitionId={competition.id}
+          seasonId={seasonId}
+          date={fixtureDate}
+          online={online}
+          loading={referees.refreshing}
+        />
+      )}
+      {view === 'venues' && (
+        <SeasonVenues
+          key={seasonId}
+          cached={venues.cached}
+          competitionId={competition.id}
+          seasonId={seasonId}
+          date={fixtureDate}
+          online={online}
+          loading={venues.refreshing}
+        />
+      )}
       {view === 'knockout' && (
         <KnockoutBracket
           key={seasonId}
@@ -518,6 +560,17 @@ export function CompetitionWorkspacePage({
         />
       )}
 
+      {showAdjustments && (
+        <StandingCorrections
+          cached={corrections.cached}
+          competitionId={competition.id}
+          seasonId={seasonId}
+          date={fixtureDate}
+          online={online}
+          loading={corrections.refreshing}
+        />
+      )}
+
       {view === 'stats' && (
         <>
           <LeagueStatisticsView
@@ -590,6 +643,9 @@ function CompetitionNavigation({
         search={{ date, season }}
         aria-current={view === 'table' ? 'page' : undefined}
         className={entitySubpageNavigationItemClassName(view === 'table')}
+        {...intentPrefetchProps(online && season !== undefined, () =>
+          season === undefined ? Promise.resolve() : prefetchStandingCorrections(season)
+        )}
       >
         Table
       </Link>
@@ -633,6 +689,30 @@ function CompetitionNavigation({
         {...workspacePrefetch}
       >
         Teams
+      </Link>
+      <Link
+        to="/competitions/$competitionId/referees"
+        params={{ competitionId: String(competitionId) }}
+        search={{ date, season }}
+        aria-current={view === 'referees' ? 'page' : undefined}
+        className={entitySubpageNavigationItemClassName(view === 'referees')}
+        {...intentPrefetchProps(online && season !== undefined, () =>
+          season === undefined ? Promise.resolve() : prefetchSeasonReferees(season)
+        )}
+      >
+        Referees
+      </Link>
+      <Link
+        to="/competitions/$competitionId/venues"
+        params={{ competitionId: String(competitionId) }}
+        search={{ date, season }}
+        aria-current={view === 'venues' ? 'page' : undefined}
+        className={entitySubpageNavigationItemClassName(view === 'venues')}
+        {...intentPrefetchProps(online && season !== undefined, () =>
+          season === undefined ? Promise.resolve() : prefetchSeasonVenues(season)
+        )}
+      >
+        Venues
       </Link>
       <Link
         aria-current={view === 'stats' ? 'page' : undefined}

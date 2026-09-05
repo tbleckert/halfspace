@@ -1,8 +1,8 @@
 # Sportmonks API coverage
 
-Halfspace currently covers **51 of 153 endpoints** and **174 of 1320 documented endpoint includes**.
+Halfspace currently covers **57 of 153 endpoints** and **187 of 1320 documented endpoint includes**.
 
-Overall coverage: **15%**
+Overall coverage: **17%**
 
 Source: [Sportmonks Football API 3.0 documentation index](https://docs.sportmonks.com/v3/sitemap.md)
 
@@ -79,7 +79,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 
 - [x] [Schedules by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/schedules/get-schedules-by-season-id) — includes 0/0
 - [ ] [Schedules by Team ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/schedules/get-schedules-by-team-id)
-- [ ] [Schedules by Season ID and Team ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/schedules/get-schedules-by-season-id-and-team-id)
+- [x] [Schedules by Season ID and Team ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/schedules/get-schedules-by-season-id-and-team-id) — includes 0/0
 
 ### Stages
 
@@ -100,7 +100,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 - [ ] [All Standings](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-all-standings)
 - [x] [Standings by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-standings-by-season-id) — includes 6/10
 - [x] [Standings by Round ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-standings-by-round-id) — includes 6/10
-- [ ] [Standing Correction by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-standing-correction-by-season-id)
+- [x] [Standing Correction by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-standing-correction-by-season-id) — includes 3/5
 - [x] [Live Standings by League ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-live-standings-by-league-id) — includes 6/10
 - [ ] [Grouped Standings by Round ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/standings/get-grouped-standings-by-round-id)
 
@@ -163,7 +163,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 - [ ] [All Referees](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/referees/get-all-referees)
 - [x] [Referee by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/referees/get-referee-by-id) — includes 3/6
 - [ ] [Referees by Country ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/referees/get-referees-by-country-id)
-- [ ] [Referees by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/referees/get-referees-by-season-id)
+- [x] [Referees by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/referees/get-referees-by-season-id) — includes 1/6
 - [x] [Referees Search by Name](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/referees/get-referees-search-by-name) — includes 1/6
 
 ### Transfers
@@ -180,14 +180,14 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 - [ ] [All Transfers Rumours](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfer-rumours/get-all-transfers-rumours)
 - [ ] [Transfer Rumours by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfer-rumours/get-transfer-rumours-by-id)
 - [ ] [Transfers Rumours Between Date Range](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfer-rumours/get-transfers-rumours-between-date-range)
-- [ ] [Transfer Rumours by Team ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfer-rumours/get-transfer-rumours-by-team-id)
-- [ ] [Transfer Rumours by Player ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfer-rumours/get-transfer-rumours-by-player-id)
+- [x] [Transfer Rumours by Team ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfer-rumours/get-transfer-rumours-by-team-id) — includes 4/7
+- [x] [Transfer Rumours by Player ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfer-rumours/get-transfer-rumours-by-player-id) — includes 4/7
 
 ### Venues
 
 - [ ] [All Venues](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/venues/get-all-venues)
 - [x] [Venue by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/venues/get-venue-by-id) — includes 1/3
-- [ ] [Venues by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/venues/get-venues-by-season-id)
+- [x] [Venues by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/venues/get-venues-by-season-id) — includes 1/3
 - [x] [Venues by Search by Name](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/venues/get-venues-by-search-by-name) — includes 1/3
 
 ### TV Stations

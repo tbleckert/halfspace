@@ -1,3 +1,10 @@
+import { TeamSchedule } from './team-schedule'
+import { useTeamSchedule, prefetchTeamSchedule } from './use-team-schedule'
+import { TransferRumours } from '@/features/transfers/transfer-rumours'
+import {
+  useTransferRumours,
+  prefetchTransferRumours
+} from '@/features/transfers/use-transfer-rumours'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { CompareLink } from '@/features/comparisons/compare-link'
@@ -78,19 +85,23 @@ interface TeamCompetitionContext {
   standing: CachedStanding | null
 }
 
-type TeamView = 'fixtures' | 'overview' | 'squad' | 'stats' | 'transfers'
+type TeamView = 'fixtures' | 'overview' | 'squad' | 'stats' | 'transfers' | 'schedule' | 'rumours'
 
 export function TeamPage({
   competitionId,
   date,
   season: requestedSeasonId,
   teamId,
+  stage,
+  rumourPage = 1,
   view = 'overview'
 }: {
   competitionId?: number
   date?: string
   season?: number
   teamId: string
+  stage?: number
+  rumourPage?: number
   view?: TeamView
 }): React.JSX.Element {
   const parsedTeamId = Number(teamId)
@@ -120,7 +131,7 @@ export function TeamPage({
   const statisticsCompetitionId = statisticsContext?.competition.id ?? null
   const competitionSeasons = useCompetitionSeasons(
     statisticsCompetitionId,
-    online && (view === 'stats' || view === 'squad')
+    online && (view === 'stats' || view === 'squad' || view === 'schedule')
   )
   const statisticsSeasonOptions = useMemo(
     () =>
@@ -154,6 +165,8 @@ export function TeamPage({
       view !== 'squad' &&
       view !== 'stats' &&
       view !== 'transfers' &&
+      view !== 'schedule' &&
+      view !== 'rumours' &&
       (!requestedSeasonId || competitionContexts !== undefined)
   )
   const squad = useTeamSquad(
@@ -170,6 +183,13 @@ export function TeamPage({
     [parsedTeamId, statisticsSeasonId, validTeamId]
   )
   const statistics = useTeamStatistics(statisticsInput, online && view === 'stats')
+  const schedule = useTeamSchedule(statisticsInput, online && view === 'schedule')
+  const rumourInput = useMemo(
+    () =>
+      validTeamId ? { entity: 'teams' as const, entityId: parsedTeamId, page: rumourPage } : null,
+    [parsedTeamId, validTeamId, rumourPage]
+  )
+  const rumours = useTransferRumours(rumourInput, online && view === 'rumours')
   const transferInput = useMemo(
     () => (validTeamId ? { teamId: parsedTeamId } : null),
     [parsedTeamId, validTeamId]
@@ -187,23 +207,31 @@ export function TeamPage({
     team.refreshing ||
     currentCompetitions.refreshing ||
     (view === 'overview' && rivals.refreshing) ||
-    (view === 'squad'
-      ? squad.refreshing || competitionSeasons.refreshing
-      : view === 'stats'
-        ? statistics.refreshing || competitionSeasons.refreshing
-        : view === 'transfers'
-          ? transfers.refreshing
-          : fixtures.refreshing)
+    (view === 'schedule'
+      ? schedule.refreshing || competitionSeasons.refreshing
+      : view === 'rumours'
+        ? rumours.refreshing
+        : view === 'squad'
+          ? squad.refreshing || competitionSeasons.refreshing
+          : view === 'stats'
+            ? statistics.refreshing || competitionSeasons.refreshing
+            : view === 'transfers'
+              ? transfers.refreshing
+              : fixtures.refreshing)
   const errors = [
     team.error,
     currentCompetitions.error,
-    view === 'squad'
-      ? (squad.error ?? competitionSeasons.error)
-      : view === 'stats'
-        ? (statistics.error ?? competitionSeasons.error)
-        : view === 'transfers'
-          ? transfers.error
-          : fixtures.error
+    view === 'schedule'
+      ? (schedule.error ?? competitionSeasons.error)
+      : view === 'rumours'
+        ? rumours.error
+        : view === 'squad'
+          ? (squad.error ?? competitionSeasons.error)
+          : view === 'stats'
+            ? (statistics.error ?? competitionSeasons.error)
+            : view === 'transfers'
+              ? transfers.error
+              : fixtures.error
   ].filter((error): error is string => Boolean(error))
   const identity = team.cached?.team?.raw ?? team.cached?.participant
 
@@ -230,14 +258,20 @@ export function TeamPage({
       team.refresh(),
       currentCompetitions.refresh(),
       view === 'overview' ? rivals.refresh() : Promise.resolve(),
-      view === 'stats' || view === 'squad' ? competitionSeasons.refresh() : Promise.resolve(),
-      view === 'squad'
-        ? squad.refresh()
-        : view === 'stats'
-          ? statistics.refresh()
-          : view === 'transfers'
-            ? transfers.refresh()
-            : fixtures.refresh()
+      view === 'stats' || view === 'squad' || view === 'schedule'
+        ? competitionSeasons.refresh()
+        : Promise.resolve(),
+      view === 'schedule'
+        ? schedule.refresh()
+        : view === 'rumours'
+          ? rumours.refresh()
+          : view === 'squad'
+            ? squad.refresh()
+            : view === 'stats'
+              ? statistics.refresh()
+              : view === 'transfers'
+                ? transfers.refresh()
+                : fixtures.refresh()
     ])
   }
 
@@ -246,13 +280,19 @@ export function TeamPage({
     if (nextSeasonId !== undefined && (!nextSeason || statisticsCompetitionId === null)) return
 
     void navigate({
-      to: view === 'squad' ? '/teams/$teamId/squad' : '/teams/$teamId/stats',
+      to:
+        view === 'schedule'
+          ? '/teams/$teamId/schedule'
+          : view === 'squad'
+            ? '/teams/$teamId/squad'
+            : '/teams/$teamId/stats',
       params: { teamId: String(parsedTeamId) },
       search: (previous) => ({
         ...previous,
         competition: statisticsCompetitionId ?? undefined,
         date: nextSeason ? seasonFixtureDate(nextSeason, today) : today,
-        season: nextSeasonId
+        season: nextSeasonId,
+        stage: undefined
       }),
       replace: true
     })
@@ -502,6 +542,92 @@ export function TeamPage({
         />
       )}
 
+      {view === 'schedule' && (
+        <section className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-xl font-semibold tracking-tight">Schedule</h2>
+            <div className="flex flex-wrap items-center gap-2">
+              {competitionContexts.length > 1 ? (
+                <NativeSelect
+                  aria-label="Schedule competition"
+                  value={statisticsCompetitionId ?? ''}
+                  onChange={(event) =>
+                    void navigate({
+                      to: '/teams/$teamId/schedule',
+                      search: (previous) => ({
+                        ...previous,
+                        competition: Number(event.target.value),
+                        season: undefined,
+                        stage: undefined
+                      })
+                    })
+                  }
+                >
+                  {competitionContexts.map(({ competition }) => (
+                    <NativeSelectOption key={competition.id} value={competition.id}>
+                      {competition.name}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              ) : (
+                <span className="text-sm text-muted-foreground">
+                  {statisticsContext?.competition.name}
+                </span>
+              )}
+              {statisticsSeasonOptions.length > 0 && (
+                <NativeSelect
+                  aria-label="Schedule season"
+                  value={statisticsSeasonId ?? ''}
+                  onChange={(event) => selectSeason(Number(event.target.value))}
+                >
+                  {statisticsSeasonOptions.map((season) => (
+                    <NativeSelectOption key={season.id} value={season.id}>
+                      {season.name}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+              )}
+            </div>
+          </div>
+          <TeamSchedule
+            key={`${parsedTeamId}:${statisticsSeasonId}`}
+            cached={schedule.cached}
+            loading={schedule.refreshing}
+            online={online}
+            teamId={parsedTeamId}
+            seasonId={statisticsSeasonId}
+            competitionId={statisticsCompetitionId}
+            stageId={stage}
+            onStageChange={(stage) =>
+              void navigate({
+                to: '/teams/$teamId/schedule',
+                search: (previous) => ({ ...previous, stage }),
+                resetScroll: false
+              })
+            }
+          />
+        </section>
+      )}
+      {view === 'rumours' && (
+        <TransferRumours
+          cached={rumours.cached}
+          loading={rumours.refreshing}
+          online={online}
+          page={rumourPage}
+          teamId={parsedTeamId}
+          competitionId={competitionId}
+          season={requestedSeasonId}
+          date={fixtureWindowStart}
+          onPageChange={(rumourPage) =>
+            void navigate({
+              to: '/teams/$teamId/rumours',
+              search: (previous) => ({ ...previous, rumourPage }),
+              resetScroll: false
+            })
+          }
+        />
+      )}
+
       {view === 'transfers' && (
         <TeamTransfers
           competitionId={competitionId}
@@ -561,6 +687,18 @@ function TeamNavigation({
         Fixtures
       </Link>
       <Link
+        to="/teams/$teamId/schedule"
+        params={{ teamId: String(teamId) }}
+        search={{ competition: competitionId, date, season }}
+        aria-current={view === 'schedule' ? 'page' : undefined}
+        className={entitySubpageNavigationItemClassName(view === 'schedule')}
+        {...intentPrefetchProps(online && statisticsInput !== null, () =>
+          statisticsInput ? prefetchTeamSchedule(statisticsInput) : Promise.resolve()
+        )}
+      >
+        Schedule
+      </Link>
+      <Link
         aria-current={view === 'squad' ? 'page' : undefined}
         to="/teams/$teamId/squad"
         params={{ teamId: String(teamId) }}
@@ -581,6 +719,18 @@ function TeamNavigation({
         )}
       >
         Transfers
+      </Link>
+      <Link
+        to="/teams/$teamId/rumours"
+        params={{ teamId: String(teamId) }}
+        search={{ competition: competitionId, date, season }}
+        aria-current={view === 'rumours' ? 'page' : undefined}
+        className={entitySubpageNavigationItemClassName(view === 'rumours')}
+        {...intentPrefetchProps(online, () =>
+          prefetchTransferRumours({ entity: 'teams', entityId: teamId, page: 1 })
+        )}
+      >
+        Rumours
       </Link>
       <Link
         aria-current={view === 'stats' ? 'page' : undefined}

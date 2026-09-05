@@ -1,4 +1,11 @@
 import type { IpcMainInvokeEvent } from 'electron'
+import {
+  fetchSeasonReferees,
+  fetchSeasonVenues,
+  fetchStandingCorrections
+} from './season-resources'
+import { fetchTransferRumours, validateTransferRumoursInput } from './transfer-rumours'
+import { fetchTeamSchedule, validateTeamScheduleInput } from './sportmonks'
 import { BrowserWindow, ipcMain } from 'electron'
 import type { ApiErrorCode, Result, SportmonksRateLimit } from '@shared/contracts'
 import { ipcChannels } from '@shared/contracts'
@@ -94,6 +101,37 @@ let currentRateLimit: SportmonksRateLimit | null = null
 let credentialGeneration = 0
 
 export function registerIpcHandlers(): void {
+  registerSportmonksHandler(
+    ipcChannels.refreshTeamSchedule,
+    validateTeamScheduleInput,
+    fetchTeamSchedule,
+    'Could not refresh team schedule.'
+  )
+  registerSportmonksHandler(
+    ipcChannels.refreshSeasonReferees,
+    validateStandingsInput,
+    fetchSeasonReferees,
+    'Could not refresh season referees.'
+  )
+  registerSportmonksHandler(
+    ipcChannels.refreshSeasonVenues,
+    validateStandingsInput,
+    fetchSeasonVenues,
+    'Could not refresh season venues.'
+  )
+  registerSportmonksHandler(
+    ipcChannels.refreshStandingCorrections,
+    validateStandingsInput,
+    fetchStandingCorrections,
+    'Could not refresh standings adjustments.'
+  )
+  registerSportmonksHandler(
+    ipcChannels.refreshTransferRumours,
+    validateTransferRumoursInput,
+    fetchTransferRumours,
+    'Could not refresh transfer rumours.'
+  )
+
   registerSportmonksHandler(
     ipcChannels.refreshLiveStandings,
     validateLiveStandingsInput,

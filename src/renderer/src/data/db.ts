@@ -1,3 +1,10 @@
+import type {
+  SeasonRefereesQuery,
+  SeasonVenuesQuery,
+  StandingCorrectionsQuery,
+  TeamScheduleQuery
+} from './season-resources-cache'
+import type { CachedTransferRumour, TransferRumoursQuery } from './transfer-rumours-cache'
 import Dexie, { type Table } from 'dexie'
 import type {
   RefreshStatisticSeasonsInput,
@@ -594,6 +601,13 @@ export interface TeamOfWeekQuery extends TeamOfWeekRefresh {
 }
 
 class HalfspaceDatabase extends Dexie {
+  seasonRefereeQueries!: Table<SeasonRefereesQuery, number>
+  seasonVenueQueries!: Table<SeasonVenuesQuery, number>
+  standingCorrectionQueries!: Table<StandingCorrectionsQuery, number>
+  teamScheduleQueries!: Table<TeamScheduleQuery, string>
+  transferRumours!: Table<CachedTransferRumour, number>
+  transferRumourQueries!: Table<TransferRumoursQuery, string>
+
   roundStandingQueries!: Table<RoundStandingQuery, string>
   subscriptionQueries!: Table<SubscriptionQuery, string>
   fixtureTvQueries!: Table<FixtureTvQuery, number>
@@ -931,6 +945,14 @@ class HalfspaceDatabase extends Dexie {
       competitionDetailQueries: '&competitionId, staleAt',
       teamCompetitionQueries: '&teamId, staleAt',
       seasonTeamQueries: '&seasonId, staleAt'
+    })
+    this.version(36).stores({
+      seasonRefereeQueries: '&seasonId, staleAt',
+      seasonVenueQueries: '&seasonId, staleAt',
+      standingCorrectionQueries: '&seasonId, staleAt',
+      teamScheduleQueries: '&key, teamId, seasonId, staleAt',
+      transferRumours: '&id',
+      transferRumourQueries: '&key, staleAt'
     })
   }
 }
@@ -2475,7 +2497,7 @@ export async function writeRefereeRefresh(refresh: RefereeRefresh): Promise<void
   })
 }
 
-function toCachedReferee(
+export function toCachedReferee(
   referee: SportmonksReferee,
   fetchedAt: number,
   existing?: CachedReferee,
@@ -3082,6 +3104,12 @@ export async function clearSportmonksCache(): Promise<void> {
   await db.transaction(
     'rw',
     [
+      db.seasonRefereeQueries,
+      db.seasonVenueQueries,
+      db.standingCorrectionQueries,
+      db.teamScheduleQueries,
+      db.transferRumours,
+      db.transferRumourQueries,
       db.subscriptionQueries,
       db.fixtureTvQueries,
       db.fixturePressureQueries,
@@ -3139,6 +3167,12 @@ export async function clearSportmonksCache(): Promise<void> {
       db.honoursQueries
     ],
     async () => {
+      await db.seasonRefereeQueries.clear()
+      await db.seasonVenueQueries.clear()
+      await db.standingCorrectionQueries.clear()
+      await db.teamScheduleQueries.clear()
+      await db.transferRumours.clear()
+      await db.transferRumourQueries.clear()
       await db.subscriptionQueries.clear()
       await db.fixtureTvQueries.clear()
       await db.fixturePressureQueries.clear()
@@ -3220,7 +3254,7 @@ function normalizeSearchText(value: string): string {
     .toLocaleLowerCase()
 }
 
-function toCachedIncludedPlayer(
+export function toCachedIncludedPlayer(
   player: SportmonksPlayer,
   existing: CachedPlayer | undefined,
   fetchedAt: number
@@ -3297,7 +3331,7 @@ function toCachedCoach(
   }
 }
 
-function toCachedIncludedTeam(
+export function toCachedIncludedTeam(
   team: SportmonksTeam,
   existing: CachedTeam | undefined,
   fetchedAt: number
@@ -3361,7 +3395,7 @@ function toCachedFixture(
   }
 }
 
-async function toCachedFixtures(
+export async function toCachedFixtures(
   fixtures: SportmonksFixture[],
   fetchedAt: number,
   staleAt: number

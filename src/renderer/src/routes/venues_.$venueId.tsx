@@ -1,10 +1,13 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
+import { isIsoDate } from '@/lib/date'
 import { VenuePage } from '@/features/venues/venue-page'
 
 const venueSearchSchema = z.object({
-  competition: positiveIdSearch(),
-  team: positiveIdSearch()
+  competition: positiveIdSearch().optional(),
+  season: positiveIdSearch().optional(),
+  date: z.string().refine(isIsoDate).optional().catch(undefined),
+  team: positiveIdSearch().optional()
 })
 
 export const Route = createFileRoute('/venues_/$venueId')({
@@ -14,8 +17,16 @@ export const Route = createFileRoute('/venues_/$venueId')({
 
 function VenueRoute(): React.JSX.Element {
   const { venueId } = Route.useParams()
-  const { competition, team } = Route.useSearch()
-  return <VenuePage competitionId={competition} teamId={team} venueId={venueId} />
+  const { competition, team, season, date } = Route.useSearch()
+  return (
+    <VenuePage
+      season={season}
+      date={date}
+      competitionId={competition}
+      teamId={team}
+      venueId={venueId}
+    />
+  )
 }
 
 function positiveIdSearch(): z.ZodType<number | undefined> {

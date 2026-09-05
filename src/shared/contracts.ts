@@ -1,4 +1,19 @@
+import type {
+  RefreshTeamScheduleInput,
+  TeamScheduleRefresh,
+  SeasonRefereesRefresh,
+  SeasonVenuesRefresh,
+  StandingCorrectionsRefresh
+} from './season-resources'
+import type { RefreshTransferRumoursInput, TransferRumoursRefresh } from './transfer-rumours'
+
 export const ipcChannels = {
+  refreshTeamSchedule: 'sportmonks:refresh-team-schedule',
+  refreshSeasonReferees: 'sportmonks:refresh-season-referees',
+  refreshSeasonVenues: 'sportmonks:refresh-season-venues',
+  refreshStandingCorrections: 'sportmonks:refresh-standing-corrections',
+  refreshTransferRumours: 'sportmonks:refresh-transfer-rumours',
+
   refreshHonours: 'sportmonks:refresh-honours',
   refreshNews: 'sportmonks:refresh-news',
   refreshMatchFacts: 'sportmonks:refresh-match-facts',
@@ -1298,6 +1313,16 @@ export interface HalfspaceApi {
     clearToken(): Promise<Result<null>>
   }
   sportmonks: {
+    refreshTeamSchedule(input: RefreshTeamScheduleInput): Promise<Result<TeamScheduleRefresh>>
+    refreshSeasonReferees(input: RefreshStandingsInput): Promise<Result<SeasonRefereesRefresh>>
+    refreshSeasonVenues(input: RefreshStandingsInput): Promise<Result<SeasonVenuesRefresh>>
+    refreshStandingCorrections(
+      input: RefreshStandingsInput
+    ): Promise<Result<StandingCorrectionsRefresh>>
+    refreshTransferRumours(
+      input: RefreshTransferRumoursInput
+    ): Promise<Result<TransferRumoursRefresh>>
+
     refreshHonours(input: RefreshHonoursInput): Promise<Result<HonoursRefresh>>
     refreshNews(input: RefreshNewsInput): Promise<Result<NewsRefresh>>
     refreshMatchFacts(input: RefreshFixtureInput): Promise<Result<MatchFactsRefresh>>

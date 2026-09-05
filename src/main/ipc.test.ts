@@ -145,7 +145,12 @@ describe('IPC handlers', () => {
     [ipcChannels.refreshLiveStandings, { competitionId: 8 }],
     [ipcChannels.refreshFixtureTrends, { fixtureId: -1 }],
     [ipcChannels.refreshBroadcaster, { stationId: 0 }],
-    [ipcChannels.refreshBroadcastSchedule, { stationId: 34, feed: 'past', page: 0 }]
+    [ipcChannels.refreshBroadcastSchedule, { stationId: 34, feed: 'past', page: 0 }],
+    [ipcChannels.refreshSeasonReferees, { seasonId: 0 }],
+    [ipcChannels.refreshSeasonVenues, { seasonId: -1 }],
+    [ipcChannels.refreshStandingCorrections, { seasonId: '12' }],
+    [ipcChannels.refreshTeamSchedule, { seasonId: 12, teamId: 0 }],
+    [ipcChannels.refreshTransferRumours, { entity: 'teams', entityId: 4, page: 0 }]
   ])('validates %s before reading credentials', async (channel, input) => {
     expect(await invokeTrusted(channel, input)).toMatchObject({
       ok: false,

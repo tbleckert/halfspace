@@ -352,6 +352,22 @@ abstractions.
   Show regions from each fixture's listings for that station, never from general station countries.
   Retain the originating fixture, competition, and season on the return link.
 
+- Competition Referees and Venues browse the selected season through their dedicated endpoints.
+  Fetch every referee page; venues are non-paginated. Keep memberships separate from shared profile
+  identities, preserve richer and newer detail, and retain competition and season on profile returns.
+- Current competition tables show season standings adjustments separately from reported standings.
+  Preserve the provider's points, calculation direction, stage, group, and active flag. Never apply
+  corrections again to table totals or assume a missing calculation direction means a deduction.
+  Do not present current adjustment status as a historical round snapshot.
+- Team Schedule fetches the complete season-and-team schedule without includes or pagination. Cache
+  it separately from the competition schedule, normalize its fixtures into the shared cache, and
+  preserve aggregate legs. Show all stages by default, keep competition, season, and stage in the URL,
+  clear stage on season changes, and use a 30-second cache window while matches are ongoing.
+- Team and player Rumours use dedicated, explicitly paginated feeds ordered by latest update.
+  Keep rumours separate from transfer history and current club membership. Show provider likelihood
+  as a label, never a calculated probability or confirmation; link only HTTP(S) sources and display
+  fees only with an explicit currency. Retain unknown clubs and source details as unknown.
+
 ## Mindset & Process
 
 - Fix issues from first principles. Do not apply bandaids when the root cause can be identified and

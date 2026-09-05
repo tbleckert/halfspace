@@ -82,6 +82,11 @@ function installHalfspace(overrides: Partial<Window['halfspace']['sportmonks']>)
       clearToken: vi.fn()
     },
     sportmonks: {
+      refreshTeamSchedule: vi.fn(),
+      refreshSeasonReferees: vi.fn(),
+      refreshSeasonVenues: vi.fn(),
+      refreshStandingCorrections: vi.fn(),
+      refreshTransferRumours: vi.fn(),
       refreshCompetition: vi.fn(),
       refreshSeasonTeams: vi.fn(),
       refreshTeamCompetitions: vi.fn(),

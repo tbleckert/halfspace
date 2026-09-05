@@ -57,6 +57,17 @@ export function RefereePage({
           Match
         </Link>
       )}
+      {!fixtureId && context.competition && (
+        <Link
+          to="/competitions/$competitionId/referees"
+          params={{ competitionId: String(context.competition) }}
+          search={{ season: context.season, date: context.date }}
+          className="flex w-fit items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="size-4" />
+          Referees
+        </Link>
+      )}
       {!validId || (!identity && !loading) ? (
         <Card>
           <CardContent className="p-5">

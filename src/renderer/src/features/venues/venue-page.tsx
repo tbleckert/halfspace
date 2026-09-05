@@ -18,10 +18,14 @@ import { VenueImage } from './venue-image'
 
 export function VenuePage({
   competitionId,
+  season,
+  date,
   teamId,
   venueId
 }: {
   competitionId?: number
+  season?: number
+  date?: string
   teamId?: number
   venueId: string
 }): React.JSX.Element {
@@ -57,12 +61,24 @@ export function VenuePage({
           <Link
             to="/teams/$teamId"
             params={{ teamId: String(teamId) }}
-            search={{ competition: competitionId }}
+            search={{ competition: competitionId, season, date }}
             className="mb-5 flex w-fit items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
             {...intentPrefetchProps(online, () => prefetchTeamEntity(teamId))}
           >
             <ArrowLeft className="size-4" />
             {teams.find(({ id }) => id === teamId)?.name ?? 'Team'}
+          </Link>
+        )}
+
+        {!teamId && competitionId && (
+          <Link
+            to="/competitions/$competitionId/venues"
+            params={{ competitionId: String(competitionId) }}
+            search={{ season, date }}
+            className="mb-5 flex w-fit items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="size-4" />
+            Venues
           </Link>
         )}
 
@@ -106,7 +122,7 @@ export function VenuePage({
                     key={team.id}
                     to="/teams/$teamId"
                     params={{ teamId: String(team.id) }}
-                    search={{ competition: competitionId }}
+                    search={{ competition: competitionId, season, date }}
                     className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-muted/45"
                     {...intentPrefetchProps(online, () => prefetchTeamEntity(team.id))}
                   >

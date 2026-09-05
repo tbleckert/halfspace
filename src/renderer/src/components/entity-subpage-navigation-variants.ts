@@ -6,7 +6,7 @@ export function entitySubpageNavigationItemClassName(
   className?: string
 ): string {
   return cn(
-    'relative px-0.5 pb-3 text-sm font-medium outline-none focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring',
+    'relative shrink-0 px-0.5 pb-3 text-sm font-medium outline-none focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring',
     className,
     active
       ? cn(

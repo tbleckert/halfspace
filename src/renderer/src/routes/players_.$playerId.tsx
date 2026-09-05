@@ -4,6 +4,7 @@ import { PlayerPage } from '@/features/players/player-page'
 import { isIsoDate } from '@/lib/date'
 
 const playerSearchSchema = z.object({
+  rumourPage: z.coerce.number().int().positive().optional().catch(undefined),
   competition: positiveIdSearch(),
   date: z.string().refine(isIsoDate).optional().catch(undefined),
   season: positiveIdSearch(),
@@ -17,33 +18,36 @@ export const Route = createFileRoute('/players_/$playerId')({
 
 function PlayerRoute(): React.JSX.Element {
   const { playerId } = Route.useParams()
-  const { competition, date, season, team } = Route.useSearch()
+  const { competition, date, season, team, rumourPage } = Route.useSearch()
   const matchRoute = useMatchRoute()
-  const view = matchRoute({
-    to: '/players/$playerId/career',
-    params: { playerId },
-    fuzzy: false
-  })
-    ? 'career'
+  const view = matchRoute({ to: '/players/$playerId/rumours', params: { playerId }, fuzzy: false })
+    ? 'rumours'
     : matchRoute({
-          to: '/players/$playerId/stats',
+          to: '/players/$playerId/career',
           params: { playerId },
           fuzzy: false
         })
-      ? 'stats'
+      ? 'career'
       : matchRoute({
-            to: '/players/$playerId/matches',
+            to: '/players/$playerId/stats',
             params: { playerId },
             fuzzy: false
           })
-        ? 'matches'
-        : 'overview'
+        ? 'stats'
+        : matchRoute({
+              to: '/players/$playerId/matches',
+              params: { playerId },
+              fuzzy: false
+            })
+          ? 'matches'
+          : 'overview'
 
   return (
     <>
       <PlayerPage
         competitionId={competition}
         date={date}
+        rumourPage={rumourPage}
         playerId={playerId}
         season={season}
         teamId={team}
