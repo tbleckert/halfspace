@@ -20,10 +20,10 @@ export function FixtureOfficials({
   if (!assignments.length) return null
   return (
     <Card>
-      <CardHeader className="border-b px-4 py-3">
+      <CardHeader className="px-4 pb-3 pt-5">
         <CardTitle className="text-sm">Officials</CardTitle>
       </CardHeader>
-      <div className="divide-y">
+      <div className="space-y-2 pb-2">
         {assignments
           .toSorted((a, b) => a.type_id - b.type_id)
           .map((assignment) => (

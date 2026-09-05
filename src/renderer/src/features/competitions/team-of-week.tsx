@@ -196,7 +196,7 @@ export function TeamOfWeek({
                 to="/fixtures/$fixtureId"
                 params={{ fixtureId: String(entry.fixture_id) }}
                 search={context}
-                className="mt-auto flex items-center justify-between border-t px-4 py-2 text-xs text-muted-foreground hover:bg-sidebar-accent hover:text-primary"
+                className="mt-auto flex items-center justify-between px-4 pb-4 pt-3 text-xs text-muted-foreground hover:bg-sidebar-accent hover:text-primary"
                 {...intentPrefetchProps(online, () => prefetchFixtureEntity(entry.fixture_id))}
               >
                 View match <ArrowUpRight aria-hidden="true" className="size-3.5" />

@@ -24,7 +24,7 @@ export function TeamRivals({
   )
   return (
     <Card>
-      <CardHeader className="border-b px-4 py-3">
+      <CardHeader className="px-4 pb-3 pt-5">
         <CardTitle className="text-sm">Rivals</CardTitle>
       </CardHeader>
       {error && (
@@ -33,7 +33,7 @@ export function TeamRivals({
         </p>
       )}
       {rivals.length ? (
-        <div className="divide-y">
+        <div className="space-y-2 pb-2">
           {rivals.map(({ id, team }) => (
             <Link
               key={id}

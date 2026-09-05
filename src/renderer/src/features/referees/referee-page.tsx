@@ -79,7 +79,7 @@ export function RefereePage({
           <header className="flex items-center justify-between gap-5">
             <div className="flex items-center gap-4">
               <PlayerPhoto
-                className="size-20 rounded-full bg-card shadow-xs"
+                className="size-20 rounded-full bg-card"
                 imagePath={identity?.image_path ?? null}
                 online={online}
               />

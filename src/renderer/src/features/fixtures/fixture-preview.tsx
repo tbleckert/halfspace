@@ -118,17 +118,17 @@ function FixtureTable({
   online: boolean
 }): React.JSX.Element {
   return (
-    <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
-      <div className="border-b px-4 py-3">
+    <section data-slot="card" className="overflow-hidden rounded-xl bg-card">
+      <div className="px-4 pb-3 pt-5">
         <h2 className="text-sm font-semibold">Table</h2>
       </div>
       {loading ? (
-        <div className="grid grid-cols-2 divide-x p-5">
+        <div className="grid grid-cols-2 gap-4 p-5">
           <StandingSkeleton />
           <StandingSkeleton />
         </div>
       ) : (
-        <div className="grid grid-cols-2 divide-x">
+        <div className="grid grid-cols-2 gap-4">
           <TeamStanding participant={home} standing={homeStanding} online={online} />
           <TeamStanding participant={away} standing={awayStanding} online={online} />
         </div>
@@ -195,11 +195,11 @@ function FixtureForm({
   online: boolean
 }): React.JSX.Element {
   return (
-    <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
-      <div className="border-b px-4 py-3">
+    <section data-slot="card" className="overflow-hidden rounded-xl bg-card">
+      <div className="px-4 pb-3 pt-5">
         <h2 className="text-sm font-semibold">Form</h2>
       </div>
-      <div className="grid sm:grid-cols-2 sm:divide-x">
+      <div className="grid gap-5 sm:grid-cols-2">
         <TeamForm
           context={context}
           fixtures={homeFixtures}
@@ -208,7 +208,6 @@ function FixtureForm({
           participant={home}
         />
         <TeamForm
-          className="border-t sm:border-t-0"
           context={context}
           fixtures={awayFixtures}
           loading={loading}
@@ -237,7 +236,7 @@ function TeamForm({
 }): React.JSX.Element {
   return (
     <div className={className}>
-      <div className="flex items-center gap-3 border-b px-4 py-3.5">
+      <div className="flex items-center gap-3 px-4 pb-3 pt-5">
         <TeamLogo
           className="size-8 bg-background"
           imagePath={participant.image_path ?? null}
@@ -264,7 +263,7 @@ function TeamForm({
           No recent form
         </div>
       ) : (
-        <div className="divide-y">
+        <div className="space-y-2 pb-2">
           {fixtures.map((fixture) => (
             <FormFixtureRow
               key={fixture.id}

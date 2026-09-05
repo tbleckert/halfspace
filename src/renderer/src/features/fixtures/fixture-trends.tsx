@@ -132,7 +132,7 @@ function TrendChart({
           <div key={side} className="flex min-w-0 items-center gap-2">
             <span
               aria-hidden
-              className={cn('size-2 rounded-sm', side === 'home' ? 'bg-chart-1' : 'bg-chart-5')}
+              className={cn('size-2 rounded-sm', side === 'home' ? 'bg-chart-1' : 'bg-chart-2')}
             />
             <span className="truncate font-medium">{team}</span>
             <span className="font-mono tabular-nums">{valueText(value)}</span>
@@ -201,7 +201,7 @@ function TrendChart({
             strokeDasharray="3 3"
           />
           {(['home', 'away'] as const).map((side) => (
-            <g key={side} className={side === 'home' ? 'text-chart-1' : 'text-chart-5'}>
+            <g key={side} className={side === 'home' ? 'text-chart-1' : 'text-chart-2'}>
               {readings.map((reading, index) => {
                 const value = reading[side]
                 if (value === null) return null

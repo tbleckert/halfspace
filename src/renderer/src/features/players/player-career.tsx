@@ -37,7 +37,7 @@ export function PlayerCareer({
     <section className="flex flex-col gap-5">
       <h2 className="text-xl font-semibold tracking-tight">Career</h2>
 
-      <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+      <div data-slot="card" className="overflow-hidden rounded-xl bg-card">
         {sortedTransfers.length === 0 ? (
           <div className="flex min-h-48 flex-col items-center justify-center gap-3 px-4 text-center text-muted-foreground">
             <BriefcaseBusiness className="size-6" />
@@ -46,7 +46,7 @@ export function PlayerCareer({
             </p>
           </div>
         ) : (
-          <ol className="divide-y">
+          <ol className="space-y-2 pb-2">
             {sortedTransfers.map((transfer) => (
               <li
                 key={transfer.id}
@@ -129,11 +129,11 @@ function PlayerCareerSkeleton(): React.JSX.Element {
   return (
     <section className="flex flex-col gap-5">
       <Skeleton className="h-6 w-20" />
-      <div className="overflow-hidden rounded-xl border bg-card">
+      <div data-slot="card" className="overflow-hidden rounded-xl bg-card">
         {[0, 1, 2, 3].map((row) => (
           <div
             key={row}
-            className="grid gap-3 border-b px-4 py-4 last:border-b-0 sm:grid-cols-[7.5rem_minmax(0,1fr)_5rem] sm:items-center sm:gap-5"
+            className="grid gap-3 px-4 py-4 sm:grid-cols-[7.5rem_minmax(0,1fr)_5rem] sm:items-center sm:gap-5"
           >
             <Skeleton className="h-3 w-20" />
             <Skeleton className="h-8 w-full" />

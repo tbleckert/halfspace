@@ -87,8 +87,8 @@ export function CompetitionsPage(): React.JSX.Element {
           </CardContent>
         </Card>
       ) : (
-        <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
-          <div className="divide-y">
+        <div data-slot="card" className="overflow-hidden rounded-xl bg-card">
+          <div className="space-y-2 pb-2">
             {competitions.map((competition) => {
               const isPinned = pinned.has(competition.id)
 
@@ -137,9 +137,9 @@ export function CompetitionsPage(): React.JSX.Element {
 
 function CompetitionListSkeleton(): React.JSX.Element {
   return (
-    <div className="overflow-hidden rounded-xl border bg-card">
+    <div data-slot="card" className="overflow-hidden rounded-xl bg-card">
       {[0, 1, 2, 3, 4].map((row) => (
-        <div key={row} className="flex items-center gap-3 border-b px-4 py-3.5 last:border-b-0">
+        <div key={row} className="flex items-center gap-3 px-4 py-3.5">
           <Skeleton className="size-9 rounded-lg" />
           <div className="flex-1 space-y-2">
             <Skeleton className="h-4 w-40" />

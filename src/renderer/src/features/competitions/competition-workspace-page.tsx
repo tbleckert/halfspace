@@ -318,7 +318,7 @@ export function CompetitionWorkspacePage({
         <header className="flex items-center justify-between gap-5">
           <div className="flex min-w-0 items-center gap-4">
             <CompetitionLogo
-              className="size-16 rounded-xl bg-card shadow-xs"
+              className="size-16 rounded-xl bg-card"
               imagePath={competition.imagePath}
               online={online}
             />
@@ -975,7 +975,7 @@ function CompetitionTeams({
               to="/teams/$teamId"
               params={{ teamId: String(team.id) }}
               search={{ competition: competitionId, season }}
-              className="flex h-full items-center gap-4 rounded-xl border bg-card p-4 shadow-xs outline-none transition-colors hover:bg-muted/45 focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex h-full items-center gap-4 rounded-xl bg-card p-4 outline-none transition-colors hover:bg-muted/45 focus-visible:ring-2 focus-visible:ring-ring"
               {...intentPrefetchProps(online, () => prefetchTeamEntity(team.id))}
             >
               <TeamLogo
@@ -1061,8 +1061,8 @@ function CompetitionWorkspaceSkeleton(): React.JSX.Element {
 
 function StandingsSkeleton(): React.JSX.Element {
   return (
-    <div className="overflow-hidden rounded-xl border bg-card">
-      <div className="border-b p-4">
+    <div data-slot="card" className="overflow-hidden rounded-xl bg-card">
+      <div className="px-4 pb-3 pt-5">
         <Skeleton className="h-4 w-20" />
       </div>
       <div className="space-y-4 p-4">
@@ -1081,8 +1081,8 @@ function StandingsSkeleton(): React.JSX.Element {
 
 function FixturesSkeleton(): React.JSX.Element {
   return (
-    <div className="overflow-hidden rounded-xl border bg-card">
-      <div className="border-b p-4">
+    <div data-slot="card" className="overflow-hidden rounded-xl bg-card">
+      <div className="px-4 pb-3 pt-5">
         <Skeleton className="h-4 w-24" />
       </div>
       <div className="space-y-5 p-4">
@@ -1102,8 +1102,8 @@ function FixturesBrowserSkeleton(): React.JSX.Element {
   return (
     <div className="flex flex-col gap-5">
       {[0, 1, 2].map((group) => (
-        <div key={group} className="overflow-hidden rounded-xl border bg-card">
-          <div className="border-b p-4">
+        <div key={group} className="overflow-hidden rounded-xl bg-card">
+          <div className="px-4 pb-3 pt-5">
             <Skeleton className="h-4 w-40" />
           </div>
           <div className="space-y-5 p-4">
@@ -1125,7 +1125,7 @@ function TeamsSkeleton(): React.JSX.Element {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {[0, 1, 2, 3, 4, 5].map((team) => (
-        <div key={team} className="flex items-center gap-4 rounded-xl border bg-card p-4">
+        <div key={team} className="flex items-center gap-4 rounded-xl bg-card p-4">
           <Skeleton className="size-14 rounded-xl" />
           <div className="flex-1 space-y-2">
             <Skeleton className="h-4 w-3/4" />

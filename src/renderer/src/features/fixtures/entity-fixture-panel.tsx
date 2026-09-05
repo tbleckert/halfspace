@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { Badge } from '@/components/ui/badge'
+import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import type { CachedFixture } from '@/data/db'
 import { TeamLogo } from '@/features/teams/team-logo'
 import { FixtureLiveIndicator } from './fixture-live-indicator'
@@ -38,16 +38,16 @@ export function EntityFixturePanel({
   showCompetition?: boolean
 }): React.JSX.Element {
   return (
-    <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
-      <div className="border-b px-4 py-3">
-        <h2 className="text-sm font-semibold">{label}</h2>
-      </div>
+    <Card className="overflow-hidden">
+      <CardHeader className="px-5">
+        <CardTitle className="text-sm">{label}</CardTitle>
+      </CardHeader>
       {fixtures.length === 0 ? (
         <div className="flex min-h-28 items-center justify-center px-4 text-sm text-muted-foreground">
           {loading ? 'Loading fixtures…' : emptyLabel}
         </div>
       ) : (
-        <div className="divide-y">
+        <div className="space-y-2 px-2 pb-2">
           {fixtures.map((fixture) => (
             <EntityFixtureRow
               key={fixture.id}
@@ -61,7 +61,7 @@ export function EntityFixturePanel({
           ))}
         </div>
       )}
-    </section>
+    </Card>
   )
 }
 
@@ -99,7 +99,7 @@ export function EntityFixtureRow({
       to="/fixtures/$fixtureId"
       params={{ fixtureId: String(fixture.id) }}
       search={fixtureSeasonLinks ? { ...context, season: fixture.seasonId } : context}
-      className="block px-4 py-3.5 transition-colors hover:bg-muted/45"
+      className="block rounded-lg px-3 py-3.5 outline-none transition-colors hover:bg-sidebar-accent focus-visible:bg-sidebar-accent"
       {...intentPrefetchProps(online, () => prefetchFixtureEntity(fixture.id))}
     >
       <div className="mb-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
@@ -128,9 +128,7 @@ export function EntityFixtureRow({
           )}
         </div>
         {!hasScore && !progressLabel && (
-          <Badge className="shrink-0 font-mono" variant="outline">
-            {stateLabel}
-          </Badge>
+          <span className="shrink-0 font-mono text-xs text-muted-foreground">{stateLabel}</span>
         )}
       </div>
       <div className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-sm">
@@ -145,7 +143,7 @@ export function EntityFixtureRow({
         <span className="font-mono font-semibold tabular-nums">
           {hasScore ? (homeScore ?? '–') : ''}
         </span>
-        <span className="flex min-w-0 items-center gap-2.5 text-muted-foreground">
+        <span className="flex min-w-0 items-center gap-2.5 font-medium">
           <TeamLogo
             className="size-6 bg-background"
             imagePath={away?.image_path ?? null}

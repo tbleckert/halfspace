@@ -26,7 +26,7 @@ export function FixtureCommentary({
   const entries = sortedCommentaries(cached?.commentaries ?? [], keyOnly)
   return (
     <Card className="gap-0 overflow-hidden py-0">
-      <CardHeader className="flex flex-row items-center justify-between border-b px-4 py-3">
+      <CardHeader className="flex flex-row items-center justify-between px-4 pb-3 pt-5">
         <CardTitle>Commentary</CardTitle>
         <NativeSelect
           aria-label="Commentary filter"
@@ -49,7 +49,7 @@ export function FixtureCommentary({
                   : 'No commentary available'}
           </p>
         ) : (
-          <ol className="divide-y" aria-label="Commentary, newest first">
+          <ol className="space-y-2 pb-2" aria-label="Commentary, newest first">
             {entries.map((entry) => {
               const players = [
                 ...new Map(

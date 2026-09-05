@@ -25,7 +25,7 @@ export function FixtureWeather({
 
   return (
     <Card>
-      <CardHeader className="flex-row items-center justify-between border-b px-4 py-3">
+      <CardHeader className="flex-row items-center justify-between px-4 pb-3 pt-5">
         <CardTitle className="text-sm">Weather</CardTitle>
         {weather.label && <span className="text-xs text-muted-foreground">{weather.label}</span>}
       </CardHeader>

@@ -1,8 +1,24 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { HalfspaceApi, SportmonksRateLimit } from '@shared/contracts'
 import { ipcChannels } from '@shared/contracts'
+import type { ViewProgress } from '@shared/views'
 
 const halfspaceApi: HalfspaceApi = {
+  views: {
+    getSettings: () => ipcRenderer.invoke(ipcChannels.aiSettings),
+    saveKey: (input) => ipcRenderer.invoke(ipcChannels.aiSaveKey, input),
+    clearKey: () => ipcRenderer.invoke(ipcChannels.aiClearKey),
+    generate: (input) => ipcRenderer.invoke(ipcChannels.viewGenerate, input),
+    cancel: (requestId) => ipcRenderer.invoke(ipcChannels.viewCancel, requestId),
+    onProgress: (listener) => {
+      const handler = (_event: Electron.IpcRendererEvent, progress: ViewProgress): void =>
+        listener(progress)
+      ipcRenderer.on(ipcChannels.viewProgress, handler)
+      return () => {
+        ipcRenderer.removeListener(ipcChannels.viewProgress, handler)
+      }
+    }
+  },
   credentials: {
     getConnectionState: () => ipcRenderer.invoke(ipcChannels.connectionState),
     saveToken: (input) => ipcRenderer.invoke(ipcChannels.saveToken, input),

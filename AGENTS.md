@@ -21,9 +21,18 @@ abstractions.
 - Use monospaced tabular typography as the shared language for compact football facts: scores,
   clocks, event minutes, match states, table values, statistics, odds, shirt numbers, and W/D/L.
   Keep names, headings, labels, positions, and prose in the regular interface font.
-- Keep the application shell quiet. The sidebar is only slightly lighter than the content canvas,
-  with a subtle white boundary; use muted active-item backgrounds and brand blue for active text
-  instead of large areas of solid brand color.
+- Keep the application shell quiet. Use white for the content canvas and both sidebars, with no
+  borders separating those columns. Use muted active-item backgrounds and violet for active
+  text instead of large areas of solid brand color.
+- Cards use muted background fills, with no outer borders or shadows. Use a warm neutral for
+  shared data cards and a muted coral for Matchday news cards. Apply the same treatment to entity
+  cards and their loading states; use a background change for clickable-card hover feedback.
+- Use coral and violet for graphic accents and opposing chart series, with dark ink for text.
+  Retain green, red, and yellow where they communicate football states. Use spacing and heading
+  weight instead of card-header and repeated row dividers; align compact facts in clear columns.
+- Use Motion for a short, capped stagger when new content cards appear. Animate only opacity and
+  a small vertical offset, never cached-data updates, and skip keyboard-triggered and reduced-motion
+  entrances. Content must remain usable throughout; preserve persistent route shells.
 - Keep a dedicated drag region across the empty top strip of setup states. In the main workspace,
   limit that region to the sidebar so the live ticker can sit flush against the top edge; keep
   interactive controls outside it or explicitly mark them as non-draggable.
@@ -183,11 +192,13 @@ abstractions.
   returning to Matchday from a page without date context. Keep the Today action beside the date
   control.
 - Matchday competition groups use the shared `Card`, `CardHeader`, and `CardTitle` hierarchy. Keep
-  headers on the normal card surface rather than filling them with solid brand color. Use a muted
-  outer border and header divider, and link each competition name together with its logo. Use the
-  sidebar active-item background for fixture-row hover and separators between rows. Keep header and
-  row padding compact. Keep the Matchday page heading screen-reader-only so the week navigator
-  has the available header space.
+  headers on the normal muted card surface and link each competition name together with its logo.
+  Use typography and spacing instead of header borders or separators between fixtures: give the
+  competition heading breathing room, keep each team pair close together, and leave a larger gap
+  between matches. Give both team names equal emphasis, keep times and terminal states quieter,
+  and align scores with their teams. Use inset rounded rows with the sidebar active-item background
+  for hover and keyboard focus. Match loading states to the same structure. Keep the Matchday page
+  heading screen-reader-only so the week navigator has the available header space.
 - Treat Matchday as a rolling fixture hub around the selected date. Use a compact seven-day
   Monday-to-Sunday navigator with only a small weekday and a two-digit day in the interface font,
   no fixture counts or container chrome, and place it first in the page header beside calendar and
@@ -318,12 +329,13 @@ abstractions.
   reports, and call the fixture date Match date rather than inventing a publication time. Fixture
   Preview and Game show their related news. Sparse fixture context from news must never overwrite
   richer shared fixture records; nested fixture includes are unsupported on news endpoints.
-- Matchday has a quiet, edge-to-edge news rail on the right, with independent scrolling, compact
-  headlines, competition logos, and Previews / Reports controls. Reuse the first page of the shared
-  news cache and article reader; keep the feed independent of the selected fixture date. At narrower
-  widths, place news below fixtures rather than squeezing the match list. Adapt the Matchday header
-  to its available column width, not only the viewport width. Keep both the week navigation and News
-  heading close beneath the live ticker rather than reserving title-bar spacing below it.
+- Matchday has a borderless news rail on the right, with independent scrolling and a separate card
+  for each article. Combine the first cached pages of previews and reports, newest match date first,
+  with undated articles last. Keep competition logos and AI-written report labels, omit the News
+  heading and feed tabs, and reuse the shared article reader. Keep the feed independent of the
+  selected fixture date. At narrower widths, place news below fixtures rather than squeezing the
+  match list. Adapt the Matchday header to its available column width, not only the viewport width.
+  Keep the week navigation and news cards close beneath the live ticker.
 - Match facts belong in Fixture Preview with participant, category, and scope filters. Fetch every page
   before caching the response; show provider-written facts verbatim and omit records without wording.
   Facts can describe the referee as well as home, away, or both teams. Accept referee records even
@@ -367,6 +379,51 @@ abstractions.
   Keep rumours separate from transfer history and current club membership. Show provider likelihood
   as a label, never a calculated probability or confirmation; link only HTTP(S) sources and display
   fees only with an explicit currency. Retain unknown clubs and source details as unknown.
+
+## Generative Football Views
+
+- Keep complete Sportmonks coverage as the primary development goal. Generative views build on that
+  work; do not delay useful endpoint support to build speculative AI infrastructure. The generated
+  coverage report remains the authority for percentages, not a number copied into these instructions.
+- The long-term direction is a personal football canvas: describe a workspace, watch the layout
+  take shape, refine it conversationally, and save it for everyday use. Grow toward connected team
+  and player views, cross-competition comparisons, interactive filters, and grounded analysis as
+  real data coverage and reusable components expand.
+- Start with competition fixtures, standings, and player leaders. Keep the first release small but
+  functional: a personal OpenAI key, streamed composition, saved views, and conversational edits.
+  More providers, arbitrary visualizations, sharing, and deeper analysis are later work.
+- Use AI SDK Core in Electron main, initially with its direct OpenAI provider. Store AI credentials
+  with Electron secure storage, separately from the Sportmonks token. Expose narrow typed generation,
+  progress, cancellation, and credential APIs through preload. Never persist keys in the renderer,
+  send the Sportmonks token to an AI provider, or put a hosted gateway between users and their provider.
+- Generate a versioned, validated view definition from an explicit catalog of supported blocks and
+  query parameters. Render trusted React components; never execute generated JavaScript, HTML, SQL,
+  arbitrary network requests, or IPC commands. Validate entity and season identities against the
+  supplied context as well as validating the schema. Reject unsupported requests clearly.
+- Keep model schemas inside OpenAI's supported JSON Schema subset. Use Zod unions for block
+  alternatives: discriminated unions emit `oneOf`, which OpenAI rejects; regular unions emit
+  supported `anyOf`. Test the serialized provider request as well as parsing streamed responses.
+  Restart Electron before live verification of main-process changes.
+- AI chooses composition and data bindings. Actual football values, calculations, missing-data states,
+  provider ranks, and links belong to deterministic application code. Never treat the local cache as
+  complete coverage or let the model fabricate facts, infer unavailable access, or silently substitute
+  a different team, competition, or season. Send only the prompt, current definition, and the minimum
+  identity metadata needed for composition; explain the provider boundary where users configure AI.
+- Keep each new football feature reusable through focused presentation components and typed,
+  identity-scoped queries. Reuse the shared cache, TTLs, pagination rules, and refresh cancellation.
+  Add a block when its underlying data is usable; do not introduce a second football cache, generic
+  query language, or whole-app component refactor ahead of a concrete need.
+- Saved definitions are user content, separate from disposable Sportmonks data. They survive token
+  replacement and cache clearing. Opening, filtering, and refreshing saved views must not call AI;
+  cached views remain usable offline. Keep definitions versioned for future intentional migrations.
+- Treat generation as a cancellable draft. Stream validated blocks into the canvas, retain the last
+  usable definition on failure, and ignore late events from abandoned requests or credential changes.
+  Save only complete validated definitions. Provide clear retry and undo affordances.
+- Make progress visually distinctive and truthful: a quiet canvas, a prominent prompt composer,
+  outlined layout blocks appearing as they arrive, followed by real data. Use brief drawing and
+  reveal motion with reduced-motion support. Never invent percentage progress, staged waiting, or
+  fabricated football values to make generation look busy. Keep the canvas responsive and keyboard
+  accessible; save infinite-canvas tooling and drag-and-drop editing for a demonstrated need.
 
 ## Mindset & Process
 

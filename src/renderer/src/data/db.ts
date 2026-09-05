@@ -6,6 +6,7 @@ import type {
 } from './season-resources-cache'
 import type { CachedTransferRumour, TransferRumoursQuery } from './transfer-rumours-cache'
 import Dexie, { type Table } from 'dexie'
+import type { SavedView } from '@shared/views'
 import type {
   RefreshStatisticSeasonsInput,
   StatisticSeasonsRefresh,
@@ -608,6 +609,7 @@ class HalfspaceDatabase extends Dexie {
   transferRumours!: Table<CachedTransferRumour, number>
   transferRumourQueries!: Table<TransferRumoursQuery, string>
 
+  savedViews!: Table<SavedView, string>
   roundStandingQueries!: Table<RoundStandingQuery, string>
   subscriptionQueries!: Table<SubscriptionQuery, string>
   fixtureTvQueries!: Table<FixtureTvQuery, number>
@@ -954,6 +956,7 @@ class HalfspaceDatabase extends Dexie {
       transferRumours: '&id',
       transferRumourQueries: '&key, staleAt'
     })
+    this.version(37).stores({ savedViews: '&id, updatedAt' })
   }
 }
 

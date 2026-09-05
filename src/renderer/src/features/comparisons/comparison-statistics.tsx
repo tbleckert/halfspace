@@ -155,7 +155,7 @@ function ComparisonStatisticsTable({
         </p>
       )}
       <Card className="overflow-hidden">
-        <CardHeader className="flex flex-row items-center justify-between border-b px-4 py-3">
+        <CardHeader className="flex flex-row items-center justify-between px-4 pb-3 pt-5">
           <CardTitle className="text-base">Season comparison</CardTitle>
           <Button
             aria-label="Refresh comparison"

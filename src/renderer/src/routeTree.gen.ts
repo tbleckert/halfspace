@@ -15,6 +15,7 @@ import { Route as CompetitionsRouteImport } from './routes/competitions'
 import { Route as NewsRouteImport } from './routes/news'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TransfersRouteImport } from './routes/transfers'
+import { Route as ViewsRouteImport } from './routes/views'
 import { Route as BroadcastersStationIdRouteImport } from './routes/broadcasters_.$stationId'
 import { Route as CoachesCoachIdRouteImport } from './routes/coaches_.$coachId'
 import { Route as CompetitionsCompetitionIdRouteImport } from './routes/competitions_.$competitionId'
@@ -78,6 +79,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const TransfersRoute = TransfersRouteImport.update({
   id: '/transfers',
   path: '/transfers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ViewsRoute = ViewsRouteImport.update({
+  id: '/views',
+  path: '/views',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BroadcastersStationIdRoute = BroadcastersStationIdRouteImport.update({
@@ -271,6 +277,7 @@ export interface FileRoutesByFullPath {
   '/news': typeof NewsRoute
   '/settings': typeof SettingsRoute
   '/transfers': typeof TransfersRoute
+  '/views': typeof ViewsRoute
   '/broadcasters/$stationId': typeof BroadcastersStationIdRoute
   '/coaches/$coachId': typeof CoachesCoachIdRoute
   '/competitions/$competitionId': typeof CompetitionsCompetitionIdRouteWithChildren
@@ -313,6 +320,7 @@ export interface FileRoutesByTo {
   '/news': typeof NewsRoute
   '/settings': typeof SettingsRoute
   '/transfers': typeof TransfersRoute
+  '/views': typeof ViewsRoute
   '/broadcasters/$stationId': typeof BroadcastersStationIdRoute
   '/coaches/$coachId': typeof CoachesCoachIdRoute
   '/competitions/$competitionId': typeof CompetitionsCompetitionIdRouteWithChildren
@@ -356,6 +364,7 @@ export interface FileRoutesById {
   '/news': typeof NewsRoute
   '/settings': typeof SettingsRoute
   '/transfers': typeof TransfersRoute
+  '/views': typeof ViewsRoute
   '/broadcasters_/$stationId': typeof BroadcastersStationIdRoute
   '/coaches_/$coachId': typeof CoachesCoachIdRoute
   '/competitions_/$competitionId': typeof CompetitionsCompetitionIdRouteWithChildren
@@ -400,6 +409,7 @@ export interface FileRouteTypes {
     | '/news'
     | '/settings'
     | '/transfers'
+    | '/views'
     | '/broadcasters/$stationId'
     | '/coaches/$coachId'
     | '/competitions/$competitionId'
@@ -442,6 +452,7 @@ export interface FileRouteTypes {
     | '/news'
     | '/settings'
     | '/transfers'
+    | '/views'
     | '/broadcasters/$stationId'
     | '/coaches/$coachId'
     | '/competitions/$competitionId'
@@ -484,6 +495,7 @@ export interface FileRouteTypes {
     | '/news'
     | '/settings'
     | '/transfers'
+    | '/views'
     | '/broadcasters_/$stationId'
     | '/coaches_/$coachId'
     | '/competitions_/$competitionId'
@@ -527,6 +539,7 @@ export interface RootRouteChildren {
   NewsRoute: typeof NewsRoute
   SettingsRoute: typeof SettingsRoute
   TransfersRoute: typeof TransfersRoute
+  ViewsRoute: typeof ViewsRoute
   BroadcastersStationIdRoute: typeof BroadcastersStationIdRoute
   CoachesCoachIdRoute: typeof CoachesCoachIdRoute
   CompetitionsCompetitionIdRoute: typeof CompetitionsCompetitionIdRouteWithChildren
@@ -580,6 +593,13 @@ declare module '@tanstack/react-router' {
       path: '/transfers'
       fullPath: '/transfers'
       preLoaderRoute: typeof TransfersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/views': {
+      id: '/views'
+      path: '/views'
+      fullPath: '/views'
+      preLoaderRoute: typeof ViewsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/broadcasters_/$stationId': {
@@ -926,6 +946,7 @@ const rootRouteChildren: RootRouteChildren = {
   NewsRoute: NewsRoute,
   SettingsRoute: SettingsRoute,
   TransfersRoute: TransfersRoute,
+  ViewsRoute: ViewsRoute,
   BroadcastersStationIdRoute: BroadcastersStationIdRoute,
   CoachesCoachIdRoute: CoachesCoachIdRoute,
   CompetitionsCompetitionIdRoute: CompetitionsCompetitionIdRouteWithChildren,

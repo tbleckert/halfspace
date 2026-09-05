@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { mockViewsApi } from '../../../../test/view-api'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CoachRefresh, Result } from '@shared/contracts'
 import { db, readCoachIdentity } from '@/data/db'
@@ -77,6 +78,7 @@ function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
 
 function installHalfspace(overrides: Partial<Window['halfspace']['sportmonks']>): void {
   window.halfspace = {
+    views: mockViewsApi(),
     credentials: {
       getConnectionState: vi.fn(),
       saveToken: vi.fn(),

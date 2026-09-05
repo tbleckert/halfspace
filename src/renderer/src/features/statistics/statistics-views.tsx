@@ -305,7 +305,7 @@ function LeagueGoals({ summary }: { summary: LeagueStatisticsSummary }): React.J
   const homeShare = total > 0 ? (home / total) * 100 : 50
 
   return (
-    <section className="rounded-xl border bg-card p-5 shadow-xs">
+    <section data-slot="card" className="rounded-xl bg-card p-5">
       <h3 className="text-sm font-semibold">Goals</h3>
       <div className="mt-6 flex items-end justify-between gap-4">
         <div>
@@ -338,7 +338,7 @@ function TeamRecord({ summary }: { summary: TeamStatisticsSummary }): React.JSX.
   const total = wins + draws + losses
 
   return (
-    <section className="rounded-xl border bg-card p-5 shadow-xs">
+    <section data-slot="card" className="rounded-xl bg-card p-5">
       <h3 className="text-sm font-semibold">Record</h3>
       <div className="mt-6 grid grid-cols-3 gap-4">
         <RecordValue label="Wins" value={summary.wins} />
@@ -376,11 +376,11 @@ function StatisticList({
   if (visibleRows.length === 0) return <></>
 
   return (
-    <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
-      <div className="border-b px-5 py-3.5">
+    <section data-slot="card" className="overflow-hidden rounded-xl bg-card">
+      <div className="px-5 pb-3 pt-5">
         <h3 className="text-sm font-semibold">{title}</h3>
       </div>
-      <dl className="divide-y">
+      <dl className="space-y-1 pb-2">
         {visibleRows.map(({ label, value }) => (
           <div key={label} className="flex items-center justify-between gap-4 px-5 py-3.5 text-sm">
             <dt className="text-muted-foreground">{label}</dt>
@@ -409,7 +409,7 @@ function StatisticsSkeleton(): React.JSX.Element {
       <Skeleton className="h-6 w-16" />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[0, 1, 2, 3].map((item) => (
-          <div key={item} className="rounded-xl border bg-card p-5">
+          <div key={item} className="rounded-xl bg-card p-5">
             <Skeleton className="h-4 w-20" />
             <Skeleton className="mt-3 h-8 w-14" />
           </div>

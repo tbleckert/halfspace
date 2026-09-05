@@ -10,7 +10,7 @@ export function TeamRankings({
 
   return (
     <Card>
-      <CardHeader className="border-b px-4 py-3">
+      <CardHeader className="px-4 pb-3 pt-5">
         <CardTitle className="text-sm">Rankings</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4 p-4">

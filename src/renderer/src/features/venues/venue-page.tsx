@@ -106,8 +106,8 @@ export function VenuePage({
         <div className="flex flex-col gap-6">
           <VenueDetails venue={identity} />
 
-          <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
-            <div className="border-b px-4 py-3">
+          <section data-slot="card" className="overflow-hidden rounded-xl bg-card">
+            <div className="px-4 pb-3 pt-5">
               <h2 className="text-sm font-semibold">Teams</h2>
             </div>
             {teams.length === 0 ? (
@@ -116,7 +116,7 @@ export function VenuePage({
                 <p className="text-sm font-medium text-foreground">No teams</p>
               </div>
             ) : (
-              <div className="divide-y">
+              <div className="space-y-2 pb-2">
                 {teams.map((team) => (
                   <Link
                     key={team.id}
@@ -140,7 +140,7 @@ export function VenuePage({
         </div>
 
         <VenueImage
-          className="order-first aspect-[4/3] w-full border bg-card shadow-xs lg:order-last"
+          className="order-first aspect-[4/3] w-full bg-card lg:order-last"
           imagePath={identity.image_path ?? null}
           online={online}
         />
@@ -170,8 +170,8 @@ function VenueDetails({ venue }: { venue: SportmonksVenue }): React.JSX.Element 
   ].filter((detail): detail is { label: string; value: string } => detail !== null)
 
   return (
-    <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
-      <div className="border-b px-4 py-3">
+    <section data-slot="card" className="overflow-hidden rounded-xl bg-card">
+      <div className="px-4 pb-3 pt-5">
         <h2 className="text-sm font-semibold">Details</h2>
       </div>
       {details.length === 0 ? (
@@ -179,7 +179,7 @@ function VenueDetails({ venue }: { venue: SportmonksVenue }): React.JSX.Element 
           No details
         </div>
       ) : (
-        <dl className="divide-y">
+        <dl className="space-y-1 pb-2">
           {details.map(({ label, value }) => (
             <div key={label} className="grid grid-cols-[7rem_1fr] gap-4 px-4 py-3.5 text-sm">
               <dt className="text-muted-foreground">{label}</dt>
@@ -221,8 +221,8 @@ function VenuePageSkeleton(): React.JSX.Element {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="space-y-6">
           {[0, 1].map((panel) => (
-            <div key={panel} className="overflow-hidden rounded-xl border bg-card">
-              <div className="border-b p-4">
+            <div key={panel} className="overflow-hidden rounded-xl bg-card">
+              <div className="px-4 pb-3 pt-5">
                 <Skeleton className="h-4 w-20" />
               </div>
               <div className="space-y-4 p-4">

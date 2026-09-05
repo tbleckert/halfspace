@@ -45,7 +45,7 @@ export function SubscriptionCard(): React.JSX.Element {
                 <p className="mt-1 text-sm text-muted-foreground">{cached.addOns.join(' · ')}</p>
               )}
             </div>
-            <dl className="divide-y border-y">
+            <dl className="space-y-2">
               {subscriptionFeatures.map((feature) => {
                 const included = featureAccess(cached, feature.key) === 'included'
                 return (

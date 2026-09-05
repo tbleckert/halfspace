@@ -36,6 +36,7 @@ beforeEach(async () => {
             id: 10,
             league_id: 8,
             season_id: 12,
+            starting_at: '2026-09-04 18:00:00',
             state_id: 1,
             placeholder: false,
             has_odds: false,
@@ -89,16 +90,67 @@ it('opens cached news from Matchday with fixture and season context', async () =
   expect(screen.getByText('Preview article body.')).toBeTruthy()
 })
 
-it('switches feeds without showing previews under Reports and preserves the feed in All news', async () => {
+it('combines cached previews and reports by match date in the news rail', async () => {
+  await writeNewsRefresh(
+    { kind: 'feed', feed: 'post-match', page: 1 },
+    {
+      fetchedAt: 100,
+      hasMore: false,
+      articles: [
+        {
+          id: 3,
+          fixture_id: 30,
+          league_id: 8,
+          type: 'postmatch',
+          title: 'Earlier match report',
+          lines: [],
+          fixture: {
+            id: 30,
+            league_id: 8,
+            season_id: 12,
+            starting_at: '2026-09-03 18:00:00',
+            state_id: 5,
+            placeholder: false,
+            has_odds: false,
+            participants: [],
+            scores: []
+          }
+        },
+        {
+          id: 2,
+          fixture_id: 20,
+          league_id: 8,
+          type: 'postmatch',
+          title: 'Latest match report',
+          lines: [],
+          fixture: {
+            id: 20,
+            league_id: 8,
+            season_id: 12,
+            starting_at: '2026-09-04 20:00:00',
+            state_id: 5,
+            placeholder: false,
+            has_odds: false,
+            participants: [],
+            scores: []
+          }
+        }
+      ]
+    }
+  )
   openMatchday()
   const rail = within(await screen.findByRole('complementary', { name: 'Matchday news' }))
   await rail.findByRole('link', { name: /Weekend preview/ })
-  fireEvent.click(rail.getByRole('button', { name: 'Reports' }))
-  await rail.findByText('News not available offline')
-  expect(rail.queryByRole('link', { name: /Weekend preview/ })).toBeNull()
-  expect(rail.getByRole('link', { name: 'All news' }).getAttribute('href')).toBe(
-    '/news?feed=post-match'
-  )
-  fireEvent.click(rail.getByRole('button', { name: 'Previews' }))
-  await rail.findByRole('link', { name: /Weekend preview/ })
+  await rail.findByRole('link', { name: /Latest match report/ })
+
+  expect(rail.getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent)).toEqual([
+    'Latest match report',
+    'Weekend preview',
+    'Earlier match report'
+  ])
+  expect(rail.getAllByText('AI-written report')).toHaveLength(2)
+  expect(rail.getAllByText('Match date · 2026-09-04')).toHaveLength(2)
+  expect(rail.queryByRole('heading', { name: 'News' })).toBeNull()
+  expect(rail.queryByRole('group', { name: 'News type' })).toBeNull()
+  expect(rail.getByRole('link', { name: 'All news' }).getAttribute('href')).toBe('/news')
 })

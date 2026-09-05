@@ -5,6 +5,7 @@ import {
   CalendarDays,
   Circle,
   Clock3,
+  LayoutTemplate,
   Repeat2,
   Newspaper,
   Settings,
@@ -31,6 +32,7 @@ import { intentPrefetchProps } from '@/lib/prefetch'
 import { useTodayInTimeZone } from '@/lib/use-today'
 import { cn } from '@/lib/utils'
 import { useOnline } from '@/lib/use-online'
+import { useContentEntrance } from '@/lib/use-content-entrance'
 
 const noPinnedCompetitionIds: number[] = []
 
@@ -82,6 +84,7 @@ export function AppShell(): React.JSX.Element {
 }
 
 function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): React.JSX.Element {
+  const contentRef = useContentEntrance()
   const online = useOnline()
   const { cached } = useCompetitions()
   const pinnedCompetitionIds = usePinnedCompetitionIds() ?? noPinnedCompetitionIds
@@ -110,7 +113,7 @@ function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): Re
   return (
     <div className="relative grid h-full grid-cols-[14.5rem_1fr] bg-background">
       <WindowDragRegion sidebar />
-      <aside className="flex min-h-0 flex-col border-r border-sidebar-border bg-sidebar px-3 py-4 text-foreground">
+      <aside className="flex min-h-0 flex-col bg-sidebar px-3 py-4 text-foreground">
         <div className="px-3 pb-2.5 pt-7">
           <div className="flex items-center gap-3">
             <HalfspaceLogo alt="" className="size-8 rounded-[0.6rem]" />
@@ -194,6 +197,7 @@ function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): Re
               label="Compare"
               to="/compare"
             />
+            <SidebarLink icon={<LayoutTemplate className="size-4" />} label="Views" to="/views" />
           </div>
 
           <div className="mt-auto flex flex-col gap-1 pt-4">
@@ -205,7 +209,7 @@ function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): Re
 
       <div className="flex min-h-0 min-w-0 flex-col overflow-hidden bg-background">
         <LiveFixtureTicker timeZone={timeZone} />
-        <main className="min-h-0 flex-1 overflow-y-auto">
+        <main ref={contentRef} className="min-h-0 flex-1 overflow-y-auto">
           <Outlet />
         </main>
       </div>
@@ -254,7 +258,7 @@ function SidebarLink({
   exact?: boolean
   icon: React.ReactNode
   label: string
-  to: '/competitions' | '/settings' | '/transfers' | '/compare' | '/news'
+  to: '/competitions' | '/settings' | '/transfers' | '/compare' | '/news' | '/views'
 }): React.JSX.Element {
   return (
     <Link

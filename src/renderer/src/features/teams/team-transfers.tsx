@@ -41,7 +41,7 @@ export function TeamTransfers({
     <section className="flex flex-col gap-5">
       <h2 className="text-xl font-semibold tracking-tight">Transfers</h2>
 
-      <div className="overflow-hidden rounded-xl border bg-card shadow-xs">
+      <div data-slot="card" className="overflow-hidden rounded-xl bg-card">
         {sortedTransfers.length === 0 ? (
           <div className="flex min-h-48 flex-col items-center justify-center gap-3 px-4 text-center text-muted-foreground">
             <Repeat2 className="size-6" />
@@ -50,7 +50,7 @@ export function TeamTransfers({
             </p>
           </div>
         ) : (
-          <ol className="divide-y">
+          <ol className="space-y-2 pb-2">
             {sortedTransfers.map((transfer) => (
               <TeamTransferRow
                 key={transfer.id}
@@ -227,11 +227,11 @@ function TeamTransfersSkeleton(): React.JSX.Element {
   return (
     <section className="flex flex-col gap-5">
       <Skeleton className="h-6 w-24" />
-      <div className="overflow-hidden rounded-xl border bg-card">
+      <div data-slot="card" className="overflow-hidden rounded-xl bg-card">
         {[0, 1, 2, 3, 4].map((row) => (
           <div
             key={row}
-            className="grid gap-3 border-b px-4 py-3.5 last:border-b-0 sm:grid-cols-[7.5rem_4rem_minmax(0,1fr)_minmax(0,0.85fr)_5rem] sm:items-center sm:gap-4"
+            className="grid gap-3 px-4 py-3.5 sm:grid-cols-[7.5rem_4rem_minmax(0,1fr)_minmax(0,0.85fr)_5rem] sm:items-center sm:gap-4"
           >
             <Skeleton className="h-3 w-20" />
             <Skeleton className="h-3 w-8" />

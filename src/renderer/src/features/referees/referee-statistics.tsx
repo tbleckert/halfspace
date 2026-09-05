@@ -30,7 +30,7 @@ export function RefereeStatistics({
     summary.rows.some(({ total, average }) => total !== null || average !== null)
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="flex-row flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
+      <CardHeader className="flex-row flex-wrap items-center justify-between gap-3 px-4 pb-3 pt-5">
         <CardTitle className="text-sm">Season stats</CardTitle>
         {options.length > 0 && (
           <NativeSelect
@@ -57,7 +57,7 @@ export function RefereeStatistics({
         </CardContent>
       ) : (
         <div className="grid md:grid-cols-[180px_1fr]">
-          <div className="border-b p-5 md:border-r md:border-b-0">
+          <div className="p-5">
             <p className="text-sm text-muted-foreground">Matches</p>
             <p className="mt-2 font-mono text-4xl font-semibold tabular-nums">
               {summary.matches ?? '–'}

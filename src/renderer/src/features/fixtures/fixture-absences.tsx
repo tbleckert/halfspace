@@ -24,7 +24,7 @@ export function FixtureAbsences({
   })
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="border-b px-4 py-3">
+      <CardHeader className="px-4 pb-3 pt-5">
         <CardTitle className="text-sm">Match absences</CardTitle>
       </CardHeader>
       {reportedAbsences === undefined ? (
@@ -32,14 +32,14 @@ export function FixtureAbsences({
           Absence data unavailable
         </CardContent>
       ) : (
-        <div className="grid divide-y sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+        <div className="grid gap-5 sm:grid-cols-2">
           {teams.map((team) => {
             const absences = reportedAbsences.filter(
               ({ participant_id }) => participant_id === team.id
             )
             return (
               <section key={team.id} aria-label={`${team.name} absences`} className="min-w-0">
-                <div className="flex items-center gap-3 border-b px-4 py-3">
+                <div className="flex items-center gap-3 px-4 pb-3 pt-5">
                   <TeamLogo
                     className="size-8 bg-background"
                     imagePath={team.image_path ?? null}
@@ -50,7 +50,7 @@ export function FixtureAbsences({
                 {absences.length === 0 ? (
                   <p className="p-4 text-sm text-muted-foreground">No absences reported</p>
                 ) : (
-                  <div className="divide-y">
+                  <div className="space-y-2 pb-2">
                     {absences.map((absence) => (
                       <AbsenceRow
                         key={absence.id}

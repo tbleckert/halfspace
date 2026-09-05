@@ -39,7 +39,7 @@ export function FixtureStats({
   return (
     <div className="flex flex-col gap-5">
       <Card className="overflow-hidden">
-        <div className="grid grid-cols-[1fr_minmax(8rem,1.5fr)_1fr] items-center border-b bg-muted/25 px-4 py-3">
+        <div className="grid grid-cols-[1fr_minmax(8rem,1.5fr)_1fr] items-center px-4 pb-3 pt-5">
           <FixtureStatTeam participant={home} online={online} align="left" />
           <span />
           <FixtureStatTeam participant={away} online={online} align="right" />
@@ -47,7 +47,7 @@ export function FixtureStats({
         {rows.length === 0 ? (
           <FixtureEmptyState>Stats not available</FixtureEmptyState>
         ) : (
-          <div className="divide-y">
+          <div className="space-y-2 pb-2">
             {rows.map((row) => (
               <FixtureStatisticRow key={row.id} row={row} />
             ))}
@@ -91,13 +91,13 @@ function TeamPlayerPerformance({
 }): React.JSX.Element {
   return (
     <Card className="overflow-hidden">
-      <div className="border-b bg-muted/25 px-4 py-3">
+      <div className="px-4 pb-3 pt-5">
         <FixtureStatTeam align="left" online={online} participant={participant} />
       </div>
       {performances.length === 0 ? (
         <FixtureEmptyState>Player stats not available</FixtureEmptyState>
       ) : (
-        <div className="divide-y">
+        <div className="space-y-2 pb-2">
           {performances.map((performance) => (
             <PlayerPerformanceRow
               key={performance.entry.id}
@@ -155,7 +155,7 @@ function PlayerPerformanceRow({
         </div>
       </div>
       {metrics.length > 0 && (
-        <div className="mt-3 grid grid-cols-3 gap-2 border-t pt-2.5">
+        <div className="mt-3 grid grid-cols-3 gap-2 pt-2.5">
           {metrics.map((metric) => (
             <div key={metric.typeId} className="min-w-0">
               <p className="font-mono text-sm font-semibold tabular-nums">{metric.value}</p>

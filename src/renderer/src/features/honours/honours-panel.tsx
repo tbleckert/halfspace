@@ -28,7 +28,7 @@ export function HonoursPanel({
     )
   return (
     <Card className="gap-0 overflow-hidden py-0">
-      <CardHeader className="flex flex-row items-center justify-between gap-3 border-b px-4 py-3">
+      <CardHeader className="flex flex-row items-center justify-between gap-3 px-4 pb-3 pt-5">
         <CardTitle>Honours</CardTitle>
         <div className="flex items-center gap-1">
           {!!query.cached?.honours.length && (
@@ -61,7 +61,7 @@ export function HonoursPanel({
           <ErrorAlert>{query.error}</ErrorAlert>
         </CardContent>
       )}
-      <div className="divide-y">
+      <div className="space-y-2 pb-2">
         {honours.slice(0, expanded ? undefined : 8).map((item) => (
           <div key={item.id} className="flex items-center gap-3 px-4 py-3">
             <CompetitionLogo
@@ -121,7 +121,7 @@ export function HonoursPanel({
         </CardContent>
       )}
       {honours.length > 8 && (
-        <div className="border-t px-4 py-2">
+        <div className="px-4 pb-4 pt-3">
           <Button variant="ghost" size="sm" onClick={() => setExpanded(!expanded)}>
             {expanded ? 'Show fewer' : 'Show all honours'}
           </Button>

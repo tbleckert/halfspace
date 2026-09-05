@@ -354,7 +354,7 @@ function MatchScore({
   )
 
   return (
-    <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
+    <section data-slot="card" className="overflow-hidden rounded-xl bg-card">
       <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-4 py-8 sm:gap-8 sm:px-10 sm:py-10">
         <FixtureTeam
           competitionId={competitionId}
@@ -424,7 +424,7 @@ function FixtureTeam({
       {...intentPrefetchProps(online, () => prefetchTeamEntity(participant.id))}
     >
       <TeamLogo
-        className="size-16 rounded-xl bg-background shadow-xs sm:size-24"
+        className="size-16 rounded-xl bg-background sm:size-24"
         imagePath={participant.image_path ?? null}
         online={online}
       />
@@ -581,11 +581,11 @@ function FixtureCoaches({
   online: boolean
 }): React.JSX.Element {
   return (
-    <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
-      <div className="border-b px-4 py-3">
+    <section data-slot="card" className="overflow-hidden rounded-xl bg-card">
+      <div className="px-4 pb-3 pt-5">
         <h2 className="text-sm font-semibold">Coaches</h2>
       </div>
-      <div className="divide-y">
+      <div className="space-y-2 pb-2">
         {coaches.map((coach) => {
           const team = fixture.participants.find(({ id }) => id === coach.meta?.participant_id)
 
@@ -642,11 +642,11 @@ function FixtureDetails({
   const competitionName = fixture.league?.name ?? competition?.name ?? `League ${competitionId}`
 
   return (
-    <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
-      <div className="border-b px-4 py-3">
+    <section data-slot="card" className="overflow-hidden rounded-xl bg-card">
+      <div className="px-4 pb-3 pt-5">
         <h2 className="text-sm font-semibold">Details</h2>
       </div>
-      <dl className="divide-y text-sm">
+      <dl className="space-y-1 pb-2 text-sm">
         <div className="px-4 py-3.5">
           <dt className="mb-2 text-xs text-muted-foreground">Competition</dt>
           <dd>

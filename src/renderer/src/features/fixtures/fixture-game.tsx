@@ -69,7 +69,7 @@ export function FixtureGame({
                       aria-hidden="true"
                       className={cn(
                         'size-2 shrink-0 rounded-sm',
-                        index === 0 ? 'bg-chart-1' : 'bg-chart-5'
+                        index === 0 ? 'bg-chart-1' : 'bg-chart-2'
                       )}
                     />
                     <TeamLogo
@@ -83,7 +83,7 @@ export function FixtureGame({
                   </div>
                 ))}
               </div>
-              <div className="divide-y">
+              <div className="space-y-2 pb-2">
                 {rows.map((row) => (
                   <FixtureStatisticRow
                     key={row.id}

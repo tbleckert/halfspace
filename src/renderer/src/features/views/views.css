@@ -1,0 +1,390 @@
+.view-workspace {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 500px;
+  isolation: isolate;
+  background-image: radial-gradient(
+    color-mix(in oklab, var(--foreground) 13%, transparent) 0.7px,
+    transparent 0.7px
+  );
+  background-size: 22px 22px;
+  container-type: inline-size;
+}
+
+.view-toolbar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 62px;
+  padding: 12px 24px;
+  background: var(--background);
+}
+
+.view-canvas {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.view-empty {
+  display: flex;
+  min-height: 100%;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 32px 24px 40px;
+}
+.view-empty h2 {
+  margin-top: 26px;
+  font-size: clamp(26px, 3.2cqw, 38px);
+  font-weight: 650;
+  letter-spacing: -0.045em;
+  line-height: 1.15;
+}
+.view-empty > p {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--muted-foreground);
+}
+.view-sheet {
+  max-width: 1180px;
+  margin: auto;
+  padding: 36px 32px 48px;
+}
+.view-title {
+  width: 100%;
+  min-width: 0;
+  padding: 2px 0;
+  background: transparent;
+  color: var(--foreground);
+  font-size: 26px;
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  outline: none;
+  border-bottom: 1px solid transparent;
+}
+.view-title:focus {
+  border-bottom-color: var(--ring);
+}
+.view-block-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px 20px;
+  align-items: start;
+}
+.view-block {
+  min-width: 0;
+}
+.view-block-full {
+  grid-column: 1 / -1;
+}
+.view-data-scroll {
+  max-height: 470px;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+.view-data-scroll:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.view-composer-wrap {
+  flex: none;
+  width: min(700px, calc(100% - 48px));
+  margin: 0 auto 24px;
+  z-index: 2;
+}
+.view-composer {
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--secondary);
+}
+.view-composer:focus-within {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.view-composer textarea {
+  display: block;
+  width: 100%;
+  resize: none;
+  border: 0;
+  outline: none;
+  background: transparent;
+  padding: 18px 18px 10px;
+  min-height: 88px;
+  max-height: 160px;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.view-composer textarea::placeholder {
+  color: var(--muted-foreground);
+}
+.view-build-button {
+  transition:
+    transform 150ms cubic-bezier(0.23, 1, 0.32, 1),
+    background-color 150ms ease;
+}
+.view-build-button:active {
+  transform: scale(0.94);
+}
+.view-composer-status {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 16px;
+  margin: 0 10px;
+  font-size: 12px;
+  background: var(--background);
+  border-radius: 10px 10px 0 0;
+}
+.view-suggestion {
+  display: inline-flex;
+  align-items: center;
+  gap: 15px;
+  padding: 8px 11px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--card);
+  font-size: 12px;
+  color: var(--muted-foreground);
+  transition:
+    color 160ms ease,
+    border-color 160ms ease;
+}
+.view-suggestion:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+@media (hover: hover) {
+  .view-suggestion:hover {
+    color: var(--primary);
+    border-color: color-mix(in oklab, var(--primary) 40%, var(--border));
+  }
+}
+
+.view-illustration {
+  position: relative;
+  width: 314px;
+  height: 180px;
+}
+.view-illustration-guide {
+  position: absolute;
+  inset: -12px 10px;
+  border: 1px solid color-mix(in oklab, var(--primary) 10%, transparent);
+  border-radius: 9px;
+  transform: rotate(-6deg);
+}
+.view-mini-card {
+  position: absolute;
+  padding: 13px;
+  border-radius: 8px;
+  background: var(--card);
+}
+.view-mini-card > span {
+  display: block;
+  margin-bottom: 13px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--primary);
+}
+.view-mini-card > i {
+  display: block;
+  height: 4px;
+  margin-top: 11px;
+  border-radius: 2px;
+  background: var(--muted);
+}
+.view-mini-card > i:nth-child(odd) {
+  width: 72%;
+}
+.view-mini-fixtures {
+  left: 0;
+  top: 3px;
+  width: 150px;
+  height: 119px;
+  transform: rotate(-5deg);
+}
+.view-mini-table {
+  background: var(--secondary);
+  right: 1px;
+  top: 13px;
+  width: 146px;
+  height: 151px;
+  transform: rotate(5deg);
+}
+.view-mini-table > i {
+  background: linear-gradient(
+    90deg,
+    var(--muted) 0 68%,
+    transparent 68% 83%,
+    color-mix(in oklab, var(--primary) 18%, transparent) 83%
+  );
+  width: 100% !important;
+}
+.view-mini-leaders {
+  left: 24px;
+  bottom: -4px;
+  width: 169px;
+  height: 84px;
+  transform: rotate(-2deg);
+  background: var(--accent);
+}
+.view-mini-leaders > div {
+  display: flex;
+  gap: 10px;
+}
+.view-mini-leaders b {
+  display: block;
+  width: 23px;
+  height: 23px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.view-mini-leaders b:first-child {
+  background: var(--chart-1);
+}
+.view-cursor {
+  position: absolute;
+  right: 38px;
+  bottom: -10px;
+  display: grid;
+  place-items: center;
+  width: 29px;
+  height: 29px;
+  border: 3px solid var(--background);
+  border-radius: 6px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  transform: rotate(-9deg);
+}
+
+.view-outline {
+  position: relative;
+  min-height: 230px;
+  padding: 20px;
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--card) 88%, transparent);
+}
+.view-outline-stroke {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: color-mix(in oklab, var(--primary) 38%, transparent);
+  stroke-width: 1.5px;
+  pointer-events: none;
+}
+.view-outline-stroke rect {
+  vector-effect: non-scaling-stroke;
+  animation: view-draw 650ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+.view-loading .view-outline-stroke {
+  stroke: var(--border);
+}
+.view-loading .view-outline > div {
+  opacity: 0.6;
+}
+.view-awaiting {
+  grid-column: 1 / -1;
+  min-height: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.view-planning-lines {
+  display: grid;
+  grid-template-columns: 80px 50px;
+  gap: 8px;
+}
+.view-planning-lines span {
+  height: 36px;
+  border: 1px solid color-mix(in oklab, var(--primary) 30%, var(--border));
+  border-radius: 5px;
+  background: var(--card);
+  animation: view-plan 1.8s ease-in-out infinite alternate;
+}
+.view-planning-lines span:nth-child(2) {
+  animation-delay: 180ms;
+}
+.view-planning-lines span:nth-child(3) {
+  grid-column: 1 / -1;
+  animation-delay: 360ms;
+}
+.view-drawing-mark {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  border-radius: 3px;
+  background: var(--chart-1);
+  animation: view-plan 1.3s ease-in-out infinite alternate;
+}
+@keyframes view-draw {
+  from {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+  }
+  99% {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes view-plan {
+  from {
+    opacity: 0.45;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+@container (max-width: 740px) {
+  .view-block-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .view-sheet {
+    padding: 26px 20px 36px;
+  }
+  .view-toolbar {
+    padding: 10px 16px;
+    flex-wrap: wrap;
+  }
+  .view-toolbar .sm\:flex {
+    display: none;
+  }
+  .view-composer-wrap {
+    width: calc(100% - 32px);
+    margin-bottom: 16px;
+  }
+  .view-empty {
+    padding-top: 24px;
+  }
+  .view-illustration {
+    transform: scale(0.85);
+    margin: -10px 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view-workspace *,
+  .view-workspace *::before,
+  .view-workspace *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

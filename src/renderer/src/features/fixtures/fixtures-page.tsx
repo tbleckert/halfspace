@@ -72,7 +72,7 @@ export function FixturesPage({ date }: FixturesPageProps): React.JSX.Element {
             />
           </div>
 
-          <div className="ml-auto flex items-center gap-1 rounded-lg border bg-card p-0.5 shadow-xs">
+          <div className="ml-auto flex items-center gap-1 rounded-lg bg-card p-0.5">
             <MatchdayDatePicker
               date={date}
               today={today}
@@ -234,18 +234,18 @@ function FixtureRow({
       to="/fixtures/$fixtureId"
       params={{ fixtureId: String(fixture.id) }}
       search={{ date }}
-      className="grid grid-cols-[4rem_minmax(0,1fr)_2rem] items-center gap-4 px-4 py-3 outline-none transition-colors hover:bg-sidebar-accent focus-visible:bg-sidebar-accent"
+      className="grid grid-cols-[4rem_minmax(0,1fr)_2rem] items-center gap-4 rounded-lg px-3 py-3 outline-none transition-colors hover:bg-sidebar-accent focus-visible:bg-sidebar-accent"
       {...intentPrefetchProps(online, () => prefetchFixtureEntity(fixture.id))}
     >
       <FixtureRowStatus fixture={fixture} />
-      <div className="grid min-w-0 gap-1.5">
+      <div className="grid min-w-0 gap-1">
         <div className="flex min-w-0 items-center gap-2">
           <TeamLogo
             className="size-6 bg-background"
             imagePath={home?.image_path ?? null}
             online={online}
           />
-          <p className="truncate text-sm font-semibold text-foreground">
+          <p className="truncate text-sm font-medium text-foreground">
             {home?.name ?? fixture.name ?? 'Home team'}
           </p>
         </div>
@@ -255,12 +255,12 @@ function FixtureRow({
             imagePath={away?.image_path ?? null}
             online={online}
           />
-          <p className="truncate text-sm font-medium text-foreground/75">
+          <p className="truncate text-sm font-medium text-foreground">
             {away?.name ?? 'Away team'}
           </p>
         </div>
       </div>
-      <div className="grid grid-rows-2 gap-0.5 text-right font-mono text-base font-extrabold tabular-nums text-brand-navy">
+      <div className="grid grid-rows-2 gap-1 text-right font-mono text-base font-semibold tabular-nums text-foreground">
         {hasScore && (
           <>
             <span>{homeScore ?? '–'}</span>
@@ -407,10 +407,10 @@ function FixtureGroups({
   online: boolean
 }): React.JSX.Element {
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       {groupFixtures(fixtures).map(({ leagueId, leagueName, fixtures: leagueFixtures }) => (
-        <Card key={leagueId} className="overflow-hidden border-border/60 shadow-none">
-          <CardHeader className="border-b px-4 py-3">
+        <Card key={leagueId} className="overflow-hidden">
+          <CardHeader className="px-5 pb-3 pt-5">
             <Link
               to="/competitions/$competitionId"
               params={{ competitionId: String(leagueId) }}
@@ -426,7 +426,7 @@ function FixtureGroups({
               <CardTitle>{leagueName}</CardTitle>
             </Link>
           </CardHeader>
-          <div className="divide-y">
+          <div className="space-y-2 px-2 pb-2">
             {leagueFixtures.map((fixture) => (
               <FixtureRow key={fixture.id} date={date} fixture={fixture} online={online} />
             ))}
@@ -451,14 +451,14 @@ function FixtureRowStatus({ fixture }: { fixture: CachedFixture }): React.JSX.El
 
   if (status.kind === 'state') {
     return (
-      <span className="text-center font-mono text-xs font-bold tracking-[0.08em] tabular-nums text-muted-foreground">
+      <span className="text-center font-mono text-xs font-medium tabular-nums text-muted-foreground">
         {status.label}
       </span>
     )
   }
 
   return (
-    <time className="text-center font-mono text-sm font-semibold tabular-nums text-brand-navy/70">
+    <time className="text-center font-mono text-sm font-medium tabular-nums text-muted-foreground">
       {formatFixtureTime(fixture.startingAt)}
     </time>
   )
@@ -466,22 +466,31 @@ function FixtureRowStatus({ fixture }: { fixture: CachedFixture }): React.JSX.El
 
 function FixtureListSkeleton(): React.JSX.Element {
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {[0, 1].map((section) => (
-        <Card key={section} className="overflow-hidden border-border/60 shadow-none">
-          <CardHeader className="border-b px-4 py-3">
+        <Card key={section} className="overflow-hidden">
+          <CardHeader className="px-5 pb-3 pt-5">
             <div className="flex items-center gap-2.5">
               <Skeleton className="size-6 rounded-md" />
               <Skeleton className="h-4 w-36" />
             </div>
           </CardHeader>
-          <div className="divide-y">
+          <div className="space-y-2 px-2 pb-2">
             {[0, 1, 2].map((row) => (
-              <div key={row} className="flex items-center gap-4 px-4 py-3">
-                <Skeleton className="h-4 w-14" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-4 w-40" />
-                  <Skeleton className="h-3 w-32" />
+              <div
+                key={row}
+                className="grid grid-cols-[4rem_minmax(0,1fr)_2rem] items-center gap-4 rounded-lg px-3 py-3"
+              >
+                <Skeleton className="h-4 w-12 justify-self-center" />
+                <div className="grid min-w-0 gap-1">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="size-6 shrink-0" />
+                    <Skeleton className="h-4 w-40" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="size-6 shrink-0" />
+                    <Skeleton className="h-4 w-32" />
+                  </div>
                 </div>
               </div>
             ))}

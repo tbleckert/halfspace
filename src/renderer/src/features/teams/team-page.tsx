@@ -317,7 +317,7 @@ export function TeamPage({
         <header className="flex items-center justify-between gap-5">
           <div className="flex min-w-0 items-center gap-4">
             <TeamLogo
-              className="size-16 rounded-xl bg-card shadow-xs"
+              className="size-16 rounded-xl bg-card"
               imagePath={identity.image_path ?? null}
               online={online}
             />
@@ -876,7 +876,10 @@ function TeamSquad({
 
   if (groups.length === 0) {
     return (
-      <section className="flex min-h-48 flex-col items-center justify-center gap-3 rounded-xl border bg-card px-4 text-center text-muted-foreground shadow-xs">
+      <section
+        data-slot="card"
+        className="flex min-h-48 flex-col items-center justify-center gap-3 rounded-xl bg-card px-4 text-center text-muted-foreground"
+      >
         <UsersRound className="size-6" />
         <p className="text-sm font-medium text-foreground">
           {loading ? 'Loading squad…' : online ? 'No squad' : 'Squad not available offline'}
@@ -891,7 +894,6 @@ function TeamSquad({
         <section key={label}>
           <div className="mb-3 flex items-center gap-3">
             <h2 className="text-sm font-semibold">{label}</h2>
-            <div className="h-px flex-1 bg-border" />
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {groupMembers.map((member) => (
@@ -937,7 +939,7 @@ function SquadPlayerCard({
       to="/players/$playerId"
       params={{ playerId: String(player.id) }}
       search={{ competition: competitionId, date, season, team: teamId }}
-      className="group flex min-w-0 flex-col items-center rounded-xl border bg-card px-4 py-5 text-center shadow-xs outline-none transition-[border-color,transform] duration-150 hover:border-foreground/20 focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98]"
+      className="group flex min-w-0 flex-col items-center rounded-xl bg-card px-4 py-5 text-center outline-none transition-[background-color,transform] duration-150 hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98]"
       {...intentPrefetchProps(online, () => prefetchPlayerEntity(player.id))}
     >
       <div className="relative">
@@ -1003,8 +1005,8 @@ function TeamCompetitions({
   error: string | null
 }): React.JSX.Element {
   return (
-    <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
-      <div className="border-b px-4 py-3">
+    <section data-slot="card" className="overflow-hidden rounded-xl bg-card">
+      <div className="px-4 pb-3 pt-5">
         <h2 className="text-sm font-semibold">Current competitions</h2>
       </div>
       {contexts.length === 0 ? (
@@ -1021,7 +1023,7 @@ function TeamCompetitions({
           </p>
         </div>
       ) : (
-        <div className="divide-y">
+        <div className="space-y-2 pb-2">
           {contexts.map(({ competition, seasonId, seasonName, standing }) => (
             <Link
               key={competition.id}
@@ -1078,13 +1080,13 @@ function TeamCoaches({
   const visibleCoaches = coaches.flatMap(({ active, coach }) => (active && coach ? [coach] : []))
 
   return (
-    <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
-      <div className="border-b px-4 py-3">
+    <section data-slot="card" className="overflow-hidden rounded-xl bg-card">
+      <div className="px-4 pb-3 pt-5">
         <h2 className="text-sm font-semibold">
           {visibleCoaches.length === 1 ? 'Coach' : 'Coaches'}
         </h2>
       </div>
-      <div className="divide-y">
+      <div className="space-y-2 pb-2">
         {visibleCoaches.map((coach) => (
           <Link
             key={coach.id}
@@ -1205,8 +1207,8 @@ function TeamPageSkeleton(): React.JSX.Element {
         </div>
       </div>
       <div className="grid gap-6 lg:grid-cols-[minmax(16rem,0.65fr)_minmax(24rem,1.35fr)]">
-        <div className="overflow-hidden rounded-xl border bg-card">
-          <div className="border-b p-4">
+        <div data-slot="card" className="overflow-hidden rounded-xl bg-card">
+          <div className="px-4 pb-3 pt-5">
             <Skeleton className="h-4 w-24" />
           </div>
           <div className="space-y-4 p-4">
@@ -1229,8 +1231,8 @@ function TeamPageSkeleton(): React.JSX.Element {
 
 function FixturesSkeleton(): React.JSX.Element {
   return (
-    <div className="overflow-hidden rounded-xl border bg-card">
-      <div className="border-b p-4">
+    <div data-slot="card" className="overflow-hidden rounded-xl bg-card">
+      <div className="px-4 pb-3 pt-5">
         <Skeleton className="h-4 w-24" />
       </div>
       <div className="space-y-5 p-4">
@@ -1250,11 +1252,11 @@ function TeamFixturesBrowserSkeleton(): React.JSX.Element {
   return (
     <div className="flex flex-col gap-5">
       {[0, 1, 2].map((group) => (
-        <div key={group} className="overflow-hidden rounded-xl border bg-card">
-          <div className="border-b px-4 py-3">
+        <div key={group} className="overflow-hidden rounded-xl bg-card">
+          <div className="px-4 pb-3 pt-5">
             <Skeleton className="h-4 w-36" />
           </div>
-          <div className="divide-y">
+          <div className="space-y-2 pb-2">
             {[0, 1].map((row) => (
               <div key={row} className="space-y-3 px-4 py-3.5">
                 <Skeleton className="h-3 w-32" />
@@ -1287,14 +1289,10 @@ function SquadSkeleton(): React.JSX.Element {
         <section key={group}>
           <div className="mb-3 flex items-center gap-3">
             <Skeleton className="h-4 w-20" />
-            <div className="h-px flex-1 bg-border" />
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[0, 1, 2].map((card) => (
-              <div
-                key={card}
-                className="flex flex-col items-center rounded-xl border bg-card px-4 py-5"
-              >
+              <div key={card} className="flex flex-col items-center rounded-xl bg-card px-4 py-5">
                 <Skeleton className="size-20 rounded-full" />
                 <Skeleton className="mt-4 h-4 w-24" />
                 <Skeleton className="mt-2 h-3 w-20" />

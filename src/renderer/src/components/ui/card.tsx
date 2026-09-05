@@ -4,7 +4,8 @@ import { cn } from '@/lib/utils'
 export function Card({ className, ...props }: React.ComponentProps<'div'>): React.JSX.Element {
   return (
     <div
-      className={cn('rounded-xl border bg-card text-card-foreground shadow-xs', className)}
+      data-slot="card"
+      className={cn('rounded-xl bg-card text-card-foreground', className)}
       {...props}
     />
   )
@@ -14,7 +15,7 @@ export function CardHeader({
   className,
   ...props
 }: React.ComponentProps<'div'>): React.JSX.Element {
-  return <div className={cn('flex flex-col gap-1 p-4', className)} {...props} />
+  return <div className={cn('flex flex-col gap-1 px-4 pb-3 pt-5', className)} {...props} />
 }
 
 export function CardTitle({ className, ...props }: React.ComponentProps<'h2'>): React.JSX.Element {

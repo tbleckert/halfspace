@@ -39,7 +39,7 @@ export function FixtureMatchFacts({
   }
   return (
     <Card className="gap-0 overflow-hidden py-0">
-      <CardHeader className="border-b px-4 py-3">
+      <CardHeader className="px-4 pb-3 pt-5">
         <CardTitle>Match facts</CardTitle>
       </CardHeader>
       {query.error && (
@@ -48,7 +48,7 @@ export function FixtureMatchFacts({
         </CardContent>
       )}
       {!!written.length && (
-        <div className="flex flex-wrap gap-2 border-b px-4 py-3">
+        <div className="flex flex-wrap gap-2 px-4 pb-3 pt-5">
           <NativeSelect
             aria-label="Facts participant"
             value={participant}
@@ -98,7 +98,7 @@ export function FixtureMatchFacts({
           </NativeSelect>
         </div>
       )}
-      <div className="divide-y">
+      <div className="space-y-2 pb-2">
         {facts.slice(0, expanded ? undefined : 6).map((fact) => (
           <div key={fact.id} className="px-4 py-3">
             <p className="text-sm leading-relaxed">{fact.natural_language}</p>
@@ -131,7 +131,7 @@ export function FixtureMatchFacts({
         </CardContent>
       )}
       {facts.length > 6 && (
-        <div className="border-t px-4 py-2">
+        <div className="px-4 pb-4 pt-3">
           <Button variant="ghost" size="sm" onClick={() => setExpanded(!expanded)}>
             {expanded ? 'Show fewer' : 'Show more'}
           </Button>

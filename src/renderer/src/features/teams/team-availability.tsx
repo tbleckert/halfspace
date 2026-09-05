@@ -24,7 +24,7 @@ export function TeamAvailability({
 
   return (
     <Card>
-      <CardHeader className="border-b px-4 py-3">
+      <CardHeader className="px-4 pb-3 pt-5">
         <CardTitle className="text-sm">Current absences</CardTitle>
       </CardHeader>
       {!current?.length ? (
@@ -32,7 +32,7 @@ export function TeamAvailability({
           {current ? 'No absences reported' : 'Absence data unavailable'}
         </CardContent>
       ) : (
-        <div className="divide-y">
+        <div className="space-y-2 pb-2">
           {current.map((absence) => (
             <Link
               key={absence.id}

@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { mockViewsApi } from '../../../../test/view-api'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import {
   createMemoryHistory,
@@ -29,6 +30,7 @@ beforeEach(() => {
   onRateLimitChange.mockReset().mockReturnValue(vi.fn())
 
   window.halfspace = {
+    views: mockViewsApi(),
     credentials: {
       getConnectionState,
       saveToken,

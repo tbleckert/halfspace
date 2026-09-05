@@ -64,7 +64,7 @@ export function FixtureOdds({
 
   return (
     <Card className="gap-0 overflow-hidden">
-      <CardHeader className="gap-3 border-b">
+      <CardHeader className="gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <CardTitle>Odds</CardTitle>
           <div className="flex gap-1" aria-label="Odds feed">
@@ -210,7 +210,7 @@ export function FixtureOdds({
         )
       )}
       {fetchedAt !== undefined && (
-        <div className="space-y-1 border-t px-4 py-3 text-xs text-muted-foreground">
+        <div className="space-y-1 px-4 pb-4 pt-3 text-xs text-muted-foreground">
           <div>
             {feed === 'pre-match'
               ? 'Pre-match quotes.'

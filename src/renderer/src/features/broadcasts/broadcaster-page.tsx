@@ -103,7 +103,7 @@ export function BroadcasterPage({
       {broadcaster.error && <ErrorAlert>{broadcaster.error}</ErrorAlert>}
       {schedule.error && <ErrorAlert>{schedule.error}</ErrorAlert>}
       <Card className="overflow-hidden">
-        <CardHeader className="flex-row items-center justify-between gap-3 border-b">
+        <CardHeader className="flex-row items-center justify-between gap-3">
           <CardTitle>{feed === 'upcoming' ? 'Upcoming broadcasts' : 'Past broadcasts'}</CardTitle>
           <span className="text-xs text-muted-foreground">
             Page <span className="font-mono tabular-nums">{page}</span>
@@ -120,7 +120,7 @@ export function BroadcasterPage({
               : 'No broadcasts on this page'}
           </CardContent>
         ) : (
-          <div className="divide-y">
+          <div className="space-y-2 pb-2">
             {fixtures.map((match) => {
               const listings = schedule.cached!.listings.filter(
                 (listing) => listing.fixture_id === match.id

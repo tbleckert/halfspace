@@ -101,7 +101,7 @@ export function FixtureTv({
             tabIndex={0}
             className="max-h-72 overflow-y-auto rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <ul className="divide-y">
+            <ul className="space-y-2 pb-2">
               {stations.map((station) => {
                 const content = (
                   <>

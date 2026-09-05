@@ -55,12 +55,12 @@ export function StandingsTable({
     ruleColors[rules.findIndex(({ id }) => id === typeId) % ruleColors.length]
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="border-b px-4 py-3">
+      <CardHeader className="px-4 pb-3 pt-5">
         <CardTitle className="text-sm">{name}</CardTitle>
       </CardHeader>
       <Table className="min-w-80 table-fixed border-collapse" aria-label={name}>
-        <TableHeader className="bg-muted/45 text-xs text-muted-foreground [&_tr]:border-0">
-          <TableRow className="border-0 hover:bg-transparent">
+        <TableHeader className="text-xs text-muted-foreground">
+          <TableRow className="hover:bg-transparent">
             <TableHead className="h-auto w-10 px-3 py-2">#</TableHead>
             <TableHead className="h-auto px-2 py-2">Team</TableHead>
             <TableHead className="h-auto w-10 px-2 py-2 text-right" title="Played">
@@ -72,14 +72,14 @@ export function StandingsTable({
             <TableHead className="h-auto w-12 px-3 py-2 text-right">Pts</TableHead>
           </TableRow>
         </TableHeader>
-        <TableBody className="divide-y">
+        <TableBody>
           {standings.map((standing) => {
             const teamName = standing.raw.participant?.name ?? `Team ${standing.participantId}`
             const form = recentStandingForm(standing.raw.form)
             const goalDifference = standingDetailValue(standing.raw.details, 179)
             const rule = standing.raw.rule?.type
             return (
-              <TableRow key={standing.id} className="border-0 hover:bg-transparent">
+              <TableRow key={standing.id} className="hover:bg-transparent">
                 <TableCell
                   className="relative px-3 py-2.5 font-mono tabular-nums text-muted-foreground"
                   title={rule?.name}
@@ -172,7 +172,7 @@ export function StandingsTable({
       {rules.length > 0 && (
         <ul
           aria-label="Table places"
-          className="space-y-2 border-t px-4 py-3 text-xs text-muted-foreground"
+          className="space-y-2 px-4 pb-4 pt-3 text-xs text-muted-foreground"
         >
           {rules.map((rule) => (
             <li key={rule.id} className="flex items-center gap-2">

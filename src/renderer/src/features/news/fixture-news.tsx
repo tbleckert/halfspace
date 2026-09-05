@@ -21,7 +21,7 @@ export function FixtureNews({
   if (!online && !news.cached) return null
   return (
     <Card className="gap-0 overflow-hidden py-0">
-      <CardHeader className="border-b px-4 py-3">
+      <CardHeader className="px-4 pb-3 pt-5">
         <CardTitle>News</CardTitle>
       </CardHeader>
       {news.error && (
@@ -32,7 +32,7 @@ export function FixtureNews({
       {!news.cached && !news.error && (
         <CardContent className="p-4 text-sm text-muted-foreground">Loading news…</CardContent>
       )}
-      <div className="divide-y">
+      <div className="space-y-2 pb-2">
         {news.cached?.articles.map((article) => (
           <Link
             key={article.id}

@@ -17,7 +17,13 @@ export function TableHeader({
   className,
   ...props
 }: React.ComponentProps<'thead'>): React.JSX.Element {
-  return <thead data-slot="table-header" className={cn('[&_tr]:border-b', className)} {...props} />
+  return (
+    <thead
+      data-slot="table-header"
+      className={cn('text-xs text-muted-foreground', className)}
+      {...props}
+    />
+  )
 }
 
 export function TableBody({
@@ -27,7 +33,7 @@ export function TableBody({
   return (
     <tbody
       data-slot="table-body"
-      className={cn('[&_tr:last-child]:border-0', className)}
+      className={cn('[&_tr]:even:bg-background/40', className)}
       {...props}
     />
   )
@@ -37,7 +43,7 @@ export function TableRow({ className, ...props }: React.ComponentProps<'tr'>): R
   return (
     <tr
       data-slot="table-row"
-      className={cn('border-b transition-colors hover:bg-muted/50', className)}
+      className={cn('transition-colors hover:bg-muted/50', className)}
       {...props}
     />
   )

@@ -95,7 +95,7 @@ export function CoachPage({
         <header className="flex items-center justify-between gap-5">
           <div className="flex min-w-0 items-center gap-4">
             <CoachPhoto
-              className="size-20 rounded-xl bg-card shadow-xs"
+              className="size-20 rounded-xl bg-card"
               imagePath={identity.image_path ?? null}
               online={online}
             />
@@ -190,7 +190,7 @@ function CoachCurrentTeam({
 }): React.JSX.Element {
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="border-b">
+      <CardHeader>
         <CardTitle className="text-sm">Current club</CardTitle>
       </CardHeader>
       <Link
@@ -233,7 +233,7 @@ function CoachCareer({
 }): React.JSX.Element {
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="border-b">
+      <CardHeader>
         <CardTitle className="text-sm">Career</CardTitle>
       </CardHeader>
       {teams.length === 0 ? (
@@ -241,7 +241,7 @@ function CoachCareer({
           Career history not available
         </CardContent>
       ) : (
-        <div className="divide-y">
+        <div className="space-y-2 pb-2">
           {teams.map(({ assignment, team }) => (
             <Link
               key={assignment.id}
@@ -279,10 +279,10 @@ function CoachDetails({ coach }: { coach: SportmonksCoach }): React.JSX.Element 
 
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="border-b">
+      <CardHeader>
         <CardTitle className="text-sm">Details</CardTitle>
       </CardHeader>
-      <div className="divide-y">
+      <div className="space-y-2 pb-2">
         {details.map(([label, value]) => (
           <div key={label} className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
             <span className="text-muted-foreground">{label}</span>

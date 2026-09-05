@@ -21,9 +21,9 @@ export function LiveFixtureTicker({ timeZone }: { timeZone: string }): React.JSX
   return (
     <section
       aria-label={current ? 'Live scores' : 'Last seen live scores'}
-      className="flex h-16 min-w-0 shrink-0 border-b border-border/70 bg-card"
+      className="flex h-16 min-w-0 shrink-0 bg-card"
     >
-      <div className="flex w-28 shrink-0 items-center gap-2 border-r border-border/70 px-4">
+      <div className="flex w-28 shrink-0 items-center gap-2 px-4">
         {current ? (
           <span aria-hidden="true">
             <FixtureLiveIndicator showLabel={false} />
@@ -41,7 +41,7 @@ export function LiveFixtureTicker({ timeZone }: { timeZone: string }): React.JSX
         </div>
       </div>
 
-      <div className="flex min-w-0 flex-1 overflow-x-auto">
+      <div className="flex min-w-0 flex-1 gap-3 overflow-x-auto">
         {fixtures.map((fixture) => (
           <LiveFixture key={fixture.id} fixture={fixture} online={online} />
         ))}
@@ -70,7 +70,7 @@ function LiveFixture({
       params={{ fixtureId: String(fixture.id) }}
       search={{ competition: fixture.leagueId, season: fixture.seasonId }}
       aria-label={`${homeName} ${score.home ?? 'unknown'}, ${awayName} ${score.away ?? 'unknown'}, ${status}`}
-      className="group flex w-64 shrink-0 flex-col justify-center border-r border-border/70 px-4 outline-none transition-colors hover:bg-sidebar-accent focus-visible:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sidebar-ring"
+      className="group flex w-64 shrink-0 flex-col justify-center px-4 outline-none transition-colors hover:bg-sidebar-accent focus-visible:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sidebar-ring"
       {...intentPrefetchProps(online, () => prefetchFixtureEntity(fixture.id))}
     >
       <div className="mb-1 flex items-center justify-between gap-3 text-[10px] font-medium text-muted-foreground">
@@ -81,7 +81,7 @@ function LiveFixture({
       </div>
       <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
         <TickerTeam imagePath={home?.image_path ?? null} name={homeName} online={online} />
-        <span className="font-mono text-sm font-extrabold tabular-nums text-brand-navy">
+        <span className="font-mono text-sm font-extrabold tabular-nums text-foreground">
           {score.home ?? '–'}–{score.away ?? '–'}
         </span>
         <TickerTeam

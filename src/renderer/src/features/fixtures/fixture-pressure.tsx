@@ -100,7 +100,7 @@ function PressureChart({
               aria-hidden="true"
               className={cn(
                 'size-2 shrink-0 rounded-sm',
-                side === 'home' ? 'bg-chart-1' : 'bg-chart-5'
+                side === 'home' ? 'bg-chart-1' : 'bg-chart-2'
               )}
             />
             <TeamLogo className="size-5" imagePath={team?.image_path ?? null} online={online} />
@@ -288,7 +288,7 @@ function PressureChart({
                 </div>
               ))}
               {selectedEvents.length > 0 && (
-                <ul className="mt-2 space-y-1 border-t pt-2">
+                <ul className="mt-2 space-y-1 pt-2">
                   {selectedEvents.map((marker) => (
                     <li key={marker.id}>{marker.label}</li>
                   ))}

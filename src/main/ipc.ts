@@ -1,4 +1,3 @@
-import type { IpcMainInvokeEvent } from 'electron'
 import {
   fetchSeasonReferees,
   fetchSeasonVenues,
@@ -7,6 +6,8 @@ import {
 import { fetchTransferRumours, validateTransferRumoursInput } from './transfer-rumours'
 import { fetchTeamSchedule, validateTeamScheduleInput } from './sportmonks'
 import { BrowserWindow, ipcMain } from 'electron'
+import { assertTrustedSender } from './trusted-sender'
+import { cancelViewGenerations } from './views-ipc'
 import type { ApiErrorCode, Result, SportmonksRateLimit } from '@shared/contracts'
 import { ipcChannels } from '@shared/contracts'
 import { fetchSeasonBracket } from './season-bracket'
@@ -248,6 +249,7 @@ export function registerIpcHandlers(): void {
 
     try {
       const token = validateToken((input as { token?: unknown } | undefined)?.token)
+      cancelViewGenerations()
       await saveStoredToken(token)
       resetRateLimits()
       return success({ configured: true })
@@ -260,6 +262,7 @@ export function registerIpcHandlers(): void {
     assertTrustedSender(event)
 
     try {
+      cancelViewGenerations()
       await clearStoredToken()
       resetRateLimits()
       return success(null)
@@ -506,14 +509,6 @@ async function withStoredToken<T>(request: (token: string) => Promise<T>): Promi
       publishRateLimit(error.rateLimit)
     }
     throw error
-  }
-}
-
-function assertTrustedSender(event: IpcMainInvokeEvent): void {
-  const senderWindow = BrowserWindow.fromWebContents(event.sender)
-
-  if (!senderWindow || event.senderFrame !== senderWindow.webContents.mainFrame) {
-    throw new Error('Rejected IPC call from an untrusted sender.')
   }
 }
 

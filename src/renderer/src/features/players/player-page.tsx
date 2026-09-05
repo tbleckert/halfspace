@@ -237,7 +237,7 @@ export function PlayerPage({
         <header className="flex items-center justify-between gap-5">
           <div className="flex min-w-0 items-center gap-4">
             <PlayerPhoto
-              className="size-20 rounded-xl bg-card shadow-xs"
+              className="size-20 rounded-xl bg-card"
               imagePath={identity.image_path ?? null}
               online={online}
             />
@@ -584,8 +584,8 @@ function PlayerDetails({ player }: { player: SportmonksPlayer }): React.JSX.Elem
   ].filter((detail): detail is { label: string; value: string } => detail !== null)
 
   return (
-    <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
-      <div className="border-b px-4 py-3">
+    <section data-slot="card" className="overflow-hidden rounded-xl bg-card">
+      <div className="px-4 pb-3 pt-5">
         <h2 className="text-sm font-semibold">Details</h2>
       </div>
       {details.length === 0 ? (
@@ -593,7 +593,7 @@ function PlayerDetails({ player }: { player: SportmonksPlayer }): React.JSX.Elem
           No details
         </div>
       ) : (
-        <dl className="divide-y">
+        <dl className="space-y-1 pb-2">
           {details.map(({ label, value }) => (
             <div key={label} className="grid grid-cols-[7rem_1fr] gap-4 px-4 py-3.5 text-sm">
               <dt className="text-muted-foreground">{label}</dt>
@@ -620,8 +620,8 @@ function PlayerTeams({
   teams: CachedTeam[]
 }): React.JSX.Element {
   return (
-    <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
-      <div className="border-b px-4 py-3">
+    <section data-slot="card" className="overflow-hidden rounded-xl bg-card">
+      <div className="px-4 pb-3 pt-5">
         <h2 className="text-sm font-semibold">Teams</h2>
       </div>
       {teams.length === 0 ? (
@@ -630,7 +630,7 @@ function PlayerTeams({
           <p className="text-sm font-medium text-foreground">No teams</p>
         </div>
       ) : (
-        <div className="divide-y">
+        <div className="space-y-2 pb-2">
           {teams.map((team) => (
             <Link
               key={team.id}
@@ -688,8 +688,8 @@ function PlayerLineups({
   const visibleRecords = limit === null ? records : records.slice(0, limit)
 
   return (
-    <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
-      <div className="border-b px-4 py-3">
+    <section data-slot="card" className="overflow-hidden rounded-xl bg-card">
+      <div className="px-4 pb-3 pt-5">
         <h2 className="text-sm font-semibold">{title}</h2>
       </div>
       {visibleRecords.length === 0 ? (
@@ -700,7 +700,7 @@ function PlayerLineups({
           </p>
         </div>
       ) : (
-        <div className="divide-y">
+        <div className="space-y-2 pb-2">
           {visibleRecords.map(({ appearance, fixture }) => {
             const home = fixtureParticipantAt(fixture.raw, 'home')
             const away = fixtureParticipantAt(fixture.raw, 'away')
@@ -831,8 +831,8 @@ function PlayerPageSkeleton(): React.JSX.Element {
 
 function DetailsSkeleton(): React.JSX.Element {
   return (
-    <div className="overflow-hidden rounded-xl border bg-card">
-      <div className="border-b p-4">
+    <div data-slot="card" className="overflow-hidden rounded-xl bg-card">
+      <div className="px-4 pb-3 pt-5">
         <Skeleton className="h-4 w-20" />
       </div>
       <div className="space-y-4 p-4">
@@ -846,8 +846,8 @@ function DetailsSkeleton(): React.JSX.Element {
 
 function LineupsSkeleton(): React.JSX.Element {
   return (
-    <div className="overflow-hidden rounded-xl border bg-card">
-      <div className="border-b p-4">
+    <div data-slot="card" className="overflow-hidden rounded-xl bg-card">
+      <div className="px-4 pb-3 pt-5">
         <Skeleton className="h-4 w-28" />
       </div>
       <div className="space-y-5 p-4">

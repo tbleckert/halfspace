@@ -47,21 +47,21 @@ export function PlayerComparisonRadar({
       name: leftName,
       context: leftContext,
       minutes: left.minutes,
-      color: 'text-brand-blue',
+      color: 'text-chart-1',
       dashed: false
     },
     {
       name: rightName,
       context: rightContext,
       minutes: right.minutes,
-      color: 'text-amber-600',
+      color: 'text-chart-2',
       dashed: true
     }
   ]
 
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="gap-1 border-b px-4 py-3">
+      <CardHeader className="gap-1 px-4 pb-3 pt-5">
         <CardTitle className="text-base">Player radar</CardTitle>
         <p id={descriptionId} className="text-xs text-muted-foreground">
           Per 90 minutes. Each axis scales to the higher value in this pair, not a league
@@ -141,7 +141,7 @@ export function PlayerComparisonRadar({
                   <polygon
                     points={polygon(rows.map((row) => row[side]))}
                     fill="currentColor"
-                    fillOpacity="0.07"
+                    fillOpacity="0.18"
                     stroke="currentColor"
                     strokeWidth="2"
                     strokeLinejoin="round"
@@ -179,13 +179,13 @@ export function PlayerComparisonRadar({
               <TableBody>
                 {rows.map((row) => (
                   <TableRow key={row.label}>
-                    <TableCell className="font-mono text-sm tabular-nums text-brand-blue">
+                    <TableCell className="font-mono text-sm tabular-nums text-accent-foreground">
                       {number.format(row.left)}
                     </TableCell>
                     <TableCell className="text-center text-xs text-muted-foreground">
                       {row.label}
                     </TableCell>
-                    <TableCell className="text-right font-mono text-sm tabular-nums text-amber-700">
+                    <TableCell className="text-right font-mono text-sm tabular-nums text-primary">
                       {number.format(row.right)}
                     </TableCell>
                   </TableRow>

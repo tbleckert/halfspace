@@ -116,7 +116,7 @@ export function CompetitionLeaderCards({
               params={{ competitionId: String(competitionId) }}
               search={{ date, season: seasonId ?? undefined, leaderboard: category }}
               aria-label={`View ${category} leaderboard`}
-              className="flex min-h-8 items-center justify-between gap-1 border-t px-4 py-2 text-xs text-muted-foreground outline-none hover:bg-sidebar-accent hover:text-primary focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+              className="flex min-h-8 items-center justify-between gap-1 px-4 pb-4 pt-3 text-xs text-muted-foreground outline-none hover:bg-sidebar-accent hover:text-primary focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
               {...intentPrefetchProps(online && seasonId !== null, () =>
                 prefetchSeasonStatistics(seasonId!)
               )}

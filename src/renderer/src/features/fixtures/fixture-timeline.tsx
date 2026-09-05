@@ -21,7 +21,7 @@ export function FixtureTimeline({
 
   return (
     <Card className="overflow-hidden">
-      <div className="grid grid-cols-[1fr_4rem_1fr] items-center border-b bg-muted/25 px-4 py-3 text-sm font-semibold">
+      <div className="grid grid-cols-[1fr_4rem_1fr] items-center px-4 pb-3 pt-5 text-sm font-semibold">
         <FixtureTimelineTeam participant={home} online={online} align="right" />
         <span />
         <FixtureTimelineTeam participant={away} online={online} align="left" />
@@ -29,7 +29,7 @@ export function FixtureTimeline({
       {sortedEvents.length === 0 ? (
         <FixtureEmptyState>Timeline not available</FixtureEmptyState>
       ) : (
-        <div className="divide-y">
+        <div className="space-y-2 pb-2">
           {sortedEvents.map((event) => {
             const homeEvent = event.participant_id === home?.id
             const content = (

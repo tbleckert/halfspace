@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SubscriptionCard } from '@/features/subscription/subscription-card'
+import { AiSettings } from '@/features/views/ai-settings'
 
 export function SettingsPage(): React.JSX.Element {
   const { clearToken } = useConnectionState()
@@ -31,6 +32,7 @@ export function SettingsPage(): React.JSX.Element {
       </header>
 
       <SubscriptionCard />
+      <AiSettings />
 
       <Card>
         <CardHeader>
@@ -44,7 +46,7 @@ export function SettingsPage(): React.JSX.Element {
         <CardContent className="space-y-5">
           <SportmonksTokenForm buttonLabel="Replace" />
 
-          <div className="border-t pt-5">
+          <div className="pt-5">
             <Button disabled={clearing} variant="outline" onClick={() => void disconnect()}>
               <Trash2 className="size-4" />
               Disconnect

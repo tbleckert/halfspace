@@ -31,7 +31,7 @@ export function FixtureStatisticRow({
         {share && (
           <>
             <span className="bg-chart-1" style={{ width: `${share.home}%` }} />
-            <span className="bg-chart-5" style={{ width: `${share.away}%` }} />
+            <span className="bg-chart-2" style={{ width: `${share.away}%` }} />
           </>
         )}
       </div>

@@ -27,8 +27,8 @@ export function VenueCard({
   const capacity = venue.capacity ? new Intl.NumberFormat().format(venue.capacity) : null
 
   return (
-    <section className="overflow-hidden rounded-xl border bg-card shadow-xs">
-      <div className="border-b px-4 py-3">
+    <section data-slot="card" className="overflow-hidden rounded-xl bg-card">
+      <div className="px-4 pb-3 pt-5">
         <h2 className="text-sm font-semibold">Venue</h2>
       </div>
       <Link
@@ -39,7 +39,7 @@ export function VenueCard({
         {...intentPrefetchProps(online, () => prefetchVenueEntity(venueId))}
       >
         <VenueImage
-          className="aspect-[4/3] w-full rounded-none border-b bg-background"
+          className="aspect-[4/3] w-full rounded-none bg-background"
           imagePath={venue.image_path ?? null}
           online={online}
         />

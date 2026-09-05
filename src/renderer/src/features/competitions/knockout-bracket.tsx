@@ -198,7 +198,7 @@ function KnockoutTieCard({
         />
       ))}
       {(tie.aggregate?.result || winner) && (
-        <div className="border-t bg-muted/30 px-3 py-2 text-xs">
+        <div className="px-3 pb-3 pt-4 text-xs">
           {tie.aggregate?.result && (
             <p>
               <span className="text-muted-foreground">{tie.aggregate.name} · Agg. </span>
@@ -214,7 +214,7 @@ function KnockoutTieCard({
         </div>
       )}
       {!!next.length && (
-        <div className="flex flex-wrap gap-x-3 gap-y-1 border-t px-3 py-2">
+        <div className="flex flex-wrap gap-x-3 gap-y-1 px-3 pb-3 pt-4">
           {next.map((link) => (
             <Link
               key={`${link.childTieId}:${link.outcome}`}
@@ -258,7 +258,7 @@ function BracketFixture({
       to="/fixtures/$fixtureId"
       params={{ fixtureId: String(fixture.id) }}
       search={{ competition: competitionId, season: seasonId ?? undefined }}
-      className="block border-b px-3 py-2.5 last:border-b-0 hover:bg-sidebar-accent"
+      className="m-1 block rounded-lg px-3 py-3 hover:bg-sidebar-accent"
     >
       <div className="mb-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
         <span>

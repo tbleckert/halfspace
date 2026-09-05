@@ -52,7 +52,7 @@ export function PlayerLeaders({
 
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="flex-row items-center justify-between gap-3 border-b">
+      <CardHeader className="flex-row items-center justify-between gap-3">
         <CardTitle>Player leaders</CardTitle>
         <NativeSelect
           aria-label="Player leaderboard"

@@ -35,7 +35,7 @@ export function StandingCorrections({
                 : 'Adjustments not available offline'}
         </CardContent>
       ) : (
-        <div className="divide-y">
+        <div className="space-y-2 pb-2">
           {cached.corrections.map((row) => (
             <div
               key={row.id}

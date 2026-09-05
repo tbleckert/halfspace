@@ -56,7 +56,7 @@ export function FixtureLineups({
   return (
     <div className="flex flex-col gap-5">
       <Card className="overflow-hidden">
-        <div className="grid grid-cols-2 divide-x border-b bg-muted/25">
+        <div className="grid grid-cols-2 gap-4">
           <LineupTeamHeader formation={homeFormation} online={online} team={home} />
           <LineupTeamHeader align="right" formation={awayFormation} online={online} team={away} />
         </div>
@@ -73,7 +73,7 @@ export function FixtureLineups({
             online={online}
           />
         ) : (
-          <div className="grid divide-y lg:grid-cols-2 lg:divide-x lg:divide-y-0">
+          <div className="grid gap-5 lg:grid-cols-2">
             <LineupGroup
               annotations={annotations}
               context={context}
@@ -97,7 +97,7 @@ export function FixtureLineups({
       {(homeSubstitutes.length > 0 || awaySubstitutes.length > 0) && (
         <section>
           <h2 className="mb-3 text-xl font-semibold tracking-tight">Bench</h2>
-          <Card className="grid overflow-hidden lg:grid-cols-2 lg:divide-x">
+          <Card className="grid gap-5 overflow-hidden lg:grid-cols-2">
             <TeamBench
               annotations={annotations}
               context={context}
@@ -327,8 +327,8 @@ function TeamBench({
   team?: SportmonksParticipant
 }): React.JSX.Element {
   return (
-    <div className="min-w-0 border-b last:border-b-0 lg:border-b-0">
-      <div className="flex items-center gap-2 border-b bg-muted/25 px-4 py-3">
+    <div className="min-w-0">
+      <div className="flex items-center gap-2 px-4 pb-3 pt-5">
         <TeamLogo
           className="size-7 bg-background"
           imagePath={team?.image_path ?? null}

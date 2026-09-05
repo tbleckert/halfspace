@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { mockViewsApi } from '../../../../test/view-api'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CompetitionRefresh, Result } from '@shared/contracts'
 import { db, readCompetitionCatalog } from '@/data/db'
@@ -27,6 +28,7 @@ describe('competition refresh', () => {
       .mockReturnValueOnce(newRequest.promise)
 
     window.halfspace = {
+      views: mockViewsApi(),
       credentials: {
         getConnectionState: vi.fn(),
         saveToken: vi.fn(),
