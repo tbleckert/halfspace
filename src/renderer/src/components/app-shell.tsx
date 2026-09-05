@@ -32,7 +32,6 @@ import { intentPrefetchProps } from '@/lib/prefetch'
 import { useTodayInTimeZone } from '@/lib/use-today'
 import { cn } from '@/lib/utils'
 import { useOnline } from '@/lib/use-online'
-import { useContentEntrance } from '@/lib/use-content-entrance'
 
 const noPinnedCompetitionIds: number[] = []
 
@@ -84,7 +83,6 @@ export function AppShell(): React.JSX.Element {
 }
 
 function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): React.JSX.Element {
-  const contentRef = useContentEntrance()
   const online = useOnline()
   const { cached } = useCompetitions()
   const pinnedCompetitionIds = usePinnedCompetitionIds() ?? noPinnedCompetitionIds
@@ -209,7 +207,7 @@ function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): Re
 
       <div className="flex min-h-0 min-w-0 flex-col overflow-hidden bg-background">
         <LiveFixtureTicker timeZone={timeZone} />
-        <main ref={contentRef} className="min-h-0 flex-1 overflow-y-auto">
+        <main className="min-h-0 flex-1 overflow-y-auto">
           <Outlet />
         </main>
       </div>

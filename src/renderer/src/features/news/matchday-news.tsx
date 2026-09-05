@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ErrorAlert } from '@/components/error-alert'
 import { CompetitionLogo } from '@/features/competitions/competition-logo'
+import { MatchdayCard } from '@/features/fixtures/matchday-card'
 import { useNews } from './use-news'
 import { newsParagraphs, sortNewsByMatchDate } from './news-data'
 
@@ -37,6 +38,7 @@ export function MatchdayNews({ online }: { online: boolean }): React.JSX.Element
             <NewsHeadline
               key={article.id}
               article={article}
+              index={index}
               online={online}
               featured={index === 0}
             />
@@ -85,15 +87,17 @@ export function MatchdayNews({ online }: { online: boolean }): React.JSX.Element
 
 function NewsHeadline({
   article,
+  index,
   online,
   featured
 }: {
   article: SportmonksNewsArticle
+  index: number
   online: boolean
   featured: boolean
 }): React.JSX.Element {
   return (
-    <Card className="overflow-hidden bg-accent">
+    <MatchdayCard index={index} className="overflow-hidden bg-accent">
       <Link
         to="/news/$articleId"
         params={{ articleId: String(article.id) }}
@@ -129,6 +133,6 @@ function NewsHeadline({
           </p>
         )}
       </Link>
-    </Card>
+    </MatchdayCard>
   )
 }

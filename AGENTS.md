@@ -30,9 +30,11 @@ abstractions.
 - Use coral and violet for graphic accents and opposing chart series, with dark ink for text.
   Retain green, red, and yellow where they communicate football states. Use spacing and heading
   weight instead of card-header and repeated row dividers; align compact facts in clear columns.
-- Use Motion for a short, capped stagger when new content cards appear. Animate only opacity and
-  a small vertical offset, never cached-data updates, and skip keyboard-triggered and reduced-motion
-  entrances. Content must remain usable throughout; preserve persistent route shells.
+- Keep card entrance motion scoped to Matchday while its feel is being refined. Use an explicit
+  Motion card component with a spring pop-in from 95% scale, bounce 0.35, and a short capped stagger.
+  Animate scale and opacity, keeping card height in normal layout. Do not animate skeletons or replay
+  on cached-data updates. Skip keyboard-triggered and reduced-motion entrances, keep content usable
+  throughout, and preserve persistent route shells. Avoid automatic app-wide DOM animation observers.
 - Keep a dedicated drag region across the empty top strip of setup states. In the main workspace,
   limit that region to the sidebar so the live ticker can sit flush against the top edge; keep
   interactive controls outside it or explicitly mark them as non-draggable.
