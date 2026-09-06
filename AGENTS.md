@@ -12,11 +12,16 @@ abstractions.
 
 ## Product Design
 
-- Keep the brand identity vibrant and energetic. Avoid restrained heritage-sports palettes that
-  can make the product feel like an American football brand.
+Read [the design guide](docs/design.md) before changing UI. It records the agreed visual style,
+its rationale, reference values, and Matchday patterns. Keep it and the rules below in sync when
+the user agrees to a new design decision; carry the style into other views incrementally.
+
+- Build the interface identity around coral and violet, supported by white, warm neutrals, and
+  dark ink. Keep it vibrant and energetic. Avoid restrained heritage-sports palettes that can
+  make the product feel like an American football brand.
 - Treat shadcn/ui as a component foundation, not as Halfspace's visual identity. Build an
   editorial football-workbench language through typography, spacing, match presentation, and
-  graphic details derived from the logo. Keep data surfaces calm and concentrate vibrant brand
+  selective graphic accents. Keep data surfaces calm and concentrate vibrant interface
   color in navigation, section framing, and meaningful state.
 - Use monospaced tabular typography as the shared language for compact football facts: scores,
   clocks, event minutes, match states, table values, statistics, odds, shirt numbers, and W/D/L.
@@ -32,8 +37,10 @@ abstractions.
   weight instead of card-header and repeated row dividers; align compact facts in clear columns.
 - Keep card entrance motion scoped to Matchday while its feel is being refined. Use an explicit
   Motion card component with a spring pop-in from 95% scale, bounce 0.35, and a short capped stagger.
-  Animate scale and opacity, keeping card height in normal layout. Do not animate skeletons or replay
-  on cached-data updates. Skip keyboard-triggered and reduced-motion entrances, keep content usable
+  Animate scale and opacity once when each card enters the visible scroll area, keeping card height
+  in normal layout. Use Motion's viewport support so the independently scrolling news rail follows
+  the same rule. Do not animate skeletons or replay on scrolling back or cached-data updates.
+  Skip keyboard-triggered and reduced-motion entrances, keep content usable
   throughout, and preserve persistent route shells. Avoid automatic app-wide DOM animation observers.
 - Keep a dedicated drag region across the empty top strip of setup states. In the main workspace,
   limit that region to the sidebar so the live ticker can sit flush against the top edge; keep
@@ -41,8 +48,9 @@ abstractions.
 - Use shadcn/ui's Nova style (`b0`) as the density reference: compact 32px default controls,
   restrained radii, and tighter page and card spacing. Preserve Halfspace's own palette and
   football-specific presentation rather than applying a preset as a wholesale visual reset.
-- Use `resources/halfspace-logo.svg` as the canonical brand mark. Preserve its flat yellow, blue,
-  navy, and white geometry and its legibility down to 16px.
+- Use `resources/halfspace-logo.svg` as the canonical brand mark and preserve its legibility down
+  to 16px. Treat the logo as a separate asset with its own colors; use coral and violet for the
+  interface palette.
 - Required setup states use a focused fullscreen flow before the main app appears.
 - Use direct, singular page headings. Do not add eyebrow labels or pretitles above them.
 - Avoid prototype copy, implementation explanations, and redundant guidance. Text should name the
@@ -172,10 +180,10 @@ abstractions.
   with the macOS traffic lights and center the Live dot beside its label. Place Live
   after the macOS traffic lights, without a match count. Omit competition names; use reported team
   short codes with full-name fallbacks and accessible labels. Keep both logos beside the score,
-  inside their team names, and place the minute or phase in a bold, rounded white pill between the
-  two scores in place of a dash. Reserve the left label area for window dragging and keep fixture
-  links outside it. Account for the ticker
-  height in the news rail so its footer and independent scrolling remain within the workspace.
+  inside their team names, and place the minute or phase in a bold white badge with 2px corners
+  between the two scores in place of a dash. Omit the minute mark in that badge. Reserve the left
+  label area for window dragging and keep fixture links outside it. Account for the ticker height
+  in the news rail so its footer and independent scrolling remain within the workspace.
 - Present squads as position-grouped player profile cards with rounded portraits and only essential
   identity and football data rather than a dense table or list.
 - Squad season selection offers the current squad plus the competition's ten most recent seasons.

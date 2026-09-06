@@ -19,4 +19,13 @@ if (typeof window !== 'undefined') {
     unobserve = vi.fn()
     disconnect = vi.fn()
   }
+  globalThis.IntersectionObserver = class {
+    readonly root = null
+    readonly rootMargin = '0px'
+    readonly thresholds = [0]
+    observe = vi.fn()
+    unobserve = vi.fn()
+    disconnect = vi.fn()
+    takeRecords = vi.fn(() => [])
+  }
 }

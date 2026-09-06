@@ -168,6 +168,9 @@ Bug reports, football use cases, and focused pull requests are welcome. Pick som
 roadmap or open an issue to discuss a larger change. Keep cached browsing fast, link related
 entities, and run `pnpm check` before submitting your work.
 
+For interface work, follow the [design guide](docs/design.md) for the visual style, shared
+patterns, and motion behavior.
+
 ## License
 
 [MIT](LICENSE).

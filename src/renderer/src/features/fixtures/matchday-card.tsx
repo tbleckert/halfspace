@@ -42,7 +42,9 @@ export function MatchdayCard({
     <MotionCard
       {...props}
       initial={motionEnabled ? { scale: 0.95, opacity: 0 } : false}
-      animate={{ scale: 1, opacity: 1 }}
+      animate={motionEnabled ? undefined : { scale: 1, opacity: 1 }}
+      whileInView={{ scale: 1, opacity: 1 }}
+      viewport={{ once: true, amount: 0.1 }}
       transition={
         motionEnabled
           ? {

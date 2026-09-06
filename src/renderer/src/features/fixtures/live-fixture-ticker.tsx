@@ -76,8 +76,8 @@ function LiveFixture({
       />
       <span className="flex items-center gap-1.5 font-mono text-sm font-bold leading-5 tabular-nums text-foreground">
         <span>{score.home ?? '–'}</span>
-        <span className="flex h-5 items-center rounded-full bg-white px-1.5 text-[10px] font-bold leading-none whitespace-nowrap text-success-emphasis">
-          {status}
+        <span className="flex h-5 items-center rounded-[2px] bg-white px-1.5 text-[10px] font-bold leading-none whitespace-nowrap text-success-emphasis">
+          {status.replace(/′$/, '')}
         </span>
         <span>{score.away ?? '–'}</span>
       </span>
