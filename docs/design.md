@@ -140,3 +140,9 @@ settled patterns and make one coherent change at a time.
 When a new design decision is agreed, update this guide and the matching rule in `AGENTS.md`
 together. Update token values here alongside changes to their source. This guide records
 approved decisions; keep exploratory alternatives separate until selected.
+
+- TV Guide uses a saved country selection and shared Monday-to-Sunday week navigation with a
+  URL-backed selected day. Show only that day's unfinished broadcasts in kickoff order, without competition
+  grouping. Place prominent monospaced kickoff times to the left of team logos, with broadcaster
+  links beneath the teams. Omit not-started labels and pre-match scores. Preserve country-specific
+  listings and cache complete daily windows.

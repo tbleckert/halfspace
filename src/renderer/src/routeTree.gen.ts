@@ -15,6 +15,7 @@ import { Route as CompetitionsRouteImport } from './routes/competitions'
 import { Route as NewsRouteImport } from './routes/news'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TransfersRouteImport } from './routes/transfers'
+import { Route as TvGuideRouteImport } from './routes/tv-guide'
 import { Route as ViewsRouteImport } from './routes/views'
 import { Route as BroadcastersStationIdRouteImport } from './routes/broadcasters_.$stationId'
 import { Route as CoachesCoachIdRouteImport } from './routes/coaches_.$coachId'
@@ -79,6 +80,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const TransfersRoute = TransfersRouteImport.update({
   id: '/transfers',
   path: '/transfers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TvGuideRoute = TvGuideRouteImport.update({
+  id: '/tv-guide',
+  path: '/tv-guide',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ViewsRoute = ViewsRouteImport.update({
@@ -277,6 +283,7 @@ export interface FileRoutesByFullPath {
   '/news': typeof NewsRoute
   '/settings': typeof SettingsRoute
   '/transfers': typeof TransfersRoute
+  '/tv-guide': typeof TvGuideRoute
   '/views': typeof ViewsRoute
   '/broadcasters/$stationId': typeof BroadcastersStationIdRoute
   '/coaches/$coachId': typeof CoachesCoachIdRoute
@@ -320,6 +327,7 @@ export interface FileRoutesByTo {
   '/news': typeof NewsRoute
   '/settings': typeof SettingsRoute
   '/transfers': typeof TransfersRoute
+  '/tv-guide': typeof TvGuideRoute
   '/views': typeof ViewsRoute
   '/broadcasters/$stationId': typeof BroadcastersStationIdRoute
   '/coaches/$coachId': typeof CoachesCoachIdRoute
@@ -364,6 +372,7 @@ export interface FileRoutesById {
   '/news': typeof NewsRoute
   '/settings': typeof SettingsRoute
   '/transfers': typeof TransfersRoute
+  '/tv-guide': typeof TvGuideRoute
   '/views': typeof ViewsRoute
   '/broadcasters_/$stationId': typeof BroadcastersStationIdRoute
   '/coaches_/$coachId': typeof CoachesCoachIdRoute
@@ -409,6 +418,7 @@ export interface FileRouteTypes {
     | '/news'
     | '/settings'
     | '/transfers'
+    | '/tv-guide'
     | '/views'
     | '/broadcasters/$stationId'
     | '/coaches/$coachId'
@@ -452,6 +462,7 @@ export interface FileRouteTypes {
     | '/news'
     | '/settings'
     | '/transfers'
+    | '/tv-guide'
     | '/views'
     | '/broadcasters/$stationId'
     | '/coaches/$coachId'
@@ -495,6 +506,7 @@ export interface FileRouteTypes {
     | '/news'
     | '/settings'
     | '/transfers'
+    | '/tv-guide'
     | '/views'
     | '/broadcasters_/$stationId'
     | '/coaches_/$coachId'
@@ -539,6 +551,7 @@ export interface RootRouteChildren {
   NewsRoute: typeof NewsRoute
   SettingsRoute: typeof SettingsRoute
   TransfersRoute: typeof TransfersRoute
+  TvGuideRoute: typeof TvGuideRoute
   ViewsRoute: typeof ViewsRoute
   BroadcastersStationIdRoute: typeof BroadcastersStationIdRoute
   CoachesCoachIdRoute: typeof CoachesCoachIdRoute
@@ -593,6 +606,13 @@ declare module '@tanstack/react-router' {
       path: '/transfers'
       fullPath: '/transfers'
       preLoaderRoute: typeof TransfersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tv-guide': {
+      id: '/tv-guide'
+      path: '/tv-guide'
+      fullPath: '/tv-guide'
+      preLoaderRoute: typeof TvGuideRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/views': {
@@ -946,6 +966,7 @@ const rootRouteChildren: RootRouteChildren = {
   NewsRoute: NewsRoute,
   SettingsRoute: SettingsRoute,
   TransfersRoute: TransfersRoute,
+  TvGuideRoute: TvGuideRoute,
   ViewsRoute: ViewsRoute,
   BroadcastersStationIdRoute: BroadcastersStationIdRoute,
   CoachesCoachIdRoute: CoachesCoachIdRoute,

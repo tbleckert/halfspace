@@ -1,6 +1,7 @@
+import { WeekNavigator } from '@/components/week-navigator'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { CalendarDays, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
+import { CalendarDays, RefreshCw } from 'lucide-react'
 import type { CachedFixture, FixtureQuery } from '@/data/db'
 import { prefetchFixtureEntity, useMatchdayWindow } from './use-fixtures'
 import { buildMatchdaySections, matchdayWindow, type MatchdayFixturesDay } from './matchday-hub'
@@ -275,69 +276,6 @@ function FixtureRow({
   )
 }
 
-function WeekNavigator({
-  date,
-  navigationDates,
-  onSelect
-}: {
-  date: string
-  navigationDates: string[]
-  onSelect: (date: string) => void
-}): React.JSX.Element {
-  return (
-    <nav aria-label="Matchday week" className="mx-auto flex w-full max-w-lg items-center gap-1">
-      <Button
-        aria-label="Previous week"
-        className="size-7 text-muted-foreground"
-        size="icon"
-        variant="ghost"
-        onClick={() => onSelect(addDate(date, -7))}
-      >
-        <ChevronLeft className="size-3.5" />
-      </Button>
-
-      <div className="grid min-w-0 flex-1 grid-cols-7">
-        {navigationDates.map((navigationDate) => {
-          const active = navigationDate === date
-          const outsideSelectedMonth = navigationDate.slice(0, 7) !== date.slice(0, 7)
-
-          return (
-            <button
-              key={navigationDate}
-              aria-current={active ? 'date' : undefined}
-              aria-label={weekDateAriaLabel(navigationDate)}
-              className={cn(
-                'flex min-w-0 flex-col items-center rounded-md px-1 py-0.5 text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring',
-                outsideSelectedMonth && 'text-muted-foreground/55',
-                active && 'text-foreground'
-              )}
-              type="button"
-              onClick={() => onSelect(navigationDate)}
-            >
-              <span className={cn('text-xs', active && 'font-medium')}>
-                {formatWeekday(navigationDate)}
-              </span>
-              <span className={cn('text-sm tabular-nums', active && 'font-semibold')}>
-                {formatCompactDate(navigationDate)}
-              </span>
-            </button>
-          )
-        })}
-      </div>
-
-      <Button
-        aria-label="Next week"
-        className="size-7 text-muted-foreground"
-        size="icon"
-        variant="ghost"
-        onClick={() => onSelect(addDate(date, 7))}
-      >
-        <ChevronRight className="size-3.5" />
-      </Button>
-    </nav>
-  )
-}
-
 function FixtureSection({
   children,
   title
@@ -556,16 +494,6 @@ function calendarDateValue(date: Date): string {
   const day = String(date.getDate()).padStart(2, '0')
 
   return `${year}-${month}-${day}`
-}
-
-function formatWeekday(date: string): string {
-  return new Intl.DateTimeFormat(undefined, { weekday: 'short', timeZone: 'UTC' }).format(
-    isoDateValue(date)
-  )
-}
-
-function formatCompactDate(date: string): string {
-  return date.slice(-2)
 }
 
 function formatHubDate(date: string, today: string): string {

@@ -97,6 +97,7 @@ include should have a useful place in Halfspace.
 - [x] Match trends for possession, shots, shots on target, and corners, with period selection and live updates.
 - [x] Live match commentary with key-event filtering and offline history.
 - [x] Fixture Preview TV guides with country-specific broadcast listings.
+- [x] Country-based TV Guide with live and upcoming matches and broadcaster links.
 - [x] Broadcaster pages with paginated upcoming and past schedules and match-specific broadcast regions.
 - [x] Competition Team of the Week with season and round browsing.
 - [x] Pre-match and in-play odds explorer with market and bookmaker comparison.

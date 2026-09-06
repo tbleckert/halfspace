@@ -9,7 +9,8 @@ import {
   Repeat2,
   Newspaper,
   Settings,
-  Trophy
+  Trophy,
+  Tv
 } from 'lucide-react'
 import type { SportmonksRateLimit } from '@shared/contracts'
 import { TokenSetup } from '@/features/credentials/token-setup'
@@ -190,6 +191,7 @@ function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): Re
           )}
           <div className="mt-3 flex flex-col gap-1">
             <SidebarLink icon={<Newspaper className="size-4" />} label="News" to="/news" />
+            <SidebarLink icon={<Tv className="size-4" />} label="TV Guide" to="/tv-guide" />
             <SidebarLink icon={<Repeat2 className="size-4" />} label="Transfers" to="/transfers" />
             <SidebarLink
               icon={<ArrowLeftRight className="size-4" />}
@@ -256,7 +258,7 @@ function SidebarLink({
   exact?: boolean
   icon: React.ReactNode
   label: string
-  to: '/competitions' | '/settings' | '/transfers' | '/compare' | '/news' | '/views'
+  to: '/tv-guide' | '/competitions' | '/settings' | '/transfers' | '/compare' | '/news' | '/views'
 }): React.JSX.Element {
   return (
     <Link

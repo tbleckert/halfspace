@@ -16,6 +16,8 @@ import type {
   RefreshLiveStandingsInput,
   RefreshBroadcastScheduleInput,
   BroadcastScheduleRefresh,
+  TvGuideRefresh,
+  RefreshFixtureWindowInput,
   BroadcasterRefresh,
   SubscriptionRefresh,
   TeamOfWeekRefresh,
@@ -617,6 +619,7 @@ class HalfspaceDatabase extends Dexie {
   fixtureTrendsQueries!: Table<FixtureTrendsQuery, number>
   liveStandingQueries!: Table<LiveStandingQuery, string>
   broadcasterQueries!: Table<BroadcasterQuery, number>
+  tvGuideQueries!: Table<TvGuideQuery, string>
   broadcastScheduleQueries!: Table<BroadcastScheduleQuery, string>
   teamOfWeekQueries!: Table<TeamOfWeekQuery, string>
   competitionDetailQueries!: Table<CompetitionDetailQuery, number>
@@ -957,6 +960,7 @@ class HalfspaceDatabase extends Dexie {
       transferRumourQueries: '&key, staleAt'
     })
     this.version(37).stores({ savedViews: '&id, updatedAt' })
+    this.version(38).stores({ tvGuideQueries: '&key, staleAt' })
   }
 }
 
@@ -3143,6 +3147,7 @@ export async function clearSportmonksCache(): Promise<void> {
       db.liveStandingQueries,
       db.broadcasterQueries,
       db.broadcastScheduleQueries,
+      db.tvGuideQueries,
       db.teamOfWeekQueries,
       db.fixtures,
       db.fixtureQueries,
@@ -3206,6 +3211,7 @@ export async function clearSportmonksCache(): Promise<void> {
       await db.liveStandingQueries.clear()
       await db.broadcasterQueries.clear()
       await db.broadcastScheduleQueries.clear()
+      await db.tvGuideQueries.clear()
       await db.teamOfWeekQueries.clear()
       await db.fixtures.clear()
       await db.fixtureQueries.clear()
@@ -3468,4 +3474,54 @@ function fixtureRefreshExpiry(
   return fixtures.some(({ state_id }) => isFixtureOngoing(state_id))
     ? fetchedAt + liveFixtureCacheDuration
     : defaultStaleAt
+}
+
+export interface TvGuideQuery extends Omit<TvGuideRefresh, 'fixtures'> {
+  key: string
+  fixtureIds: number[]
+  staleAt: number
+}
+export function tvGuideQueryKey(input: RefreshFixtureWindowInput): string {
+  return `${input.startDate}:${input.endDate}:${input.timeZone}`
+}
+export async function readTvGuide(
+  input: RefreshFixtureWindowInput
+): Promise<(TvGuideQuery & { fixtures: CachedFixture[] }) | null> {
+  const query = await db.tvGuideQueries.get(tvGuideQueryKey(input))
+  if (!query) return null
+  const fixtures = (await db.fixtures.bulkGet(query.fixtureIds)).filter(
+    (fixture): fixture is CachedFixture => !!fixture
+  )
+  return { ...query, fixtures }
+}
+export async function writeTvGuideRefresh(
+  input: RefreshFixtureWindowInput,
+  refresh: TvGuideRefresh
+): Promise<void> {
+  const key = tvGuideQueryKey(input)
+  if (
+    key !== tvGuideQueryKey(refresh) ||
+    refresh.listings.some(
+      (listing) => !refresh.fixtures.some((fixture) => fixture.id === listing.fixture_id)
+    )
+  )
+    throw new Error('TV guide does not match the selected window.')
+  const staleAt = fixtureRefreshExpiry(
+    refresh.fixtures,
+    refresh.fetchedAt,
+    refresh.fetchedAt + 5 * 60_000
+  )
+  await db.transaction('rw', db.tvGuideQueries, db.fixtures, async () => {
+    const previous = await db.tvGuideQueries.get(key)
+    if (previous && previous.fetchedAt > refresh.fetchedAt) return
+    await db.fixtures.bulkPut(await toCachedFixtures(refresh.fixtures, refresh.fetchedAt, staleAt))
+    await db.tvGuideQueries.put({
+      ...input,
+      key,
+      fixtureIds: refresh.fixtures.map((fixture) => fixture.id),
+      listings: refresh.listings,
+      fetchedAt: refresh.fetchedAt,
+      staleAt
+    })
+  })
 }

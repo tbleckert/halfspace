@@ -81,6 +81,7 @@ import {
 import { clearSportmonksRateLimits, SportmonksError } from './sportmonks-client'
 import { clearStoredToken, hasStoredToken, readStoredToken, saveStoredToken } from './token-store'
 import { fetchSubscription } from './subscription'
+import { fetchTvGuide } from './tv-guide'
 import { fetchFixtureTv } from './fixture-tv'
 import { fetchPredictedLineups } from './predicted-lineups'
 import { fetchNews, validateNewsInput } from './news'
@@ -102,6 +103,12 @@ let currentRateLimit: SportmonksRateLimit | null = null
 let credentialGeneration = 0
 
 export function registerIpcHandlers(): void {
+  registerSportmonksHandler(
+    ipcChannels.refreshTvGuide,
+    validateFixtureWindowInput,
+    fetchTvGuide,
+    'Could not refresh TV guide.'
+  )
   registerSportmonksHandler(
     ipcChannels.refreshTeamSchedule,
     validateTeamScheduleInput,

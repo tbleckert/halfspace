@@ -506,3 +506,9 @@ the user agrees to a new design decision; carry the style into other views incre
 - Test behavior, not implementation details.
   - Avoid asserting incidental structure such as class names, private helpers, or internal wiring.
   - For visual design, prefer real visual snapshots over targeted assertions.
+
+- TV Guide uses a saved country selection and shared Monday-to-Sunday week navigation with a
+  URL-backed selected day. Show only that day's unfinished broadcasts in kickoff order, without competition
+  grouping. Place prominent monospaced kickoff times to the left of team logos, with broadcaster
+  links beneath the teams. Omit not-started labels and pre-match scores. Preserve country-specific
+  listings and cache complete daily windows.

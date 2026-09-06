@@ -31,6 +31,7 @@ export const ipcChannels = {
   refreshFixtureTrends: 'sportmonks:refresh-fixture-trends',
   refreshLiveStandings: 'sportmonks:refresh-live-standings',
   refreshBroadcaster: 'sportmonks:refresh-broadcaster',
+  refreshTvGuide: 'sportmonks:refresh-tv-guide',
   refreshBroadcastSchedule: 'sportmonks:refresh-broadcast-schedule',
   refreshTeamOfWeek: 'sportmonks:refresh-team-of-week',
   connectionState: 'credentials:connection-state',
@@ -180,6 +181,12 @@ export interface BroadcastScheduleRefresh extends RefreshBroadcastScheduleInput 
   fixtures: SportmonksFixture[]
   listings: SportmonksTvListing[]
   hasMore: boolean
+  fetchedAt: number
+}
+
+export interface TvGuideRefresh extends RefreshFixtureWindowInput {
+  fixtures: SportmonksFixture[]
+  listings: SportmonksTvListing[]
   fetchedAt: number
 }
 
@@ -1391,6 +1398,7 @@ export interface HalfspaceApi {
     refreshFixturePressure(input: RefreshFixtureInput): Promise<Result<FixturePressureRefresh>>
     refreshFixtureTrends(input: RefreshFixtureInput): Promise<Result<FixtureTrendsRefresh>>
     refreshLiveStandings(input: RefreshLiveStandingsInput): Promise<Result<StandingsRefresh>>
+    refreshTvGuide(input: RefreshFixtureWindowInput): Promise<Result<TvGuideRefresh>>
     refreshBroadcaster(input: RefreshBroadcasterInput): Promise<Result<BroadcasterRefresh>>
     refreshBroadcastSchedule(
       input: RefreshBroadcastScheduleInput

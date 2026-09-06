@@ -1,8 +1,8 @@
 # Sportmonks API coverage
 
-Halfspace currently covers **57 of 153 endpoints** and **200 of 1320 documented endpoint includes**.
+Halfspace currently covers **57 of 153 endpoints** and **201 of 1320 documented endpoint includes**.
 
-Overall coverage: **17%**
+Overall coverage: **18%**
 
 Source: [Sportmonks Football API 3.0 documentation index](https://docs.sportmonks.com/v3/sitemap.md)
 
@@ -30,7 +30,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 - [x] [Fixture by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixture-by-id) — includes 24/38
 - [ ] [Fixtures by Multiple IDs](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixtures-by-multiple-ids)
 - [x] [Fixtures by Date](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixtures-by-date) — includes 5/38
-- [x] [Fixtures by Date Range](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixtures-by-date-range) — includes 5/38
+- [x] [Fixtures by Date Range](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixtures-by-date-range) — includes 6/38
 - [x] [Fixtures by Date Range for Team](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixtures-by-date-range-for-team) — includes 6/38
 - [x] [Fixtures by Head To Head](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixtures-by-head-to-head) — includes 5/38
 - [x] [Fixtures by Search by Name](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixtures-by-search-by-name) — includes 5/38
