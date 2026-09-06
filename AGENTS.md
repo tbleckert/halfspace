@@ -116,6 +116,12 @@ the user agrees to a new design decision; carry the style into other views incre
   Fetch all pages from the season topscorers endpoint with player, participant, and type includes;
   cache the four categories together per season. Preserve provider ranks and totals, keep card
   types separate, and retain competition and season context in player and team links.
+- Competition Stats defaults to full-season totals and offers URL-backed stage and round selectors
+  from the season schedule. Changing seasons clears both selections. Cache stage/round totals
+  separately from season statistics; validate provider model IDs and keep request state scoped to
+  season, stage, and round. Stage player leaders use the complete paginated stage topscorers feed,
+  preserve provider ranks, and remain explicitly stage-wide when round statistics are selected.
+  Never substitute season totals or another stage for an unavailable selection.
 - Competition Overview shows compact Top scorer and Top assists profile cards above Upcoming,
   reusing the season leaderboard cache. Keep portraits circular and totals monospaced; acknowledge
   equal totals as a shared lead even when provider ranks differ. Hide categories without positive

@@ -648,6 +648,8 @@ class HalfspaceDatabase extends Dexie {
   competitionSeasonQueries!: Table<CompetitionSeasonQuery, number>
   standings!: Table<CachedStanding, number>
   standingQueries!: Table<StandingQuery, number>
+  scopedStatisticsQueries!: Table<SeasonStatisticsQuery & { key: string }, string>
+  stageTopscorersQueries!: Table<SeasonTopscorersQuery & { key: string }, string>
   seasonStatisticsQueries!: Table<SeasonStatisticsQuery, number>
   seasonTopscorersQueries!: Table<SeasonTopscorersQuery, number>
   competitionFixtureQueries!: Table<CompetitionFixtureQuery, string>
@@ -961,6 +963,10 @@ class HalfspaceDatabase extends Dexie {
     })
     this.version(37).stores({ savedViews: '&id, updatedAt' })
     this.version(38).stores({ tvGuideQueries: '&key, staleAt' })
+    this.version(39).stores({
+      scopedStatisticsQueries: '&key, staleAt',
+      stageTopscorersQueries: '&key, staleAt'
+    })
   }
 }
 
@@ -2287,24 +2293,51 @@ function toCachedStanding(standing: SportmonksStanding, fetchedAt: number): Cach
   }
 }
 
+export function statisticsQueryKey(seasonId: number, stageId?: number, roundId?: number): string {
+  return `${seasonId}|${stageId ?? 'season'}|${roundId ?? 'all'}`
+}
+
 export async function readSeasonStatistics(
-  seasonId: number
+  seasonId: number,
+  stageId?: number,
+  roundId?: number
 ): Promise<SeasonStatisticsQuery | null> {
-  return (await db.seasonStatisticsQueries.get(seasonId)) ?? null
+  return (
+    (stageId === undefined
+      ? await db.seasonStatisticsQueries.get(seasonId)
+      : await db.scopedStatisticsQueries.get(statisticsQueryKey(seasonId, stageId, roundId))) ??
+    null
+  )
 }
 
 export async function writeSeasonStatisticsRefresh(
   seasonId: number,
-  refresh: SeasonStatisticsRefresh
+  refresh: SeasonStatisticsRefresh,
+  stageId?: number,
+  roundId?: number
 ): Promise<void> {
-  await db.seasonStatisticsQueries.put({
-    seasonId,
-    statistics: refresh.statistics,
-    fetchedAt: refresh.fetchedAt,
-    staleAt: refresh.fetchedAt + statisticsCacheDuration,
-    rateLimitRemaining: refresh.rateLimit?.remaining,
-    rateLimitResetsAt: refresh.rateLimit?.resetsAt,
-    message: refresh.message
+  if (
+    refresh.stageId !== stageId ||
+    refresh.roundId !== roundId ||
+    refresh.statistics.some((row) => row.model_id !== (roundId ?? stageId ?? seasonId))
+  ) {
+    throw new Error('Statistics do not match the selected scope.')
+  }
+  const table = stageId === undefined ? db.seasonStatisticsQueries : db.scopedStatisticsQueries
+  const key = statisticsQueryKey(seasonId, stageId, roundId)
+  await db.transaction('rw', table, async () => {
+    const previous = await readSeasonStatistics(seasonId, stageId, roundId)
+    if (previous && previous.fetchedAt > refresh.fetchedAt) return
+    await table.put({
+      key,
+      seasonId,
+      statistics: refresh.statistics,
+      fetchedAt: refresh.fetchedAt,
+      staleAt: refresh.fetchedAt + statisticsCacheDuration,
+      rateLimitRemaining: refresh.rateLimit?.remaining,
+      rateLimitResetsAt: refresh.rateLimit?.resetsAt,
+      message: refresh.message
+    })
   })
 }
 
@@ -2313,16 +2346,32 @@ export function competitionFixtureQueryKey(input: RefreshCompetitionFixturesInpu
 }
 
 export async function readSeasonTopscorers(
-  seasonId: number
+  seasonId: number,
+  stageId?: number
 ): Promise<SeasonTopscorersQuery | null> {
-  return (await db.seasonTopscorersQueries.get(seasonId)) ?? null
+  return (
+    (stageId === undefined
+      ? await db.seasonTopscorersQueries.get(seasonId)
+      : await db.stageTopscorersQueries.get(statisticsQueryKey(seasonId, stageId))) ?? null
+  )
 }
 
 export async function writeSeasonTopscorersRefresh(
   seasonId: number,
-  refresh: SeasonTopscorersRefresh
+  refresh: SeasonTopscorersRefresh,
+  stageId?: number
 ): Promise<void> {
-  await db.transaction('rw', db.seasonTopscorersQueries, db.players, db.teams, async () => {
+  if (
+    refresh.stageId !== stageId ||
+    refresh.topscorers.some((row) => row.season_id !== seasonId || row.stage_id !== stageId)
+  ) {
+    throw new Error('Leaders do not match the selected scope.')
+  }
+  const table = stageId === undefined ? db.seasonTopscorersQueries : db.stageTopscorersQueries
+  const key = statisticsQueryKey(seasonId, stageId)
+  await db.transaction('rw', table, db.players, db.teams, async () => {
+    const previous = await readSeasonTopscorers(seasonId, stageId)
+    if (previous && previous.fetchedAt > refresh.fetchedAt) return
     const players = new Map<number, SportmonksPlayer>()
     const teams = new Map<number, SportmonksTeam>()
     for (const row of refresh.topscorers) {
@@ -2343,8 +2392,9 @@ export async function writeSeasonTopscorersRefresh(
         toCachedIncludedTeam(team, existingTeams[index], refresh.fetchedAt)
       )
     )
-    await db.seasonTopscorersQueries.put({
+    await table.put({
       ...refresh,
+      key,
       seasonId,
       staleAt: refresh.fetchedAt + statisticsCacheDuration
     })
@@ -3165,6 +3215,8 @@ export async function clearSportmonksCache(): Promise<void> {
       db.standingQueries,
       db.roundStandingQueries,
       db.seasonStatisticsQueries,
+      db.scopedStatisticsQueries,
+      db.stageTopscorersQueries,
       db.seasonTopscorersQueries,
       db.seasonScheduleQueries,
       db.competitionFixtureQueries,
@@ -3229,6 +3281,8 @@ export async function clearSportmonksCache(): Promise<void> {
       await db.standingQueries.clear()
       await db.roundStandingQueries.clear()
       await db.seasonStatisticsQueries.clear()
+      await db.scopedStatisticsQueries.clear()
+      await db.stageTopscorersQueries.clear()
       await db.seasonTopscorersQueries.clear()
       await db.seasonScheduleQueries.clear()
       await db.competitionFixtureQueries.clear()

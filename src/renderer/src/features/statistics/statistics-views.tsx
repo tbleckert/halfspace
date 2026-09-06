@@ -18,6 +18,7 @@ import {
 } from './statistics-data'
 
 export function LeagueStatisticsView({
+  scopeLabel = 'Season',
   loaded,
   loading,
   statistics
@@ -25,6 +26,7 @@ export function LeagueStatisticsView({
   loaded: boolean
   loading: boolean
   statistics: SportmonksSeasonStatistic[]
+  scopeLabel?: string
 }): React.JSX.Element {
   if (!loaded || (loading && statistics.length === 0)) return <StatisticsSkeleton />
 
@@ -43,7 +45,7 @@ export function LeagueStatisticsView({
       <div className="grid items-start gap-5 lg:grid-cols-2">
         <LeagueGoals summary={summary} />
         <StatisticList
-          title="Season"
+          title={scopeLabel}
           rows={[
             { label: 'Draws', value: formatNumber(summary.draws) },
             {

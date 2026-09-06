@@ -27,8 +27,10 @@ export function PlayerLeaders({
   loading,
   topscorers,
   category: selectedCategory,
-  onCategoryChange
+  onCategoryChange,
+  scopeLabel
 }: {
+  scopeLabel?: string
   competitionId: number
   date: string
   seasonId: number | null
@@ -53,7 +55,12 @@ export function PlayerLeaders({
   return (
     <Card className="overflow-hidden">
       <CardHeader className="flex-row items-center justify-between gap-3">
-        <CardTitle>Player leaders</CardTitle>
+        <div className="min-w-0">
+          <CardTitle>Player leaders</CardTitle>
+          {scopeLabel && (
+            <p className="mt-1 text-xs text-muted-foreground">{scopeLabel} · All rounds</p>
+          )}
+        </div>
         <NativeSelect
           aria-label="Player leaderboard"
           className="w-36"
@@ -77,7 +84,9 @@ export function PlayerLeaders({
         <p className="px-4 py-10 text-center text-sm text-muted-foreground">
           {topscorers === null && !online
             ? 'Player leaders not available offline'
-            : 'No leaders for this season'}
+            : scopeLabel
+              ? 'No leaders for this stage'
+              : 'No leaders for this season'}
         </p>
       ) : (
         <Table aria-label={`${category.label} leaders`}>

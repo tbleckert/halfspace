@@ -1,6 +1,6 @@
 # Sportmonks API coverage
 
-Halfspace currently covers **57 of 153 endpoints** and **201 of 1320 documented endpoint includes**.
+Halfspace currently covers **60 of 153 endpoints** and **204 of 1320 documented endpoint includes**.
 
 Overall coverage: **18%**
 
@@ -72,8 +72,8 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 ### Statistics
 
 - [ ] [Season Statistics by Participant](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/statistics/get-season-statistics-by-participant)
-- [ ] [Stage Statistics by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/statistics/get-stage-statistics-by-id)
-- [ ] [Round Statistics by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/statistics/get-round-statistics-by-id)
+- [x] [Stage Statistics by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/statistics/get-stage-statistics-by-id) — includes 0/1
+- [x] [Round Statistics by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/statistics/get-round-statistics-by-id) — includes 0/1
 
 ### Schedules
 
@@ -107,7 +107,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 ### Topscorers
 
 - [x] [Topscorers by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/topscorers/get-topscorers-by-season-id) — includes 3/4
-- [ ] [Topscorers by Stage ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/topscorers/get-topscorers-by-stage-id)
+- [x] [Topscorers by Stage ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/topscorers/get-topscorers-by-stage-id) — includes 3/5
 
 ### Teams
 

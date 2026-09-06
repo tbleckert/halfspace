@@ -8,6 +8,7 @@ import {
   readCompetitionFixtureQuery,
   readCompetitionSeasons,
   readSeasonStatistics,
+  statisticsQueryKey,
   readSeasonTopscorers,
   readStandingsQuery,
   writeCompetitionFixtureRefresh,
@@ -28,8 +29,8 @@ type SeasonTopscorersCache = Awaited<ReturnType<typeof readSeasonTopscorers>>
 let refreshGeneration = 0
 const standingRefreshes = new Map<number, RefreshRequest>()
 const seasonRefreshes = new Map<number, RefreshRequest>()
-const seasonStatisticsRefreshes = new Map<number, RefreshRequest>()
-const seasonTopscorersRefreshes = new Map<number, RefreshRequest>()
+const seasonStatisticsRefreshes = new Map<string, RefreshRequest>()
+const seasonTopscorersRefreshes = new Map<string, RefreshRequest>()
 const fixtureRefreshes = new Map<string, RefreshRequest>()
 
 export function useStandings(
@@ -115,22 +116,25 @@ export function useCompetitionFixtures(
 
 export function useSeasonStatistics(
   seasonId: number | null,
-  enabled: boolean
+  enabled: boolean,
+  stageId?: number,
+  roundId?: number
 ): RefreshableQuery<SeasonStatisticsCache> {
   const cached = useScopedLiveQuery(
-    () => (seasonId === null ? Promise.resolve(null) : readSeasonStatistics(seasonId)),
-    [seasonId]
+    () =>
+      seasonId === null ? Promise.resolve(null) : readSeasonStatistics(seasonId, stageId, roundId),
+    [seasonId, stageId, roundId]
   )
-  const { refreshing, error, runRefresh } = useRefreshStatus(seasonId)
+  const { refreshing, error, runRefresh } = useRefreshStatus(`${seasonId}|${stageId}|${roundId}`)
 
   const refresh = useCallback(async () => {
     if (!enabled || seasonId === null) return
 
     await runRefresh(
-      () => refreshSeasonStatisticsQuery(seasonId),
+      () => refreshSeasonStatisticsQuery(seasonId, stageId, roundId),
       'Could not refresh season statistics.'
     )
-  }, [enabled, seasonId, runRefresh])
+  }, [enabled, seasonId, stageId, roundId, runRefresh])
 
   useStaleRefresh(enabled && seasonId !== null, cached !== undefined, cached?.staleAt, refresh)
 
@@ -139,21 +143,22 @@ export function useSeasonStatistics(
 
 export function useSeasonTopscorers(
   seasonId: number | null,
-  enabled: boolean
+  enabled: boolean,
+  stageId?: number
 ): RefreshableQuery<SeasonTopscorersCache> {
   const cached = useScopedLiveQuery(
-    () => (seasonId === null ? Promise.resolve(null) : readSeasonTopscorers(seasonId)),
-    [seasonId]
+    () => (seasonId === null ? Promise.resolve(null) : readSeasonTopscorers(seasonId, stageId)),
+    [seasonId, stageId]
   )
-  const { refreshing, error, runRefresh } = useRefreshStatus(seasonId)
+  const { refreshing, error, runRefresh } = useRefreshStatus(`${seasonId}|${stageId}`)
 
   const refresh = useCallback(async () => {
     if (!enabled || seasonId === null) return
     await runRefresh(
-      () => refreshSeasonTopscorersQuery(seasonId),
+      () => refreshSeasonTopscorersQuery(seasonId, stageId),
       'Could not refresh player leaders.'
     )
-  }, [enabled, seasonId, runRefresh])
+  }, [enabled, seasonId, stageId, runRefresh])
 
   useStaleRefresh(enabled && seasonId !== null, cached !== undefined, cached?.staleAt, refresh)
   return { cached, refreshing, error, refresh }
@@ -165,24 +170,25 @@ export async function prefetchSeasonTopscorers(seasonId: number): Promise<void> 
   await refreshSeasonTopscorersQuery(seasonId)
 }
 
-async function refreshSeasonTopscorersQuery(seasonId: number): Promise<void> {
-  const active = seasonTopscorersRefreshes.get(seasonId)
+async function refreshSeasonTopscorersQuery(seasonId: number, stageId?: number): Promise<void> {
+  const key = statisticsQueryKey(seasonId, stageId)
+  const active = seasonTopscorersRefreshes.get(key)
   if (active?.generation === refreshGeneration) return active.promise
 
   const generation = refreshGeneration
   const promise = (async () => {
-    const result = await window.halfspace.sportmonks.refreshSeasonTopscorers({ seasonId })
+    const result = await window.halfspace.sportmonks.refreshSeasonTopscorers({ seasonId, stageId })
     if (generation !== refreshGeneration) return
     if (!result.ok) throw new Error(result.error.message)
-    await writeSeasonTopscorersRefresh(seasonId, result.data)
+    await writeSeasonTopscorersRefresh(seasonId, result.data, stageId)
   })()
-  seasonTopscorersRefreshes.set(seasonId, { generation, promise })
+  seasonTopscorersRefreshes.set(key, { generation, promise })
 
   try {
     await promise
   } finally {
-    if (seasonTopscorersRefreshes.get(seasonId)?.promise === promise) {
-      seasonTopscorersRefreshes.delete(seasonId)
+    if (seasonTopscorersRefreshes.get(key)?.promise === promise) {
+      seasonTopscorersRefreshes.delete(key)
     }
   }
 }
@@ -271,25 +277,34 @@ async function refreshStandingsQuery(seasonId: number): Promise<void> {
   }
 }
 
-async function refreshSeasonStatisticsQuery(seasonId: number): Promise<void> {
-  const active = seasonStatisticsRefreshes.get(seasonId)
+async function refreshSeasonStatisticsQuery(
+  seasonId: number,
+  stageId?: number,
+  roundId?: number
+): Promise<void> {
+  const key = statisticsQueryKey(seasonId, stageId, roundId)
+  const active = seasonStatisticsRefreshes.get(key)
   if (active?.generation === refreshGeneration) return active.promise
 
   const generation = refreshGeneration
   const promise = (async () => {
-    const result = await window.halfspace.sportmonks.refreshSeasonStatistics({ seasonId })
+    const result = await window.halfspace.sportmonks.refreshSeasonStatistics({
+      seasonId,
+      stageId,
+      roundId
+    })
     if (generation !== refreshGeneration) return
     if (!result.ok) throw new Error(result.error.message)
-    await writeSeasonStatisticsRefresh(seasonId, result.data)
+    await writeSeasonStatisticsRefresh(seasonId, result.data, stageId, roundId)
   })()
 
-  seasonStatisticsRefreshes.set(seasonId, { generation, promise })
+  seasonStatisticsRefreshes.set(key, { generation, promise })
 
   try {
     await promise
   } finally {
-    if (seasonStatisticsRefreshes.get(seasonId)?.promise === promise) {
-      seasonStatisticsRefreshes.delete(seasonId)
+    if (seasonStatisticsRefreshes.get(key)?.promise === promise) {
+      seasonStatisticsRefreshes.delete(key)
     }
   }
 }

@@ -163,6 +163,9 @@
     "venues/get-venues-by-season-id": ["country"],
     "standings/get-standing-correction-by-season-id": ["participant", "stage", "group"],
     "transfer-rumours/get-transfer-rumours-by-team-id": ["player", "fromTeam", "toTeam", "type"],
-    "transfer-rumours/get-transfer-rumours-by-player-id": ["player", "fromTeam", "toTeam", "type"]
+    "transfer-rumours/get-transfer-rumours-by-player-id": ["player", "fromTeam", "toTeam", "type"],
+    "statistics/get-stage-statistics-by-id": [],
+    "statistics/get-round-statistics-by-id": [],
+    "topscorers/get-topscorers-by-stage-id": ["player", "participant", "type"]
   }
 }

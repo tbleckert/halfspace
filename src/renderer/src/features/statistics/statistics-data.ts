@@ -85,13 +85,20 @@ export interface PlayerStatisticsSummary {
 export function leagueStatisticsSummary(statistics: Statistic[]): LeagueStatisticsSummary {
   const matches = statisticNumber(statistics, 188, 'played') ?? statisticCount(statistics, 188)
   const goals = statisticTotal(statistics, 191)
+  const yellowCards = statisticNumber(statistics, 193, 'yellowcards')
+  const redCards = statisticNumber(statistics, 193, 'redcards')
+  const secondYellowCards = statisticNumber(statistics, 193, 'yellowredcards')
 
   return {
     awayGoals: statisticNestedNumber(statistics, 191, 'away', 'count'),
     bothTeamsScored: statisticCount(statistics, 192),
     bothTeamsScoredPercentage: statisticNumber(statistics, 192, 'percentage'),
-    cards: statisticTotal(statistics, 193),
-    cleanSheets: statisticTotal(statistics, 194),
+    cards:
+      statisticTotal(statistics, 193) ??
+      (yellowCards !== null && redCards !== null && secondYellowCards !== null
+        ? yellowCards + redCards + secondYellowCards
+        : null),
+    cleanSheets: statisticCount(statistics, 194),
     draws: statisticCount(statistics, 190),
     goals,
     goalsPerMatch: goals !== null && matches ? Math.round((goals / matches) * 100) / 100 : null,

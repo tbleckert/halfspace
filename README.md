@@ -84,6 +84,7 @@ include should have a useful place in Halfspace.
 - [x] Pending transfers on player Career pages, separate from completed moves and rumours.
 - [x] Team, player, and coach honours with competition, season, club, and reported placing.
 - [x] Season statistics for competitions, teams, and players.
+- [x] Competition stage and round statistics, with stage-specific player leaderboards.
 - [x] Cross-league team and player comparisons with entity-specific season selection, independent records, and per-90 player radars.
 - [x] Season player leaderboards for goals, assists, yellow cards, and red cards.
 - [x] Fixture previews, event timelines, pitch lineups, match statistics, and pre-match odds.

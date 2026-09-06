@@ -352,10 +352,13 @@ export interface SeasonBracketRefresh {
 
 export interface RefreshSeasonStatisticsInput {
   seasonId: number
+  stageId?: number
+  roundId?: number
 }
 
 export interface RefreshSeasonTopscorersInput {
   seasonId: number
+  stageId?: number
 }
 
 export interface RefreshCompetitionSeasonsInput {
@@ -1222,6 +1225,8 @@ export interface StandingsRefresh {
 }
 
 export interface SeasonStatisticsRefresh {
+  stageId?: number
+  roundId?: number
   statistics: SportmonksSeasonStatistic[]
   fetchedAt: number
   rateLimit?: {
@@ -1232,6 +1237,7 @@ export interface SeasonStatisticsRefresh {
 }
 
 export interface SportmonksTopscorer {
+  stage_id?: number
   id: number
   season_id: number
   player_id: number
@@ -1245,6 +1251,7 @@ export interface SportmonksTopscorer {
 }
 
 export interface SeasonTopscorersRefresh {
+  stageId?: number
   topscorers: SportmonksTopscorer[]
   fetchedAt: number
   pageCount: number

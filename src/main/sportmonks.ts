@@ -910,6 +910,23 @@ const seasonTopscorersResponseSchema = z.object({
   message: z.string().optional()
 })
 
+const stageTopscorersResponseSchema = seasonTopscorersResponseSchema.extend({
+  data: z.array(
+    seasonTopscorersResponseSchema.shape.data.element.omit({ season_id: true }).extend({
+      stage_id: z.number().int().positive()
+    })
+  )
+})
+
+const scopedStatisticsResponseSchema = z.object({
+  data: z.array(seasonStatisticSchema),
+  pagination: z
+    .object({ current_page: z.number().int().positive(), has_more: z.boolean() })
+    .optional(),
+  rate_limit: z.object({ remaining: z.number(), resets_in_seconds: z.number() }).optional(),
+  message: z.string().optional()
+})
+
 const seasonStatisticsResponseSchema = z
   .object({
     data: z
@@ -1307,18 +1324,27 @@ export function validateStandingsInput(value: unknown): RefreshStandingsInput {
 }
 
 export function validateSeasonStatisticsInput(value: unknown): RefreshSeasonStatisticsInput {
-  const seasonId =
-    value && typeof value === 'object' ? (value as { seasonId?: unknown }).seasonId : 0
-
-  if (!isPositiveId(seasonId)) {
-    throw new SportmonksError('invalid_input', 'Choose a valid season.')
-  }
-
-  return { seasonId }
+  const parsed = z
+    .object({
+      seasonId: z.number().int().positive(),
+      stageId: z.number().int().positive().optional(),
+      roundId: z.number().int().positive().optional()
+    })
+    .refine((input) => input.roundId === undefined || input.stageId !== undefined)
+    .safeParse(value)
+  if (!parsed.success) throw new SportmonksError('invalid_input', 'Choose a valid season.')
+  return parsed.data
 }
 
 export function validateSeasonTopscorersInput(value: unknown): RefreshSeasonTopscorersInput {
-  return validateSeasonStatisticsInput(value)
+  const parsed = z
+    .object({
+      seasonId: z.number().int().positive(),
+      stageId: z.number().int().positive().optional()
+    })
+    .safeParse(value)
+  if (!parsed.success) throw new SportmonksError('invalid_input', 'Choose a valid season.')
+  return parsed.data
 }
 
 export function validateCompetitionSeasonsInput(value: unknown): RefreshCompetitionSeasonsInput {
@@ -2125,6 +2151,7 @@ export async function fetchSeasonStatistics(
   token: string,
   fetcher: typeof fetch = fetch
 ): Promise<SeasonStatisticsRefresh> {
+  if (input.stageId !== undefined) return fetchScopedStatistics(input, token, fetcher)
   const fetchedAt = Date.now()
   const url = new URL(`${apiBaseUrl}/seasons/${input.seasonId}`)
   url.searchParams.set('include', 'statistics')
@@ -2145,6 +2172,43 @@ export async function fetchSeasonStatistics(
   }
 }
 
+async function fetchScopedStatistics(
+  input: RefreshSeasonStatisticsInput,
+  token: string,
+  fetcher: typeof fetch
+): Promise<SeasonStatisticsRefresh> {
+  const fetchedAt = Date.now()
+  const scope = input.roundId === undefined ? 'stage' : 'round'
+  const id = input.roundId ?? input.stageId!
+  const statistics: SportmonksSeasonStatistic[] = []
+  for (let page = 1; page <= maximumPages; page++) {
+    const url = new URL(`${apiBaseUrl}/statistics/${scope}s/${id}`)
+    url.searchParams.set('filters', `${scope}StatisticTypes:${seasonStatisticTypeIds.join(',')}`)
+    url.searchParams.set('per_page', '50')
+    url.searchParams.set('page', String(page))
+    const parsed = await requestSportmonks(url, token, scopedStatisticsResponseSchema, fetcher)
+    if (parsed.data.some((row) => row.model_id !== id)) {
+      throw new SportmonksError('invalid_response', 'Statistics do not match the selected scope.')
+    }
+    statistics.push(...parsed.data)
+    if (!parsed.pagination?.has_more)
+      return {
+        statistics,
+        fetchedAt,
+        stageId: input.stageId,
+        roundId: input.roundId,
+        message: parsed.message,
+        rateLimit: parsed.rate_limit
+          ? {
+              remaining: parsed.rate_limit.remaining,
+              resetsAt: fetchedAt + parsed.rate_limit.resets_in_seconds * 1000
+            }
+          : undefined
+      }
+  }
+  throw new SportmonksError('invalid_response', 'Sportmonks returned too many result pages.')
+}
+
 export async function fetchSeasonTopscorers(
   input: RefreshSeasonTopscorersInput,
   token: string,
@@ -2156,16 +2220,29 @@ export async function fetchSeasonTopscorers(
   let message: string | undefined
 
   for (let page = 1; page <= maximumPages; page += 1) {
-    const url = new URL(`${apiBaseUrl}/topscorers/seasons/${input.seasonId}`)
+    const scope = input.stageId === undefined ? 'season' : 'stage'
+    const url = new URL(`${apiBaseUrl}/topscorers/${scope}s/${input.stageId ?? input.seasonId}`)
     url.searchParams.set('include', 'player;participant;type')
-    url.searchParams.set('filters', 'seasonTopscorerTypes:208,209,84,83')
+    url.searchParams.set('filters', `${scope}TopscorerTypes:208,209,84,83`)
     url.searchParams.set('order', 'asc')
     url.searchParams.set('per_page', '50')
     url.searchParams.set('page', String(page))
 
-    const parsed = await requestSportmonks(url, token, seasonTopscorersResponseSchema, fetcher)
-
-    topscorers.push(...(parsed.data as SportmonksTopscorer[]))
+    const parsed =
+      input.stageId === undefined
+        ? await requestSportmonks(url, token, seasonTopscorersResponseSchema, fetcher)
+        : await requestSportmonks(url, token, stageTopscorersResponseSchema, fetcher)
+    const rows = parsed.data.map((row) => {
+      if (input.stageId !== undefined) {
+        if (row.stage_id !== input.stageId)
+          throw new SportmonksError('invalid_response', 'Leaders do not match the selected stage.')
+        return { ...row, season_id: input.seasonId } as SportmonksTopscorer
+      }
+      if (row.season_id !== input.seasonId)
+        throw new SportmonksError('invalid_response', 'Leaders do not match the selected season.')
+      return row as SportmonksTopscorer
+    })
+    topscorers.push(...rows)
     message = parsed.message ?? message
     if (parsed.rate_limit) {
       rateLimit = {
@@ -2174,7 +2251,14 @@ export async function fetchSeasonTopscorers(
       }
     }
     if (!parsed.pagination?.has_more) {
-      return { topscorers, fetchedAt, pageCount: page, rateLimit, message }
+      return {
+        topscorers,
+        fetchedAt,
+        pageCount: page,
+        rateLimit,
+        message,
+        ...(input.stageId === undefined ? {} : { stageId: input.stageId })
+      }
     }
   }
 

@@ -125,3 +125,12 @@ function teamStatistic(typeId: number, value: unknown): SportmonksTeamStatistic 
 function playerStatistic(typeId: number, value: unknown): SportmonksPlayerStatisticDetail {
   return { id: typeId, player_statistic_id: 501, type_id: typeId, value }
 }
+
+it('reads round clean sheets and discipline from reported value shapes without filling missing cards', () => {
+  const rows = [
+    { type_id: 194, value: { count: 2, percentage: 20 } },
+    { type_id: 193, value: { yellowcards: 41, redcards: 1, yellowredcards: 0 } }
+  ]
+  expect(leagueStatisticsSummary(rows)).toMatchObject({ cleanSheets: 2, cards: 42 })
+  expect(leagueStatisticsSummary([{ type_id: 193, value: { yellowcards: 41 } }]).cards).toBeNull()
+})

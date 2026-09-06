@@ -8,6 +8,7 @@ import {
   db,
   writeCompetitionSeasonsRefresh,
   writeSeasonTopscorersRefresh,
+  writeSeasonStatisticsRefresh,
   writeSeasonScheduleRefresh,
   writeStandingsRefresh,
   writeRoundStandingsRefresh,
@@ -372,4 +373,108 @@ describe('competition season navigation', () => {
       }
     }
   )
+})
+
+it('browses stage and round stats with stage leaders, URL history, and season isolation', async () => {
+  const fetchedAt = Date.now()
+  await writeSeasonScheduleRefresh(25591, {
+    fetchedAt,
+    stages: [
+      {
+        id: 10,
+        season_id: 25591,
+        name: 'League stage',
+        sort_order: 1,
+        is_current: true,
+        finished: false,
+        fixtures: [],
+        rounds: [2, 10].map((id) => ({
+          id,
+          name: String(id),
+          is_current: id === 10,
+          finished: id === 2,
+          fixtures: []
+        }))
+      }
+    ]
+  })
+  for (const roundId of [undefined, 2]) {
+    await writeSeasonStatisticsRefresh(
+      25591,
+      {
+        fetchedAt,
+        stageId: 10,
+        roundId,
+        statistics: [
+          { id: 1, model_id: roundId ?? 10, type_id: 191, value: { total: roundId ? 23 : 85 } }
+        ]
+      },
+      10,
+      roundId
+    )
+  }
+  await writeSeasonTopscorersRefresh(
+    25591,
+    {
+      fetchedAt,
+      stageId: 10,
+      pageCount: 1,
+      topscorers: [makeTopscorer({ stage_id: 10, total: 3 })]
+    },
+    10
+  )
+  const router = createRouter({
+    routeTree,
+    history: createMemoryHistory({ initialEntries: ['/competitions/271/stats?season=25591'] })
+  })
+  render(<RouterProvider router={router} />)
+  const stageSelect = await screen.findByRole('combobox', { name: 'Statistics stage' })
+  fireEvent.change(stageSelect, { target: { value: '10' } })
+  expect(await screen.findByText('85')).toBeTruthy()
+  const leaders = await screen.findByRole('table', { name: 'Goals leaders' })
+  expect(within(leaders).getByRole('cell', { name: '3' })).toBeTruthy()
+  expect(
+    within(leaders).getByRole('link', { name: 'Alex Forward' }).getAttribute('href')
+  ).toContain('season=25591')
+  const rounds = screen.getByRole('combobox', { name: 'Statistics round' })
+  expect(
+    within(rounds)
+      .getAllByRole('option')
+      .map((option) => option.textContent)
+  ).toEqual(['All rounds', 'Round 2', 'Round 10 · Current'])
+  fireEvent.change(rounds, { target: { value: '2' } })
+  expect(await screen.findByText('23')).toBeTruthy()
+  expect(screen.queryByText('85')).toBeNull()
+  expect(screen.getByText('League stage · All rounds')).toBeTruthy()
+  expect(router.state.location.search).toMatchObject({ stage: 10, round: 2 })
+  await act(() => router.history.back())
+  expect(await screen.findByText('85')).toBeTruthy()
+  expect(router.state.location.search.round).toBeUndefined()
+  fireEvent.change(screen.getByRole('combobox', { name: 'Season' }), { target: { value: '25590' } })
+  await waitFor(() => expect(router.state.location.search.season).toBe(25590))
+  expect(router.state.location.pathname).toBe('/competitions/271/stats')
+  expect(router.state.location.search.stage).toBeUndefined()
+  expect(router.state.location.search.round).toBeUndefined()
+  expect(screen.queryByText('85')).toBeNull()
+  expect(screen.queryByText('League stage · All rounds')).toBeNull()
+  expect(await screen.findByText('20')).toBeTruthy()
+})
+
+it('does not fall back to season data for a stage outside the selected season', async () => {
+  const router = createRouter({
+    routeTree,
+    history: createMemoryHistory({
+      initialEntries: ['/competitions/271/stats?season=25591&stage=999']
+    })
+  })
+  render(<RouterProvider router={router} />)
+  expect(
+    await screen.findByText('Selected stage or round is not available for this season.')
+  ).toBeTruthy()
+  expect(screen.queryByRole('table', { name: 'Goals leaders' })).toBeNull()
+  fireEvent.change(screen.getByRole('combobox', { name: 'Statistics stage' }), {
+    target: { value: '' }
+  })
+  expect(await screen.findByRole('table', { name: 'Goals leaders' })).toBeTruthy()
+  expect(router.state.location.search.stage).toBeUndefined()
 })

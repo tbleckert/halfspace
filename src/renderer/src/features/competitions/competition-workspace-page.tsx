@@ -1,3 +1,5 @@
+import { CompetitionStatisticsScope } from './competition-statistics-scope'
+import { resolveStatisticsScope } from './competition-statistics-scope-data'
 import { SeasonReferees, SeasonVenues } from './season-directory'
 import { StandingCorrections } from './standing-corrections'
 import { useSeasonReferees, prefetchSeasonReferees } from './use-season-referees'
@@ -168,7 +170,8 @@ export function CompetitionWorkspacePage({
   const corrections = useStandingCorrections(seasonId, online && showAdjustments)
   const showCurrentStandings =
     view === 'overview' || view === 'teams' || (view === 'table' && !round && !liveTable)
-  const showSchedule = view === 'schedule' || view === 'table' || view === 'knockout'
+  const showSchedule =
+    view === 'schedule' || view === 'table' || view === 'knockout' || view === 'stats'
   const standings = useStandings(seasonId, online && showCurrentStandings)
   const schedule = useSeasonSchedule(seasonId, online && showSchedule)
   const bracket = useSeasonBracket(
@@ -181,9 +184,17 @@ export function CompetitionWorkspacePage({
     [seasonId, round]
   )
   const roundStandings = useRoundStandings(roundInput, online && view === 'table')
-  const statistics = useSeasonStatistics(seasonId, online && view === 'stats')
+  const statsScope = resolveStatisticsScope(schedule.cached?.stages ?? [], stage, round)
+  const statsSeasonId = view === 'stats' && !statsScope.valid ? null : seasonId
+  const statsStageId = view === 'stats' ? statsScope.stage?.id : undefined
+  const statistics = useSeasonStatistics(
+    statsSeasonId,
+    online && view === 'stats',
+    statsStageId,
+    view === 'stats' ? statsScope.round?.id : undefined
+  )
   const showPlayerLeaders = view === 'overview' || view === 'stats'
-  const topscorers = useSeasonTopscorers(seasonId, online && showPlayerLeaders)
+  const topscorers = useSeasonTopscorers(statsSeasonId, online && showPlayerLeaders, statsStageId)
   const leadersLoaded =
     topscorers.cached !== undefined &&
     (!topscorers.cached || topscorers.cached.seasonId === seasonId)
@@ -224,11 +235,8 @@ export function CompetitionWorkspacePage({
     (view === 'teams' && seasonTeams.refreshing) ||
     (view === 'knockout' && bracket.refreshing) ||
     seasons.refreshing ||
-    (showSchedule
-      ? schedule.refreshing
-      : view === 'stats'
-        ? statistics.refreshing
-        : showFixtureWindow && fixtures.refreshing) ||
+    (showSchedule ? schedule.refreshing : showFixtureWindow && fixtures.refreshing) ||
+    (view === 'stats' && statistics.refreshing) ||
     (showPlayerLeaders && topscorers.refreshing) ||
     (showCurrentStandings && standings.refreshing) ||
     (view === 'table' && roundStandings.refreshing) ||
@@ -241,13 +249,8 @@ export function CompetitionWorkspacePage({
     view === 'teams' ? seasonTeams.error : null,
     view === 'knockout' ? bracket.error : null,
     seasons.error,
-    showSchedule
-      ? schedule.error
-      : view === 'stats'
-        ? statistics.error
-        : showFixtureWindow
-          ? fixtures.error
-          : null,
+    showSchedule ? schedule.error : showFixtureWindow ? fixtures.error : null,
+    view === 'stats' ? statistics.error : null,
     showPlayerLeaders ? topscorers.error : null,
     showCurrentStandings ? standings.error : null,
     liveTable ? liveStandings.error : null,
@@ -271,11 +274,10 @@ export function CompetitionWorkspacePage({
       seasons.refresh(),
       showSchedule
         ? schedule.refresh()
-        : view === 'stats'
-          ? statistics.refresh()
-          : showFixtureWindow
-            ? fixtures.refresh()
-            : Promise.resolve(),
+        : showFixtureWindow
+          ? fixtures.refresh()
+          : Promise.resolve(),
+      view === 'stats' ? statistics.refresh() : Promise.resolve(),
       showPlayerLeaders ? topscorers.refresh() : Promise.resolve(),
       showCurrentStandings ? standings.refresh() : Promise.resolve(),
       liveTable ? liveStandings.refresh() : Promise.resolve(),
@@ -573,22 +575,52 @@ export function CompetitionWorkspacePage({
 
       {view === 'stats' && (
         <>
-          <LeagueStatisticsView
-            loaded={statistics.cached !== undefined}
-            loading={statistics.refreshing}
-            statistics={statistics.cached?.statistics ?? []}
+          <CompetitionStatisticsScope
+            stages={schedule.cached?.stages ?? []}
+            stageId={stage}
+            roundId={round}
+            onSelect={(stage, round) =>
+              void navigate({
+                to: '/competitions/$competitionId/stats',
+                search: (previous) => ({ ...previous, stage, round }),
+                resetScroll: false
+              })
+            }
           />
-          <PlayerLeaders
-            competitionId={competition.id}
-            date={fixtureDate}
-            seasonId={seasonId}
-            online={online}
-            loaded={leadersLoaded}
-            loading={topscorers.refreshing}
-            topscorers={seasonTopscorers}
-            category={leaderboard}
-            onCategoryChange={selectLeaderboard}
-          />
+          {!statsScope.valid ? (
+            <Card>
+              <CardContent className="py-10 text-center text-sm text-muted-foreground">
+                {schedule.cached === undefined || schedule.refreshing
+                  ? 'Loading stages and rounds…'
+                  : 'Selected stage or round is not available for this season.'}
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              <LeagueStatisticsView
+                scopeLabel={
+                  statsScope.round
+                    ? `${statsScope.stage!.name} · Round ${statsScope.round.name}`
+                    : (statsScope.stage?.name ?? 'Season')
+                }
+                loaded={statistics.cached !== undefined}
+                loading={statistics.refreshing}
+                statistics={statistics.cached?.statistics ?? []}
+              />
+              <PlayerLeaders
+                competitionId={competition.id}
+                date={fixtureDate}
+                seasonId={seasonId}
+                online={online}
+                loaded={leadersLoaded}
+                loading={topscorers.refreshing}
+                topscorers={seasonTopscorers}
+                scopeLabel={statsScope.stage?.name}
+                category={leaderboard}
+                onCategoryChange={selectLeaderboard}
+              />
+            </>
+          )}
         </>
       )}
     </div>
