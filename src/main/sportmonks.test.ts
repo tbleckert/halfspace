@@ -277,7 +277,7 @@ describe('Sportmonks client', () => {
     const url = new URL(input.toString())
     expect(url.pathname).toBe(`/v3/football/fixtures/${fixture.id}`)
     expect(url.searchParams.get('include')).toBe(
-      'participants;league;state;scores;periods;venue;stage;round;coaches;referees.referee;referees.type;lineups.player;lineups.details;events.type;events.player;events.relatedPlayer;statistics.type;weatherReport;sidelined.player;sidelined.type'
+      'participants;league;state;scores;periods;venue;stage;round;coaches;referees.referee;referees.type;lineups.player;lineups.details;events.type;events.player;events.relatedPlayer;statistics.type;weatherReport;sidelined.player;sidelined.type;formations;group;aggregate'
     )
     expect(url.searchParams.get('filters')).toBe(
       'lineupDetailTypes:42,57,78,80,86,100,106,116,117,118,119'
@@ -787,7 +787,7 @@ describe('Sportmonks client', () => {
     const url = new URL(input.toString())
     expect(url.pathname).toBe('/v3/football/teams/9')
     expect(url.searchParams.get('include')).toBe(
-      'country;venue;coaches.coach;sidelined.player;sidelined.type;rankings'
+      'country;venue;coaches.coach;sidelined.player;sidelined.type;rankings;socials.channel'
     )
     expect(url.searchParams.has('api_token')).toBe(false)
     expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')
@@ -954,7 +954,9 @@ describe('Sportmonks client', () => {
     const [input, init] = fetcher.mock.calls[0]
     const url = new URL(input.toString())
     expect(url.pathname).toBe('/v3/football/players/6306068')
-    expect(url.searchParams.get('include')).toBe('nationality;position;detailedPosition')
+    expect(url.searchParams.get('include')).toBe(
+      'nationality;position;detailedPosition;country;city;metadata.type;teams.team;pendingTransfers.fromTeam;pendingTransfers.toTeam;pendingTransfers.type'
+    )
     expect(url.searchParams.has('api_token')).toBe(false)
     expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')
   })
@@ -992,7 +994,7 @@ describe('Sportmonks client', () => {
     const [input, init] = fetcher.mock.calls[0]
     const url = new URL(input.toString())
     expect(url.pathname).toBe('/v3/football/coaches/7')
-    expect(url.searchParams.get('include')).toBe('nationality;teams.team')
+    expect(url.searchParams.get('include')).toBe('nationality;teams.team;player')
     expect(url.searchParams.has('api_token')).toBe(false)
     expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')
   })
@@ -1273,7 +1275,7 @@ describe('Sportmonks client', () => {
     const [input, init] = fetcher.mock.calls[0]
     const url = new URL(input.toString())
     expect(url.pathname).toBe('/v3/football/venues/206')
-    expect(url.searchParams.get('include')).toBe('country')
+    expect(url.searchParams.get('include')).toBe('country;city')
     expect(url.searchParams.has('api_token')).toBe(false)
     expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')
   })

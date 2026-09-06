@@ -2175,32 +2175,29 @@ export async function readEntitySearch(query: string): Promise<EntitySearchResul
 
 export async function writeEntitySearchRefresh(refresh: EntitySearchRefresh): Promise<void> {
   const staleAt = refresh.fetchedAt + teamCacheDuration
-  const players: CachedPlayer[] = refresh.players.map((player) => ({
-    id: player.id,
-    name: player.name,
-    displayName: player.display_name,
-    imagePath: player.image_path ?? null,
-    positionId: player.position_id,
-    nationalityId: player.nationality_id,
-    raw: player,
-    detailed: true,
-    fetchedAt: refresh.fetchedAt,
-    staleAt
-  }))
-  const venues: CachedVenue[] = refresh.venues.map((venue) => ({
-    id: venue.id,
-    countryId: venue.country_id ?? null,
-    name: venue.name,
-    imagePath: venue.image_path ?? null,
-    raw: venue,
-    fetchedAt: refresh.fetchedAt,
-    staleAt
-  }))
-
   await db.transaction(
     'rw',
     [db.fixtures, db.competitions, db.teams, db.players, db.coaches, db.referees, db.venues],
     async () => {
+      const existingPlayers = await db.players.bulkGet(refresh.players.map(({ id }) => id))
+      const players = refresh.players.map((player, index) =>
+        toCachedIncludedPlayer(player, existingPlayers[index], refresh.fetchedAt)
+      )
+      const existingVenues = await db.venues.bulkGet(refresh.venues.map(({ id }) => id))
+      const venues = refresh.venues.map((venue, index): CachedVenue => {
+        const existing = existingVenues[index]
+        if (existing && existing.fetchedAt > refresh.fetchedAt) return existing
+        return {
+          id: venue.id,
+          countryId: venue.country_id ?? null,
+          name: venue.name,
+          imagePath: venue.image_path ?? null,
+          raw: { ...existing?.raw, ...venue },
+          fetchedAt: refresh.fetchedAt,
+          staleAt: existing?.staleAt ?? refresh.fetchedAt
+        }
+      })
+
       const existingTeams = await db.teams.bulkGet(refresh.teams.map(({ id }) => id))
       const teams = refresh.teams.map((team, index) =>
         toCachedIncludedTeam(team, existingTeams[index], refresh.fetchedAt)
@@ -2547,8 +2544,9 @@ export async function writeCoachRefresh(refresh: CoachRefresh): Promise<void> {
   const assignments = refresh.coach.teams ?? []
   const includedTeams = assignments.flatMap(({ team }) => (team ? [team] : []))
 
-  await db.transaction('rw', db.coaches, db.teams, async () => {
+  await db.transaction('rw', db.coaches, db.teams, db.players, async () => {
     const existingCoach = await db.coaches.get(refresh.coach.id)
+    if (existingCoach && existingCoach.fetchedAt > refresh.fetchedAt) return
     const existingTeams = await db.teams.bulkGet(includedTeams.map(({ id }) => id))
     const coach = toCachedCoach(refresh.coach, existingCoach, refresh.fetchedAt, true, refresh)
     const teams = includedTeams.map((team, index) =>
@@ -2556,6 +2554,12 @@ export async function writeCoachRefresh(refresh: CoachRefresh): Promise<void> {
     )
     await db.coaches.put(coach)
     await db.teams.bulkPut(teams)
+    const player = refresh.coach.player
+    if (player) {
+      await db.players.put(
+        toCachedIncludedPlayer(player, await db.players.get(player.id), refresh.fetchedAt)
+      )
+    }
   })
 }
 
@@ -2686,7 +2690,26 @@ export async function writePlayerRefresh(refresh: PlayerRefresh): Promise<void> 
     message: refresh.message
   }
 
-  await db.players.put(player)
+  await db.transaction('rw', db.players, db.teams, async () => {
+    const existing = await db.players.get(player.id)
+    if (existing && existing.fetchedAt > refresh.fetchedAt) return
+    const includedTeams = new Map<number, SportmonksTeam>()
+    for (const registration of refresh.player.teams ?? []) {
+      if (registration.team) includedTeams.set(registration.team.id, registration.team)
+    }
+    for (const transfer of refresh.player.pendingTransfers ?? []) {
+      if (transfer.fromTeam) includedTeams.set(transfer.fromTeam.id, transfer.fromTeam)
+      if (transfer.toTeam) includedTeams.set(transfer.toTeam.id, transfer.toTeam)
+    }
+    const teams = [...includedTeams.values()]
+    const existingTeams = await db.teams.bulkGet(teams.map(({ id }) => id))
+    await db.teams.bulkPut(
+      teams.map((team, index) =>
+        toCachedIncludedTeam(team, existingTeams[index], refresh.fetchedAt)
+      )
+    )
+    await db.players.put(player)
+  })
 }
 
 export function playerAppearanceQueryKey(input: RefreshPlayerAppearancesInput): string {
@@ -3262,6 +3285,7 @@ export function toCachedIncludedPlayer(
   existing: CachedPlayer | undefined,
   fetchedAt: number
 ): CachedPlayer {
+  if (existing && existing.fetchedAt > fetchedAt) return existing
   const raw = existing?.detailed
     ? {
         ...existing.raw,
@@ -3420,6 +3444,9 @@ function mergeFixtureDetail(
     ...fixture,
     stage: fixture.stage ?? existing.stage,
     round: fixture.round ?? existing.round,
+    group: fixture.group === undefined ? existing.group : fixture.group,
+    aggregate: fixture.aggregate === undefined ? existing.aggregate : fixture.aggregate,
+    formations: fixture.formations ?? existing.formations,
     venue: fixture.venue ?? existing.venue,
     periods: fixture.periods ?? existing.periods,
     lineups: fixture.lineups ?? existing.lineups,

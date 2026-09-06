@@ -439,6 +439,8 @@ export interface SportmonksReferee {
   image_path?: string | null
   date_of_birth?: string | null
   country?: SportmonksCountry | null
+  nationality?: SportmonksCountry | null
+  city?: SportmonksCity | null
   latest?: SportmonksRefereeAssignment[]
   statistics?: SportmonksRefereeStatistic[]
 }
@@ -510,6 +512,37 @@ export interface SportmonksCountry {
   image_path?: string | null
 }
 
+export interface SportmonksCity {
+  id: number
+  name: string
+  latitude?: string | number | null
+  longitude?: string | number | null
+}
+
+export interface SportmonksSocial {
+  id: number
+  value: string | null
+  channel?: { id: number; name: string; base_url?: string | null } | null
+}
+
+export interface SportmonksPlayerRegistration {
+  id: number
+  player_id: number
+  team_id: number
+  start: string | null
+  end: string | null
+  jersey_number: number | null
+  captain?: boolean
+  team?: SportmonksTeam | null
+}
+
+export interface SportmonksPlayerMetadata {
+  id: number
+  type_id: number
+  values: unknown
+  type?: SportmonksType | null
+}
+
 export interface SportmonksSeason {
   id: number
   league_id: number
@@ -560,6 +593,7 @@ export interface SportmonksVenue {
   surface?: string | null
   national_team?: boolean
   country?: SportmonksCountry | null
+  city?: SportmonksCity | null
 }
 
 export interface SportmonksTeam {
@@ -580,6 +614,7 @@ export interface SportmonksTeam {
   coaches?: SportmonksCoachTeam[]
   sidelined?: SportmonksSidelined[]
   rankings?: SportmonksTeamRanking[]
+  socials?: SportmonksSocial[]
 }
 
 export interface SportmonksTeamRanking {
@@ -655,6 +690,10 @@ export interface SportmonksPlayer {
   nationality?: SportmonksCountry | null
   position?: SportmonksPosition | null
   detailedPosition?: SportmonksPosition | null
+  city?: SportmonksCity | null
+  metadata?: SportmonksPlayerMetadata[]
+  teams?: SportmonksPlayerRegistration[]
+  pendingTransfers?: SportmonksTransfer[]
 }
 
 export interface SportmonksCoachTeam {
@@ -690,6 +729,7 @@ export interface SportmonksCoach {
   country?: SportmonksCountry | null
   nationality?: SportmonksCountry | null
   teams?: SportmonksCoachTeam[]
+  player?: SportmonksPlayer | null
   meta?: {
     fixture_id?: number
     participant_id?: number
@@ -865,6 +905,17 @@ export interface SportmonksFixture {
   referees?: SportmonksRefereeAssignment[]
   weatherreport?: SportmonksWeatherReport | null
   sidelined?: SportmonksFixtureAbsence[]
+  formations?: SportmonksFormation[]
+  group?: SportmonksFixtureContext | null
+  aggregate?: SportmonksAggregate | null
+}
+
+export interface SportmonksFormation {
+  id: number
+  fixture_id: number
+  participant_id: number
+  formation: string
+  location?: 'home' | 'away' | null
 }
 
 export interface SportmonksFixtureAbsence {

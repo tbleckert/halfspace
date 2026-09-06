@@ -1,6 +1,6 @@
 # Sportmonks API coverage
 
-Halfspace currently covers **57 of 153 endpoints** and **187 of 1320 documented endpoint includes**.
+Halfspace currently covers **57 of 153 endpoints** and **200 of 1320 documented endpoint includes**.
 
 Overall coverage: **17%**
 
@@ -27,7 +27,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 ### Fixtures
 
 - [ ] [All Fixtures](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-all-fixtures)
-- [x] [Fixture by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixture-by-id) — includes 21/38
+- [x] [Fixture by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixture-by-id) — includes 24/38
 - [ ] [Fixtures by Multiple IDs](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixtures-by-multiple-ids)
 - [x] [Fixtures by Date](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixtures-by-date) — includes 5/38
 - [x] [Fixtures by Date Range](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixtures-by-date-range) — includes 5/38
@@ -112,7 +112,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 ### Teams
 
 - [ ] [All Teams](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/teams/get-all-teams)
-- [x] [Team by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/teams/get-team-by-id) — includes 7/16
+- [x] [Team by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/teams/get-team-by-id) — includes 8/16
 - [ ] [Teams by Country ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/teams/get-teams-by-country-id)
 - [x] [Teams by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/teams/get-teams-by-season-id) — includes 1/16
 - [x] [Teams by Search by Name](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/teams/get-teams-by-search-by-name) — includes 2/16
@@ -120,7 +120,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 ### Players
 
 - [ ] [All Players](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/players/get-all-players)
-- [x] [Player by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/players/get-player-by-id) — includes 5/14
+- [x] [Player by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/players/get-player-by-id) — includes 10/14
 - [ ] [Players by Country ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/players/get-players-by-country-id)
 - [x] [Players by Search by Name](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/players/get-players-by-search-by-name) — includes 3/14
 - [ ] [Last Updated Players](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/players/get-last-updated-players)
@@ -153,7 +153,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 ### Coaches
 
 - [ ] [All Coaches](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/coaches/get-all-coaches)
-- [x] [Coach by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/coaches/get-coach-by-id) — includes 3/9
+- [x] [Coach by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/coaches/get-coach-by-id) — includes 4/9
 - [ ] [Coaches by Country ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/coaches/get-coaches-by-country-id)
 - [x] [Coaches Search by Name](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/coaches/get-coaches-search-by-name) — includes 1/9
 - [ ] [Last Updated Coaches](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/coaches/get-last-updated-coaches)
@@ -161,7 +161,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 ### Referees
 
 - [ ] [All Referees](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/referees/get-all-referees)
-- [x] [Referee by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/referees/get-referee-by-id) — includes 3/6
+- [x] [Referee by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/referees/get-referee-by-id) — includes 5/6
 - [ ] [Referees by Country ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/referees/get-referees-by-country-id)
 - [x] [Referees by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/referees/get-referees-by-season-id) — includes 1/6
 - [x] [Referees Search by Name](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/referees/get-referees-search-by-name) — includes 1/6
@@ -186,7 +186,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 ### Venues
 
 - [ ] [All Venues](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/venues/get-all-venues)
-- [x] [Venue by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/venues/get-venue-by-id) — includes 1/3
+- [x] [Venue by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/venues/get-venue-by-id) — includes 2/3
 - [x] [Venues by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/venues/get-venues-by-season-id) — includes 1/3
 - [x] [Venues by Search by Name](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/venues/get-venues-by-search-by-name) — includes 1/3
 

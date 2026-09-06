@@ -1,4 +1,7 @@
 import { TransferRumours } from '@/features/transfers/transfer-rumours'
+import { PlayerRegistrations } from './player-registrations'
+import { PlayerPendingTransfers } from './player-pending-transfers'
+import { playerBirthplace, playerPreferredFoot } from './player-profile-data'
 import {
   useTransferRumours,
   prefetchTransferRumours
@@ -305,13 +308,23 @@ export function PlayerPage({
             />
           </div>
 
-          <PlayerTeams
-            competitionId={competitionId}
-            date={matchWindowEnd}
-            online={online}
-            season={season}
-            teams={player.cached.teams}
-          />
+          {identity.teams ? (
+            <PlayerRegistrations
+              registrations={identity.teams}
+              competitionId={competitionId}
+              date={matchWindowEnd}
+              online={online}
+              season={season}
+            />
+          ) : (
+            <PlayerTeams
+              competitionId={competitionId}
+              date={matchWindowEnd}
+              online={online}
+              season={season}
+              teams={player.cached.teams}
+            />
+          )}
         </div>
       )}
 
@@ -350,6 +363,13 @@ export function PlayerPage({
 
       {view === 'career' && (
         <>
+          <PlayerPendingTransfers
+            transfers={identity.pendingTransfers}
+            online={online}
+            competitionId={competitionId}
+            season={season}
+            date={matchWindowEnd}
+          />
           <HonoursPanel
             key={parsedPlayerId}
             entity="players"
@@ -573,10 +593,14 @@ function PlayerSummary({ player }: { player: SportmonksPlayer }): React.JSX.Elem
 }
 
 function PlayerDetails({ player }: { player: SportmonksPlayer }): React.JSX.Element {
+  const birthplace = playerBirthplace(player)
+  const preferredFoot = playerPreferredFoot(player)
   const details = [
     player.name !== player.display_name ? { label: 'Full name', value: player.name } : null,
     player.date_of_birth ? { label: 'Born', value: formatBirthDate(player.date_of_birth) } : null,
     player.nationality?.name ? { label: 'Nationality', value: player.nationality.name } : null,
+    birthplace ? { label: 'Birthplace', value: birthplace } : null,
+    preferredFoot ? { label: 'Preferred foot', value: preferredFoot } : null,
     player.position?.name ? { label: 'Position', value: player.position.name } : null,
     player.detailedPosition?.name ? { label: 'Role', value: player.detailedPosition.name } : null,
     player.height ? { label: 'Height', value: `${player.height} cm` } : null,

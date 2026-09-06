@@ -35,7 +35,12 @@ export function FixtureLineupView({
   }
   if (confirmed || !beforeKickoff)
     return (
-      <FixtureLineups {...props} lineups={fixture.lineups ?? []} events={fixture.events ?? []} />
+      <FixtureLineups
+        {...props}
+        lineups={fixture.lineups ?? []}
+        events={fixture.events ?? []}
+        formations={fixture.formations?.filter(({ fixture_id }) => fixture_id === fixture.id)}
+      />
     )
   if (access === 'not-included' && !prediction.cached)
     return (

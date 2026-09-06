@@ -32,7 +32,10 @@
       "prematchNews",
       "postmatchNews",
       "predictedLineups",
-      "trends"
+      "trends",
+      "formations",
+      "group",
+      "aggregate"
     ],
     "fixtures/get-fixtures-by-head-to-head": [
       "participants",
@@ -90,7 +93,8 @@
       "statistics",
       "sidelined",
       "rankings",
-      "trophies"
+      "trophies",
+      "socials"
     ],
     "teams/get-teams-by-search-by-name": ["country", "venue"],
     "rivals/get-rivals-by-team-id": ["team", "rival"],
@@ -99,20 +103,25 @@
       "position",
       "detailedPosition",
       "statistics",
-      "trophies"
+      "trophies",
+      "country",
+      "city",
+      "metadata",
+      "teams",
+      "pendingTransfers"
     ],
     "players/get-players-by-search-by-name": ["nationality", "position", "detailedPosition"],
     "team-squads/get-team-squad-by-team-id": ["player", "position", "detailedPosition"],
     "team-squads/get-team-squad-by-team-and-season-id": ["player", "position"],
-    "coaches/get-coach-by-id": ["nationality", "teams", "trophies"],
-    "referees/get-referee-by-id": ["country", "latest", "statistics"],
+    "coaches/get-coach-by-id": ["nationality", "teams", "trophies", "player"],
+    "referees/get-referee-by-id": ["country", "latest", "statistics", "nationality", "city"],
     "referees/get-referees-search-by-name": ["country"],
     "coaches/get-coaches-search-by-name": ["nationality"],
     "transfers/get-transfers-by-player-id": ["type", "fromTeam", "toTeam"],
     "transfers/get-latest-transfers": ["player", "type", "fromTeam", "toTeam"],
     "transfers/get-transfers-between-date-range": ["player", "type", "fromTeam", "toTeam"],
     "transfers/get-transfers-by-team-id": ["player", "type", "fromTeam", "toTeam"],
-    "venues/get-venue-by-id": ["country"],
+    "venues/get-venue-by-id": ["country", "city"],
     "venues/get-venues-by-search-by-name": ["country"],
     "fixtures/get-past-fixtures-by-tv-station-id": [
       "participants",

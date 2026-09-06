@@ -15,6 +15,7 @@ import { intentPrefetchProps } from '@/lib/prefetch'
 import { cn } from '@/lib/utils'
 import { useVenueEntity } from './use-venue'
 import { VenueImage } from './venue-image'
+import { VenueLocation } from './venue-location'
 
 export function VenuePage({
   competitionId,
@@ -52,7 +53,9 @@ export function VenuePage({
   }
 
   const detailedVenue = venue.cached.venue?.raw
-  const location = [identity.city_name, detailedVenue?.country?.name].filter(Boolean).join(', ')
+  const location = [identity.city?.name ?? identity.city_name, detailedVenue?.country?.name]
+    .filter(Boolean)
+    .join(', ')
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-7 p-7 lg:p-10">
@@ -105,6 +108,7 @@ export function VenuePage({
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="flex flex-col gap-6">
           <VenueDetails venue={identity} />
+          <VenueLocation venue={identity} />
 
           <section data-slot="card" className="overflow-hidden rounded-xl bg-card">
             <div className="px-4 pb-3 pt-5">

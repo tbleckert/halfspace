@@ -17,6 +17,7 @@ import { useOnline } from '@/lib/use-online'
 import { cn } from '@/lib/utils'
 import { prefetchTeamEntity } from '@/features/teams/use-team'
 import { CoachPhoto } from './coach-photo'
+import { CoachPlayerProfile } from './coach-player-profile'
 import { useCoachEntity } from './use-coach'
 import { HonoursPanel } from '@/features/honours/honours-panel'
 
@@ -169,6 +170,13 @@ export function CoachPage({
             />
           )}
           <CoachDetails coach={identity} />
+          <CoachPlayerProfile
+            player={identity.player}
+            online={online}
+            competitionId={competitionId}
+            season={season}
+            date={date}
+          />
         </aside>
       </div>
     </div>

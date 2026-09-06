@@ -94,6 +94,13 @@ const countrySchema = z
   })
   .passthrough()
 
+const citySchema = z.object({
+  id: z.number().int(),
+  name: z.string(),
+  latitude: z.union([z.string(), z.number()]).nullish(),
+  longitude: z.union([z.string(), z.number()]).nullish()
+})
+
 const seasonSchema = z
   .object({
     id: z.number().int(),
@@ -245,7 +252,8 @@ export const venueSchema = z
       .union([z.boolean(), z.literal(0), z.literal(1)])
       .transform(Boolean)
       .optional(),
-    country: countrySchema.nullable().optional()
+    country: countrySchema.nullable().optional(),
+    city: citySchema.nullish()
   })
   .passthrough()
 
@@ -310,6 +318,17 @@ export const teamSchema = z
     country: countrySchema.nullable().optional(),
     venue: venueSchema.nullable().optional(),
     coaches: z.array(coachAssignmentSchema).optional(),
+    socials: z
+      .array(
+        z.object({
+          id: z.number().int(),
+          value: z.string().nullable(),
+          channel: z
+            .object({ id: z.number().int(), name: z.string(), base_url: z.string().nullish() })
+            .nullish()
+        })
+      )
+      .optional(),
     rankings: z
       .array(
         z.object({
@@ -577,7 +596,9 @@ export const refereeBaseSchema = z
     country_id: z.number().int().nullable(),
     image_path: z.string().nullable().optional(),
     date_of_birth: z.string().nullable().optional(),
-    country: countrySchema.nullable().optional()
+    country: countrySchema.nullable().optional(),
+    nationality: countrySchema.nullish(),
+    city: citySchema.nullish()
   })
   .passthrough()
 
@@ -677,6 +698,31 @@ export const fixtureSchema = z
       .optional(),
     stage: fixtureContextSchema.nullable().optional(),
     round: fixtureContextSchema.nullable().optional(),
+    group: fixtureContextSchema.nullish(),
+    aggregate: z
+      .object({
+        id: z.number().int(),
+        league_id: z.number().int(),
+        season_id: z.number().int(),
+        stage_id: z.number().int(),
+        name: z.string(),
+        fixture_ids: z.array(z.number().int()),
+        result: z.string().nullable(),
+        detail: z.string().nullable(),
+        winner_participant_id: z.number().int().nullable()
+      })
+      .nullish(),
+    formations: z
+      .array(
+        z.object({
+          id: z.number().int(),
+          fixture_id: z.number().int(),
+          participant_id: z.number().int(),
+          formation: z.string(),
+          location: z.enum(['home', 'away']).nullish()
+        })
+      )
+      .optional(),
     venue: venueSchema.nullable().optional(),
     scores: z
       .array(
@@ -1069,7 +1115,43 @@ const teamSquadResponseSchema = z
 
 const playerResponseSchema = z
   .object({
-    data: playerSchema,
+    data: playerSchema
+      .extend({
+        city: citySchema.nullish(),
+        metadata: z
+          .array(
+            z.object({
+              id: z.number().int(),
+              type_id: z.number().int(),
+              values: z.unknown(),
+              type: typeSchema.nullish()
+            })
+          )
+          .optional(),
+        teams: z
+          .array(
+            z.object({
+              id: z.number().int(),
+              player_id: z.number().int(),
+              team_id: z.number().int(),
+              start: z.string().nullable(),
+              end: z.string().nullable(),
+              jersey_number: z.number().int().nullable(),
+              captain: z
+                .union([z.boolean(), z.literal(0), z.literal(1)])
+                .transform(Boolean)
+                .optional(),
+              team: teamSchema.nullish()
+            })
+          )
+          .optional(),
+        pendingtransfers: z.array(transferSchema).optional(),
+        pendingTransfers: z.array(transferSchema).optional()
+      })
+      .transform(({ pendingtransfers, ...player }) => ({
+        ...player,
+        pendingTransfers: player.pendingTransfers ?? pendingtransfers
+      })),
     rate_limit: z
       .object({
         remaining: z.number(),
@@ -1083,7 +1165,7 @@ const playerResponseSchema = z
 
 const coachResponseSchema = z
   .object({
-    data: coachSchema,
+    data: coachSchema.extend({ player: playerSchema.nullish() }),
     rate_limit: z
       .object({
         remaining: z.number(),
@@ -1452,7 +1534,7 @@ export async function fetchFixtureById(
   const url = new URL(`${apiBaseUrl}/fixtures/${input.fixtureId}`)
   url.searchParams.set(
     'include',
-    'participants;league;state;scores;periods;venue;stage;round;coaches;referees.referee;referees.type;lineups.player;lineups.details;events.type;events.player;events.relatedPlayer;statistics.type;weatherReport;sidelined.player;sidelined.type'
+    'participants;league;state;scores;periods;venue;stage;round;coaches;referees.referee;referees.type;lineups.player;lineups.details;events.type;events.player;events.relatedPlayer;statistics.type;weatherReport;sidelined.player;sidelined.type;formations;group;aggregate'
   )
   url.searchParams.set('filters', 'lineupDetailTypes:42,57,78,80,86,100,106,116,117,118,119')
 
@@ -2180,7 +2262,7 @@ export async function fetchTeamById(
   const url = new URL(`${apiBaseUrl}/teams/${input.teamId}`)
   url.searchParams.set(
     'include',
-    'country;venue;coaches.coach;sidelined.player;sidelined.type;rankings'
+    'country;venue;coaches.coach;sidelined.player;sidelined.type;rankings;socials.channel'
   )
 
   const parsed = await requestSportmonks(url, token, teamResponseSchema, fetcher)
@@ -2308,7 +2390,7 @@ export async function fetchRefereeById(
   const url = new URL(`${apiBaseUrl}/referees/${input.refereeId}`)
   url.searchParams.set(
     'include',
-    'country;latest.type;latest.fixture.participants;latest.fixture.league;latest.fixture.scores;latest.fixture.state;latest.fixture.periods;statistics.details;statistics.season.league'
+    'country;nationality;city;latest.type;latest.fixture.participants;latest.fixture.league;latest.fixture.scores;latest.fixture.state;latest.fixture.periods;statistics.details;statistics.season.league'
   )
   url.searchParams.set('filters', 'refereeStatisticDetailTypes:47,56,83,84,85,188,314')
 
@@ -2356,7 +2438,7 @@ export async function fetchCoachById(
 ): Promise<CoachRefresh> {
   const fetchedAt = Date.now()
   const url = new URL(`${apiBaseUrl}/coaches/${input.coachId}`)
-  url.searchParams.set('include', 'nationality;teams.team')
+  url.searchParams.set('include', 'nationality;teams.team;player')
 
   const parsed = await requestSportmonks(url, token, coachResponseSchema, fetcher)
 
@@ -2443,7 +2525,10 @@ export async function fetchPlayerById(
 ): Promise<PlayerRefresh> {
   const fetchedAt = Date.now()
   const url = new URL(`${apiBaseUrl}/players/${input.playerId}`)
-  url.searchParams.set('include', 'nationality;position;detailedPosition')
+  url.searchParams.set(
+    'include',
+    'nationality;position;detailedPosition;country;city;metadata.type;teams.team;pendingTransfers.fromTeam;pendingTransfers.toTeam;pendingTransfers.type'
+  )
 
   const parsed = await requestSportmonks(url, token, playerResponseSchema, fetcher)
 
@@ -2467,7 +2552,7 @@ export async function fetchVenueById(
 ): Promise<VenueRefresh> {
   const fetchedAt = Date.now()
   const url = new URL(`${apiBaseUrl}/venues/${input.venueId}`)
-  url.searchParams.set('include', 'country')
+  url.searchParams.set('include', 'country;city')
 
   const parsed = await requestSportmonks(url, token, venueResponseSchema, fetcher)
 

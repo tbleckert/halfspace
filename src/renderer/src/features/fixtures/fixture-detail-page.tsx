@@ -1,4 +1,5 @@
 import { EntitySubpageNavigation } from '@/components/entity-subpage-navigation'
+import { FixtureTie } from './fixture-tie'
 import { entitySubpageNavigationItemClassName } from '@/components/entity-subpage-navigation-variants'
 import { ErrorAlert } from '@/components/error-alert'
 import { Badge } from '@/components/ui/badge'
@@ -532,6 +533,7 @@ function FixturePreview({
           seasonId={seasonId}
           startingAt={cachedFixture.startingAt}
         />
+        <FixtureTie fixture={cachedFixture.raw} context={context} online={online} />
         {cachedFixture.raw.coaches && cachedFixture.raw.coaches.length > 0 && (
           <FixtureCoaches
             coaches={cachedFixture.raw.coaches}
@@ -671,6 +673,7 @@ function FixtureDetails({
         )}
         {fixture.stage?.name && <Detail label="Stage" value={fixture.stage.name} />}
         {fixture.round?.name && <Detail label="Round" value={fixture.round.name} />}
+        {fixture.group?.name && <Detail label="Group" value={fixture.group.name} />}
       </dl>
     </section>
   )

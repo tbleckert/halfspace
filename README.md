@@ -80,11 +80,14 @@ include should have a useful place in Halfspace.
 - [x] Referee profiles and recent match appointments, linked from fixture officials.
 - [x] Referee season statistics with reported disciplinary totals and per-match averages.
 - [x] Player pages with match records and career history, plus coach and venue profiles.
+- [x] Richer profiles with player birthplace, preferred foot and registrations, linked coach playing careers, referee background, club socials, and venue maps.
+- [x] Pending transfers on player Career pages, separate from completed moves and rumours.
 - [x] Team, player, and coach honours with competition, season, club, and reported placing.
 - [x] Season statistics for competitions, teams, and players.
 - [x] Cross-league team and player comparisons with entity-specific season selection, independent records, and per-90 player radars.
 - [x] Season player leaderboards for goals, assists, yellow cards, and red cards.
 - [x] Fixture previews, event timelines, pitch lineups, match statistics, and pre-match odds.
+- [x] Provider-reported formations, group context, and aggregate ties with links between legs.
 - [x] Fixture weather and match-specific absences with linked player profiles.
 - [x] Match facts with team, category, and scope filters in fixture previews.
 - [x] Predicted lineups on the shared pitch before confirmed team sheets are available.
@@ -109,7 +112,6 @@ Prioritize football data presentation, then dedicated design passes. Sharing and
 follow once the visual design is settled.
 
 - [ ] Complete referee appointment history beyond the recent six-month window.
-- [ ] Pending transfers.
 - [ ] Expected goals, predictions, and expected lineups.
 - [ ] Deeper in-play analysis.
 - [ ] Premium odds and deeper bookmaker coverage.

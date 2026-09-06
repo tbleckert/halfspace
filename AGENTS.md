@@ -398,6 +398,23 @@ the user agrees to a new design decision; carry the style into other views incre
   as a label, never a calculated probability or confirmation; link only HTTP(S) sources and display
   fees only with an explicit currency. Retain unknown clubs and source details as unknown.
 
+## Profile and Fixture Detail
+
+- Player detail includes birthplace, preferred-foot metadata, reported team registrations, and pending
+  transfers. Keep birth country separate from nationality. Registration dates, shirt numbers, and
+  captain flags are reported facts; do not infer current membership from the include or overwrite
+  current/historical squad membership. Keep pending moves in player detail, separate from rumours
+  and completed transfer history, and never display fees without a reported currency.
+- Hydrate registration clubs, pending-transfer clubs, and coach playing profiles into the shared
+  entity cache. Search and other sparse identity refreshes must preserve richer and newer profile
+  data and must not extend detail freshness. Cache merges read existing values within their writes.
+- Club socials use reported channel names and secure links. Venue maps distinguish stadium
+  coordinates from city coordinates; never place a stadium pin at an inferred city center.
+- Prefer reported fixture formations for the lineup labels, retaining lineup coordinates for the
+  pitch and keeping predictions separate. Fixture Preview shows reported group and aggregate tie
+  context; related-match links come only from the aggregate's fixture IDs and retain its season.
+  Preserve these includes during fixture list refreshes and clear explicitly removed relations.
+
 ## Generative Football Views
 
 - Keep complete Sportmonks coverage as the primary development goal. Generative views build on that

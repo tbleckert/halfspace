@@ -23,7 +23,9 @@ export function VenueCard({
 }): React.JSX.Element {
   const cached = useScopedLiveQuery(() => readVenueIdentity(venueId), [venueId])
   const venue = cached?.venue?.raw ?? cached?.summary ?? venueSummary
-  const location = [venue.city_name, venue.country?.name ?? countryName].filter(Boolean).join(', ')
+  const location = [venue.city?.name ?? venue.city_name, venue.country?.name ?? countryName]
+    .filter(Boolean)
+    .join(', ')
   const capacity = venue.capacity ? new Intl.NumberFormat().format(venue.capacity) : null
 
   return (

@@ -5,7 +5,12 @@ import { prefetchPlayerEntity } from '@/features/players/use-player'
 import { TeamLogo } from '@/features/teams/team-logo'
 import { intentPrefetchProps } from '@/lib/prefetch'
 import { cn } from '@/lib/utils'
-import type { SportmonksEvent, SportmonksLineup, SportmonksParticipant } from '@shared/contracts'
+import type {
+  SportmonksEvent,
+  SportmonksFormation,
+  SportmonksLineup,
+  SportmonksParticipant
+} from '@shared/contracts'
 import { Link } from '@tanstack/react-router'
 import { ArrowLeftRight, CircleX } from 'lucide-react'
 import {
@@ -26,6 +31,7 @@ export function FixtureLineups({
   home,
   lineups,
   online,
+  formations = [],
   predicted = false
 }: {
   away?: SportmonksParticipant
@@ -34,6 +40,7 @@ export function FixtureLineups({
   home?: SportmonksParticipant
   lineups: SportmonksLineup[]
   online: boolean
+  formations?: SportmonksFormation[]
   predicted?: boolean
 }): React.JSX.Element {
   const homeEntries = lineups.filter(({ team_id }) => team_id === home?.id)
@@ -45,7 +52,7 @@ export function FixtureLineups({
   const homeSubstitutes = lineupGroup(homeEntries, 12)
   const awaySubstitutes = lineupGroup(awayEntries, 12)
 
-  if (lineups.length === 0) {
+  if (lineups.length === 0 && formations.length === 0) {
     return (
       <Card className="overflow-hidden">
         <FixtureEmptyState>Lineups not available</FixtureEmptyState>
@@ -57,11 +64,32 @@ export function FixtureLineups({
     <div className="flex flex-col gap-5">
       <Card className="overflow-hidden">
         <div className="grid grid-cols-2 gap-4">
-          <LineupTeamHeader formation={homeFormation} online={online} team={home} />
-          <LineupTeamHeader align="right" formation={awayFormation} online={online} team={away} />
+          <LineupTeamHeader
+            formation={homeFormation}
+            reportedFormation={
+              !predicted
+                ? formations.find(({ participant_id }) => participant_id === home?.id)?.formation
+                : undefined
+            }
+            online={online}
+            team={home}
+          />
+          <LineupTeamHeader
+            align="right"
+            formation={awayFormation}
+            reportedFormation={
+              !predicted
+                ? formations.find(({ participant_id }) => participant_id === away?.id)?.formation
+                : undefined
+            }
+            online={online}
+            team={away}
+          />
         </div>
 
-        {homeFormation && awayFormation ? (
+        {lineups.length === 0 ? (
+          <FixtureEmptyState>Lineups not available</FixtureEmptyState>
+        ) : homeFormation && awayFormation ? (
           <CombinedFormationPitch
             predicted={predicted}
             annotations={annotations}
@@ -124,11 +152,13 @@ type Formation = NonNullable<ReturnType<typeof fixtureFormationLines>>
 function LineupTeamHeader({
   align = 'left',
   formation,
+  reportedFormation,
   online,
   team
 }: {
   align?: 'left' | 'right'
   formation: Formation | null
+  reportedFormation?: string
   online: boolean
   team?: SportmonksParticipant
 }): React.JSX.Element {
@@ -146,9 +176,9 @@ function LineupTeamHeader({
       />
       <div className="min-w-0">
         <h2 className="truncate text-sm font-semibold">{team?.name ?? 'Team'}</h2>
-        {formation && (
+        {(reportedFormation || formation) && (
           <p className="mt-0.5 font-mono text-xs tabular-nums text-muted-foreground">
-            {fixtureFormationLabel(formation)}
+            {reportedFormation || (formation && fixtureFormationLabel(formation))}
           </p>
         )}
       </div>

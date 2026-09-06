@@ -13,6 +13,7 @@ import { useOnline } from '@/lib/use-online'
 import { cn } from '@/lib/utils'
 import { useRefereeEntity } from './use-referee'
 import { RefereeStatistics } from './referee-statistics'
+import { RefereeBackground } from './referee-background'
 
 export function RefereePage({
   refereeId,
@@ -107,6 +108,7 @@ export function RefereePage({
             </Button>
           </header>
           {referee.error && <ErrorAlert>{referee.error}</ErrorAlert>}
+          {identity && <RefereeBackground referee={identity} />}
           {!loading && (
             <RefereeStatistics
               statistics={identity?.statistics}

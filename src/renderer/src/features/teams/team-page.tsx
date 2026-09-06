@@ -59,6 +59,7 @@ import { TeamLogo } from './team-logo'
 import { TeamAvailability } from './team-availability'
 import { TeamRivals } from './team-rivals'
 import { TeamRankings } from './team-rankings'
+import { TeamSocials } from './team-socials'
 import { useTeamRivals } from './use-team-rivals'
 import { useTeamCompetitions } from './use-team-competitions'
 import { TeamTransfers } from './team-transfers'
@@ -399,6 +400,7 @@ export function TeamPage({
               error={currentCompetitions.error}
             />
             <TeamRankings rankings={detailedTeam?.rankings} />
+            <TeamSocials socials={detailedTeam?.socials} />
             <TeamRivals
               cached={rivals.cached}
               loading={rivals.refreshing}
