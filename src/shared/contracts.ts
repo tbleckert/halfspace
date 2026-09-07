@@ -1,3 +1,4 @@
+import type { TeamDirectoryInput, TeamDirectoryRefresh } from './team-directory'
 import type { ViewsApi } from './views'
 import type {
   RefreshTeamScheduleInput,
@@ -9,6 +10,7 @@ import type {
 import type { RefreshTransferRumoursInput, TransferRumoursRefresh } from './transfer-rumours'
 
 export const ipcChannels = {
+  refreshTeamDirectory: 'sportmonks:refresh-team-directory',
   refreshTeamSchedule: 'sportmonks:refresh-team-schedule',
   refreshSeasonReferees: 'sportmonks:refresh-season-referees',
   refreshSeasonVenues: 'sportmonks:refresh-season-venues',
@@ -591,7 +593,7 @@ export interface SportmonksParticipant {
 export interface SportmonksVenue {
   id: number
   name: string
-  country_id?: number
+  country_id?: number | null
   city_id?: number | null
   address?: string | null
   zipcode?: string | null
@@ -1386,6 +1388,7 @@ export interface HalfspaceApi {
     clearToken(): Promise<Result<null>>
   }
   sportmonks: {
+    refreshTeamDirectory(input: TeamDirectoryInput): Promise<Result<TeamDirectoryRefresh>>
     refreshTeamSchedule(input: RefreshTeamScheduleInput): Promise<Result<TeamScheduleRefresh>>
     refreshSeasonReferees(input: RefreshStandingsInput): Promise<Result<SeasonRefereesRefresh>>
     refreshSeasonVenues(input: RefreshStandingsInput): Promise<Result<SeasonVenuesRefresh>>

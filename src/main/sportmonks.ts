@@ -238,7 +238,7 @@ export const venueSchema = z
   .object({
     id: z.number().int(),
     name: z.string(),
-    country_id: z.number().int().optional(),
+    country_id: z.number().int().nullish(),
     city_id: z.number().int().nullable().optional(),
     address: z.string().nullable().optional(),
     zipcode: z.string().nullable().optional(),
@@ -1509,7 +1509,14 @@ export async function fetchFixturesByDate(
   token: string,
   fetcher: typeof fetch = fetch
 ): Promise<FixtureRefresh> {
-  return fetchFixturePages(`fixtures/date/${input.date}`, input.timeZone, token, fetcher)
+  return fetchFixturePages(
+    `fixtures/date/${input.date}`,
+    input.timeZone,
+    token,
+    fetcher,
+    undefined,
+    'participants;league;state;scores;periods;venue;stage'
+  )
 }
 
 export async function fetchLiveFixtures(
@@ -1547,7 +1554,9 @@ export async function fetchFixturesByDateRange(
     `fixtures/between/${input.startDate}/${input.endDate}`,
     input.timeZone,
     token,
-    fetcher
+    fetcher,
+    undefined,
+    'participants;league;state;scores;periods;venue;stage'
   )
 }
 
@@ -2033,16 +2042,24 @@ export async function fetchSeasonTeams(
 ): Promise<SeasonTeamsRefresh> {
   const fetchedAt = Date.now()
   const teams: SportmonksTeam[] = []
-  const schema = competitionResponseSchema.extend({ data: z.array(teamSchema) })
+  const schema = competitionResponseSchema.extend({
+    data: z.array(teamSchema),
+    pagination: competitionResponseSchema.shape.pagination.optional()
+  })
   let rateLimit: SeasonTeamsRefresh['rateLimit']
   let message: string | undefined
   for (let page = 1; page <= maximumPages; page += 1) {
     const url = new URL(`${apiBaseUrl}/teams/seasons/${input.seasonId}`)
-    url.searchParams.set('include', 'country')
+    url.searchParams.set('include', 'country;venue')
     url.searchParams.set('per_page', '50')
     url.searchParams.set('page', String(page))
     const parsed = await requestSportmonks(url, token, schema, fetcher)
-    if (parsed.pagination.current_page !== page) {
+    // Live season-team responses can return the entire list without pagination metadata.
+    // Once pagination starts, every subsequent page must keep that contract.
+    if (
+      (!parsed.pagination && page > 1) ||
+      (parsed.pagination && parsed.pagination.current_page !== page)
+    ) {
       throw new SportmonksError('invalid_response', 'Sportmonks returned an unexpected team page.')
     }
     teams.push(...parsed.data)
@@ -2053,7 +2070,7 @@ export async function fetchSeasonTeams(
         resetsAt: fetchedAt + parsed.rate_limit.resets_in_seconds * 1000
       }
     }
-    if (!parsed.pagination.has_more) {
+    if (!parsed.pagination?.has_more) {
       return { seasonId: input.seasonId, teams, fetchedAt, pageCount: page, rateLimit, message }
     }
   }

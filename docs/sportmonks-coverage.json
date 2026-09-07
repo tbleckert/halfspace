@@ -2,14 +2,24 @@
   "schemaVersion": 1,
   "endpoints": {
     "livescores/get-inplay-livescores": ["participants", "league", "state", "scores", "periods"],
-    "fixtures/get-fixtures-by-date": ["participants", "league", "state", "scores", "periods"],
+    "fixtures/get-fixtures-by-date": [
+      "participants",
+      "league",
+      "state",
+      "scores",
+      "periods",
+      "venue",
+      "stage"
+    ],
     "fixtures/get-fixtures-by-date-range": [
       "participants",
       "league",
       "state",
       "scores",
       "periods",
-      "tvStations"
+      "tvStations",
+      "venue",
+      "stage"
     ],
     "fixtures/get-fixtures-by-search-by-name": [
       "participants",
@@ -157,7 +167,7 @@
     "tv-stations/get-tv-station-by-id": [],
     "leagues/get-league-by-id": ["country", "currentSeason"],
     "leagues/get-current-leagues-by-team-id": ["country", "currentSeason"],
-    "teams/get-teams-by-season-id": ["country"],
+    "teams/get-teams-by-season-id": ["country", "venue"],
     "schedules/get-schedules-by-season-id-and-team-id": [],
     "referees/get-referees-by-season-id": ["country"],
     "venues/get-venues-by-season-id": ["country"],
@@ -166,6 +176,8 @@
     "transfer-rumours/get-transfer-rumours-by-player-id": ["player", "fromTeam", "toTeam", "type"],
     "statistics/get-stage-statistics-by-id": [],
     "statistics/get-round-statistics-by-id": [],
-    "topscorers/get-topscorers-by-stage-id": ["player", "participant", "type"]
+    "topscorers/get-topscorers-by-stage-id": ["player", "participant", "type"],
+    "teams/get-all-teams": ["country", "venue"],
+    "teams/get-teams-by-country-id": ["country", "venue"]
   }
 }

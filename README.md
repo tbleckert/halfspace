@@ -61,7 +61,9 @@ include should have a useful place in Halfspace.
 ### Available
 
 - [x] Local-first desktop app with personal Sportmonks tokens and offline browsing.
-- [x] Matchday hub with calendar navigation, live updates, upcoming fixtures, and recent results.
+- [x] Today-focused Matchday with featured games, live updates, upcoming fixtures, and recent results.
+- [x] Dedicated Fixtures browser with week navigation and a date picker.
+- [x] Searchable team directory with country and competition browsing, local team pins, and sidebar shortcuts.
 - [x] Global live-score ticker with direct links into every match in play.
 - [x] Competition pages with standings, qualification and relegation places, linked form, season selection, and complete season team lists.
 - [x] Complete competition and team season schedules with stage navigation and competition rounds.

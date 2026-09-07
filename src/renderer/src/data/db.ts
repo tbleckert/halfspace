@@ -1,3 +1,4 @@
+import type { TeamDirectoryRefresh } from '@shared/team-directory'
 import type {
   SeasonRefereesQuery,
   SeasonVenuesQuery,
@@ -525,6 +526,25 @@ export interface CompetitionSeasonQuery {
   message?: string
 }
 
+export interface TeamPinRecord {
+  teamId: number
+  name: string
+  imagePath: string | null
+  pinnedAt: number
+}
+
+export interface TeamDirectoryQuery extends Omit<TeamDirectoryRefresh, 'teams'> {
+  key: string
+  teamIds: number[]
+  staleAt: number
+}
+
+export interface FeaturedGameSelection {
+  key: string
+  fixtureId: number
+  selectedAt: number
+}
+
 export interface CompetitionPin {
   competitionId: number
   pinnedAt: number
@@ -644,6 +664,9 @@ class HalfspaceDatabase extends Dexie {
   fixtureHeadToHeadQueries!: Table<FixtureHeadToHeadQuery, string>
   competitions!: Table<CachedCompetition, number>
   competitionCatalogs!: Table<CompetitionCatalog, string>
+  teamPins!: Table<TeamPinRecord, number>
+  teamDirectoryQueries!: Table<TeamDirectoryQuery, string>
+  featuredGameSelections!: Table<FeaturedGameSelection, string>
   competitionPins!: Table<CompetitionPin, number>
   competitionSeasonQueries!: Table<CompetitionSeasonQuery, number>
   standings!: Table<CachedStanding, number>
@@ -966,6 +989,11 @@ class HalfspaceDatabase extends Dexie {
     this.version(39).stores({
       scopedStatisticsQueries: '&key, staleAt',
       stageTopscorersQueries: '&key, staleAt'
+    })
+    this.version(40).stores({
+      teamPins: '&teamId, pinnedAt',
+      teamDirectoryQueries: '&key, staleAt',
+      featuredGameSelections: '&key'
     })
   }
 }
@@ -3184,6 +3212,8 @@ export async function clearSportmonksCache(): Promise<void> {
   await db.transaction(
     'rw',
     [
+      db.teamDirectoryQueries,
+      db.featuredGameSelections,
       db.seasonRefereeQueries,
       db.seasonVenueQueries,
       db.standingCorrectionQueries,
@@ -3250,6 +3280,8 @@ export async function clearSportmonksCache(): Promise<void> {
       db.honoursQueries
     ],
     async () => {
+      await db.teamDirectoryQueries.clear()
+      await db.featuredGameSelections.clear()
       await db.seasonRefereeQueries.clear()
       await db.seasonVenueQueries.clear()
       await db.standingCorrectionQueries.clear()

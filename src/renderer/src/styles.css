@@ -177,3 +177,20 @@ button,
 input {
   font: inherit;
 }
+
+.featured-venue {
+  mask-image: linear-gradient(to right, transparent, black 65%);
+}
+
+.featured-venue img {
+  filter: grayscale(1) contrast(1.35);
+  mix-blend-mode: multiply;
+  mask-image: radial-gradient(circle, black 1.2px, transparent 1.35px);
+  mask-size: 4px 4px;
+}
+
+.featured-venue-fallback {
+  background-image: radial-gradient(circle, var(--primary) 1px, transparent 1.2px);
+  background-size: 6px 6px;
+  opacity: 0.2;
+}

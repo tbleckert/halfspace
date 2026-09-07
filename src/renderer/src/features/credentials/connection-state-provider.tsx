@@ -1,3 +1,4 @@
+import { invalidateTeamDirectoryRefreshes } from '@/features/teams/use-team-directory'
 import { invalidateSeasonRefereesRefreshes } from '@/features/competitions/use-season-referees'
 import { invalidateSeasonVenuesRefreshes } from '@/features/competitions/use-season-venues'
 import { invalidateStandingCorrectionsRefreshes } from '@/features/competitions/use-standing-corrections'
@@ -221,6 +222,7 @@ function invalidateRefreshes(): void {
   invalidateCoachRefreshes()
   invalidateRefereeRefreshes()
   invalidateCompetitionWorkspaceRefreshes()
+  invalidateTeamDirectoryRefreshes()
   invalidateFixtureRefreshes()
   invalidateCommentaryRefreshes()
   invalidatePressureRefreshes()

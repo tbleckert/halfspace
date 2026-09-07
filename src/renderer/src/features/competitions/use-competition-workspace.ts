@@ -209,6 +209,12 @@ export async function prefetchSeasonStatistics(seasonId: number): Promise<void> 
   await refreshSeasonStatisticsQuery(seasonId)
 }
 
+export async function prefetchCompetitionSeasons(competitionId: number): Promise<void> {
+  const cached = await readCompetitionSeasons(competitionId)
+  if (cached && cached.staleAt > Date.now()) return
+  await refreshCompetitionSeasonsQuery(competitionId)
+}
+
 export async function prefetchStandings(seasonId: number): Promise<void> {
   const cached = await readStandingsQuery(seasonId)
   if (cached.query && cached.query.staleAt > Date.now()) return

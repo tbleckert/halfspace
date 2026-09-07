@@ -1,3 +1,6 @@
+import { TeamLogo } from '@/features/teams/team-logo'
+import { usePinnedTeams } from '@/features/teams/use-team-pins'
+import { prefetchTeamEntity } from '@/features/teams/use-team'
 import { useMemo } from 'react'
 import { Link, Outlet, useRouterState } from '@tanstack/react-router'
 import {
@@ -10,7 +13,9 @@ import {
   Newspaper,
   Settings,
   Trophy,
-  Tv
+  Tv,
+  Users,
+  List
 } from 'lucide-react'
 import type { SportmonksRateLimit } from '@shared/contracts'
 import { TokenSetup } from '@/features/credentials/token-setup'
@@ -86,6 +91,7 @@ export function AppShell(): React.JSX.Element {
 function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): React.JSX.Element {
   const online = useOnline()
   const { cached } = useCompetitions()
+  const pinnedTeams = usePinnedTeams()
   const pinnedCompetitionIds = usePinnedCompetitionIds() ?? noPinnedCompetitionIds
   const quickCompetitions = useMemo(
     () => sidebarCompetitions(cached?.competitions ?? [], pinnedCompetitionIds),
@@ -104,7 +110,6 @@ function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): Re
   })
   const timeZone = useMemo(() => currentTimeZone(), [])
   const currentDate = useTodayInTimeZone(timeZone)
-  const sidebarDate = sidebarLocation.date ?? currentDate
   const matchdayActive = sidebarLocation.pathname === '/'
 
   useSidebarPrefetch(quickCompetitions, currentDate, timeZone, online)
@@ -133,75 +138,110 @@ function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): Re
         </div>
 
         <nav aria-label="Workspace" className="mt-5 flex min-h-0 flex-1 flex-col">
-          <div className="flex flex-col gap-1">
-            <Link
-              to="/"
-              search={{ date: sidebarDate }}
-              aria-current={matchdayActive ? 'page' : undefined}
-              className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground outline-none transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring',
-                matchdayActive &&
-                  'bg-sidebar-accent font-semibold text-sidebar-primary hover:bg-sidebar-primary/10 hover:text-sidebar-primary'
-              )}
-              {...intentPrefetchProps(online, () => prefetchFixtureQuery(sidebarDate, timeZone))}
-            >
-              <CalendarDays className="size-4" />
-              Matchday
-            </Link>
-            <SidebarLink
-              icon={<Trophy className="size-4" />}
-              label="Competitions"
-              to="/competitions"
-            />
-          </div>
-
-          {quickCompetitions.length > 0 && (
-            <div className="mt-1 flex min-h-0 flex-col gap-0.5 overflow-y-auto pl-3">
-              {quickCompetitions.map((competition) => {
-                const active = competition.id === sidebarLocation.competitionId
-
-                return (
-                  <Link
-                    key={competition.id}
-                    to="/competitions/$competitionId"
-                    params={{ competitionId: String(competition.id) }}
-                    aria-current={
-                      active && sidebarLocation.pathname.startsWith('/competitions/')
-                        ? 'page'
-                        : undefined
-                    }
-                    className={cn(
-                      'relative flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-[13px] font-medium text-muted-foreground outline-none transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring',
-                      active && 'bg-sidebar-accent text-sidebar-primary'
-                    )}
-                    {...intentPrefetchProps(online, () =>
-                      prefetchCompetitionWorkspace(competition.id)
-                    )}
-                  >
-                    <CompetitionLogo
-                      className="size-6 bg-background"
-                      imagePath={competition.imagePath}
-                      online={online}
-                    />
-                    <span className="truncate">{competition.name}</span>
-                  </Link>
-                )
-              })}
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="flex flex-col gap-1">
+              <Link
+                to="/"
+                search={{}}
+                aria-current={matchdayActive ? 'page' : undefined}
+                className={cn(
+                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground outline-none transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring',
+                  matchdayActive &&
+                    'bg-sidebar-accent font-semibold text-sidebar-primary hover:bg-sidebar-primary/10 hover:text-sidebar-primary'
+                )}
+                {...intentPrefetchProps(online, () => prefetchFixtureQuery(currentDate, timeZone))}
+              >
+                <CalendarDays className="size-4" />
+                Matchday
+              </Link>
+              <SidebarLink
+                exact
+                icon={<List className="size-4" />}
+                label="Fixtures"
+                to="/fixtures"
+              />
+              <SidebarLink
+                icon={<Trophy className="size-4" />}
+                label="Competitions"
+                to="/competitions"
+              />
             </div>
-          )}
-          <div className="mt-3 flex flex-col gap-1">
-            <SidebarLink icon={<Newspaper className="size-4" />} label="News" to="/news" />
-            <SidebarLink icon={<Tv className="size-4" />} label="TV Guide" to="/tv-guide" />
-            <SidebarLink icon={<Repeat2 className="size-4" />} label="Transfers" to="/transfers" />
-            <SidebarLink
-              icon={<ArrowLeftRight className="size-4" />}
-              label="Compare"
-              to="/compare"
-            />
-            <SidebarLink icon={<LayoutTemplate className="size-4" />} label="Views" to="/views" />
-          </div>
 
-          <div className="mt-auto flex flex-col gap-1 pt-4">
+            {quickCompetitions.length > 0 && (
+              <div className="mt-1 flex flex-col gap-0.5 pl-3">
+                {quickCompetitions.map((competition) => {
+                  const active = competition.id === sidebarLocation.competitionId
+
+                  return (
+                    <Link
+                      key={competition.id}
+                      to="/competitions/$competitionId"
+                      params={{ competitionId: String(competition.id) }}
+                      aria-current={
+                        active && sidebarLocation.pathname.startsWith('/competitions/')
+                          ? 'page'
+                          : undefined
+                      }
+                      className={cn(
+                        'relative flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-[13px] font-medium text-muted-foreground outline-none transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring',
+                        active && 'bg-sidebar-accent text-sidebar-primary'
+                      )}
+                      {...intentPrefetchProps(online, () =>
+                        prefetchCompetitionWorkspace(competition.id)
+                      )}
+                    >
+                      <CompetitionLogo
+                        className="size-6 bg-background"
+                        imagePath={competition.imagePath}
+                        online={online}
+                      />
+                      <span className="truncate">{competition.name}</span>
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
+            <div className="mt-3 flex flex-col gap-1">
+              <SidebarLink exact icon={<Users className="size-4" />} label="Teams" to="/teams" />
+              {!!pinnedTeams?.length && (
+                <div aria-label="Pinned teams" className="flex flex-col gap-0.5 pl-3">
+                  {pinnedTeams.map((team) => (
+                    <Link
+                      key={team.teamId}
+                      to="/teams/$teamId"
+                      params={{ teamId: String(team.teamId) }}
+                      className="flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-[13px] font-medium text-muted-foreground outline-none transition-colors hover:bg-sidebar-accent focus-visible:bg-sidebar-accent"
+                      activeProps={{ className: 'bg-sidebar-accent text-sidebar-primary' }}
+                      {...intentPrefetchProps(online, () => prefetchTeamEntity(team.teamId))}
+                    >
+                      <TeamLogo
+                        className="size-6 bg-background"
+                        imagePath={team.imagePath}
+                        online={online}
+                      />
+                      <span className="truncate">{team.name}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="mt-3 flex flex-col gap-1">
+              <SidebarLink icon={<Newspaper className="size-4" />} label="News" to="/news" />
+              <SidebarLink icon={<Tv className="size-4" />} label="TV Guide" to="/tv-guide" />
+              <SidebarLink
+                icon={<Repeat2 className="size-4" />}
+                label="Transfers"
+                to="/transfers"
+              />
+              <SidebarLink
+                icon={<ArrowLeftRight className="size-4" />}
+                label="Compare"
+                to="/compare"
+              />
+              <SidebarLink icon={<LayoutTemplate className="size-4" />} label="Views" to="/views" />
+            </div>
+          </div>
+          <div className="flex shrink-0 flex-col gap-1 pt-4">
             <EntitySearchPalette online={online} />
             <SidebarLink icon={<Settings className="size-4" />} label="Settings" to="/settings" />
           </div>
@@ -258,12 +298,21 @@ function SidebarLink({
   exact?: boolean
   icon: React.ReactNode
   label: string
-  to: '/tv-guide' | '/competitions' | '/settings' | '/transfers' | '/compare' | '/news' | '/views'
+  to:
+    | '/fixtures'
+    | '/teams'
+    | '/tv-guide'
+    | '/competitions'
+    | '/settings'
+    | '/transfers'
+    | '/compare'
+    | '/news'
+    | '/views'
 }): React.JSX.Element {
   return (
     <Link
       to={to}
-      activeOptions={{ exact }}
+      activeOptions={{ exact, includeSearch: false }}
       className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground outline-none transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring"
       activeProps={{
         className:

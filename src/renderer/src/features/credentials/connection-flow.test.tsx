@@ -12,7 +12,6 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppShell } from '@/components/app-shell'
 import { SettingsPage } from '@/features/settings/settings-page'
-import { currentTimeZone, isoDateInTimeZone } from '@/lib/date'
 import { ConnectionStateProvider } from './connection-state-provider'
 
 const getConnectionState = vi.fn()
@@ -37,6 +36,7 @@ beforeEach(() => {
       clearToken
     },
     sportmonks: {
+      refreshTeamDirectory: vi.fn(),
       refreshTeamSchedule: vi.fn(),
       refreshSeasonReferees: vi.fn(),
       refreshSeasonVenues: vi.fn(),
@@ -185,9 +185,8 @@ describe('Sportmonks connection flow', () => {
     expect(screen.getByText('Fixture limit reached')).toBeDefined()
   })
 
-  it('updates the Matchday link when the calendar date changes while the app remains open', async () => {
+  it('keeps Matchday independent of historical date context across midnight', async () => {
     getConnectionState.mockResolvedValue({ configured: true })
-    const timeZone = currentTimeZone()
     const firstTimestamp = Date.UTC(2026, 7, 30, 12)
     const nextTimestamp = Date.UTC(2026, 7, 31, 12)
     let now = firstTimestamp
@@ -218,24 +217,18 @@ describe('Sportmonks connection flow', () => {
     render(<RouterProvider router={router} />)
 
     expect(await screen.findByRole('heading', { name: 'Matchday' })).toBeDefined()
-    expect(screen.getByRole('link', { name: 'Matchday' }).getAttribute('href')).toContain(
-      `date=${isoDateInTimeZone(firstTimestamp, timeZone)}`
-    )
+    expect(screen.getByRole('link', { name: 'Matchday' }).getAttribute('href')).toBe('/')
 
     now = nextTimestamp
     fireEvent(window, new Event('focus'))
 
     await waitFor(() =>
-      expect(screen.getByRole('link', { name: 'Matchday' }).getAttribute('href')).toContain(
-        `date=${isoDateInTimeZone(nextTimestamp, timeZone)}`
-      )
+      expect(screen.getByRole('link', { name: 'Matchday' }).getAttribute('href')).toBe('/')
     )
 
     fireEvent.click(screen.getByRole('link', { name: 'Settings' }))
 
     expect(await screen.findByRole('heading', { name: 'Settings' })).toBeDefined()
-    expect(screen.getByRole('link', { name: 'Matchday' }).getAttribute('href')).toContain(
-      `date=${isoDateInTimeZone(nextTimestamp, timeZone)}`
-    )
+    expect(screen.getByRole('link', { name: 'Matchday' }).getAttribute('href')).toBe('/')
   })
 })

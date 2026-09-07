@@ -89,7 +89,9 @@ describe('Sportmonks client', () => {
     const [firstInput, firstInit] = fetcher.mock.calls[0]
     const firstUrl = new URL(firstInput.toString())
     expect(firstUrl.searchParams.has('api_token')).toBe(false)
-    expect(firstUrl.searchParams.get('include')).toBe('participants;league;state;scores;periods')
+    expect(firstUrl.searchParams.get('include')).toBe(
+      'participants;league;state;scores;periods;venue;stage'
+    )
     expect(new Headers(firstInit?.headers).get('Authorization')).toBe('private-token')
   })
 

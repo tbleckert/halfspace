@@ -64,6 +64,18 @@ describe('entity discovery', () => {
     expect(urls.map((url) => url.searchParams.get('page'))).toEqual(['1', '2'])
   })
 
+  it('rejects a season team feed that loses pagination partway through', async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        Response.json({ data: [team], pagination: { current_page: 1, has_more: true } })
+      )
+      .mockResolvedValueOnce(Response.json({ data: [{ ...team, id: 99 }] }))
+    await expect(fetchSeasonTeams({ seasonId: 10 }, 'token', fetcher)).rejects.toThrow(
+      'unexpected team page'
+    )
+  })
+
   it.each(['competitions', 'teams'] as const)('never returns a partial %s list', async (entity) => {
     const fetcher = vi
       .fn<typeof fetch>()

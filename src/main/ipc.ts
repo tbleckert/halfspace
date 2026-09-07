@@ -1,3 +1,4 @@
+import { fetchTeamDirectory, validateTeamDirectoryInput } from './team-directory'
 import {
   fetchSeasonReferees,
   fetchSeasonVenues,
@@ -103,6 +104,12 @@ let currentRateLimit: SportmonksRateLimit | null = null
 let credentialGeneration = 0
 
 export function registerIpcHandlers(): void {
+  registerSportmonksHandler(
+    ipcChannels.refreshTeamDirectory,
+    validateTeamDirectoryInput,
+    fetchTeamDirectory,
+    'Could not refresh teams.'
+  )
   registerSportmonksHandler(
     ipcChannels.refreshTvGuide,
     validateFixtureWindowInput,

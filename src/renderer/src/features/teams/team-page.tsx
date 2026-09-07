@@ -1,3 +1,4 @@
+import { TeamPin } from './team-pin'
 import { TeamSchedule } from './team-schedule'
 import { useTeamSchedule, prefetchTeamSchedule } from './use-team-schedule'
 import { TransferRumours } from '@/features/transfers/transfer-rumours'
@@ -355,6 +356,13 @@ export function TeamPage({
           </div>
 
           <div className="flex items-center gap-2">
+            <TeamPin
+              team={{
+                id: parsedTeamId,
+                name: identity.name,
+                imagePath: identity.image_path ?? null
+              }}
+            />
             {view === 'stats' && (
               <CompareLink
                 kind="teams"

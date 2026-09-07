@@ -743,9 +743,9 @@ function FixtureBackLink({
   }
 
   return (
-    <Link to="/" search={{ date }} className={className}>
+    <Link to="/fixtures" search={{ date }} className={className}>
       <ArrowLeft className="size-4" />
-      Matchday
+      Fixtures
     </Link>
   )
 }
@@ -790,12 +790,12 @@ function MissingFixture({
             </Link>
           ) : (
             <Link
-              to="/"
+              to="/fixtures"
               search={{ date }}
               className={cn(buttonVariants({ variant: 'outline' }), 'mt-4')}
             >
               <ArrowLeft className="size-4" />
-              Back to Matchday
+              Back to Fixtures
             </Link>
           )}
         </CardContent>

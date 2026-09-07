@@ -71,11 +71,14 @@ the user agrees to a new design decision; carry the style into other views incre
   a previous page must not overwrite the status of the page the user is viewing.
 - Competition pages use horizontal local navigation for Overview, Fixtures, and Teams. Overview is
   the current-season snapshot, Fixtures browses the complete cached date window without truncating
-  it, and Teams fetches the complete paginated season team list, adds reported standings, and falls back to
+  it, and Teams fetches the complete season team list, adds reported standings, and falls back to
   cached standings and fixture participants only until that list is available. Offer the
   ten most recent seasons in a compact URL-backed selector; keep standings and fixture windows
   season-scoped, and keep the selected season when changing competition views or opening a fixture.
   Changing the selected season must retain the active competition subpage.
+- Season-team responses can return the complete list without pagination metadata on the first
+  response. Accept that observed provider form; when pagination is present, consume every page and
+  reject a later page that drops or changes its pagination identity.
 - Competition tables show provider-reported played matches and goal difference from standing
   details, plus the last five W/D/L results from standing form. Request only the detail types shown;
   preserve missing values as unknown. Sort form by provider `sort_order`, oldest to newest, and link
@@ -213,27 +216,41 @@ the user agrees to a new design decision; carry the style into other views incre
   score. The fixture hero may pair its live ping with a visible status label.
 - Treat “today” as live calendar state rather than a value captured when a module or app shell
   mounts. Refresh it across midnight and when the app regains focus, and use the current day when
-  returning to Matchday from a page without date context. Keep the Today action beside the date
-  control.
+  returning to Matchday. Keep the Today action inside the Fixtures date picker.
 - Matchday competition groups use the shared `Card`, `CardHeader`, and `CardTitle` hierarchy. Keep
   headers on the normal muted card surface and link each competition name together with its logo.
   Use typography and spacing instead of header borders or separators between fixtures: give the
   competition heading breathing room, keep each team pair close together, and leave a larger gap
   between matches. Give both team names equal emphasis, keep times and terminal states quieter,
   and align scores with their teams. Use inset rounded rows with the sidebar active-item background
-  for hover and keyboard focus. Match loading states to the same structure. Keep the Matchday page
-  heading screen-reader-only so the week navigator has the available header space.
-- Treat Matchday as a rolling fixture hub around the selected date. Use a compact seven-day
-  Monday-to-Sunday navigator with only a small weekday and a two-digit day in the interface font,
-  no fixture counts or container chrome, and place it first in the page header beside calendar and
-  refresh icon controls. Use the compact shadcn date picker rather than showing the selected date
-  again; keep Today inside that picker. Put previous- and next-week chevrons on its edges. Distinguish the
-  selected day through text emphasis. When the week spans months, mute dates outside the selected
-  month slightly. Separate current live fixtures, keep an empty selected day quiet, and surface the
-  next three fixture days plus the two latest result days as compact previews linking to the
-  complete day. Fetch the wider window in one Sportmonks date-range request, split it into the
-  existing daily Dexie queries, and refresh the selected day separately so live updates do not
-  refetch the full window.
+  for hover and keyboard focus. Match loading states to the same structure.
+- Matchday always follows today in the user's time zone, including midnight and focus changes.
+  Keep its heading, quiet date, refresh action, live fixtures, today's competition groups, news,
+  and recent results. Fixtures is the separate main-nav destination for date browsing with the
+  shared week navigator and compact date picker. Preserve date context in fixture return links.
+- Matchday Up next is one chronological list of the next ten scheduled fixtures after today,
+  without league grouping, with quiet date/competition context and a View all link to Fixtures.
+  Reuse the rolling daily cache window; refresh today separately from the surrounding window.
+- Featured game is a compact violet card above today's fixtures, with a dotted halftone venue
+  background and a graphic fallback when imagery is missing. Preserve readable team names and facts.
+  Score explicit competition weights, current top-four meetings only after half the full league
+  schedule has been completed, previous completed season top-four meetings separately, confirmed
+  rivalry, and same-city matches only when both home-venue city IDs equal the fixture venue city ID.
+  Missing evidence earns no bonus; group tables are not league-wide top-four evidence.
+- Add quarter-final/semi-final/final bonuses of 10/15/20 separately from competition weight.
+  Rivalry adds 25, same-city adds 10, current top four adds 20, previous top four adds 15,
+  pinned competition adds 15, one/both pinned teams add 25/35, and live or kickoff within 90 minutes
+  adds 10. Hide Featured game below five real games; five through ten require 45 points;
+  above ten always choose an eligible game. Count the whole day, including finished games, and
+  exclude cancelled/postponed fixtures and placeholders. Keep the choice through kickoff and live
+  play, rotate after completion, and retain the final featured result when the day is over.
+  Persist selection per local date/time zone; warm shared context sequentially and stop on unmount,
+  hidden/offline state, or credential reset. Do not expose the internal points in the interface.
+- Teams is a main-nav directory with All teams and Pinned views, immediate cached search, provider
+  search, country and current-competition filters, and explicit page navigation. Cache each query
+  page separately with hasMore and preserve richer/newer team detail when hydrating shared identities.
+  Pin teams from directory rows or their persistent header, and show pinned teams in the sidebar.
+  Team pins are local user preferences and survive disposable football-cache clearing.
 - Derive live match time from Sportmonks periods rather than elapsed wall-clock time.
 - Period minutes can be null, including penalty shootouts. Preserve the missing value and fall
   back to the match phase; never reject the entire fixture window or invent a zero-minute clock.
@@ -359,7 +376,7 @@ the user agrees to a new design decision; carry the style into other views incre
   heading and feed tabs, and reuse the shared article reader. Keep the feed independent of the
   selected fixture date. At narrower widths, place news below fixtures rather than squeezing the
   match list. Adapt the Matchday header to its available column width, not only the viewport width.
-  Keep the week navigation and news cards close beneath the live ticker.
+  Keep the Matchday header and news cards close beneath the live ticker.
 - Match facts belong in Fixture Preview with participant, category, and scope filters. Fetch every page
   before caching the response; show provider-written facts verbatim and omit records without wording.
   Facts can describe the referee as well as home, away, or both teams. Accept referee records even

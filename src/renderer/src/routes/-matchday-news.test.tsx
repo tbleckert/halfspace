@@ -51,17 +51,17 @@ beforeEach(async () => {
 })
 afterAll(() => db.close())
 
-function openMatchday(): void {
+function openMatchday(path = '/'): void {
   const router = createRouter({
     routeTree,
-    history: createMemoryHistory({ initialEntries: ['/?date=2026-09-04'] })
+    history: createMemoryHistory({ initialEntries: [path] })
   })
 
   render(<RouterProvider router={router} />)
 }
 
-it('chooses the Matchday date from the compact calendar control', async () => {
-  openMatchday()
+it('chooses the Fixtures date from the compact calendar control', async () => {
+  openMatchday('/fixtures?date=2026-09-04')
 
   expect(screen.queryByLabelText('Fixture date')).toBeNull()
   fireEvent.click(

@@ -90,9 +90,22 @@ its own colors. Use the coral-and-violet palette above for interface design.
 
 ## Matchday reference patterns
 
-**Fixtures:** borderless competition cards, a linked logo and competition heading, equal-weight
+**Matchday and Fixtures:** Matchday stays on today with a visible heading and quiet date. The
+separate Fixtures destination owns week navigation and the date picker. Up next is a single list
+of ten fixtures after today, with quiet date and competition context and a View all link.
+
+Both views use borderless competition cards, a linked logo and competition heading, equal-weight
 team names, and aligned monospaced facts. Inset rounded rows use the sidebar active background
 for hover and focus. Loading states follow the same structure.
+
+**Featured game:** a compact violet-tinted card at the top of Matchday. Use the actual venue as
+low-contrast, dotted halftone background imagery, fading towards readable team names and compact
+football facts. Missing imagery gets a simple dot pattern. Keep the team crests small and the
+scoring explanation factual; points remain internal. Selection and visibility rules are in AGENTS.md.
+
+**Teams:** a searchable directory with All teams and Pinned views, compact country and competition
+filters, and paginated team cards. Use the shared star action in the directory and team header.
+Pinned teams appear beneath Teams in the sidebar and contribute to Featured game selection.
 
 **News:** one coral card per article, with its competition, headline, and necessary context.
 Combine previews and reports by newest match date, with undated articles last. Keep AI-written

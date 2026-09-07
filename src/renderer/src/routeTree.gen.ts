@@ -14,12 +14,14 @@ import { Route as CompareRouteImport } from './routes/compare'
 import { Route as CompetitionsRouteImport } from './routes/competitions'
 import { Route as NewsRouteImport } from './routes/news'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as TeamsRouteImport } from './routes/teams'
 import { Route as TransfersRouteImport } from './routes/transfers'
 import { Route as TvGuideRouteImport } from './routes/tv-guide'
 import { Route as ViewsRouteImport } from './routes/views'
 import { Route as BroadcastersStationIdRouteImport } from './routes/broadcasters_.$stationId'
 import { Route as CoachesCoachIdRouteImport } from './routes/coaches_.$coachId'
 import { Route as CompetitionsCompetitionIdRouteImport } from './routes/competitions_.$competitionId'
+import { Route as FixturesIndexRouteImport } from './routes/fixtures.index'
 import { Route as FixturesFixtureIdRouteImport } from './routes/fixtures.$fixtureId'
 import { Route as NewsArticleIdRouteImport } from './routes/news_.$articleId'
 import { Route as PlayersPlayerIdRouteImport } from './routes/players_.$playerId'
@@ -77,6 +79,11 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TeamsRoute = TeamsRouteImport.update({
+  id: '/teams',
+  path: '/teams',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TransfersRoute = TransfersRouteImport.update({
   id: '/transfers',
   path: '/transfers',
@@ -108,6 +115,11 @@ const CompetitionsCompetitionIdRoute =
     path: '/competitions/$competitionId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const FixturesIndexRoute = FixturesIndexRouteImport.update({
+  id: '/fixtures/',
+  path: '/fixtures/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FixturesFixtureIdRoute = FixturesFixtureIdRouteImport.update({
   id: '/fixtures/$fixtureId',
   path: '/fixtures/$fixtureId',
@@ -282,6 +294,7 @@ export interface FileRoutesByFullPath {
   '/competitions': typeof CompetitionsRoute
   '/news': typeof NewsRoute
   '/settings': typeof SettingsRoute
+  '/teams': typeof TeamsRoute
   '/transfers': typeof TransfersRoute
   '/tv-guide': typeof TvGuideRoute
   '/views': typeof ViewsRoute
@@ -294,6 +307,7 @@ export interface FileRoutesByFullPath {
   '/referees/$refereeId': typeof RefereesRefereeIdRoute
   '/teams/$teamId': typeof TeamsTeamIdRouteWithChildren
   '/venues/$venueId': typeof VenuesVenueIdRoute
+  '/fixtures/': typeof FixturesIndexRoute
   '/competitions/$competitionId/fixtures': typeof CompetitionsCompetitionIdFixturesRoute
   '/competitions/$competitionId/knockout': typeof CompetitionsCompetitionIdKnockoutRoute
   '/competitions/$competitionId/referees': typeof CompetitionsCompetitionIdRefereesRoute
@@ -326,6 +340,7 @@ export interface FileRoutesByTo {
   '/competitions': typeof CompetitionsRoute
   '/news': typeof NewsRoute
   '/settings': typeof SettingsRoute
+  '/teams': typeof TeamsRoute
   '/transfers': typeof TransfersRoute
   '/tv-guide': typeof TvGuideRoute
   '/views': typeof ViewsRoute
@@ -338,6 +353,7 @@ export interface FileRoutesByTo {
   '/referees/$refereeId': typeof RefereesRefereeIdRoute
   '/teams/$teamId': typeof TeamsTeamIdRouteWithChildren
   '/venues/$venueId': typeof VenuesVenueIdRoute
+  '/fixtures': typeof FixturesIndexRoute
   '/competitions/$competitionId/fixtures': typeof CompetitionsCompetitionIdFixturesRoute
   '/competitions/$competitionId/knockout': typeof CompetitionsCompetitionIdKnockoutRoute
   '/competitions/$competitionId/referees': typeof CompetitionsCompetitionIdRefereesRoute
@@ -371,6 +387,7 @@ export interface FileRoutesById {
   '/competitions': typeof CompetitionsRoute
   '/news': typeof NewsRoute
   '/settings': typeof SettingsRoute
+  '/teams': typeof TeamsRoute
   '/transfers': typeof TransfersRoute
   '/tv-guide': typeof TvGuideRoute
   '/views': typeof ViewsRoute
@@ -383,6 +400,7 @@ export interface FileRoutesById {
   '/referees_/$refereeId': typeof RefereesRefereeIdRoute
   '/teams_/$teamId': typeof TeamsTeamIdRouteWithChildren
   '/venues_/$venueId': typeof VenuesVenueIdRoute
+  '/fixtures/': typeof FixturesIndexRoute
   '/competitions_/$competitionId/fixtures': typeof CompetitionsCompetitionIdFixturesRoute
   '/competitions_/$competitionId/knockout': typeof CompetitionsCompetitionIdKnockoutRoute
   '/competitions_/$competitionId/referees': typeof CompetitionsCompetitionIdRefereesRoute
@@ -417,6 +435,7 @@ export interface FileRouteTypes {
     | '/competitions'
     | '/news'
     | '/settings'
+    | '/teams'
     | '/transfers'
     | '/tv-guide'
     | '/views'
@@ -429,6 +448,7 @@ export interface FileRouteTypes {
     | '/referees/$refereeId'
     | '/teams/$teamId'
     | '/venues/$venueId'
+    | '/fixtures/'
     | '/competitions/$competitionId/fixtures'
     | '/competitions/$competitionId/knockout'
     | '/competitions/$competitionId/referees'
@@ -461,6 +481,7 @@ export interface FileRouteTypes {
     | '/competitions'
     | '/news'
     | '/settings'
+    | '/teams'
     | '/transfers'
     | '/tv-guide'
     | '/views'
@@ -473,6 +494,7 @@ export interface FileRouteTypes {
     | '/referees/$refereeId'
     | '/teams/$teamId'
     | '/venues/$venueId'
+    | '/fixtures'
     | '/competitions/$competitionId/fixtures'
     | '/competitions/$competitionId/knockout'
     | '/competitions/$competitionId/referees'
@@ -505,6 +527,7 @@ export interface FileRouteTypes {
     | '/competitions'
     | '/news'
     | '/settings'
+    | '/teams'
     | '/transfers'
     | '/tv-guide'
     | '/views'
@@ -517,6 +540,7 @@ export interface FileRouteTypes {
     | '/referees_/$refereeId'
     | '/teams_/$teamId'
     | '/venues_/$venueId'
+    | '/fixtures/'
     | '/competitions_/$competitionId/fixtures'
     | '/competitions_/$competitionId/knockout'
     | '/competitions_/$competitionId/referees'
@@ -550,6 +574,7 @@ export interface RootRouteChildren {
   CompetitionsRoute: typeof CompetitionsRoute
   NewsRoute: typeof NewsRoute
   SettingsRoute: typeof SettingsRoute
+  TeamsRoute: typeof TeamsRoute
   TransfersRoute: typeof TransfersRoute
   TvGuideRoute: typeof TvGuideRoute
   ViewsRoute: typeof ViewsRoute
@@ -562,6 +587,7 @@ export interface RootRouteChildren {
   RefereesRefereeIdRoute: typeof RefereesRefereeIdRoute
   TeamsTeamIdRoute: typeof TeamsTeamIdRouteWithChildren
   VenuesVenueIdRoute: typeof VenuesVenueIdRoute
+  FixturesIndexRoute: typeof FixturesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -599,6 +625,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/teams': {
+      id: '/teams'
+      path: '/teams'
+      fullPath: '/teams'
+      preLoaderRoute: typeof TeamsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/transfers': {
@@ -641,6 +674,13 @@ declare module '@tanstack/react-router' {
       path: '/competitions/$competitionId'
       fullPath: '/competitions/$competitionId'
       preLoaderRoute: typeof CompetitionsCompetitionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fixtures/': {
+      id: '/fixtures/'
+      path: '/fixtures'
+      fullPath: '/fixtures/'
+      preLoaderRoute: typeof FixturesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/fixtures/$fixtureId': {
@@ -965,6 +1005,7 @@ const rootRouteChildren: RootRouteChildren = {
   CompetitionsRoute: CompetitionsRoute,
   NewsRoute: NewsRoute,
   SettingsRoute: SettingsRoute,
+  TeamsRoute: TeamsRoute,
   TransfersRoute: TransfersRoute,
   TvGuideRoute: TvGuideRoute,
   ViewsRoute: ViewsRoute,
@@ -977,6 +1018,7 @@ const rootRouteChildren: RootRouteChildren = {
   RefereesRefereeIdRoute: RefereesRefereeIdRoute,
   TeamsTeamIdRoute: TeamsTeamIdRouteWithChildren,
   VenuesVenueIdRoute: VenuesVenueIdRoute,
+  FixturesIndexRoute: FixturesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
