@@ -24,6 +24,8 @@
   <a href="#contributing">Contribute</a>
 </p>
 
+![Halfspace Matchday with live scores, a featured game, and football news](resources/halfspace-matchday.png)
+
 Follow a match, explore a season, or trace a player's career. Halfspace brings fixtures,
 lineups, stats, odds, and connected football profiles into one desktop workspace.
 
