@@ -159,3 +159,12 @@ approved decisions; keep exploratory alternatives separate until selected.
   grouping. Place prominent monospaced kickoff times to the left of team logos, with broadcaster
   links beneath the teams. Omit not-started labels and pre-match scores. Preserve country-specific
   listings and cache complete daily windows.
+
+### Football discovery
+
+Players uses the existing directory layout with compact warm profile cards, a quiet search field,
+and country selection. Show the reported nationality and position, with a separate country label
+when country differs from nationality. Keep player portraits compact and make the whole card a link.
+Competition country selection sits beside search. Team Seasons uses one shared card per competition
+with compact monospaced season links; keep every reported season accessible without inventing current
+membership from historical records.

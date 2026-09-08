@@ -26,35 +26,37 @@ function TeamRoute(): React.JSX.Element {
   const { teamId } = Route.useParams()
   const { competition, date, season, rumourPage, stage } = Route.useSearch()
   const matchRoute = useMatchRoute()
-  const view = matchRoute({ to: '/teams/$teamId/schedule', params: { teamId }, fuzzy: false })
-    ? 'schedule'
-    : matchRoute({ to: '/teams/$teamId/rumours', params: { teamId }, fuzzy: false })
-      ? 'rumours'
-      : matchRoute({
-            to: '/teams/$teamId/transfers',
-            params: { teamId },
-            fuzzy: false
-          })
-        ? 'transfers'
+  const view = matchRoute({ to: '/teams/$teamId/seasons', params: { teamId }, fuzzy: false })
+    ? 'seasons'
+    : matchRoute({ to: '/teams/$teamId/schedule', params: { teamId }, fuzzy: false })
+      ? 'schedule'
+      : matchRoute({ to: '/teams/$teamId/rumours', params: { teamId }, fuzzy: false })
+        ? 'rumours'
         : matchRoute({
-              to: '/teams/$teamId/fixtures',
+              to: '/teams/$teamId/transfers',
               params: { teamId },
               fuzzy: false
             })
-          ? 'fixtures'
+          ? 'transfers'
           : matchRoute({
-                to: '/teams/$teamId/stats',
+                to: '/teams/$teamId/fixtures',
                 params: { teamId },
                 fuzzy: false
               })
-            ? 'stats'
+            ? 'fixtures'
             : matchRoute({
-                  to: '/teams/$teamId/squad',
+                  to: '/teams/$teamId/stats',
                   params: { teamId },
                   fuzzy: false
                 })
-              ? 'squad'
-              : 'overview'
+              ? 'stats'
+              : matchRoute({
+                    to: '/teams/$teamId/squad',
+                    params: { teamId },
+                    fuzzy: false
+                  })
+                ? 'squad'
+                : 'overview'
 
   return (
     <>

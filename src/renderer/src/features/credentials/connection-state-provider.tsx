@@ -1,3 +1,6 @@
+import { invalidateTeamSeasonsRefreshes } from '@/features/teams/use-team-seasons'
+import { invalidateCountryCompetitionsRefreshes } from '@/features/competitions/use-country-competitions'
+import { invalidatePlayerDirectoryRefreshes } from '@/features/players/use-player-directory'
 import { invalidatePeriodStatisticsRefreshes } from '@/features/fixtures/use-period-statistics'
 import { invalidatePredictionsRefreshes } from '@/features/fixtures/use-predictions'
 import { invalidateExpectedMetricsRefreshes } from '@/features/fixtures/use-expected-metrics'
@@ -230,6 +233,9 @@ function invalidateRefreshes(): void {
   invalidateCoachRefreshes()
   invalidateRefereeRefreshes()
   invalidateCompetitionWorkspaceRefreshes()
+  invalidatePlayerDirectoryRefreshes()
+  invalidateCountryCompetitionsRefreshes()
+  invalidateTeamSeasonsRefreshes()
   invalidateTeamDirectoryRefreshes()
   invalidateFixtureRefreshes()
   invalidateCommentaryRefreshes()

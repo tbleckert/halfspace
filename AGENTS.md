@@ -560,3 +560,18 @@ the user agrees to a new design decision; carry the style into other views incre
   grouping. Place prominent monospaced kickoff times to the left of team logos, with broadcaster
   links beneath the teams. Omit not-started labels and pre-match scores. Preserve country-specific
   listings and cache complete daily windows.
+
+## Football Discovery
+
+- Players is a main-nav directory with immediate cached search, paginated provider search, and country
+  browsing. Cache every query page separately with explicit `hasMore`. Keep country and nationality
+  distinct, normalize the provider's `detailedposition` alias, and never imply directory membership
+  confirms a current club or active career. Preserve richer and newer player detail during hydration.
+- Competition country browsing fetches every page from leagues/countries and caches membership separately
+  from the subscribed catalog. Hydrate shared identities without replacing subscription membership or
+  losing an existing country/current season when an included basic identity omits it.
+- Team Seasons shows all reported records from the non-paginated seasons/teams endpoint, grouped by
+  competition with recent seasons first. Keep history separate from current competition membership.
+  Links retain the exact competition, season, and a date inside that season. Competition selectors
+  offer the ten most recent seasons plus an explicitly linked older season; an unknown requested season
+  must never fall back to a different season's data.

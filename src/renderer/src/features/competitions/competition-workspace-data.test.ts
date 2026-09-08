@@ -132,7 +132,14 @@ describe('competition workspace data', () => {
 
     expect(options.map(({ id }) => id)).toEqual(seasons.slice(0, 10).map(({ id }) => id))
     expect(selectedCompetitionSeason(options, seasons[1].id)?.id).toBe(seasons[1].id)
-    expect(selectedCompetitionSeason(options, 999)?.id).toBe(23614)
+    expect(selectedCompetitionSeason(options, 999)).toBeNull()
+    expect(
+      selectedCompetitionSeason(
+        competitionSeasonOptions(seasons, seasons[0], seasons[10].id),
+        seasons[10].id
+      )?.id
+    ).toBe(seasons[10].id)
+    expect(competitionSeasonOptions(seasons, seasons[0], seasons[10].id)).toHaveLength(11)
   })
 
   it('anchors fixture windows inside the selected season', () => {

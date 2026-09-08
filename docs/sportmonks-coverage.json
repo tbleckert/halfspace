@@ -129,7 +129,12 @@
       "teams",
       "pendingTransfers"
     ],
-    "players/get-players-by-search-by-name": ["nationality", "position", "detailedPosition"],
+    "players/get-players-by-search-by-name": [
+      "country",
+      "nationality",
+      "position",
+      "detailedPosition"
+    ],
     "team-squads/get-team-squad-by-team-id": ["player", "position", "detailedPosition"],
     "team-squads/get-team-squad-by-team-and-season-id": ["player", "position"],
     "coaches/get-coach-by-id": ["nationality", "teams", "trophies", "player"],
@@ -181,6 +186,10 @@
     "topscorers/get-topscorers-by-stage-id": ["player", "participant", "type"],
     "teams/get-all-teams": ["country", "venue"],
     "teams/get-teams-by-country-id": ["country", "venue"],
-    "predictions/get-probabilities-by-fixture-id": ["type"]
+    "predictions/get-probabilities-by-fixture-id": ["type"],
+    "players/get-all-players": ["country", "nationality", "position", "detailedPosition"],
+    "players/get-players-by-country-id": ["country", "nationality", "position", "detailedPosition"],
+    "leagues/get-leagues-by-country-id": ["country", "currentSeason"],
+    "seasons/get-seasons-by-team-id": ["league"]
   }
 }

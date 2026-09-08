@@ -118,9 +118,10 @@ export function CompetitionWorkspacePage({
     () =>
       competitionSeasonOptions(
         seasons.cached?.seasons ?? [],
-        competition?.raw.currentseason ?? null
+        competition?.raw.currentseason ?? null,
+        requestedSeasonId
       ),
-    [competition?.raw.currentseason, seasons.cached?.seasons]
+    [competition?.raw.currentseason, seasons.cached?.seasons, requestedSeasonId]
   )
   const selectedSeason = useMemo(
     () => selectedCompetitionSeason(seasonOptions, requestedSeasonId),
@@ -142,9 +143,7 @@ export function CompetitionWorkspacePage({
     [fixtures.cached?.fixtures, workspaceOpenedAt]
   )
   const seasonId =
-    (requestedSeasonId && !seasons.cached ? requestedSeasonId : selectedSeason?.id) ??
-    competition?.currentSeasonId ??
-    observedSeasonId
+    requestedSeasonId ?? selectedSeason?.id ?? competition?.currentSeasonId ?? observedSeasonId
   const seasonTeams = useSeasonTeams(seasonId, online && view === 'teams')
   const currentSeason = selectedSeason?.is_current ?? seasonId === competition?.currentSeasonId
   const liveTable = view === 'table' && table === 'live' && !round && currentSeason
@@ -338,6 +337,11 @@ export function CompetitionWorkspacePage({
                     value={selectedSeason?.id ?? seasonId ?? ''}
                     onChange={(event) => selectSeason(Number(event.target.value))}
                   >
+                    {requestedSeasonId && !selectedSeason && (
+                      <NativeSelectOption value={requestedSeasonId}>
+                        Season {requestedSeasonId}
+                      </NativeSelectOption>
+                    )}
                     {seasonOptions.map((season) => (
                       <NativeSelectOption key={season.id} value={season.id}>
                         {season.name}

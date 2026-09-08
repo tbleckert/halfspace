@@ -4,6 +4,9 @@ import {
   fetchFixturePredictions,
   fetchFixturePeriodStatistics
 } from './fixture-analysis'
+import { fetchPlayerDirectory, validatePlayerDirectoryInput } from './discovery'
+import { fetchCountryCompetitions, validateCountryCompetitionsInput } from './discovery'
+import { fetchTeamSeasons, validateTeamSeasonsInput } from './discovery'
 import { fetchTeamDirectory, validateTeamDirectoryInput } from './team-directory'
 import {
   fetchSeasonReferees,
@@ -135,6 +138,24 @@ export function registerIpcHandlers(): void {
     'Could not refresh period statistics.'
   )
 
+  registerSportmonksHandler(
+    ipcChannels.refreshPlayerDirectory,
+    validatePlayerDirectoryInput,
+    fetchPlayerDirectory,
+    'Could not refresh player directory.'
+  )
+  registerSportmonksHandler(
+    ipcChannels.refreshCountryCompetitions,
+    validateCountryCompetitionsInput,
+    fetchCountryCompetitions,
+    'Could not refresh country competitions.'
+  )
+  registerSportmonksHandler(
+    ipcChannels.refreshTeamSeasons,
+    validateTeamSeasonsInput,
+    fetchTeamSeasons,
+    'Could not refresh team seasons.'
+  )
   registerSportmonksHandler(
     ipcChannels.refreshTeamDirectory,
     validateTeamDirectoryInput,

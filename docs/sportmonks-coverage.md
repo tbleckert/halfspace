@@ -1,8 +1,8 @@
 # Sportmonks API coverage
 
-Halfspace currently covers **63 of 153 endpoints** and **216 of 1320 documented endpoint includes**.
+Halfspace currently covers **67 of 153 endpoints** and **228 of 1320 documented endpoint includes**.
 
-Overall coverage: **19%**
+Overall coverage: **20%**
 
 Source: [Sportmonks Football API 3.0 documentation index](https://docs.sportmonks.com/v3/sitemap.md)
 
@@ -56,7 +56,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 - [x] [League by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/leagues/get-league-by-id) — includes 2/9
 - [ ] [Leagues by Live](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/leagues/get-leagues-by-live)
 - [ ] [Leagues by Fixture Date](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/leagues/get-leagues-by-fixture-date)
-- [ ] [Leagues by Country ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/leagues/get-leagues-by-country-id)
+- [x] [Leagues by Country ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/leagues/get-leagues-by-country-id) — includes 2/9
 - [x] [Leagues Search by Name](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/leagues/get-leagues-search-by-name) — includes 2/9
 - [ ] [All Leagues by Team ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/leagues/get-all-leagues-by-team-id)
 - [x] [Current Leagues by Team ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/leagues/get-current-leagues-by-team-id) — includes 2/9
@@ -65,7 +65,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 
 - [x] [All Seasons](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/seasons/get-all-seasons) — includes 0/9
 - [x] [Seasons by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/seasons/get-seasons-by-id) — includes 1/9
-- [ ] [Seasons by Team ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/seasons/get-seasons-by-team-id)
+- [x] [Seasons by Team ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/seasons/get-seasons-by-team-id) — includes 1/9
 - [ ] [Seasons by Search by Name](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/seasons/get-seasons-by-search-by-name)
 - [x] [Brackets by Season ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/seasons/get-brackets-by-season-id) — includes 4/35
 
@@ -119,10 +119,10 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 
 ### Players
 
-- [ ] [All Players](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/players/get-all-players)
+- [x] [All Players](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/players/get-all-players) — includes 4/14
 - [x] [Player by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/players/get-player-by-id) — includes 10/14
-- [ ] [Players by Country ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/players/get-players-by-country-id)
-- [x] [Players by Search by Name](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/players/get-players-by-search-by-name) — includes 3/14
+- [x] [Players by Country ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/players/get-players-by-country-id) — includes 4/14
+- [x] [Players by Search by Name](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/players/get-players-by-search-by-name) — includes 4/14
 - [ ] [Last Updated Players](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/players/get-last-updated-players)
 
 ### Team Squads

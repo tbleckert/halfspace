@@ -101,7 +101,7 @@ const citySchema = z.object({
   longitude: z.union([z.string(), z.number()]).nullish()
 })
 
-const seasonSchema = z
+export const seasonSchema = z
   .object({
     id: z.number().int(),
     league_id: z.number().int(),
@@ -197,7 +197,7 @@ export async function fetchStatisticSeasons(
   }
 }
 
-const competitionSchema = z
+export const competitionSchema = z
   .object({
     id: z.number().int(),
     country_id: z.number().int(),
@@ -1950,7 +1950,7 @@ export async function fetchTeamCompetitions(
   return { ...result, teamId: input.teamId }
 }
 
-async function fetchCompetitionList(
+export async function fetchCompetitionList(
   path: string,
   token: string,
   fetcher: typeof fetch

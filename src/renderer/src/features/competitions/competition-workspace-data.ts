@@ -112,7 +112,8 @@ export function nearestFixtureSeasonId(
 
 export function competitionSeasonOptions(
   seasons: readonly SportmonksSeason[],
-  currentSeason?: SportmonksSeason | null
+  currentSeason?: SportmonksSeason | null,
+  requestedSeasonId?: number
 ): SportmonksSeason[] {
   const uniqueSeasons = new Map<number, SportmonksSeason>()
 
@@ -120,22 +121,27 @@ export function competitionSeasonOptions(
     uniqueSeasons.set(season.id, season)
   }
 
-  return [...uniqueSeasons.values()]
-    .toSorted((left, right) => {
-      if (left.is_current !== right.is_current) return left.is_current ? -1 : 1
+  const ordered = [...uniqueSeasons.values()].toSorted((left, right) => {
+    if (left.is_current !== right.is_current) return left.is_current ? -1 : 1
 
-      const leftDate = left.ending_at ?? left.starting_at ?? ''
-      const rightDate = right.ending_at ?? right.starting_at ?? ''
-      return rightDate.localeCompare(leftDate) || right.id - left.id
-    })
-    .slice(0, 10)
+    const leftDate = left.ending_at ?? left.starting_at ?? ''
+    const rightDate = right.ending_at ?? right.starting_at ?? ''
+    return rightDate.localeCompare(leftDate) || right.id - left.id
+  })
+  const recent = ordered.slice(0, 10)
+  const requested = ordered.find(({ id }) => id === requestedSeasonId)
+  return requested && !recent.some(({ id }) => id === requested.id)
+    ? [...recent, requested]
+    : recent
 }
 
 export function selectedCompetitionSeason(
   seasons: readonly SportmonksSeason[],
   requestedSeasonId?: number
 ): SportmonksSeason | null {
-  return seasons.find(({ id }) => id === requestedSeasonId) ?? seasons[0] ?? null
+  return requestedSeasonId
+    ? (seasons.find(({ id }) => id === requestedSeasonId) ?? null)
+    : (seasons[0] ?? null)
 }
 
 export function seasonFixtureDate(season: SportmonksSeason | null, today: string): string {

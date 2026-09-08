@@ -66,6 +66,8 @@ include should have a useful place in Halfspace.
 - [x] Today-focused Matchday with featured games, live updates, upcoming fixtures, and recent results.
 - [x] Dedicated Fixtures browser with week navigation and a date picker.
 - [x] Searchable team directory with country and competition browsing, local team pins, and sidebar shortcuts.
+- [x] Searchable player directory with country browsing, profile cards, and cached pages.
+- [x] Competition browsing by country and team season histories with direct historical-season links.
 - [x] Global live-score ticker with direct links into every match in play.
 - [x] Competition pages with standings, qualification and relegation places, linked form, season selection, and complete season team lists.
 - [x] Complete competition and team season schedules with stage navigation and competition rounds.

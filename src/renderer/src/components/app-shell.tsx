@@ -15,6 +15,7 @@ import {
   Trophy,
   Tv,
   Users,
+  UserRound,
   List
 } from 'lucide-react'
 import type { SportmonksRateLimit } from '@shared/contracts'
@@ -224,6 +225,12 @@ function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): Re
                   ))}
                 </div>
               )}
+              <SidebarLink
+                exact
+                icon={<UserRound className="size-4" />}
+                label="Players"
+                to="/players"
+              />
             </div>
             <div className="mt-3 flex flex-col gap-1">
               <SidebarLink icon={<Newspaper className="size-4" />} label="News" to="/news" />
@@ -304,6 +311,7 @@ function SidebarLink({
     | '/tv-guide'
     | '/competitions'
     | '/settings'
+    | '/players'
     | '/transfers'
     | '/compare'
     | '/news'

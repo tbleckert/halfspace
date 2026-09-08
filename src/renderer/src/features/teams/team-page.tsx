@@ -1,3 +1,5 @@
+import { TeamSeasons } from './team-seasons'
+import { prefetchTeamSeasons } from './use-team-seasons'
 import { TeamPin } from './team-pin'
 import { TeamSchedule } from './team-schedule'
 import { useTeamSchedule, prefetchTeamSchedule } from './use-team-schedule'
@@ -87,7 +89,8 @@ interface TeamCompetitionContext {
   standing: CachedStanding | null
 }
 
-type TeamView = 'fixtures' | 'overview' | 'squad' | 'stats' | 'transfers' | 'schedule' | 'rumours'
+type TeamView =
+  'fixtures' | 'overview' | 'squad' | 'stats' | 'transfers' | 'schedule' | 'rumours' | 'seasons'
 
 export function TeamPage({
   competitionId,
@@ -139,9 +142,14 @@ export function TeamPage({
     () =>
       competitionSeasonOptions(
         competitionSeasons.cached?.seasons ?? [],
-        statisticsContext?.competition.raw.currentseason ?? null
+        statisticsContext?.competition.raw.currentseason ?? null,
+        requestedSeasonId
       ),
-    [competitionSeasons.cached?.seasons, statisticsContext?.competition.raw.currentseason]
+    [
+      competitionSeasons.cached?.seasons,
+      statisticsContext?.competition.raw.currentseason,
+      requestedSeasonId
+    ]
   )
   const statisticsSeason =
     statisticsSeasonOptions.find(({ id }) => id === requestedSeasonId) ??
@@ -169,6 +177,7 @@ export function TeamPage({
       view !== 'transfers' &&
       view !== 'schedule' &&
       view !== 'rumours' &&
+      view !== 'seasons' &&
       (!requestedSeasonId || competitionContexts !== undefined)
   )
   const squad = useTeamSquad(
@@ -219,7 +228,9 @@ export function TeamPage({
             ? statistics.refreshing || competitionSeasons.refreshing
             : view === 'transfers'
               ? transfers.refreshing
-              : fixtures.refreshing)
+              : view === 'seasons'
+                ? false
+                : fixtures.refreshing)
   const errors = [
     team.error,
     currentCompetitions.error,
@@ -233,7 +244,9 @@ export function TeamPage({
             ? (statistics.error ?? competitionSeasons.error)
             : view === 'transfers'
               ? transfers.error
-              : fixtures.error
+              : view === 'seasons'
+                ? null
+                : fixtures.error
   ].filter((error): error is string => Boolean(error))
   const identity = team.cached?.team?.raw ?? team.cached?.participant
 
@@ -273,7 +286,9 @@ export function TeamPage({
               ? statistics.refresh()
               : view === 'transfers'
                 ? transfers.refresh()
-                : fixtures.refresh()
+                : view === 'seasons'
+                  ? Promise.resolve()
+                  : fixtures.refresh()
     ])
   }
 
@@ -638,6 +653,9 @@ export function TeamPage({
         />
       )}
 
+      {view === 'seasons' && (
+        <TeamSeasons teamId={parsedTeamId} online={online} date={fixtureWindowStart} />
+      )}
       {view === 'transfers' && (
         <TeamTransfers
           competitionId={competitionId}
@@ -753,6 +771,16 @@ function TeamNavigation({
         )}
       >
         Stats
+      </Link>
+      <Link
+        to="/teams/$teamId/seasons"
+        params={{ teamId: String(teamId) }}
+        search={{ competition: competitionId, date, season }}
+        aria-current={view === 'seasons' ? 'page' : undefined}
+        className={entitySubpageNavigationItemClassName(view === 'seasons')}
+        {...intentPrefetchProps(online, () => prefetchTeamSeasons({ teamId }))}
+      >
+        Seasons
       </Link>
     </EntitySubpageNavigation>
   )

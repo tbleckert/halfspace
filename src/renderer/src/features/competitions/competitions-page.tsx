@@ -1,3 +1,7 @@
+import { db } from '@/data/db'
+import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import { useCountryCompetitions } from './use-country-competitions'
 import { useMemo, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { RefreshCw, Search, Star, Trophy } from 'lucide-react'
@@ -20,12 +24,28 @@ export function CompetitionsPage(): React.JSX.Element {
   const pinnedCompetitionIds = usePinnedCompetitionIds() ?? noPinnedCompetitionIds
   const online = useOnline()
   const [query, setQuery] = useState('')
+  const [countryId, setCountryId] = useState<number>()
+  const countryInput = useMemo(() => (countryId ? { countryId } : null), [countryId])
+  const countryDirectory = useCountryCompetitions(countryInput, online)
+  const countries = useScopedLiveQuery(async () => {
+    const records = await db.competitions.toArray()
+    return [
+      ...new Map(
+        records.flatMap(({ raw }) => (raw.country ? [[raw.country.id, raw.country] as const] : []))
+      ).values()
+    ].sort((a, b) => a.name.localeCompare(b.name))
+  }, [])
+  const displayed = countryId ? countryDirectory.cached?.competitions : cached?.competitions
+  const hasCache = countryId ? !!countryDirectory.cached?.query : !!cached?.catalog
+  const loading = countryId ? countryDirectory.refreshing : refreshing
+  const loadError = countryId ? countryDirectory.error : error
+  const refreshDirectory = countryId ? countryDirectory.refresh : refresh
   const [pinError, setPinError] = useState<string | null>(null)
   const pinned = useMemo(() => new Set(pinnedCompetitionIds), [pinnedCompetitionIds])
   const competitions = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase()
 
-    return (cached?.competitions ?? [])
+    return (displayed ?? [])
       .filter(({ active }) => active)
       .filter((competition) => {
         if (!normalizedQuery) return true
@@ -35,8 +55,8 @@ export function CompetitionsPage(): React.JSX.Element {
         )
       })
       .sort((left, right) => left.name.localeCompare(right.name))
-  }, [cached?.competitions, query])
-  const visibleError = pinError ?? error
+  }, [displayed, query])
+  const visibleError = pinError ?? loadError
 
   async function togglePin(competitionId: number): Promise<void> {
     setPinError(null)
@@ -54,36 +74,61 @@ export function CompetitionsPage(): React.JSX.Element {
         <h1 className="text-3xl font-semibold tracking-tight">Competitions</h1>
         <Button
           aria-label="Refresh competitions"
-          disabled={refreshing}
+          disabled={!online || loading}
           size="icon"
           variant="outline"
-          onClick={() => void refresh()}
+          onClick={() => void refreshDirectory()}
         >
-          <RefreshCw className={cn('size-4', refreshing && 'animate-spin')} />
+          <RefreshCw className={cn('size-4', loading && 'animate-spin')} />
         </Button>
       </header>
 
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          aria-label="Search competitions"
-          className="bg-card pl-9"
-          placeholder="Search competitions"
-          type="search"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-        />
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-52 flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            aria-label="Search competitions"
+            className="bg-card pl-9"
+            placeholder="Search competitions"
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </div>
+
+        <NativeSelect
+          aria-label="Filter competitions by country"
+          value={countryId ?? ''}
+          onChange={(event) =>
+            setCountryId(event.target.value ? Number(event.target.value) : undefined)
+          }
+        >
+          <NativeSelectOption value="">All countries</NativeSelectOption>
+          {(countries ?? []).map((country) => (
+            <NativeSelectOption key={country.id} value={country.id}>
+              {country.name}
+            </NativeSelectOption>
+          ))}
+        </NativeSelect>
       </div>
 
       {visibleError && <ErrorAlert>{visibleError}</ErrorAlert>}
 
-      {cached === undefined || (!cached.catalog && !visibleError) ? (
+      {!hasCache &&
+      !visibleError &&
+      (loading || (countryId ? countryDirectory.cached === undefined : cached === undefined)) ? (
         <CompetitionListSkeleton />
-      ) : !cached.catalog ? null : competitions.length === 0 ? (
+      ) : !hasCache && visibleError ? null : competitions.length === 0 ? (
         <Card>
           <CardContent className="flex min-h-48 flex-col items-center justify-center text-center">
             <Trophy className="mb-3 size-7 text-muted-foreground" />
-            <p className="font-medium">{query ? 'No competitions found' : 'No competitions'}</p>
+            <p className="font-medium">
+              {!hasCache && !online
+                ? 'Competitions aren’t cached yet'
+                : query
+                  ? 'No competitions found'
+                  : 'No competitions'}
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -112,6 +157,9 @@ export function CompetitionsPage(): React.JSX.Element {
                       {competition.raw.country?.name && (
                         <span className="mt-0.5 block truncate text-xs text-muted-foreground">
                           {competition.raw.country.name}
+                          {competition.currentSeasonName
+                            ? ` · ${competition.currentSeasonName}`
+                            : ''}
                         </span>
                       )}
                     </span>

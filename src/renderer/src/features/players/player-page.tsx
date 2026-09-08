@@ -130,9 +130,10 @@ export function PlayerPage({
     () =>
       competitionSeasonOptions(
         competitionSeasons.cached?.seasons ?? [],
-        competition?.raw.currentseason ?? null
+        competition?.raw.currentseason ?? null,
+        season
       ),
-    [competition?.raw.currentseason, competitionSeasons.cached?.seasons]
+    [competition?.raw.currentseason, competitionSeasons.cached?.seasons, season]
   )
   const observedSeasonId = useMemo(() => {
     const target = new Date(`${matchWindowEnd}T12:00:00Z`).getTime()

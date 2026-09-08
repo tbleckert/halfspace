@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as CompareRouteImport } from './routes/compare'
 import { Route as CompetitionsRouteImport } from './routes/competitions'
 import { Route as NewsRouteImport } from './routes/news'
+import { Route as PlayersRouteImport } from './routes/players'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TeamsRouteImport } from './routes/teams'
 import { Route as TransfersRouteImport } from './routes/transfers'
@@ -50,6 +51,7 @@ import { Route as PlayersPlayerIdStatsRouteImport } from './routes/players_.$pla
 import { Route as TeamsTeamIdFixturesRouteImport } from './routes/teams_.$teamId.fixtures'
 import { Route as TeamsTeamIdRumoursRouteImport } from './routes/teams_.$teamId.rumours'
 import { Route as TeamsTeamIdScheduleRouteImport } from './routes/teams_.$teamId.schedule'
+import { Route as TeamsTeamIdSeasonsRouteImport } from './routes/teams_.$teamId.seasons'
 import { Route as TeamsTeamIdSquadRouteImport } from './routes/teams_.$teamId.squad'
 import { Route as TeamsTeamIdStatsRouteImport } from './routes/teams_.$teamId.stats'
 import { Route as TeamsTeamIdTransfersRouteImport } from './routes/teams_.$teamId.transfers'
@@ -72,6 +74,11 @@ const CompetitionsRoute = CompetitionsRouteImport.update({
 const NewsRoute = NewsRouteImport.update({
   id: '/news',
   path: '/news',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlayersRoute = PlayersRouteImport.update({
+  id: '/players',
+  path: '/players',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -272,6 +279,11 @@ const TeamsTeamIdScheduleRoute = TeamsTeamIdScheduleRouteImport.update({
   path: '/schedule',
   getParentRoute: () => TeamsTeamIdRoute,
 } as any)
+const TeamsTeamIdSeasonsRoute = TeamsTeamIdSeasonsRouteImport.update({
+  id: '/seasons',
+  path: '/seasons',
+  getParentRoute: () => TeamsTeamIdRoute,
+} as any)
 const TeamsTeamIdSquadRoute = TeamsTeamIdSquadRouteImport.update({
   id: '/squad',
   path: '/squad',
@@ -293,6 +305,7 @@ export interface FileRoutesByFullPath {
   '/compare': typeof CompareRoute
   '/competitions': typeof CompetitionsRoute
   '/news': typeof NewsRoute
+  '/players': typeof PlayersRoute
   '/settings': typeof SettingsRoute
   '/teams': typeof TeamsRoute
   '/transfers': typeof TransfersRoute
@@ -330,6 +343,7 @@ export interface FileRoutesByFullPath {
   '/teams/$teamId/fixtures': typeof TeamsTeamIdFixturesRoute
   '/teams/$teamId/rumours': typeof TeamsTeamIdRumoursRoute
   '/teams/$teamId/schedule': typeof TeamsTeamIdScheduleRoute
+  '/teams/$teamId/seasons': typeof TeamsTeamIdSeasonsRoute
   '/teams/$teamId/squad': typeof TeamsTeamIdSquadRoute
   '/teams/$teamId/stats': typeof TeamsTeamIdStatsRoute
   '/teams/$teamId/transfers': typeof TeamsTeamIdTransfersRoute
@@ -339,6 +353,7 @@ export interface FileRoutesByTo {
   '/compare': typeof CompareRoute
   '/competitions': typeof CompetitionsRoute
   '/news': typeof NewsRoute
+  '/players': typeof PlayersRoute
   '/settings': typeof SettingsRoute
   '/teams': typeof TeamsRoute
   '/transfers': typeof TransfersRoute
@@ -376,6 +391,7 @@ export interface FileRoutesByTo {
   '/teams/$teamId/fixtures': typeof TeamsTeamIdFixturesRoute
   '/teams/$teamId/rumours': typeof TeamsTeamIdRumoursRoute
   '/teams/$teamId/schedule': typeof TeamsTeamIdScheduleRoute
+  '/teams/$teamId/seasons': typeof TeamsTeamIdSeasonsRoute
   '/teams/$teamId/squad': typeof TeamsTeamIdSquadRoute
   '/teams/$teamId/stats': typeof TeamsTeamIdStatsRoute
   '/teams/$teamId/transfers': typeof TeamsTeamIdTransfersRoute
@@ -386,6 +402,7 @@ export interface FileRoutesById {
   '/compare': typeof CompareRoute
   '/competitions': typeof CompetitionsRoute
   '/news': typeof NewsRoute
+  '/players': typeof PlayersRoute
   '/settings': typeof SettingsRoute
   '/teams': typeof TeamsRoute
   '/transfers': typeof TransfersRoute
@@ -423,6 +440,7 @@ export interface FileRoutesById {
   '/teams_/$teamId/fixtures': typeof TeamsTeamIdFixturesRoute
   '/teams_/$teamId/rumours': typeof TeamsTeamIdRumoursRoute
   '/teams_/$teamId/schedule': typeof TeamsTeamIdScheduleRoute
+  '/teams_/$teamId/seasons': typeof TeamsTeamIdSeasonsRoute
   '/teams_/$teamId/squad': typeof TeamsTeamIdSquadRoute
   '/teams_/$teamId/stats': typeof TeamsTeamIdStatsRoute
   '/teams_/$teamId/transfers': typeof TeamsTeamIdTransfersRoute
@@ -434,6 +452,7 @@ export interface FileRouteTypes {
     | '/compare'
     | '/competitions'
     | '/news'
+    | '/players'
     | '/settings'
     | '/teams'
     | '/transfers'
@@ -471,6 +490,7 @@ export interface FileRouteTypes {
     | '/teams/$teamId/fixtures'
     | '/teams/$teamId/rumours'
     | '/teams/$teamId/schedule'
+    | '/teams/$teamId/seasons'
     | '/teams/$teamId/squad'
     | '/teams/$teamId/stats'
     | '/teams/$teamId/transfers'
@@ -480,6 +500,7 @@ export interface FileRouteTypes {
     | '/compare'
     | '/competitions'
     | '/news'
+    | '/players'
     | '/settings'
     | '/teams'
     | '/transfers'
@@ -517,6 +538,7 @@ export interface FileRouteTypes {
     | '/teams/$teamId/fixtures'
     | '/teams/$teamId/rumours'
     | '/teams/$teamId/schedule'
+    | '/teams/$teamId/seasons'
     | '/teams/$teamId/squad'
     | '/teams/$teamId/stats'
     | '/teams/$teamId/transfers'
@@ -526,6 +548,7 @@ export interface FileRouteTypes {
     | '/compare'
     | '/competitions'
     | '/news'
+    | '/players'
     | '/settings'
     | '/teams'
     | '/transfers'
@@ -563,6 +586,7 @@ export interface FileRouteTypes {
     | '/teams_/$teamId/fixtures'
     | '/teams_/$teamId/rumours'
     | '/teams_/$teamId/schedule'
+    | '/teams_/$teamId/seasons'
     | '/teams_/$teamId/squad'
     | '/teams_/$teamId/stats'
     | '/teams_/$teamId/transfers'
@@ -573,6 +597,7 @@ export interface RootRouteChildren {
   CompareRoute: typeof CompareRoute
   CompetitionsRoute: typeof CompetitionsRoute
   NewsRoute: typeof NewsRoute
+  PlayersRoute: typeof PlayersRoute
   SettingsRoute: typeof SettingsRoute
   TeamsRoute: typeof TeamsRoute
   TransfersRoute: typeof TransfersRoute
@@ -618,6 +643,13 @@ declare module '@tanstack/react-router' {
       path: '/news'
       fullPath: '/news'
       preLoaderRoute: typeof NewsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/players': {
+      id: '/players'
+      path: '/players'
+      fullPath: '/players'
+      preLoaderRoute: typeof PlayersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -879,6 +911,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeamsTeamIdScheduleRouteImport
       parentRoute: typeof TeamsTeamIdRoute
     }
+    '/teams_/$teamId/seasons': {
+      id: '/teams_/$teamId/seasons'
+      path: '/seasons'
+      fullPath: '/teams/$teamId/seasons'
+      preLoaderRoute: typeof TeamsTeamIdSeasonsRouteImport
+      parentRoute: typeof TeamsTeamIdRoute
+    }
     '/teams_/$teamId/squad': {
       id: '/teams_/$teamId/squad'
       path: '/squad'
@@ -981,6 +1020,7 @@ interface TeamsTeamIdRouteChildren {
   TeamsTeamIdFixturesRoute: typeof TeamsTeamIdFixturesRoute
   TeamsTeamIdRumoursRoute: typeof TeamsTeamIdRumoursRoute
   TeamsTeamIdScheduleRoute: typeof TeamsTeamIdScheduleRoute
+  TeamsTeamIdSeasonsRoute: typeof TeamsTeamIdSeasonsRoute
   TeamsTeamIdSquadRoute: typeof TeamsTeamIdSquadRoute
   TeamsTeamIdStatsRoute: typeof TeamsTeamIdStatsRoute
   TeamsTeamIdTransfersRoute: typeof TeamsTeamIdTransfersRoute
@@ -990,6 +1030,7 @@ const TeamsTeamIdRouteChildren: TeamsTeamIdRouteChildren = {
   TeamsTeamIdFixturesRoute: TeamsTeamIdFixturesRoute,
   TeamsTeamIdRumoursRoute: TeamsTeamIdRumoursRoute,
   TeamsTeamIdScheduleRoute: TeamsTeamIdScheduleRoute,
+  TeamsTeamIdSeasonsRoute: TeamsTeamIdSeasonsRoute,
   TeamsTeamIdSquadRoute: TeamsTeamIdSquadRoute,
   TeamsTeamIdStatsRoute: TeamsTeamIdStatsRoute,
   TeamsTeamIdTransfersRoute: TeamsTeamIdTransfersRoute,
@@ -1004,6 +1045,7 @@ const rootRouteChildren: RootRouteChildren = {
   CompareRoute: CompareRoute,
   CompetitionsRoute: CompetitionsRoute,
   NewsRoute: NewsRoute,
+  PlayersRoute: PlayersRoute,
   SettingsRoute: SettingsRoute,
   TeamsRoute: TeamsRoute,
   TransfersRoute: TransfersRoute,

@@ -4,6 +4,7 @@ import type {
   FixturePredictionsRefresh,
   FixturePeriodStatisticsRefresh
 } from '@shared/contracts'
+import type { PlayerDirectoryRefresh, TeamSeasonsRefresh } from '@shared/discovery'
 import type { TeamDirectoryRefresh } from '@shared/team-directory'
 import type {
   SeasonRefereesQuery,
@@ -539,6 +540,21 @@ export interface TeamPinRecord {
   pinnedAt: number
 }
 
+export interface PlayerDirectoryQuery extends Omit<PlayerDirectoryRefresh, 'players'> {
+  key: string
+  playerIds: number[]
+  staleAt: number
+}
+export interface CountryCompetitionsQuery {
+  countryId: number
+  competitionIds: number[]
+  fetchedAt: number
+  staleAt: number
+}
+export interface TeamSeasonsQuery extends TeamSeasonsRefresh {
+  staleAt: number
+}
+
 export interface TeamDirectoryQuery extends Omit<TeamDirectoryRefresh, 'teams'> {
   key: string
   teamIds: number[]
@@ -675,6 +691,9 @@ class HalfspaceDatabase extends Dexie {
   competitions!: Table<CachedCompetition, number>
   competitionCatalogs!: Table<CompetitionCatalog, string>
   teamPins!: Table<TeamPinRecord, number>
+  playerDirectoryQueries!: Table<PlayerDirectoryQuery, string>
+  countryCompetitionQueries!: Table<CountryCompetitionsQuery, number>
+  teamSeasonsQueries!: Table<TeamSeasonsQuery, number>
   teamDirectoryQueries!: Table<TeamDirectoryQuery, string>
   featuredGameSelections!: Table<FeaturedGameSelection, string>
   competitionPins!: Table<CompetitionPin, number>
@@ -1010,6 +1029,11 @@ class HalfspaceDatabase extends Dexie {
       fixtureExpectedMetricsQueries: '&fixtureId, staleAt',
       fixturePredictionQueries: '&fixtureId, staleAt',
       fixturePeriodStatisticsQueries: '&fixtureId, staleAt'
+    })
+    this.version(42).stores({
+      playerDirectoryQueries: '&key, staleAt',
+      countryCompetitionQueries: '&countryId, staleAt',
+      teamSeasonsQueries: '&teamId, staleAt'
     })
   }
 }
@@ -2013,7 +2037,7 @@ export async function writeSeasonTeamsRefresh(
   })
 }
 
-async function cacheIncludedCompetitions(
+export async function cacheIncludedCompetitions(
   competitions: SportmonksCompetition[],
   fetchedAt: number
 ): Promise<void> {
@@ -2022,7 +2046,15 @@ async function cacheIncludedCompetitions(
     competitions.map((competition, index) => {
       const previous = existing[index]
       if (previous && previous.fetchedAt > fetchedAt) return previous
-      const raw = { ...previous?.raw, ...competition }
+      const raw = {
+        ...previous?.raw,
+        ...competition,
+        country: competition.country === undefined ? previous?.raw.country : competition.country,
+        currentseason:
+          competition.currentseason === undefined
+            ? previous?.raw.currentseason
+            : competition.currentseason
+      }
       return {
         id: raw.id,
         countryId: raw.country_id,
@@ -3228,6 +3260,9 @@ export async function clearSportmonksCache(): Promise<void> {
   await db.transaction(
     'rw',
     [
+      db.playerDirectoryQueries,
+      db.countryCompetitionQueries,
+      db.teamSeasonsQueries,
       db.teamDirectoryQueries,
       db.featuredGameSelections,
       db.seasonRefereeQueries,
@@ -3300,6 +3335,9 @@ export async function clearSportmonksCache(): Promise<void> {
       db.honoursQueries
     ],
     async () => {
+      await db.playerDirectoryQueries.clear()
+      await db.countryCompetitionQueries.clear()
+      await db.teamSeasonsQueries.clear()
       await db.teamDirectoryQueries.clear()
       await db.featuredGameSelections.clear()
       await db.seasonRefereeQueries.clear()
@@ -3402,14 +3440,26 @@ export function toCachedIncludedPlayer(
   fetchedAt: number
 ): CachedPlayer {
   if (existing && existing.fetchedAt > fetchedAt) return existing
-  const raw = existing?.detailed
+  const raw = existing
     ? {
         ...existing.raw,
         ...player,
-        country: player.country ?? existing.raw.country,
-        nationality: player.nationality ?? existing.raw.nationality,
-        position: player.position ?? existing.raw.position,
-        detailedPosition: player.detailedPosition ?? existing.raw.detailedPosition
+        country:
+          player.country ??
+          (player.country_id === existing.raw.country_id ? existing.raw.country : undefined),
+        nationality:
+          player.nationality ??
+          (player.nationality_id === existing.raw.nationality_id
+            ? existing.raw.nationality
+            : undefined),
+        position:
+          player.position ??
+          (player.position_id === existing.raw.position_id ? existing.raw.position : undefined),
+        detailedPosition:
+          player.detailedPosition ??
+          (player.detailed_position_id === existing.raw.detailed_position_id
+            ? existing.raw.detailedPosition
+            : undefined)
       }
     : player
 
