@@ -10,6 +10,17 @@ Keep Electron thin: secrets and Sportmonks requests live in main, cached footbal
 the renderer, and preload exposes only narrow typed APIs. Avoid duplicate caches and premature
 abstractions.
 
+## Product priorities
+
+The next milestone is the [personal macOS alpha](docs/personal-alpha.md), agreed on 8 September 2026.
+Prioritize first-run setup, Your teams on Matchday, and an installable build for a small usability
+pilot. Your teams is the first feature slice; reuse existing pins and fixture queries. Follow with
+saved comparisons and starter views that work without an AI key.
+
+Complete Sportmonks coverage remains the long-term goal. Choose near-term endpoint work around
+these user journeys and observed tester needs. The milestone document records planned scope and
+acceptance criteria; keep unimplemented items unchecked in the README.
+
 ## Product Design
 
 Read [the design guide](docs/design.md) before changing UI. It records the agreed visual style,
@@ -63,6 +74,7 @@ the user agrees to a new design decision; carry the style into other views incre
   sharing until the visual design is settled; do not build export layouts ahead of that work.
 - Horizontal local navigation uses one shared rule. Only the active item has its own indicator;
   inherit its color from the active text and layer it directly over the shared rule.
+  Fixture hero navigation omits the shared rule and places the active underline at the bottom.
 - Keep entity subpages nested beneath one persistent entity route shell so changing a horizontal
   navigation view does not remount shared data, headers, or context.
 - Use scoped live queries for identity-dependent cache reads. Retain results during same-query
@@ -141,6 +153,8 @@ the user agrees to a new design decision; carry the style into other views incre
   explicit navigation cannot be overwritten by a delayed render effect.
 - Keep fixture subview presentation in focused components. The persistent entity shell owns shared
   queries, header, and navigation; reuse the shared Card surface for each view's data panels.
+- Fixture score heroes share Featured game's violet tint, faded halftone venue background, and
+  dot-pattern fallback. Keep the decoration behind readable scores, team names, and navigation.
 - Fixture Preview pairs that supporting column with season table context, each team’s five most
   recent completed matches before kickoff, and recent head-to-head meetings. Reuse standings and
   team-fixture caches, cache head-to-head separately, and prefetch Preview on intent.
@@ -213,7 +227,7 @@ the user agrees to a new design decision; carry the style into other views incre
 - Matchday fixture rows use one centered status column: a short terminal state such as FT, a green
   live ping beside the match minute or phase, or the scheduled kickoff time. Do not repeat the
   state in a separate badge. Use monospaced tabular typography for row status, time, minute, and
-  score. The fixture hero may pair its live ping with a visible status label.
+  score. The fixture hero pairs its live ping with the reported minute or match phase instead of Live.
 - Treat “today” as live calendar state rather than a value captured when a module or app shell
   mounts. Refresh it across midnight and when the app regains focus, and use the current day when
   returning to Matchday. Keep the Today action inside the Fixtures date picker.
@@ -465,8 +479,9 @@ the user agrees to a new design decision; carry the style into other views incre
 
 ## Generative Football Views
 
-- Keep complete Sportmonks coverage as the primary development goal. Generative views build on that
-  work; do not delay useful endpoint support to build speculative AI infrastructure. The generated
+- Keep complete Sportmonks coverage as the long-term development goal, with near-term work following
+  the personal alpha milestone. Generative views build on usable data and reusable components;
+  do not delay useful endpoint support to build speculative AI infrastructure. The generated
   coverage report remains the authority for percentages, not a number copied into these instructions.
 - The long-term direction is a personal football canvas: describe a workspace, watch the layout
   take shape, refine it conversationally, and save it for everyday use. Grow toward connected team

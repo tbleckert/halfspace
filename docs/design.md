@@ -103,6 +103,11 @@ low-contrast, dotted halftone background imagery, fading towards readable team n
 football facts. Missing imagery gets a simple dot pattern. Keep the team crests small and the
 scoring explanation factual; points remain internal. Selection and visibility rules are in AGENTS.md.
 
+**Fixture hero:** reuse Featured game's violet tint, faded halftone venue background, and dot-pattern
+fallback behind the score and navigation. Keep the background decorative and the foreground legible.
+Place the active tab underline at the bottom of the hero, without a shared navigation divider.
+During play, pair the green live dot with the reported minute or match phase rather than a Live label.
+
 **Teams:** a searchable directory with All teams and Pinned views, compact country and competition
 filters, and paginated team cards. Use the shared star action in the directory and team header.
 Pinned teams appear beneath Teams in the sidebar and contribute to Featured game selection.

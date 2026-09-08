@@ -1,4 +1,5 @@
 import { FixturePredictions } from './fixture-predictions'
+import { FixtureVenueBackground } from './fixture-venue-background'
 import { EntitySubpageNavigation } from '@/components/entity-subpage-navigation'
 import { FixtureTie } from './fixture-tie'
 import { entitySubpageNavigationItemClassName } from '@/components/entity-subpage-navigation-variants'
@@ -19,7 +20,7 @@ import { prefetchTeamEntity } from '@/features/teams/use-team'
 import { VenueCard } from '@/features/venues/venue-card'
 import { currentTimeZone } from '@/lib/date'
 import { currentFixtureScore, fixtureParticipantAt } from '@/lib/fixture'
-import { isFixtureLive, isFixtureOngoing } from '@/lib/fixture-state'
+import { fixtureProgressLabel, isFixtureLive, isFixtureOngoing } from '@/lib/fixture-state'
 import { intentPrefetchProps } from '@/lib/prefetch'
 import { useOnline } from '@/lib/use-online'
 import { cn } from '@/lib/utils'
@@ -375,7 +376,11 @@ function MatchScore({
   )
 
   return (
-    <section data-slot="card" className="overflow-hidden rounded-xl bg-card">
+    <section
+      data-slot="card"
+      className="relative isolate overflow-hidden rounded-xl bg-sidebar-accent"
+    >
+      <FixtureVenueBackground imagePath={fixture.venue?.image_path ?? null} online={online} />
       <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-4 py-8 sm:gap-8 sm:px-10 sm:py-10">
         <FixtureTeam
           competitionId={competitionId}
@@ -395,7 +400,10 @@ function MatchScore({
             </p>
           )}
           {live ? (
-            <FixtureLiveIndicator className="rounded-full bg-success-muted px-2.5 py-1 dark:bg-success-muted-dark/30" />
+            <span className="inline-flex items-center gap-1.5 font-mono text-xs font-medium tabular-nums text-success-emphasis">
+              <FixtureLiveIndicator showLabel={false} />
+              {fixtureProgressLabel(fixture)}
+            </span>
           ) : (
             <Badge className="font-mono" variant="secondary">
               {fixture.state?.name ?? 'Scheduled'}
@@ -480,7 +488,7 @@ function FixtureNavigation({
   return (
     <EntitySubpageNavigation
       aria-label="Fixture"
-      className="overflow-x-auto border-t px-4 sm:justify-center"
+      className="overflow-x-auto px-4 sm:justify-center"
     >
       {items.map((item) => (
         <Link
@@ -489,7 +497,10 @@ function FixtureNavigation({
           to={item.to}
           params={{ fixtureId: String(fixtureId) }}
           search={context}
-          className={entitySubpageNavigationItemClassName(view === item.view, 'top', 'pb-4 pt-3')}
+          className={cn(
+            entitySubpageNavigationItemClassName(view === item.view, 'bottom', 'pb-4 pt-3'),
+            'after:bottom-0 after:rounded-full'
+          )}
           {...(item.view === 'preview' && previewInput
             ? intentPrefetchProps(online, () => prefetchFixturePreview(previewInput))
             : {})}

@@ -9,7 +9,7 @@ import { formatFixtureTime } from '@/lib/date'
 import { intentPrefetchProps } from '@/lib/prefetch'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ProviderImage } from '@/components/provider-image'
+import { FixtureVenueBackground } from './fixture-venue-background'
 import { TeamLogo } from '@/features/teams/team-logo'
 import { MatchdayCard } from './matchday-card'
 import { FixtureLiveIndicator } from './fixture-live-indicator'
@@ -117,19 +117,7 @@ export function FeaturedGame({
   const status = fixtureRowStatus(fixture.raw)
   return (
     <MatchdayCard className="relative isolate overflow-hidden bg-sidebar-accent">
-      <div
-        aria-hidden="true"
-        className="featured-venue pointer-events-none absolute inset-y-0 right-0 w-3/5 opacity-45"
-      >
-        <ProviderImage
-          as="div"
-          className="h-full w-full bg-transparent"
-          imageClassName="h-full w-full object-cover"
-          imagePath={fixture.raw.venue?.image_path ?? null}
-          online={online}
-          fallback={<div className="featured-venue-fallback h-full w-full" />}
-        />
-      </div>
+      <FixtureVenueBackground imagePath={fixture.raw.venue?.image_path ?? null} online={online} />
       <Link
         to="/fixtures/$fixtureId"
         params={{ fixtureId: String(fixture.id) }}

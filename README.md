@@ -121,9 +121,16 @@ include should have a useful place in Halfspace.
 
 ### Ahead
 
-Prioritize football data presentation, then dedicated design passes. Sharing and image exports
-follow once the visual design is settled.
+The next milestone is a [personal, installable macOS alpha](docs/personal-alpha.md): help people
+connect their account, follow their teams, and return on another matchday. Use feedback from
+the first testers to focus subsequent football features and design passes.
 
+- [ ] Personal first-run setup with token guidance, available competitions, optional team pins,
+      and TV country selection.
+- [ ] Your teams on Matchday, with upcoming fixtures, recent results, and direct match links.
+- [ ] Installable macOS alpha with a release workflow and a five-person usability pilot.
+- [ ] Saved team and player comparisons with their complete season and club context.
+- [ ] Starter personal views that can be opened without an AI key.
 - [ ] Complete referee appointment history beyond the recent six-month window.
 - [ ] Deeper in-play analysis.
 - [ ] Premium odds and deeper bookmaker coverage.
@@ -136,8 +143,9 @@ follow once the visual design is settled.
 
 Checked items describe the features available today, not exhaustive API coverage. Every addition
 should stay local-first, with typed requests, durable caching, and natural links between entities.
-Keep expanding Sportmonks coverage as the priority. Build new football features with reusable
-queries and presentation components so they can also power personal views.
+Keep complete Sportmonks coverage as the long-term goal, selecting near-term endpoint work around
+these user journeys. Build new football features with reusable queries and presentation components
+so they can also power personal views. Sharing and image exports follow once the visual design is settled.
 
 An endpoint or include is considered covered when its data can be fetched safely, cached locally,
 reached through the interface, and understood in the context of the related entities.
