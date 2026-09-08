@@ -1,3 +1,9 @@
+import type {
+  ExpectedLineupsRefresh,
+  FixtureExpectedMetricsRefresh,
+  FixturePredictionsRefresh,
+  FixturePeriodStatisticsRefresh
+} from '@shared/contracts'
 import type { TeamDirectoryRefresh } from '@shared/team-directory'
 import type {
   SeasonRefereesQuery,
@@ -649,6 +655,10 @@ class HalfspaceDatabase extends Dexie {
   fixtureCommentaryQueries!: Table<FixtureCommentaryQuery, number>
   seasonScheduleQueries!: Table<SeasonScheduleQuery, number>
   seasonBracketQueries!: Table<SeasonBracketQuery, number>
+  expectedLineupQueries!: Table<ExpectedLineupsQuery, number>
+  fixtureExpectedMetricsQueries!: Table<FixtureExpectedMetricsQuery, number>
+  fixturePredictionQueries!: Table<FixturePredictionsQuery, number>
+  fixturePeriodStatisticsQueries!: Table<FixturePeriodStatisticsQuery, number>
   predictedLineupQueries!: Table<PredictedLineupQuery, number>
   newsQueries!: Table<NewsQuery, string>
   newsArticles!: Table<CachedNewsArticle, number>
@@ -994,6 +1004,12 @@ class HalfspaceDatabase extends Dexie {
       teamPins: '&teamId, pinnedAt',
       teamDirectoryQueries: '&key, staleAt',
       featuredGameSelections: '&key'
+    })
+    this.version(41).stores({
+      expectedLineupQueries: '&fixtureId, staleAt',
+      fixtureExpectedMetricsQueries: '&fixtureId, staleAt',
+      fixturePredictionQueries: '&fixtureId, staleAt',
+      fixturePeriodStatisticsQueries: '&fixtureId, staleAt'
     })
   }
 }
@@ -3273,6 +3289,10 @@ export async function clearSportmonksCache(): Promise<void> {
       db.transferFeedQueries,
       db.statisticSeasonQueries,
       db.seasonBracketQueries,
+      db.expectedLineupQueries,
+      db.fixtureExpectedMetricsQueries,
+      db.fixturePredictionQueries,
+      db.fixturePeriodStatisticsQueries,
       db.predictedLineupQueries,
       db.newsQueries,
       db.newsArticles,
@@ -3341,6 +3361,10 @@ export async function clearSportmonksCache(): Promise<void> {
       await db.transferFeedQueries.clear()
       await db.statisticSeasonQueries.clear()
       await db.seasonBracketQueries.clear()
+      await db.expectedLineupQueries.clear()
+      await db.fixtureExpectedMetricsQueries.clear()
+      await db.fixturePredictionQueries.clear()
+      await db.fixturePeriodStatisticsQueries.clear()
       await db.predictedLineupQueries.clear()
       await db.newsQueries.clear()
       await db.newsArticles.clear()
@@ -3608,6 +3632,129 @@ export async function writeTvGuideRefresh(
       listings: refresh.listings,
       fetchedAt: refresh.fetchedAt,
       staleAt
+    })
+  })
+}
+
+export interface ExpectedLineupsQuery extends ExpectedLineupsRefresh {
+  staleAt: number
+}
+export async function readExpectedLineups(fixtureId: number): Promise<ExpectedLineupsQuery | null> {
+  return (await db.expectedLineupQueries.get(fixtureId)) ?? null
+}
+export async function writeExpectedLineupsRefresh(
+  fixtureId: number,
+  refresh: ExpectedLineupsRefresh
+): Promise<void> {
+  if (
+    refresh.fixtureId !== fixtureId ||
+    refresh.lineups.some(
+      (entry) => entry.fixture_id !== fixtureId || ![77614, 77615].includes(entry.type_id)
+    )
+  )
+    throw new Error('The expected lineups do not match the selected fixture.')
+  await db.transaction('rw', db.expectedLineupQueries, db.players, async () => {
+    const previous = await db.expectedLineupQueries.get(fixtureId)
+    if (previous && previous.fetchedAt > refresh.fetchedAt) return
+    const players = [
+      ...new Map(
+        refresh.lineups.flatMap((entry) =>
+          entry.player ? [[entry.player.id, entry.player] as const] : []
+        )
+      ).values()
+    ]
+    const existingPlayers = await db.players.bulkGet(players.map((player) => player.id))
+    await db.players.bulkPut(
+      players.map((player, index) =>
+        toCachedIncludedPlayer(player, existingPlayers[index], refresh.fetchedAt)
+      )
+    )
+    await db.expectedLineupQueries.put({ ...refresh, staleAt: refresh.fetchedAt + 5 * 60_000 })
+  })
+}
+
+export interface FixtureExpectedMetricsQuery extends FixtureExpectedMetricsRefresh {
+  staleAt: number
+}
+export async function readFixtureExpectedMetrics(
+  fixtureId: number
+): Promise<FixtureExpectedMetricsQuery | null> {
+  return (await db.fixtureExpectedMetricsQueries.get(fixtureId)) ?? null
+}
+export async function writeFixtureExpectedMetricsRefresh(
+  fixtureId: number,
+  refresh: FixtureExpectedMetricsRefresh
+): Promise<void> {
+  if (
+    refresh.fixtureId !== fixtureId ||
+    refresh.statistics.some((entry) => entry.fixture_id !== fixtureId)
+  )
+    throw new Error('The expected metrics do not match the selected fixture.')
+  await db.transaction('rw', db.fixtureExpectedMetricsQueries, async () => {
+    const previous = await db.fixtureExpectedMetricsQueries.get(fixtureId)
+    if (previous && previous.fetchedAt > refresh.fetchedAt) return
+    await db.fixtureExpectedMetricsQueries.put({
+      ...refresh,
+      staleAt: refresh.fetchedAt + 60 * 60_000
+    })
+  })
+}
+
+export interface FixturePredictionsQuery extends FixturePredictionsRefresh {
+  staleAt: number
+}
+export async function readFixturePredictions(
+  fixtureId: number
+): Promise<FixturePredictionsQuery | null> {
+  return (await db.fixturePredictionQueries.get(fixtureId)) ?? null
+}
+export async function writeFixturePredictionsRefresh(
+  fixtureId: number,
+  refresh: FixturePredictionsRefresh
+): Promise<void> {
+  if (
+    refresh.fixtureId !== fixtureId ||
+    refresh.predictions.some((entry) => entry.fixture_id !== fixtureId)
+  )
+    throw new Error('The predictions do not match the selected fixture.')
+  await db.transaction('rw', db.fixturePredictionQueries, async () => {
+    const previous = await db.fixturePredictionQueries.get(fixtureId)
+    if (previous && previous.fetchedAt > refresh.fetchedAt) return
+    await db.fixturePredictionQueries.put({ ...refresh, staleAt: refresh.fetchedAt + 5 * 60_000 })
+  })
+}
+
+export interface FixturePeriodStatisticsQuery extends FixturePeriodStatisticsRefresh {
+  staleAt: number
+}
+export async function readFixturePeriodStatistics(
+  fixtureId: number
+): Promise<FixturePeriodStatisticsQuery | null> {
+  return (await db.fixturePeriodStatisticsQueries.get(fixtureId)) ?? null
+}
+export async function writeFixturePeriodStatisticsRefresh(
+  fixtureId: number,
+  refresh: FixturePeriodStatisticsRefresh
+): Promise<void> {
+  if (
+    refresh.fixtureId !== fixtureId ||
+    refresh.periods.some(
+      (period) =>
+        period.fixture_id !== fixtureId ||
+        period.statistics.some(
+          (statistic) =>
+            statistic.fixture_id !== fixtureId ||
+            (statistic.period_id !== undefined && statistic.period_id !== period.id)
+        )
+    )
+  )
+    throw new Error('The period statistics do not match the selected fixture.')
+  await db.transaction('rw', db.fixturePeriodStatisticsQueries, async () => {
+    const previous = await db.fixturePeriodStatisticsQueries.get(fixtureId)
+    if (previous && previous.fetchedAt > refresh.fetchedAt) return
+    await db.fixturePeriodStatisticsQueries.put({
+      ...refresh,
+      staleAt: refresh.fetchedAt + 60 * 60_000
     })
   })
 }

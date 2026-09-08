@@ -11,6 +11,7 @@ import { ComparisonSeasonPicker } from './comparison-season-picker'
 import { PlayerComparisonStatistics, TeamComparisonStatistics } from './comparison-statistics'
 import { useComparisonSeason } from './use-comparison-season'
 import type { ComparisonKind } from './comparison-data'
+import type { TeamStatisticsScope } from '@/features/statistics/statistics-data'
 
 export function ComparisonPage({
   kind = 'teams',
@@ -19,7 +20,9 @@ export function ComparisonPage({
   leftSeason,
   rightSeason,
   leftTeam,
-  rightTeam
+  rightTeam,
+  leftScope = 'all',
+  rightScope = 'all'
 }: {
   kind?: ComparisonKind
   left?: number
@@ -28,6 +31,8 @@ export function ComparisonPage({
   rightSeason?: number
   leftTeam?: number
   rightTeam?: number
+  leftScope?: TeamStatisticsScope
+  rightScope?: TeamStatisticsScope
 }): React.JSX.Element {
   const online = useOnline()
   const navigate = useNavigate({ from: '/compare' })
@@ -165,7 +170,9 @@ export function ComparisonPage({
                 leftTeam: kind === 'players' ? (second.selected?.teamId ?? rightTeam) : undefined,
                 rightTeam: kind === 'players' ? (first.selected?.teamId ?? leftTeam) : undefined,
                 leftSeason: second.selected?.season.id ?? rightSeason,
-                rightSeason: first.selected?.season.id ?? leftSeason
+                rightSeason: first.selected?.season.id ?? leftSeason,
+                leftScope: kind === 'teams' ? rightScope : undefined,
+                rightScope: kind === 'teams' ? leftScope : undefined
               })
             })
           }
@@ -181,6 +188,17 @@ export function ComparisonPage({
             leftSeasonId={first.selected.season.id}
             rightSeasonId={second.selected.season.id}
             online={online}
+            leftScope={leftScope}
+            rightScope={rightScope}
+            onScopeChange={(side, scope) =>
+              void navigate({
+                search: (previous) => ({
+                  ...previous,
+                  [side === 'left' ? 'leftScope' : 'rightScope']: scope
+                }),
+                resetScroll: false
+              })
+            }
           />
         ) : (
           <PlayerComparisonStatistics

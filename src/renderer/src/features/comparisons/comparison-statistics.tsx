@@ -19,6 +19,8 @@ import {
   playerStatisticsSummary,
   teamStatisticsSummary
 } from '@/features/statistics/statistics-data'
+import type { TeamStatisticsScope } from '@/features/statistics/statistics-data'
+import { NativeSelect } from '@/components/ui/native-select'
 import {
   comparisonRows,
   playerComparisonMetrics,
@@ -41,8 +43,15 @@ export function TeamComparisonStatistics({
   right,
   leftSeasonId,
   rightSeasonId,
-  online
-}: ComparisonStatisticsProps): React.JSX.Element {
+  online,
+  leftScope,
+  rightScope,
+  onScopeChange
+}: ComparisonStatisticsProps & {
+  leftScope: TeamStatisticsScope
+  rightScope: TeamStatisticsScope
+  onScopeChange: (side: 'left' | 'right', scope: TeamStatisticsScope) => void
+}): React.JSX.Element {
   const leftInput = useMemo(() => ({ teamId: left, seasonId: leftSeasonId }), [left, leftSeasonId])
   const rightInput = useMemo(
     () => ({ teamId: right, seasonId: rightSeasonId }),
@@ -51,20 +60,36 @@ export function TeamComparisonStatistics({
   const first = useTeamStatistics(leftInput, online)
   const second = useTeamStatistics(rightInput, online)
   const rows = comparisonRows(
-    teamStatisticsSummary(first.cached?.statistics ?? []),
-    teamStatisticsSummary(second.cached?.statistics ?? []),
+    teamStatisticsSummary(first.cached?.statistics ?? [], leftScope),
+    teamStatisticsSummary(second.cached?.statistics ?? [], rightScope),
     teamComparisonMetrics
   )
   return (
-    <ComparisonStatisticsTable
-      rows={rows}
-      online={online}
-      firstLoaded={!!first.cached}
-      secondLoaded={!!second.cached}
-      refreshing={first.refreshing || second.refreshing}
-      error={first.error ?? second.error}
-      refresh={() => Promise.all([first.refresh(), second.refresh()])}
-    />
+    <>
+      <div className="grid grid-cols-2 gap-3 sm:gap-12">
+        {(['left', 'right'] as const).map((side) => (
+          <NativeSelect
+            key={side}
+            value={side === 'left' ? leftScope : rightScope}
+            aria-label={`${side === 'left' ? 'First' : 'Second'} team match location`}
+            onChange={(event) => onScopeChange(side, event.target.value as TeamStatisticsScope)}
+          >
+            <option value="all">All matches</option>
+            <option value="home">Home matches</option>
+            <option value="away">Away matches</option>
+          </NativeSelect>
+        ))}
+      </div>
+      <ComparisonStatisticsTable
+        rows={rows}
+        online={online}
+        firstLoaded={!!first.cached}
+        secondLoaded={!!second.cached}
+        refreshing={first.refreshing || second.refreshing}
+        error={first.error ?? second.error}
+        refresh={() => Promise.all([first.refresh(), second.refresh()])}
+      />
+    </>
   )
 }
 

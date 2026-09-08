@@ -1,3 +1,7 @@
+import { invalidatePeriodStatisticsRefreshes } from '@/features/fixtures/use-period-statistics'
+import { invalidatePredictionsRefreshes } from '@/features/fixtures/use-predictions'
+import { invalidateExpectedMetricsRefreshes } from '@/features/fixtures/use-expected-metrics'
+import { invalidateExpectedLineupsRefreshes } from '@/features/fixtures/use-expected-lineups'
 import { invalidateTeamDirectoryRefreshes } from '@/features/teams/use-team-directory'
 import { invalidateSeasonRefereesRefreshes } from '@/features/competitions/use-season-referees'
 import { invalidateSeasonVenuesRefreshes } from '@/features/competitions/use-season-venues'
@@ -207,6 +211,10 @@ function invalidateRefreshes(): void {
   invalidateBroadcastScheduleRefreshes()
   invalidateTvGuideRefreshes()
   invalidateBracketRefreshes()
+  invalidateExpectedLineupsRefreshes()
+  invalidateExpectedMetricsRefreshes()
+  invalidatePredictionsRefreshes()
+  invalidatePeriodStatisticsRefreshes()
   invalidatePredictedLineupsRefreshes()
   invalidateNewsRefreshes()
   invalidateHonoursRefreshes()

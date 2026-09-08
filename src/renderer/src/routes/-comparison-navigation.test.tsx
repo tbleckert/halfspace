@@ -178,6 +178,58 @@ it('compares an explicit player club record and clears entity selection when cha
   expect(screen.queryByRole('table', { name: 'Season comparison' })).toBeNull()
 })
 
+it('keeps independent home and away selections in the URL through swaps and back navigation', async () => {
+  for (const [teamId, home, away] of [
+    [19, 6, 2],
+    [8, 5, 3]
+  ]) {
+    await writeTeamStatisticsRefresh(
+      { teamId, seasonId: 12 },
+      {
+        fetchedAt: Date.now(),
+        statistics: [
+          {
+            id: teamId,
+            team_statistic_id: 1,
+            type_id: 52,
+            value: {
+              all: { count: home + away },
+              home: { count: home },
+              away: { count: away }
+            }
+          }
+        ]
+      }
+    )
+  }
+  const router = createRouter({
+    routeTree,
+    history: createMemoryHistory({
+      initialEntries: [
+        '/compare?kind=teams&left=19&right=8&leftSeason=12&rightSeason=12&leftScope=home&rightScope=away'
+      ]
+    })
+  })
+  render(<RouterProvider router={router} />)
+  await screen.findByRole('row', { name: '6 Goals 3' })
+  fireEvent.click(screen.getByRole('button', { name: 'Swap selections' }))
+  await screen.findByRole('row', { name: '3 Goals 6' })
+  expect(router.state.location.search).toMatchObject({
+    left: 8,
+    leftScope: 'away',
+    right: 19,
+    rightScope: 'home'
+  })
+  fireEvent.change(screen.getByRole('combobox', { name: 'First team match location' }), {
+    target: { value: 'home' }
+  })
+  await screen.findByRole('row', { name: '5 Goals 6' })
+  expect(router.state.location.search.rightScope).toBe('home')
+  await act(() => router.history.back())
+  await screen.findByRole('row', { name: '3 Goals 6' })
+  expect(router.state.location.search.leftScope).toBe('away')
+})
+
 it('selects cached entities from the keyboard-friendly picker while offline', async () => {
   const router = createRouter({
     routeTree,

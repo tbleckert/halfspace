@@ -43,6 +43,14 @@ const halfspaceApi: HalfspaceApi = {
     refreshHonours: (input) => ipcRenderer.invoke(ipcChannels.refreshHonours, input),
     refreshNews: (input) => ipcRenderer.invoke(ipcChannels.refreshNews, input),
     refreshMatchFacts: (input) => ipcRenderer.invoke(ipcChannels.refreshMatchFacts, input),
+    refreshExpectedLineups: (input) =>
+      ipcRenderer.invoke(ipcChannels.refreshExpectedLineups, input),
+    refreshFixtureExpectedMetrics: (input) =>
+      ipcRenderer.invoke(ipcChannels.refreshFixtureExpectedMetrics, input),
+    refreshFixturePredictions: (input) =>
+      ipcRenderer.invoke(ipcChannels.refreshFixturePredictions, input),
+    refreshFixturePeriodStatistics: (input) =>
+      ipcRenderer.invoke(ipcChannels.refreshFixturePeriodStatistics, input),
     refreshPredictedLineups: (input) =>
       ipcRenderer.invoke(ipcChannels.refreshPredictedLineups, input),
     refreshSeasonBracket: (input) => ipcRenderer.invoke(ipcChannels.refreshSeasonBracket, input),

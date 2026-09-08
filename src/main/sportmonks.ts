@@ -424,7 +424,7 @@ const lineupDetailSchema = z
   })
   .passthrough()
 
-const typeSchema = z
+export const typeSchema = z
   .object({
     id: z.number().int(),
     name: z.string(),
@@ -515,7 +515,7 @@ const eventSchema = z
   })
   .passthrough()
 
-const fixtureStatisticSchema = z
+export const fixtureStatisticSchema = z
   .object({
     id: z.number().int(),
     fixture_id: z.number().int(),

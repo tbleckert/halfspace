@@ -1,6 +1,6 @@
 # Sportmonks API coverage
 
-Halfspace currently covers **62 of 153 endpoints** and **213 of 1320 documented endpoint includes**.
+Halfspace currently covers **63 of 153 endpoints** and **216 of 1320 documented endpoint includes**.
 
 Overall coverage: **19%**
 
@@ -27,7 +27,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 ### Fixtures
 
 - [ ] [All Fixtures](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-all-fixtures)
-- [x] [Fixture by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixture-by-id) — includes 24/38
+- [x] [Fixture by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixture-by-id) — includes 26/38
 - [ ] [Fixtures by Multiple IDs](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixtures-by-multiple-ids)
 - [x] [Fixtures by Date](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixtures-by-date) — includes 7/38
 - [x] [Fixtures by Date Range](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixtures-by-date-range) — includes 8/38
@@ -210,7 +210,7 @@ The README badge reads the generated JSON from the default branch on GitHub and 
 
 - [ ] [Probabilities](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/predictions/get-probabilities)
 - [ ] [Predictability by League ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/predictions/get-predictability-by-league-id)
-- [ ] [Probabilities by Fixture ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/predictions/get-probabilities-by-fixture-id)
+- [x] [Probabilities by Fixture ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/predictions/get-probabilities-by-fixture-id) — includes 1/2
 - [ ] [Value Bets](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/predictions/get-value-bets)
 - [ ] [Value Bets by Fixture ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/predictions/get-value-bets-by-fixture-id)
 - [ ] [Live Probabilities by Fixture ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/predictions/get-live-probabilities-by-fixture-id)

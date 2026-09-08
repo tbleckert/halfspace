@@ -1,3 +1,9 @@
+import {
+  fetchExpectedLineups,
+  fetchFixtureExpectedMetrics,
+  fetchFixturePredictions,
+  fetchFixturePeriodStatistics
+} from './fixture-analysis'
 import { fetchTeamDirectory, validateTeamDirectoryInput } from './team-directory'
 import {
   fetchSeasonReferees,
@@ -104,6 +110,31 @@ let currentRateLimit: SportmonksRateLimit | null = null
 let credentialGeneration = 0
 
 export function registerIpcHandlers(): void {
+  registerSportmonksHandler(
+    ipcChannels.refreshExpectedLineups,
+    validateFixtureInput,
+    fetchExpectedLineups,
+    'Could not refresh expected lineups.'
+  )
+  registerSportmonksHandler(
+    ipcChannels.refreshFixtureExpectedMetrics,
+    validateFixtureInput,
+    fetchFixtureExpectedMetrics,
+    'Could not refresh expected metrics.'
+  )
+  registerSportmonksHandler(
+    ipcChannels.refreshFixturePredictions,
+    validateFixtureInput,
+    fetchFixturePredictions,
+    'Could not refresh predictions.'
+  )
+  registerSportmonksHandler(
+    ipcChannels.refreshFixturePeriodStatistics,
+    validateFixtureInput,
+    fetchFixturePeriodStatistics,
+    'Could not refresh period statistics.'
+  )
+
   registerSportmonksHandler(
     ipcChannels.refreshTeamDirectory,
     validateTeamDirectoryInput,

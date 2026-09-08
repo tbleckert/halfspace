@@ -11,7 +11,9 @@ export const Route = createFileRoute('/compare')({
     left: optionalId,
     right: optionalId,
     leftTeam: optionalId,
-    rightTeam: optionalId
+    rightTeam: optionalId,
+    leftScope: z.enum(['all', 'home', 'away']).optional().catch(undefined),
+    rightScope: z.enum(['all', 'home', 'away']).optional().catch(undefined)
   }),
   component: ComparisonRoute
 })

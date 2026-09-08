@@ -423,6 +423,31 @@ the user agrees to a new design decision; carry the style into other views incre
 
 ## Profile and Fixture Detail
 
+- Expected match metrics are lazy-loaded on Fixture Stats into their own fixture cache. Show
+  reported xG, xG on target, non-penalty xG, and expected points, preserving missing values and
+  rounding only for display. Keep full-match expected values out of a selected period's statistics.
+  Access and timing vary by subscription and competition; empty data does not establish a denial.
+- Fixture Preview shows pre-match probabilities from the dedicated fixture predictions endpoint.
+  Request only match result, both teams to score, over/under 2.5, and correct score. Preserve
+  provider percentages without reweighting or inventing missing outcomes; retain all correct-score
+  categories behind a compact disclosure. Keep predictions separately cached and useful offline.
+- Fixture Lineups offers Expected squad and Predicted XI before confirmed sheets arrive. Expected
+  starters and substitutes retain their own provider types and fixture cache, use the shared pitch
+  with list fallback, and never become confirmed lineups, appearances, ratings, or event annotations.
+  Confirmed sheets always take precedence. Preserve an explicit forecast choice in the URL.
+- Fixture Stats keeps period selection in the URL and loads period statistics separately on demand.
+  Resolve each statistic's home/away side from the fixture participant metadata; period records
+  report participant IDs without a location. Validate both fixture and period identities, and reject
+  unknown participants. Never replace an unavailable period with full-match
+  totals. Keep player performance explicitly full-match. Refresh visible live analysis every
+  30 seconds and fetch final readings when play ends; pause automatic refresh while hidden/offline.
+- Team comparisons offer independent All/Home/Away selections in the URL. Swap both selections
+  with their team and season contexts. Reuse season caches and only read reported split values;
+  metrics without a selected split stay unknown rather than borrowing season totals.
+- Product API coverage measures usable fetching, caching, and presentation. Features can be fully
+  implemented even when a token grants access for only some leagues. Keep subscription access,
+  league/fixture coverage, and reported empty data distinct.
+
 - Player detail includes birthplace, preferred-foot metadata, reported team registrations, and pending
   transfers. Keep birth country separate from nationality. Registration dates, shirt numbers, and
   captain flags are reported facts; do not infer current membership from the include or overwrite

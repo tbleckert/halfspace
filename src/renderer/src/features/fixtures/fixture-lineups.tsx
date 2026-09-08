@@ -32,7 +32,7 @@ export function FixtureLineups({
   lineups,
   online,
   formations = [],
-  predicted = false
+  kind = 'confirmed'
 }: {
   away?: SportmonksParticipant
   context: FixturePlayerContext
@@ -41,16 +41,23 @@ export function FixtureLineups({
   lineups: SportmonksLineup[]
   online: boolean
   formations?: SportmonksFormation[]
-  predicted?: boolean
+  kind?: 'confirmed' | 'predicted' | 'expected'
 }): React.JSX.Element {
-  const homeEntries = lineups.filter(({ team_id }) => team_id === home?.id)
-  const awayEntries = lineups.filter(({ team_id }) => team_id === away?.id)
-  const starterTypeId = predicted ? 111384 : 11
+  const forecast = kind !== 'confirmed'
+  const displayLineups = forecast
+    ? lineups.map((entry) => ({ ...entry, details: undefined }))
+    : lineups
+  const homeEntries = displayLineups.filter(({ team_id }) => team_id === home?.id)
+  const awayEntries = displayLineups.filter(({ team_id }) => team_id === away?.id)
+  const starterTypeId = kind === 'expected' ? 77614 : kind === 'predicted' ? 111384 : 11
+  const benchTypeId = kind === 'expected' ? 77615 : 12
+  const startingLabel =
+    kind === 'expected' ? 'Expected XI' : kind === 'predicted' ? 'Predicted XI' : 'Starting XI'
   const homeFormation = fixtureFormationLines(homeEntries, starterTypeId)
   const awayFormation = fixtureFormationLines(awayEntries, starterTypeId)
-  const annotations = fixturePlayerAnnotations(events)
-  const homeSubstitutes = lineupGroup(homeEntries, 12)
-  const awaySubstitutes = lineupGroup(awayEntries, 12)
+  const annotations = fixturePlayerAnnotations(forecast ? [] : events)
+  const homeSubstitutes = lineupGroup(homeEntries, benchTypeId)
+  const awaySubstitutes = lineupGroup(awayEntries, benchTypeId)
 
   if (lineups.length === 0 && formations.length === 0) {
     return (
@@ -67,7 +74,7 @@ export function FixtureLineups({
           <LineupTeamHeader
             formation={homeFormation}
             reportedFormation={
-              !predicted
+              !forecast
                 ? formations.find(({ participant_id }) => participant_id === home?.id)?.formation
                 : undefined
             }
@@ -78,7 +85,7 @@ export function FixtureLineups({
             align="right"
             formation={awayFormation}
             reportedFormation={
-              !predicted
+              !forecast
                 ? formations.find(({ participant_id }) => participant_id === away?.id)?.formation
                 : undefined
             }
@@ -91,7 +98,7 @@ export function FixtureLineups({
           <FixtureEmptyState>Lineups not available</FixtureEmptyState>
         ) : homeFormation && awayFormation ? (
           <CombinedFormationPitch
-            predicted={predicted}
+            lineupLabel={startingLabel}
             annotations={annotations}
             context={context}
             awayFormation={awayFormation}
@@ -106,7 +113,7 @@ export function FixtureLineups({
               annotations={annotations}
               context={context}
               entries={lineupGroup(homeEntries, starterTypeId)}
-              label={predicted ? 'Predicted XI' : 'Starting XI'}
+              label={startingLabel}
               online={online}
               teamId={home?.id}
             />
@@ -114,7 +121,7 @@ export function FixtureLineups({
               annotations={annotations}
               context={context}
               entries={lineupGroup(awayEntries, starterTypeId)}
-              label={predicted ? 'Predicted XI' : 'Starting XI'}
+              label={startingLabel}
               online={online}
               teamId={away?.id}
             />
@@ -124,7 +131,9 @@ export function FixtureLineups({
 
       {(homeSubstitutes.length > 0 || awaySubstitutes.length > 0) && (
         <section>
-          <h2 className="mb-3 text-xl font-semibold tracking-tight">Bench</h2>
+          <h2 className="mb-3 text-xl font-semibold tracking-tight">
+            {kind === 'expected' ? 'Expected bench' : 'Bench'}
+          </h2>
           <Card className="grid gap-5 overflow-hidden lg:grid-cols-2">
             <TeamBench
               annotations={annotations}
@@ -187,7 +196,7 @@ function LineupTeamHeader({
 }
 
 function CombinedFormationPitch({
-  predicted,
+  lineupLabel,
   annotations,
   awayFormation,
   awayTeamId,
@@ -196,7 +205,7 @@ function CombinedFormationPitch({
   homeTeamId,
   online
 }: {
-  predicted: boolean
+  lineupLabel: string
   annotations: Map<number, PlayerEventAnnotation[]>
   awayFormation: Formation
   awayTeamId?: number
@@ -208,7 +217,7 @@ function CombinedFormationPitch({
   return (
     <div className="p-3 sm:p-4">
       <div
-        aria-label={`${predicted ? 'Predicted' : 'Starting'} lineups, ${fixtureFormationLabel(homeFormation)} and ${fixtureFormationLabel(awayFormation)}`}
+        aria-label={`${lineupLabel} lineups, ${fixtureFormationLabel(homeFormation)} and ${fixtureFormationLabel(awayFormation)}`}
         className="relative mx-auto aspect-[16/9] w-full overflow-hidden rounded-lg bg-pitch shadow-inner"
         role="group"
       >

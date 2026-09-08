@@ -90,12 +90,17 @@ include should have a useful place in Halfspace.
 - [x] Season statistics for competitions, teams, and players.
 - [x] Competition stage and round statistics, with stage-specific player leaderboards.
 - [x] Cross-league team and player comparisons with entity-specific season selection, independent records, and per-90 player radars.
+- [x] Independent home/away team comparisons using reported season splits.
 - [x] Season player leaderboards for goals, assists, yellow cards, and red cards.
 - [x] Fixture previews, event timelines, pitch lineups, match statistics, and pre-match odds.
+- [x] Match statistics by period, including first- and second-half views.
+- [x] Match expected goals, xG on target, non-penalty xG, and expected points where available.
+- [x] Pre-match result, both-teams-to-score, goal-total, and correct-score probabilities.
 - [x] Provider-reported formations, group context, and aggregate ties with links between legs.
 - [x] Fixture weather and match-specific absences with linked player profiles.
 - [x] Match facts with team, category, and scope filters in fixture previews.
 - [x] Predicted lineups on the shared pitch before confirmed team sheets are available.
+- [x] Expected starting XIs and benches, with forecast selection and confirmed lineup precedence.
 - [x] Football news with competition and season browsing, article readers, and fixture previews and reports.
 - [x] Match-aware Game view combining pressure, key statistics, and the event timeline.
 - [x] Fixture pressure charts with goal and red-card markers, exact values, and live updates.
@@ -118,7 +123,6 @@ Prioritize football data presentation, then dedicated design passes. Sharing and
 follow once the visual design is settled.
 
 - [ ] Complete referee appointment history beyond the recent six-month window.
-- [ ] Expected goals, predictions, and expected lineups.
 - [ ] Deeper in-play analysis.
 - [ ] Premium odds and deeper bookmaker coverage.
 - [ ] Deeper comparison and analysis tools built on the local data foundation.

@@ -27,6 +27,10 @@ export const ipcChannels = {
   refreshNews: 'sportmonks:refresh-news',
   refreshMatchFacts: 'sportmonks:refresh-match-facts',
   refreshPredictedLineups: 'sportmonks:refresh-predicted-lineups',
+  refreshExpectedLineups: 'sportmonks:refresh-expected-lineups',
+  refreshFixtureExpectedMetrics: 'sportmonks:refresh-fixture-expected-metrics',
+  refreshFixturePredictions: 'sportmonks:refresh-fixture-predictions',
+  refreshFixturePeriodStatistics: 'sportmonks:refresh-fixture-period-statistics',
   refreshSubscription: 'sportmonks:refresh-subscription',
   refreshFixtureTv: 'sportmonks:refresh-fixture-tv',
   refreshFixturePressure: 'sportmonks:refresh-fixture-pressure',
@@ -994,6 +998,47 @@ export interface PredictedLineupsRefresh {
   fetchedAt: number
 }
 
+export interface ExpectedLineupsRefresh {
+  fixtureId: number
+  lineups: SportmonksLineup[]
+  fetchedAt: number
+}
+
+export interface FixtureExpectedMetricsRefresh {
+  fixtureId: number
+  statistics: SportmonksFixtureStatistic[]
+  fetchedAt: number
+}
+
+export interface SportmonksPrediction {
+  id: number
+  fixture_id: number
+  type_id: number
+  predictions: Record<string, number | Record<string, number>>
+  type?: SportmonksType | null
+}
+
+export interface FixturePredictionsRefresh {
+  fixtureId: number
+  predictions: SportmonksPrediction[]
+  fetchedAt: number
+}
+
+export interface FixtureStatisticsPeriod {
+  id: number
+  fixture_id: number
+  type_id: number
+  description: string
+  sort_order: number
+  statistics: (SportmonksFixtureStatistic & { period_id?: number })[]
+}
+
+export interface FixturePeriodStatisticsRefresh {
+  fixtureId: number
+  periods: FixtureStatisticsPeriod[]
+  fetchedAt: number
+}
+
 export type NewsFeed = 'pre-match' | 'post-match'
 export type RefreshNewsInput =
   | { kind: 'feed'; feed: NewsFeed; page: number; seasonId?: number }
@@ -1403,6 +1448,16 @@ export interface HalfspaceApi {
     refreshNews(input: RefreshNewsInput): Promise<Result<NewsRefresh>>
     refreshMatchFacts(input: RefreshFixtureInput): Promise<Result<MatchFactsRefresh>>
     refreshPredictedLineups(input: RefreshFixtureInput): Promise<Result<PredictedLineupsRefresh>>
+    refreshExpectedLineups(input: RefreshFixtureInput): Promise<Result<ExpectedLineupsRefresh>>
+    refreshFixtureExpectedMetrics(
+      input: RefreshFixtureInput
+    ): Promise<Result<FixtureExpectedMetricsRefresh>>
+    refreshFixturePredictions(
+      input: RefreshFixtureInput
+    ): Promise<Result<FixturePredictionsRefresh>>
+    refreshFixturePeriodStatistics(
+      input: RefreshFixtureInput
+    ): Promise<Result<FixturePeriodStatisticsRefresh>>
     refreshSubscription(): Promise<Result<SubscriptionRefresh>>
     refreshFixtureTv(input: RefreshFixtureInput): Promise<Result<FixtureTvRefresh>>
     refreshFixturePressure(input: RefreshFixtureInput): Promise<Result<FixturePressureRefresh>>

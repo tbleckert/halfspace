@@ -1,3 +1,4 @@
+import { FixturePredictions } from './fixture-predictions'
 import { EntitySubpageNavigation } from '@/components/entity-subpage-navigation'
 import { FixtureTie } from './fixture-tie'
 import { entitySubpageNavigationItemClassName } from '@/components/entity-subpage-navigation-variants'
@@ -59,6 +60,8 @@ interface FixtureDetailPageProps {
   oddsFeed?: OddsFeed
   marketId?: number
   bookmakerId?: number
+  periodId?: number
+  lineupSource?: 'expected' | 'predicted'
 }
 
 export function FixtureDetailPage({
@@ -70,7 +73,9 @@ export function FixtureDetailPage({
   view: requestedView,
   oddsFeed,
   marketId,
-  bookmakerId
+  bookmakerId,
+  periodId,
+  lineupSource
 }: FixtureDetailPageProps): React.JSX.Element {
   const navigate = useNavigate()
   const router = useRouter()
@@ -272,6 +277,15 @@ export function FixtureDetailPage({
       )}
       {view === 'lineups' && (
         <FixtureLineupView
+          source={lineupSource}
+          onSelectSource={(source) =>
+            void navigate({
+              to: '/fixtures/$fixtureId/lineups',
+              params: { fixtureId },
+              search: (previous) => ({ ...previous, lineupSource: source }),
+              resetScroll: false
+            })
+          }
           fixture={match}
           context={{
             competition: competitionId ?? cachedFixture.leagueId,
@@ -283,16 +297,22 @@ export function FixtureDetailPage({
       )}
       {view === 'stats' && (
         <FixtureStats
-          away={away}
+          fixture={match}
+          periodId={periodId}
+          onSelectPeriod={(period) =>
+            void navigate({
+              to: '/fixtures/$fixtureId/stats',
+              params: { fixtureId },
+              search: (previous) => ({ ...previous, period }),
+              resetScroll: false
+            })
+          }
           context={{
             competition: competitionId ?? cachedFixture.leagueId,
             date,
             season: resolvedSeasonId
           }}
-          home={home}
-          lineups={match.lineups ?? []}
           online={online}
-          statistics={match.statistics ?? []}
         />
       )}
       {view === 'odds' && (
@@ -514,6 +534,7 @@ function FixturePreview({
   return (
     <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
       <div className="flex min-w-0 flex-col gap-5">
+        <FixturePredictions fixture={cachedFixture.raw} online={online} />
         <FixtureNews fixture={cachedFixture.raw} online={online} />
         <FixtureMatchFacts key={cachedFixture.id} fixture={cachedFixture.raw} online={online} />
         <FixturePreviewWorkspace

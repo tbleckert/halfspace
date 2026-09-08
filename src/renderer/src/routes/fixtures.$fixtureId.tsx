@@ -9,7 +9,8 @@ export const Route = createFileRoute('/fixtures/$fixtureId')({
 
 function FixtureDetailRoute(): React.JSX.Element {
   const { fixtureId } = Route.useParams()
-  const { competition, date, season, team, oddsFeed, market, bookmaker } = Route.useSearch()
+  const { competition, date, season, team, oddsFeed, market, bookmaker, period, lineupSource } =
+    Route.useSearch()
   const matchRoute = useMatchRoute()
   let view: FixtureView | undefined
 
@@ -65,6 +66,8 @@ function FixtureDetailRoute(): React.JSX.Element {
         oddsFeed={oddsFeed}
         marketId={market}
         bookmakerId={bookmaker}
+        periodId={period}
+        lineupSource={lineupSource}
       />
       <Outlet />
     </>

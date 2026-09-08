@@ -115,6 +115,10 @@ describe('IPC handlers', () => {
 
   it.each([
     ipcChannels.refreshFixtures,
+    ipcChannels.refreshExpectedLineups,
+    ipcChannels.refreshFixtureExpectedMetrics,
+    ipcChannels.refreshFixturePredictions,
+    ipcChannels.refreshFixturePeriodStatistics,
     ipcChannels.refreshFixturePressure,
     ipcChannels.refreshCompetition,
     ipcChannels.refreshSeasonTeams,

@@ -1,6 +1,7 @@
 import type { SportmonksFixture } from '@shared/contracts'
 import { RefreshCw } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
+import { NativeSelect } from '@/components/ui/native-select'
 import { Button } from '@/components/ui/button'
 import { ErrorAlert } from '@/components/error-alert'
 import { featureAccess } from '@/features/subscription/subscription-access'
@@ -9,23 +10,42 @@ import { fixtureParticipantAt } from '@/lib/fixture'
 import type { FixturePlayerContext } from './fixture-route'
 import { FixtureLineups } from './fixture-lineups'
 import { usePredictedLineups } from './use-predicted-lineups'
+import { useExpectedLineups } from './use-expected-lineups'
 
 export function FixtureLineupView({
   fixture,
   online,
-  context
+  context,
+  source,
+  onSelectSource
 }: {
   fixture: SportmonksFixture
   online: boolean
   context: FixturePlayerContext
+  source?: 'expected' | 'predicted'
+  onSelectSource: (source: 'expected' | 'predicted') => void
 }): React.JSX.Element {
   const confirmed = (fixture.lineups?.length ?? 0) > 0
   const beforeKickoff = fixture.state_id === 1
   const subscription = useSubscription(online && beforeKickoff && !confirmed)
-  const access = featureAccess(subscription.cached, 'predicted')
-  const prediction = usePredictedLineups(
+  const expectedAccess = featureAccess(subscription.cached, 'expected-lineups')
+  const predictedAccess = featureAccess(subscription.cached, 'predicted')
+  const selected = source ?? (expectedAccess === 'included' ? 'expected' : 'predicted')
+  const expected = useExpectedLineups(
     fixture.id,
-    online && beforeKickoff && !confirmed && access !== 'not-included'
+    online &&
+      beforeKickoff &&
+      !confirmed &&
+      selected === 'expected' &&
+      expectedAccess !== 'not-included'
+  )
+  const predicted = usePredictedLineups(
+    fixture.id,
+    online &&
+      beforeKickoff &&
+      !confirmed &&
+      selected === 'predicted' &&
+      predictedAccess !== 'not-included'
   )
   const props = {
     home: fixtureParticipantAt(fixture, 'home'),
@@ -42,45 +62,51 @@ export function FixtureLineupView({
         formations={fixture.formations?.filter(({ fixture_id }) => fixture_id === fixture.id)}
       />
     )
-  if (access === 'not-included' && !prediction.cached)
-    return (
-      <Card>
-        <CardContent className="py-8 text-center text-sm text-muted-foreground">
-          Confirmed lineups are not available yet. Predictions are not included in your
-          subscription.
-        </CardContent>
-      </Card>
-    )
+  const query = selected === 'expected' ? expected : predicted
+  const access = selected === 'expected' ? expectedAccess : predictedAccess
+  const label = selected === 'expected' ? 'Expected lineups' : 'Predicted lineups'
   return (
-    <section className="flex flex-col gap-3" aria-label="Predicted lineups">
-      <div className="flex items-center justify-between gap-3">
+    <section className="flex flex-col gap-3" aria-label={label}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold">Predicted lineups</h2>
+          <h2 className="text-lg font-semibold">{label}</h2>
           <p className="text-xs text-muted-foreground">Not confirmed team sheets</p>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Refresh predicted lineups"
-          disabled={!online || prediction.refreshing}
-          onClick={() => void prediction.refresh()}
-        >
-          <RefreshCw className="size-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <NativeSelect
+            aria-label="Lineup forecast"
+            value={selected}
+            onChange={(event) => onSelectSource(event.target.value as 'expected' | 'predicted')}
+          >
+            <option value="expected">Expected squad</option>
+            <option value="predicted">Predicted XI</option>
+          </NativeSelect>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={`Refresh ${label.toLowerCase()}`}
+            disabled={!online || query.refreshing || access === 'not-included'}
+            onClick={() => void query.refresh()}
+          >
+            <RefreshCw className="size-4" />
+          </Button>
+        </div>
       </div>
-      {prediction.error && <ErrorAlert>{prediction.error}</ErrorAlert>}
-      {prediction.cached?.lineups.length ? (
-        <FixtureLineups {...props} lineups={prediction.cached.lineups} events={[]} predicted />
+      {query.error && <ErrorAlert>{query.error}</ErrorAlert>}
+      {query.cached?.lineups.length ? (
+        <FixtureLineups {...props} lineups={query.cached.lineups} events={[]} kind={selected} />
       ) : (
         <Card>
           <CardContent className="py-8 text-center text-sm text-muted-foreground">
-            {prediction.cached
-              ? 'No predicted lineups reported'
-              : prediction.error
-                ? 'Predicted lineups unavailable'
-                : !online
-                  ? 'Predicted lineups not available offline'
-                  : 'Loading predicted lineups…'}
+            {access === 'not-included'
+              ? `${label} are not included in your subscription.`
+              : query.cached
+                ? `No ${label.toLowerCase()} reported for this match.`
+                : query.error
+                  ? `${label} unavailable.`
+                  : !online
+                    ? `${label} not available offline.`
+                    : `Loading ${label.toLowerCase()}…`}
           </CardContent>
         </Card>
       )}

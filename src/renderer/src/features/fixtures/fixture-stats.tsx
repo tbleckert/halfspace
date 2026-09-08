@@ -1,10 +1,17 @@
+import { FixtureStatTeam } from './fixture-stat-team'
+import { FixtureExpectedMetrics } from './fixture-expected-metrics'
+import { NativeSelect } from '@/components/ui/native-select'
+import { Button } from '@/components/ui/button'
+import { RefreshCw } from 'lucide-react'
+import { ErrorAlert } from '@/components/error-alert'
+import { fixtureParticipantAt } from '@/lib/fixture'
+import { isFixtureOngoing } from '@/lib/fixture-state'
+import { usePeriodStatistics } from './use-period-statistics'
 import { Card } from '@/components/ui/card'
 import { PlayerPhoto } from '@/features/players/player-photo'
 import { prefetchPlayerEntity } from '@/features/players/use-player'
-import { TeamLogo } from '@/features/teams/team-logo'
 import { intentPrefetchProps } from '@/lib/prefetch'
-import { cn } from '@/lib/utils'
-import type { SportmonksFixture, SportmonksLineup, SportmonksParticipant } from '@shared/contracts'
+import type { SportmonksFixture, SportmonksParticipant } from '@shared/contracts'
 import { Link } from '@tanstack/react-router'
 import {
   fixturePlayerPerformances,
@@ -17,20 +24,32 @@ import { FixtureStatisticRow } from './fixture-statistic-row'
 import type { FixturePlayerContext } from './fixture-route'
 
 export function FixtureStats({
-  away,
+  fixture,
   context,
-  home,
-  lineups,
   online,
-  statistics
+  periodId,
+  onSelectPeriod
 }: {
-  away?: SportmonksParticipant
+  fixture: SportmonksFixture
   context: FixturePlayerContext
-  home?: SportmonksParticipant
-  lineups: SportmonksLineup[]
   online: boolean
-  statistics: NonNullable<SportmonksFixture['statistics']>
+  periodId?: number
+  onSelectPeriod: (periodId?: number) => void
 }): React.JSX.Element {
+  const home = fixtureParticipantAt(fixture, 'home')
+  const away = fixtureParticipantAt(fixture, 'away')
+  const lineups = fixture.lineups ?? []
+  const query = usePeriodStatistics(
+    fixture.id,
+    online && periodId !== undefined,
+    isFixtureOngoing(fixture.state_id)
+  )
+  const periods = [...(fixture.periods ?? query.cached?.periods ?? [])].sort(
+    (a, b) => a.sort_order - b.sort_order
+  )
+  const period = query.cached?.periods.find((period) => period.id === periodId)
+  const statistics =
+    periodId === undefined ? (fixture.statistics ?? []) : (period?.statistics ?? [])
   const rows = fixtureStatisticRows(statistics)
   const performances = fixturePlayerPerformances(lineups)
   const homePerformances = performances.filter(({ entry }) => entry.team_id === home?.id)
@@ -38,14 +57,65 @@ export function FixtureStats({
 
   return (
     <div className="flex flex-col gap-5">
+      {periodId === undefined && <FixtureExpectedMetrics fixture={fixture} online={online} />}
       <Card className="overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 pt-5">
+          <h2 className="text-base font-semibold">Match statistics</h2>
+          <div className="flex items-center gap-2">
+            <NativeSelect
+              aria-label="Statistics period"
+              value={periodId ?? ''}
+              onChange={(event) =>
+                onSelectPeriod(event.target.value ? Number(event.target.value) : undefined)
+              }
+            >
+              <option value="">Full match</option>
+              {periodId !== undefined && !periods.some((period) => period.id === periodId) && (
+                <option value={periodId} disabled>
+                  Selected period unavailable
+                </option>
+              )}
+              {periods.map((period) => (
+                <option key={period.id} value={period.id}>
+                  {period.description}
+                </option>
+              ))}
+            </NativeSelect>
+            {periodId !== undefined && (
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Refresh period statistics"
+                disabled={!online || query.refreshing}
+                onClick={() => void query.refresh()}
+              >
+                <RefreshCw className="size-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+        {periodId !== undefined && query.error && (
+          <div className="px-4 pt-3">
+            <ErrorAlert>{query.error}</ErrorAlert>
+          </div>
+        )}
         <div className="grid grid-cols-[1fr_minmax(8rem,1.5fr)_1fr] items-center px-4 pb-3 pt-5">
           <FixtureStatTeam participant={home} online={online} align="left" />
           <span />
           <FixtureStatTeam participant={away} online={online} align="right" />
         </div>
         {rows.length === 0 ? (
-          <FixtureEmptyState>Stats not available</FixtureEmptyState>
+          <FixtureEmptyState>
+            {periodId === undefined
+              ? 'Stats not available'
+              : query.cached
+                ? 'No statistics reported for this period'
+                : query.error
+                  ? 'Period statistics unavailable'
+                  : !online
+                    ? 'Period statistics not available offline'
+                    : 'Loading period statistics…'}
+          </FixtureEmptyState>
         ) : (
           <div className="space-y-2 pb-2">
             {rows.map((row) => (
@@ -57,7 +127,12 @@ export function FixtureStats({
 
       {performances.length > 0 && (
         <section>
-          <h2 className="mb-3 text-xl font-semibold tracking-tight">Player performance</h2>
+          <h2 className="mb-3 text-xl font-semibold tracking-tight">
+            Player performance
+            {periodId !== undefined && (
+              <span className="ml-2 text-xs font-normal text-muted-foreground">Full match</span>
+            )}
+          </h2>
           <div className="grid gap-4 lg:grid-cols-2">
             <TeamPlayerPerformance
               context={context}
@@ -165,31 +240,5 @@ function PlayerPerformanceRow({
         </div>
       )}
     </Link>
-  )
-}
-
-function FixtureStatTeam({
-  align,
-  online,
-  participant
-}: {
-  align: 'left' | 'right'
-  online: boolean
-  participant?: SportmonksParticipant
-}): React.JSX.Element {
-  return (
-    <div
-      className={cn(
-        'flex min-w-0 items-center gap-2 text-sm font-semibold',
-        align === 'right' && 'flex-row-reverse text-right'
-      )}
-    >
-      <TeamLogo
-        className="size-7 bg-background"
-        imagePath={participant?.image_path ?? null}
-        online={online}
-      />
-      <span className="truncate">{participant?.name ?? 'Team'}</span>
-    </div>
   )
 }

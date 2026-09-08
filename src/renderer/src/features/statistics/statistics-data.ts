@@ -108,7 +108,32 @@ export function leagueStatisticsSummary(statistics: Statistic[]): LeagueStatisti
   }
 }
 
-export function teamStatisticsSummary(statistics: Statistic[]): TeamStatisticsSummary {
+export type TeamStatisticsScope = 'all' | 'home' | 'away'
+
+export function teamStatisticsSummary(
+  statistics: Statistic[],
+  scope: TeamStatisticsScope = 'all'
+): TeamStatisticsSummary {
+  if (scope !== 'all') {
+    return {
+      averagePossession: statisticNestedNumber(statistics, 45, scope, 'average'),
+      cleanSheets: statisticNestedNumber(statistics, 194, scope, 'count'),
+      cornersPerMatch: statisticNestedNumber(statistics, 34, scope, 'average'),
+      draws: statisticNestedNumber(statistics, 215, scope, 'count'),
+      goalsAgainst: statisticNestedNumber(statistics, 88, scope, 'count'),
+      goalsAgainstPerMatch: statisticNestedNumber(statistics, 88, scope, 'average'),
+      goalsFor: statisticNestedNumber(statistics, 52, scope, 'count'),
+      goalsForPerMatch: statisticNestedNumber(statistics, 52, scope, 'average'),
+      losses: statisticNestedNumber(statistics, 216, scope, 'count'),
+      matches:
+        statisticNumber(statistics, 27263, scope) ??
+        statisticNestedNumber(statistics, 188, scope, 'count'),
+      redCards: statisticNestedNumber(statistics, 83, scope, 'count'),
+      shotsPerMatch: statisticNestedNumber(statistics, 1677, scope, 'average'),
+      wins: statisticNestedNumber(statistics, 214, scope, 'count'),
+      yellowCards: statisticNestedNumber(statistics, 84, scope, 'count')
+    }
+  }
   return {
     averagePossession: statisticAverage(statistics, 45),
     cleanSheets: statisticCount(statistics, 194),
