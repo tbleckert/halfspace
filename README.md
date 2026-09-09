@@ -63,6 +63,8 @@ include should have a useful place in Halfspace.
 ### Available
 
 - [x] Local-first desktop app with personal Sportmonks tokens and offline browsing.
+- [x] Personal first-run setup with token guidance, available competitions, optional team pins,
+      and TV country selection.
 - [x] Today-focused Matchday with featured games, live updates, upcoming fixtures, and recent results.
 - [x] My teams on Matchday, with a card per pinned team showing its upcoming game and previous
       result, plus direct team and match links.
@@ -127,8 +129,6 @@ The next milestone is a [personal, installable macOS alpha](docs/personal-alpha.
 connect their account, follow their teams, and return on another matchday. Use feedback from
 the first testers to focus subsequent football features and design passes.
 
-- [ ] Personal first-run setup with token guidance, available competitions, optional team pins,
-      and TV country selection.
 - [ ] Installable macOS alpha with a release workflow and a five-person usability pilot.
 - [ ] Saved team and player comparisons with their complete season and club context.
 - [ ] Starter personal views that can be opened without an AI key.

@@ -7,11 +7,13 @@ import { useConnectionState } from './use-connection-state'
 interface SportmonksTokenFormProps {
   autoFocus?: boolean
   buttonLabel: string
+  beforeSave?: () => void
 }
 
 export function SportmonksTokenForm({
   autoFocus = false,
-  buttonLabel
+  buttonLabel,
+  beforeSave
 }: SportmonksTokenFormProps): React.JSX.Element {
   const { saveToken } = useConnectionState()
   const [token, setToken] = useState('')
@@ -22,6 +24,14 @@ export function SportmonksTokenForm({
     event.preventDefault()
     setSaving(true)
     setError(null)
+
+    try {
+      beforeSave?.()
+    } catch {
+      setError('Could not save setup progress. Please try again.')
+      setSaving(false)
+      return
+    }
 
     try {
       const result = await saveToken(token)

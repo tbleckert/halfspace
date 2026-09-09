@@ -88,6 +88,21 @@ fills.
 Treat the existing [Halfspace logo](../resources/halfspace-logo.svg) as a separate asset with
 its own colors. Use the coral-and-violet palette above for interface design.
 
+## First-run setup
+
+Use the same white canvas in a focused fullscreen flow, with the top strip reserved for window
+movement. Center a compact column with the Halfspace logo, a direct heading, quiet supporting text,
+and a step count beneath the actions. Keep the content scrollable at short or narrow window sizes.
+Use warm cards for token guidance and the subscribed competition list; use violet for selection
+and the main action. Move keyboard focus to the heading when steps change, and keep these screens
+static rather than extending Matchday's card animation.
+
+The three screens are Connect Sportmonks, Your competitions, and Choose your teams. Team search
+uses the existing star action and shows selected teams above the search field. TV country is an
+optional disclosure on the team screen, loading actual broadcast countries when opened. Offer
+Skip setup from the competition screen; Open Matchday also works without any pinned teams.
+Show loading, offline, access, and storage errors explicitly without blocking optional choices.
+
 ## Matchday reference patterns
 
 **Matchday and Fixtures:** Matchday stays on today with a visible heading and quiet date. The

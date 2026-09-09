@@ -1,6 +1,6 @@
 # Personal macOS alpha
 
-Agreed direction: 8 September 2026. Your teams is implemented; first-run setup, distribution,
+Agreed direction: 8 September 2026. My teams and first-run setup are implemented; distribution,
 the usability pilot, and reusable investigations remain planned.
 
 ## Outcome
@@ -28,8 +28,7 @@ through existing football data and any verified provider gaps those journeys exp
    clubs, and home/away selections. Then offer starter Views that open without an AI key. Reuse
    existing comparison and view foundations; AI remains an optional way to compose and edit views.
 
-The first two steps form one user experience. Implement Your teams first so the setup work has a
-useful destination. Premium odds, exhaustive referee history, and image exports remain later work.
+The first two steps now form one user experience: setup leads directly to personalized Matchday. Premium odds, exhaustive referee history, and image exports remain later work.
 
 ## First feature brief: Your teams
 
@@ -76,6 +75,31 @@ pass. An isolated in-memory preview verified the two-column cards and long team 
   and hidden pauses, independent failures, query changes, and credential invalidation.
 - All 763 tests pass, alongside TypeScript, lint, formatting, coverage checks, and the production
   build. This feature reuses supported data; API coverage remains unchanged.
+
+## First-run setup
+
+Implemented on 9 September 2026. The flow uses the existing secure token form and cache reset,
+subscribed competition catalog, entity search, local pins, subscription access, and TV listings.
+The token instructions follow the [Sportmonks authentication guide](https://docs.sportmonks.com/v3/welcome/authentication).
+
+- [x] Explain where to create a token and offer a MySportmonks link.
+- [x] Show available competitions, with separate loading, offline, failure, and empty states.
+- [x] Offer token replacement and retry when access cannot be checked.
+- [x] Let people search and pin teams, or skip personalization entirely.
+- [x] Offer optional TV country selection from the next week's reported broadcast listings,
+      shared with TV Guide; check subscription access before loading the optional feed.
+- [x] Finish on today's Matchday with the user's saved team pins.
+- [x] Persist step progress and completion through restarts and football cache clearing.
+- [x] Preserve the workspace for existing configured installations that predate the setup marker.
+- [x] Retain the credential-reset gate and surface storage failures with a retry path.
+
+An isolated in-memory preview verified token entry, competition presentation, team search and pins,
+TV selection, keyboard completion, long names, a narrow content width, and the resulting My teams
+card. The preview uses sample data and never changes the user's credentials or preferences.
+Automated checks cover setup persistence, skip, offline cached choices, storage recovery, provider
+access failures, and shared TV preferences. All 764 tests pass, alongside type checks, lint,
+formatting, API coverage checks, and the production build. Packaging and clean-machine installation
+remain next.
 
 ## Pilot acceptance
 

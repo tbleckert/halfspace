@@ -19,6 +19,7 @@ import {
   List
 } from 'lucide-react'
 import type { SportmonksRateLimit } from '@shared/contracts'
+import { FirstRunGate } from '@/features/setup/first-run-gate'
 import { TokenSetup } from '@/features/credentials/token-setup'
 import { useConnectionState } from '@/features/credentials/use-connection-state'
 import { Button } from '@/components/ui/button'
@@ -86,7 +87,11 @@ export function AppShell(): React.JSX.Element {
     )
   }
 
-  return <Workspace rateLimit={rateLimit} />
+  return (
+    <FirstRunGate>
+      <Workspace rateLimit={rateLimit} />
+    </FirstRunGate>
+  )
 }
 
 function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): React.JSX.Element {

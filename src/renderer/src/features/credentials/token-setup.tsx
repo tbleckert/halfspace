@@ -1,14 +1,38 @@
-import { HalfspaceLogo } from '@/components/halfspace-logo'
+import { Button } from '@/components/ui/button'
+import { SetupScreen } from '@/features/setup/setup-screen'
+import { saveSetupStep } from '@/features/setup/setup-progress'
 import { SportmonksTokenForm } from './sportmonks-token-form'
 
-export function TokenSetup(): React.JSX.Element {
+export function TokenSetup({ onCancel }: { onCancel?: () => void }): React.JSX.Element {
   return (
-    <main className="grid h-full place-items-center bg-background p-8">
-      <div className="w-full max-w-sm">
-        <HalfspaceLogo className="mb-8 size-10 rounded-xl" />
-        <h1 className="mb-8 text-3xl font-semibold tracking-tight">Connect Sportmonks</h1>
-        <SportmonksTokenForm autoFocus buttonLabel="Continue" />
+    <SetupScreen
+      title="Connect Sportmonks"
+      description="Halfspace uses your Sportmonks account to bring football to your workspace."
+      step={1}
+      focusHeading={false}
+    >
+      <div className="rounded-xl bg-card p-4 text-sm leading-relaxed">
+        Create an API token in your MySportmonks account settings, then paste it below.
+        <a
+          href="https://my.sportmonks.com/"
+          target="_blank"
+          rel="noreferrer"
+          className="mt-2 block w-fit rounded-sm font-medium text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          Open MySportmonks ↗
+        </a>
       </div>
-    </main>
+      <SportmonksTokenForm
+        autoFocus
+        buttonLabel="Continue"
+        beforeSave={() => saveSetupStep('competitions')}
+      />
+      <p className="text-xs text-muted-foreground">Your token is stored securely on this device.</p>
+      {onCancel && (
+        <Button variant="ghost" onClick={onCancel}>
+          Back
+        </Button>
+      )}
+    </SetupScreen>
   )
 }

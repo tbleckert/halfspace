@@ -13,9 +13,8 @@ abstractions.
 ## Product priorities
 
 The next milestone is the [personal macOS alpha](docs/personal-alpha.md), agreed on 8 September 2026.
-Prioritize first-run setup, Your teams on Matchday, and an installable build for a small usability
-pilot. Your teams is implemented; build first-run setup on the existing pins and personal Matchday
-section. Follow with saved comparisons and starter views that work without an AI key.
+First-run setup and My teams on Matchday are implemented. Prioritize an installable build and a
+small usability pilot, then saved comparisons and starter views that work without an AI key.
 
 Complete Sportmonks coverage remains the long-term goal. Choose near-term endpoint work around
 these user journeys and observed tester needs. The milestone document records planned scope and
@@ -63,6 +62,15 @@ the user agrees to a new design decision; carry the style into other views incre
   to 16px. Treat the logo as a separate asset with its own colors; use coral and violet for the
   interface palette.
 - Required setup states use a focused fullscreen flow before the main app appears.
+- First-run setup guides token creation, shows the subscribed competition catalog, then offers team
+  search and optional TV country selection before opening today's Matchday. Reuse existing search,
+  team pins, subscription metadata, and TV listings; load TV choices only when expanded and keep
+  access failures distinct from empty data. Personalization can be skipped. Save progress before
+  token storage and persist completion outside disposable football caches; resume unfinished setup
+  after restarting, and leave already configured installations without a setup marker in their
+  workspace. Credential changes still reset and gate football caches before setup continues.
+  Existing team pins and the shared TV preference remain editable in Teams and TV Guide.
+
 - Use direct, singular page headings. Do not add eyebrow labels or pretitles above them.
 - Avoid prototype copy, implementation explanations, and redundant guidance. Text should name the
   current thing, communicate a meaningful state, or enable an action.

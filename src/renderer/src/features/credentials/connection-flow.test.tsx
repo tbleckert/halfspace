@@ -137,6 +137,9 @@ describe('Sportmonks connection flow', () => {
     fireEvent.change(screen.getByLabelText('API token'), { target: { value: 'test-token' } })
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
 
+    expect(await screen.findByRole('heading', { name: 'Your competitions' })).toBeDefined()
+    expect(screen.queryByRole('navigation', { name: 'Workspace' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Skip setup' }))
     expect(await screen.findByRole('heading', { name: 'Matchday' })).toBeDefined()
     expect(screen.getByRole('navigation')).toBeDefined()
     expect(saveToken).toHaveBeenCalledWith({ token: 'test-token' })

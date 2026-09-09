@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -16,7 +16,7 @@ import { useOnline } from '@/lib/use-online'
 import { useTvGuide } from './use-tv-guide'
 import { watchableFixtures } from './tv-guide-data'
 
-const preferenceKey = 'halfspace:tv-country'
+import { useTvCountry } from './use-tv-country'
 
 export function TvGuidePage({ date: selectedDate }: { date?: string }): React.JSX.Element {
   const navigate = useNavigate({ from: '/tv-guide' })
@@ -33,16 +33,7 @@ export function TvGuidePage({ date: selectedDate }: { date?: string }): React.JS
     }),
     [date, timeZone]
   )
-  const [country, setCountry] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem(preferenceKey) ?? 'null') as {
-        id: string
-        name: string
-      } | null
-    } catch {
-      return null
-    }
-  })
+  const { country, setCountry, error: countryError } = useTvCountry()
   const subscription = useSubscription(online)
   const access = featureAccess(subscription.cached, 'tv')
   const guide = useTvGuide(input, online && access !== 'not-included')
@@ -71,7 +62,6 @@ export function TvGuidePage({ date: selectedDate }: { date?: string }): React.JS
               const id = event.target.value
               const selected = id ? { id, name: countries.get(id)! } : null
               setCountry(selected)
-              localStorage.setItem(preferenceKey, JSON.stringify(selected))
             }}
           >
             <option value="">Choose country</option>
@@ -108,6 +98,7 @@ export function TvGuidePage({ date: selectedDate }: { date?: string }): React.JS
         )}
       </div>
       {!online && guide.cached && <p className="text-sm text-muted-foreground">Saved listings</p>}
+      {countryError && <ErrorAlert>{countryError}</ErrorAlert>}
       {guide.error && <ErrorAlert>{guide.error}</ErrorAlert>}
       {access === 'not-included' ? (
         <ErrorAlert>
