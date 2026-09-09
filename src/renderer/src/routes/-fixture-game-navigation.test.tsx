@@ -186,10 +186,13 @@ it('loads pressure only in Game and retains cached readings if its refresh fails
       }
     })
     .mockResolvedValue({ ok: false, error: { message: 'Rate limit reached.' } })
+  const refreshFixture = vi
+    .fn()
+    .mockResolvedValue({ ok: true, data: { fetchedAt, fixture: match } })
   vi.stubGlobal('halfspace', {
     sportmonks: {
       refreshFixturePressure,
-      refreshFixture: vi.fn().mockResolvedValue({ ok: true, data: { fetchedAt, fixture: match } })
+      refreshFixture
     }
   })
   connection.online = true
@@ -199,11 +202,17 @@ it('loads pressure only in Game and retains cached readings if its refresh fails
   fireEvent.click(screen.getByRole('link', { name: 'Game' }))
   await screen.findByRole('slider', { name: 'Pressure by minute' })
   expect(refreshFixturePressure).toHaveBeenCalledExactlyOnceWith({ fixtureId: 50 })
-  fireEvent.click(screen.getByRole('button', { name: 'Refresh Home team vs Away team' }))
+  const refreshButton = screen.getByRole('button', { name: 'Refresh Home team vs Away team' })
+  await waitFor(() => expect(refreshButton.hasAttribute('disabled')).toBe(false))
+  fireEvent.click(refreshButton)
   await screen.findByText('Rate limit reached.')
+  await waitFor(() => expect(refreshButton.hasAttribute('disabled')).toBe(false))
+  expect(refreshFixture).toHaveBeenCalledExactlyOnceWith({ fixtureId: 50 })
   expect(screen.getByRole('slider', { name: 'Pressure by minute' })).toBeTruthy()
   fireEvent.click(screen.getByRole('link', { name: 'Full stats' }))
   await waitFor(() => expect(router.state.location.pathname).toBe('/fixtures/50/stats'))
-  fireEvent.click(screen.getByRole('button', { name: 'Refresh Home team vs Away team' }))
+  fireEvent.click(refreshButton)
+  await waitFor(() => expect(refreshButton.hasAttribute('disabled')).toBe(false))
+  expect(refreshFixture).toHaveBeenCalledTimes(2)
   expect(refreshFixturePressure).toHaveBeenCalledTimes(2)
 })
