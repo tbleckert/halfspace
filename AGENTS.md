@@ -13,8 +13,10 @@ abstractions.
 ## Product priorities
 
 The next milestone is the [personal macOS alpha](docs/personal-alpha.md), agreed on 8 September 2026.
-First-run setup and My teams on Matchday are implemented. Prioritize an installable build and a
-small usability pilot, then saved comparisons and starter views that work without an AI key.
+First-run setup, My teams on Matchday, and macOS packaging are implemented. Prioritize signed
+release validation and a small usability pilot, then saved comparisons and starter views that
+work without an AI key. Follow [the release guide](docs/macos-release.md): tester builds require
+Developer ID signing and notarization; unsigned packages are explicitly for local checks.
 
 Complete Sportmonks coverage remains the long-term goal. Choose near-term endpoint work around
 these user journeys and observed tester needs. The milestone document records planned scope and

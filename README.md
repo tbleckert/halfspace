@@ -55,6 +55,10 @@ Add your token when the app opens. Available leagues and data depend on your Spo
 and add-ons. Settings shows what your token can access; an included feature may still have no
 data for a particular league or fixture.
 
+For macOS DMG/ZIP builds, see the [alpha release guide](docs/macos-release.md). Tester releases
+require Developer ID signing and Apple notarization; an explicit unsigned command is available
+for local packaging checks.
+
 ## Roadmap
 
 The north star is complete Sportmonks Football coverage: every endpoint and every supported
@@ -63,6 +67,7 @@ include should have a useful place in Halfspace.
 ### Available
 
 - [x] Local-first desktop app with personal Sportmonks tokens and offline browsing.
+- [x] macOS packaging and a manual signing/notarization workflow for Apple silicon and Intel.
 - [x] Personal first-run setup with token guidance, available competitions, optional team pins,
       and TV country selection.
 - [x] Today-focused Matchday with featured games, live updates, upcoming fixtures, and recent results.
@@ -129,7 +134,7 @@ The next milestone is a [personal, installable macOS alpha](docs/personal-alpha.
 connect their account, follow their teams, and return on another matchday. Use feedback from
 the first testers to focus subsequent football features and design passes.
 
-- [ ] Installable macOS alpha with a release workflow and a five-person usability pilot.
+- [ ] Signed macOS alpha validated on clean installations and a five-person usability pilot.
 - [ ] Saved team and player comparisons with their complete season and club context.
 - [ ] Starter personal views that can be opened without an AI key.
 - [ ] Complete referee appointment history beyond the recent six-month window.

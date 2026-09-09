@@ -1,7 +1,8 @@
 # Personal macOS alpha
 
-Agreed direction: 8 September 2026. My teams and first-run setup are implemented; distribution,
-the usability pilot, and reusable investigations remain planned.
+Agreed direction: 8 September 2026. My teams, first-run setup, and macOS packaging are implemented.
+Signing credentials, clean-machine release validation, the usability pilot, and reusable
+investigations remain next.
 
 ## Outcome
 
@@ -98,8 +99,39 @@ TV selection, keyboard completion, long names, a narrow content width, and the r
 card. The preview uses sample data and never changes the user's credentials or preferences.
 Automated checks cover setup persistence, skip, offline cached choices, storage recovery, provider
 access failures, and shared TV preferences. All 764 tests pass, alongside type checks, lint,
-formatting, API coverage checks, and the production build. Packaging and clean-machine installation
-remain next.
+formatting, API coverage checks, and the production build. At that point, packaging and
+clean-machine installation were next.
+
+## Installable alpha
+
+The [release guide](macos-release.md) covers DMG and ZIP builds, required Apple credentials,
+verification, and replacement installs. The [pilot checklist](alpha-pilot.md) records the release
+gate and five-person observation plan.
+
+- [x] Configure Apple silicon and Intel DMG/ZIP packaging with the canonical app icon.
+- [x] Make Developer ID signing and notarization the default release path, failing on missing credentials.
+- [x] Add a manual workflow that checks and builds both architectures and uploads verified artifacts.
+- [x] Keep explicitly unsigned local builds separate and label their filenames.
+- [x] Prepare installation, first-session, offline reopening, and return-visit pilot checks.
+- [ ] Configure Apple signing and notarization credentials and complete the signed release workflow.
+- [ ] Validate downloaded signed installers on clean Apple silicon and Intel installations.
+- [ ] Observe five testers, record return visits, and resolve the friction they encounter.
+
+### Local verification on 9 September 2026
+
+All 769 tests pass, alongside type checks, lint, formatting, API coverage validation, and the
+production build. Both Apple silicon and Intel unsigned DMG and ZIP builds pass archive
+verification. The Apple silicon DMG was mounted and its app copied to a temporary installation
+directory; the copied bundle passed
+signature integrity verification and opened the actual packaged renderer at Connect Sportmonks
+with an isolated fresh profile. The icon, bundle identifier, version, and runtime dependencies
+were also checked. The Intel executable's architecture and bundle integrity were verified,
+but it has not been launched on an Intel Mac. The test app and profile were removed afterward.
+
+The signed command fails with a clear credential message on this Mac. No usable Developer ID
+signing certificate or repository signing secrets were available during verification. Actual
+Apple notarization, the hosted release workflow, clean-machine installation, authenticated
+packaged journeys, offline cached reopening, and tester sessions remain unverified.
 
 ## Pilot acceptance
 

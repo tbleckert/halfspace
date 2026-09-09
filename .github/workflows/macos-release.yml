@@ -1,0 +1,60 @@
+name: macOS alpha
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-alpha-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    name: Signed macOS (${{ matrix.arch }})
+    if: github.ref == 'refs/heads/main'
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-15
+          - arch: x64
+            runner: macos-15-intel
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/setup@703c52620218391530e48b9e8870d5c0082e1b9b # v2.1.0
+        with:
+          runtime: node@24
+          cache: true
+          require-lockfile: true
+
+      - name: Check code and coverage artifacts
+        run: pnpm check
+
+      - name: Build, sign, notarize, and verify
+        run: pnpm release:mac --${{ matrix.arch }}
+        env:
+          CSC_LINK: ${{ secrets.MAC_CERTIFICATE_P12 }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: Upload verified installers
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: halfspace-macos-${{ matrix.arch }}
+          path: |
+            dist/release/${{ matrix.arch }}/*.dmg
+            dist/release/${{ matrix.arch }}/*.zip
+            dist/release/${{ matrix.arch }}/*.sha256
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
