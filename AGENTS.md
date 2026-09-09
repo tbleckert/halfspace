@@ -14,8 +14,8 @@ abstractions.
 
 The next milestone is the [personal macOS alpha](docs/personal-alpha.md), agreed on 8 September 2026.
 Prioritize first-run setup, Your teams on Matchday, and an installable build for a small usability
-pilot. Your teams is the first feature slice; reuse existing pins and fixture queries. Follow with
-saved comparisons and starter views that work without an AI key.
+pilot. Your teams is implemented; build first-run setup on the existing pins and personal Matchday
+section. Follow with saved comparisons and starter views that work without an AI key.
 
 Complete Sportmonks coverage remains the long-term goal. Choose near-term endpoint work around
 these user journeys and observed tester needs. The milestone document records planned scope and
@@ -265,6 +265,18 @@ the user agrees to a new design decision; carry the style into other views incre
   page separately with hasMore and preserve richer/newer team detail when hydrating shared identities.
   Pin teams from directory rows or their persistent header, and show pinned teams in the sidebar.
   Team pins are local user preferences and survive disposable football-cache clearing.
+- Matchday My teams sits below Featured game with its heading outside the cards, like Today.
+  Give each pinned team a warm card with its linked name and logo in the header, followed by one
+  upcoming scheduled game and one previous completed result. Reuse the shared team-fixture query
+  for 30 days before and after today. Omit missing rows and hide cards with neither match; a shared
+  fixture belongs in each participating team's card. Keep local dates and competition context,
+  preserve cached content while refreshing, and distinguish unavailable data from an empty query.
+  Use a responsive two-column grid, stacking cards on narrower windows. With no pins, offer Browse
+  teams beside the section heading. Keep live matches in the existing global Matchday sections.
+- Refresh non-today dates containing ongoing Matchday fixtures every 30 seconds through shared
+  daily queries. Keep the surrounding window's normal cache lifetime, pause while hidden/offline,
+  and stop ongoing-date polling once the match finishes. Scope request status to the date window,
+  time zone, and ongoing date set; keep credential-reset invalidation and shared request deduplication.
 - Derive live match time from Sportmonks periods rather than elapsed wall-clock time.
 - Period minutes can be null, including penalty shootouts. Preserve the missing value and fall
   back to the match phase; never reject the entire fixture window or invent a zero-minute clock.

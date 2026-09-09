@@ -1,6 +1,7 @@
 # Personal macOS alpha
 
-Agreed direction: 8 September 2026. Status: planned; the work below is not implemented.
+Agreed direction: 8 September 2026. Your teams is implemented; first-run setup, distribution,
+the usability pilot, and reusable investigations remain planned.
 
 ## Outcome
 
@@ -36,34 +37,45 @@ useful destination. Premium odds, exhaustive referee history, and image exports 
 
 ### Scope
 
-- Add a compact Your teams section within the existing Matchday content, reusing the
-  [Matchday visual patterns](design.md). Settle its placement in a viewable design pass before UI work.
-- Read the existing local team pins. Pinning and unpinning should update the section immediately.
-- Show reported live matches, upcoming fixtures, and recent results involving pinned teams, with
-  clear dates and direct match links. Deduplicate a fixture when both teams are pinned.
-- Start with the existing Matchday date window. Use date-scoped labels and a link to each team's
-  Fixtures page for broader browsing; a bounded window cannot establish the globally next fixture
-  or latest result. A team without matches in the loaded window remains reachable through its profile.
-- With no pins, offer one quiet action to browse Teams. Keep broader Matchday football available.
-- Reuse shared fixture caches, status presentation, links, refresh policies, and local preferences.
-  Preserve the existing live ticker, Featured game, today's fixtures, news, and date navigation rules.
+- Place My teams below Featured game, with a heading outside the cards like Today.
+- Read existing local pins and give each team a card with its linked name and logo as the header.
+- Show one upcoming scheduled game and one previous completed result within 30 days of today,
+  using the existing team-fixture query and normalized fixture cache.
+- Hide cards with neither match; omit missing rows. Shared matches appear in each team's card.
+- Keep direct match links with local date context, cached offline content, explicit unavailable
+  states, static loading cards, and the existing viewport entrance for content.
+- Offer Browse teams with no pins and preserve the rest of Matchday, including live games.
 
 ### Acceptance criteria
 
-- [ ] An existing pinned team contributes its reported fixtures in the current date window.
-- [ ] Pinning or unpinning from Teams or a team header updates Matchday without restarting.
-- [ ] A match between two pinned teams appears once in Your teams.
-- [ ] Live, scheduled, and completed matches use the existing status rules. Cancelled or postponed
-      matches cannot be presented as the next scheduled game.
-- [ ] Dates follow the user's time zone and update across midnight and app focus changes.
-- [ ] Cached content opens offline. Missing or partial cache coverage is distinguishable from a
-      completed query reporting no fixtures; the interface makes no claim about matches outside it.
-- [ ] Match links retain return-date context. Each pinned team remains reachable when its window
-      has no reported fixtures.
-- [ ] Long names, multiple pins, narrow windows, keyboard navigation, and reduced motion are checked
-      visually. Loading states follow existing Matchday patterns.
-- [ ] Automated checks cover fixture selection, deduplication, query completeness, and reactive pin
-      changes. Run the repository's required checks before marking the feature shipped.
+- [x] The heading is outside the cards and each team has its own name/logo header.
+- [x] Pin and unpin changes update Matchday without restarting.
+- [x] Each card shows at most one upcoming fixture and one completed result.
+- [x] The shared team query covers 30 days before and after today; cards with neither match hide.
+- [x] Cancelled, postponed, placeholder, and undated fixtures do not fill these slots.
+- [x] Dates follow the user's time zone and match links retain return-date context.
+- [x] Cached cards work offline; missing cache data is distinguished from a completed empty query.
+- [x] Cards use a responsive grid and existing Matchday motion and loading conventions.
+
+### Revision on 9 September 2026
+
+User feedback replaced the combined list with individual team cards. Selection tests cover month
+boundaries, local midnight, qualifying states, shared matches, and chronological selection.
+Component tests cover reactive pins, linked headers, per-team rows, hidden empty cards, and offline
+cache gaps. All 754 tests, type checks, lint, formatting, coverage checks, and the production build
+pass. An isolated in-memory preview verified the two-column cards and long team names. This revision reuses the existing team-fixture endpoint; API coverage is unchanged.
+
+### Verification on 8 September 2026
+
+- The running Electron app showed existing pins, expandable upcoming/results lists, and links to
+  match Preview and team Fixtures with the correct date context.
+- An isolated in-memory visual harness covered six pins, long club names, 380px content width,
+  keyboard scrolling, loading, incomplete offline data, complete empty data, no pins, and reduced
+  motion emulation. The temporary harness was removed after verification.
+- Overnight regression tests verify continued daily refresh after midnight, completion, offline
+  and hidden pauses, independent failures, query changes, and credential invalidation.
+- All 763 tests pass, alongside TypeScript, lint, formatting, coverage checks, and the production
+  build. This feature reuses supported data; API coverage remains unchanged.
 
 ## Pilot acceptance
 

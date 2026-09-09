@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 
 import { mockViewsApi } from '../../../../test/view-api'
-import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, renderHook, waitFor } from '@testing-library/react'
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
 import type {
   FixtureDetailRefresh,
   FixtureRefresh,
@@ -15,7 +15,8 @@ import {
   readFixtureIdentity,
   readLiveFixtureQuery,
   readFixtureQuery,
-  writeFixtureDetailRefresh
+  writeFixtureDetailRefresh,
+  writeFixtureWindowRefresh
 } from '@/data/db'
 import { currentTimeZone, todayInTimeZone } from '@/lib/date'
 import {
@@ -26,8 +27,10 @@ import {
   prefetchFixtureQuery,
   refreshFixtureEntity,
   useLiveFixtures,
-  useFixtureEntity
+  useFixtureEntity,
+  useMatchdayWindow
 } from './use-fixtures'
+import { matchdayWindow } from './matchday-hub'
 
 beforeEach(async () => {
   invalidateFixtureRefreshes()
@@ -203,6 +206,228 @@ describe('fixture refresh', () => {
     expect(refreshFixtureHeadToHead).toHaveBeenCalledTimes(1)
     expect((await readFixtureHeadToHead(input)).fixtures).toHaveLength(1)
   })
+})
+
+describe('Matchday overnight fixtures', () => {
+  const today = '2026-09-08'
+  const yesterday = '2026-09-07'
+  const timeZone = 'UTC'
+
+  beforeEach(async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(`${today}T00:15:00Z`))
+    await seedWindow(today, timeZone)
+  })
+
+  afterEach(() => {
+    cleanup()
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+  })
+
+  it('refreshes yesterday’s live match by date and stops polling when it finishes', async () => {
+    const refreshFixtures = vi.fn().mockImplementation(async () => ({
+      ok: true,
+      data: overnightRefresh(5)
+    }))
+    const refreshFixtureWindow = vi.fn()
+    installHalfspace({ refreshFixtures, refreshFixtureWindow })
+    const { result } = renderHook(() => useMatchdayWindow(today, timeZone, true))
+    await waitFor(() => expect(result.current.cached?.complete).toBe(true))
+    expect(refreshFixtures).not.toHaveBeenCalled()
+
+    advanceClock(30_000)
+    await waitFor(() => expect(refreshFixtures).toHaveBeenCalledTimes(1))
+    expect(refreshFixtures).toHaveBeenCalledWith({ date: yesterday, timeZone })
+    await waitFor(() =>
+      expect(
+        result.current.cached?.days.find(({ date }) => date === yesterday)?.fixtures[0].stateId
+      ).toBe(5)
+    )
+
+    advanceClock(30_000)
+    await act(() => new Promise((resolve) => setTimeout(resolve, 20)))
+    expect(refreshFixtures).toHaveBeenCalledTimes(1)
+    expect(refreshFixtureWindow).not.toHaveBeenCalled()
+  })
+
+  it('keeps polling an ongoing previous-day match at its daily expiry', async () => {
+    const refreshFixtures = vi.fn().mockImplementation(async () => ({
+      ok: true,
+      data: overnightRefresh(3)
+    }))
+    const refreshFixtureWindow = vi.fn()
+    installHalfspace({ refreshFixtures, refreshFixtureWindow })
+    const { result } = renderHook(() => useMatchdayWindow(today, timeZone, true))
+    await waitFor(() => expect(result.current.cached?.complete).toBe(true))
+
+    advanceClock(30_000)
+    await waitFor(() => expect(refreshFixtures).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(result.current.cached?.ongoingStaleAt).toBe(Date.now() + 30_000))
+    advanceClock(29_000)
+    await act(() => new Promise((resolve) => setTimeout(resolve, 20)))
+    expect(refreshFixtures).toHaveBeenCalledTimes(1)
+    advanceClock(1_000)
+    await waitFor(() => expect(refreshFixtures).toHaveBeenCalledTimes(2))
+    expect(refreshFixtureWindow).not.toHaveBeenCalled()
+  })
+
+  it.each(['hidden', 'offline'] as const)(
+    'pauses overdue overnight refreshes while %s',
+    async (mode) => {
+      const visibility = vi.spyOn(document, 'visibilityState', 'get')
+      const online = vi.spyOn(navigator, 'onLine', 'get')
+      visibility.mockReturnValue(mode === 'hidden' ? 'hidden' : 'visible')
+      online.mockReturnValue(mode !== 'offline')
+      const refreshFixtures = vi.fn().mockImplementation(async () => ({
+        ok: true,
+        data: overnightRefresh(5)
+      }))
+      installHalfspace({ refreshFixtures })
+      const { result } = renderHook(() => useMatchdayWindow(today, timeZone, true))
+      await waitFor(() => expect(result.current.cached?.complete).toBe(true))
+
+      advanceClock(30_000)
+      await act(() => new Promise((resolve) => setTimeout(resolve, 20)))
+      expect(refreshFixtures).not.toHaveBeenCalled()
+      visibility.mockReturnValue('visible')
+      online.mockReturnValue(true)
+      act(() => {
+        document.dispatchEvent(new Event('visibilitychange'))
+        window.dispatchEvent(new Event('online'))
+      })
+      await waitFor(() => expect(refreshFixtures).toHaveBeenCalledTimes(1))
+    }
+  )
+
+  it.each([
+    { date: '2026-09-09', timeZone },
+    { date: today, timeZone: 'America/New_York' }
+  ])('isolates a pending overnight response after changing to $date in $timeZone', async (next) => {
+    await seedWindow(next.date, next.timeZone)
+    const previousRequest = deferred<Result<FixtureRefresh>>()
+    const currentRequest = deferred<Result<FixtureRefresh>>()
+    const refreshFixtures = vi
+      .fn()
+      .mockReturnValueOnce(previousRequest.promise)
+      .mockReturnValueOnce(currentRequest.promise)
+    installHalfspace({ refreshFixtures })
+    const { result, rerender } = renderHook(
+      (input) => useMatchdayWindow(input.date, input.timeZone, true),
+      { initialProps: { date: today, timeZone } }
+    )
+    await waitFor(() => expect(result.current.cached?.complete).toBe(true))
+    advanceClock(30_000)
+    await waitFor(() => expect(refreshFixtures).toHaveBeenCalledTimes(1))
+
+    rerender(next)
+    expect(result.current.cached).toBeUndefined()
+    expect(result.current.refreshing).toBe(false)
+    // A different anchor date can share the same daily request, whereas a new time zone cannot.
+    await waitFor(() => expect(result.current.refreshing).toBe(true))
+    await act(async () => {
+      previousRequest.resolve({
+        ok: false,
+        error: { code: 'network', message: 'Previous date failed.' }
+      })
+      await previousRequest.promise
+    })
+
+    if (next.timeZone === timeZone) {
+      // The current visit intentionally shares the failed daily request for the same query.
+      await waitFor(() => expect(result.current.error).toBe('Previous date failed.'))
+      expect(refreshFixtures).toHaveBeenCalledTimes(1)
+      return
+    }
+    expect(result.current.error).toBeNull()
+    expect(result.current.refreshing).toBe(true)
+    await act(async () => {
+      currentRequest.resolve({
+        ok: true,
+        data: { ...overnightRefresh(5), timeZone: next.timeZone }
+      })
+      await currentRequest.promise
+    })
+    await waitFor(() => expect(result.current.refreshing).toBe(false))
+    expect(result.current.error).toBeNull()
+  })
+
+  it('does not write an abandoned overnight response after credentials change', async () => {
+    const request = deferred<Result<FixtureRefresh>>()
+    const refreshFixtures = vi.fn().mockReturnValue(request.promise)
+    installHalfspace({ refreshFixtures })
+    const { result, unmount } = renderHook(() => useMatchdayWindow(today, timeZone, true))
+    await waitFor(() => expect(result.current.cached?.complete).toBe(true))
+    advanceClock(30_000)
+    await waitFor(() => expect(refreshFixtures).toHaveBeenCalledTimes(1))
+
+    unmount()
+    invalidateFixtureRefreshes()
+    await act(async () => {
+      request.resolve({ ok: true, data: overnightRefresh(5) })
+      await request.promise
+    })
+    expect((await readFixtureQuery(yesterday, timeZone)).fixtures[0].stateId).toBe(2)
+  })
+
+  it('refreshes other overdue ongoing dates even when one date fails', async () => {
+    const olderDate = '2026-09-06'
+    const refresh = overnightRefresh(2)
+    refresh.fixtures.push({
+      ...refresh.fixtures[0],
+      id: 19425457,
+      starting_at_timestamp: Date.parse(`${olderDate}T23:30:00Z`) / 1_000
+    })
+    await writeFixtureWindowRefresh(matchdayWindow(today).dates, timeZone, refresh)
+    await db.fixtureQueries
+      .filter((query) => query.date !== yesterday && query.date !== olderDate)
+      .modify({ staleAt: Date.now() + 3_600_000 })
+    const refreshFixtures = vi
+      .fn()
+      .mockImplementation(async ({ date }) =>
+        date === olderDate
+          ? { ok: false, error: { code: 'network', message: 'Older date failed.' } }
+          : { ok: true, data: overnightRefresh(5) }
+      )
+    const refreshFixtureWindow = vi.fn()
+    installHalfspace({ refreshFixtures, refreshFixtureWindow })
+    const { result } = renderHook(() => useMatchdayWindow(today, timeZone, true))
+    await waitFor(() => expect(result.current.cached?.complete).toBe(true))
+
+    advanceClock(30_000)
+    await waitFor(() =>
+      expect(
+        result.current.cached?.days.find(({ date }) => date === yesterday)?.fixtures[0].stateId
+      ).toBe(5)
+    )
+    expect(refreshFixtures).toHaveBeenCalledWith({ date: olderDate, timeZone })
+    expect(refreshFixtureWindow).not.toHaveBeenCalled()
+  })
+
+  async function seedWindow(date: string, zone: string): Promise<void> {
+    await writeFixtureWindowRefresh(matchdayWindow(date).dates, zone, {
+      ...overnightRefresh(2),
+      timeZone: zone
+    })
+    await db.fixtureQueries
+      .filter((query) => query.date !== yesterday)
+      .modify({ staleAt: Date.now() + 3_600_000 })
+  }
+
+  function overnightRefresh(stateId: number): FixtureRefresh {
+    const refresh = fixtureListRefresh()
+    refresh.timeZone = timeZone
+    refresh.fixtures[0].state_id = stateId
+    refresh.fixtures[0].starting_at_timestamp = Date.parse(`${yesterday}T23:30:00Z`) / 1_000
+    return refresh
+  }
+
+  function advanceClock(milliseconds: number): void {
+    act(() => {
+      vi.setSystemTime(Date.now() + milliseconds)
+      window.dispatchEvent(new Event('focus'))
+    })
+  }
 })
 
 function fixtureListRefresh(): FixtureRefresh {

@@ -64,6 +64,8 @@ include should have a useful place in Halfspace.
 
 - [x] Local-first desktop app with personal Sportmonks tokens and offline browsing.
 - [x] Today-focused Matchday with featured games, live updates, upcoming fixtures, and recent results.
+- [x] My teams on Matchday, with a card per pinned team showing its upcoming game and previous
+      result, plus direct team and match links.
 - [x] Dedicated Fixtures browser with week navigation and a date picker.
 - [x] Searchable team directory with country and competition browsing, local team pins, and sidebar shortcuts.
 - [x] Searchable player directory with country browsing, profile cards, and cached pages.
@@ -127,7 +129,6 @@ the first testers to focus subsequent football features and design passes.
 
 - [ ] Personal first-run setup with token guidance, available competitions, optional team pins,
       and TV country selection.
-- [ ] Your teams on Matchday, with upcoming fixtures, recent results, and direct match links.
 - [ ] Installable macOS alpha with a release workflow and a five-person usability pilot.
 - [ ] Saved team and player comparisons with their complete season and club context.
 - [ ] Starter personal views that can be opened without an AI key.

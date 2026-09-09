@@ -44,6 +44,8 @@ interface MatchdayWindowCache {
   complete: boolean
   selectedStaleAt?: number
   windowStaleAt?: number
+  ongoingDates: string[]
+  ongoingStaleAt?: number
 }
 
 export function useLiveFixtures(
@@ -97,6 +99,15 @@ export function useMatchdayWindow(
       }))
     )
     const selectedQuery = days.find((day) => day.date === date)?.query
+    const ongoingDays = days
+      .filter(
+        (day) => day.date !== date && day.fixtures.some(({ stateId }) => isFixtureOngoing(stateId))
+      )
+      .map((day) => ({
+        date: day.date,
+        staleAt: day.query ? Math.min(day.query.staleAt, day.query.fetchedAt + 30_000) : 0
+      }))
+      .sort((first, second) => first.staleAt - second.staleAt)
     const surroundingQueries = days
       .filter(
         (day) => day.date !== date && !day.fixtures.some(({ stateId }) => isFixtureOngoing(stateId))
@@ -107,6 +118,8 @@ export function useMatchdayWindow(
       days,
       complete: days.every(({ query }) => query !== null),
       selectedStaleAt: selectedQuery?.staleAt,
+      ongoingDates: ongoingDays.map((day) => day.date).sort(),
+      ongoingStaleAt: ongoingDays[0]?.staleAt,
       windowStaleAt:
         surroundingQueries.every((query) => query !== null) && surroundingQueries.length > 0
           ? Math.min(...surroundingQueries.map((query) => query.staleAt))
@@ -119,6 +132,12 @@ export function useMatchdayWindow(
     error: windowError,
     runRefresh: runWindowRefresh
   } = useRefreshStatus(queryKey)
+  const ongoingDateKey = cached?.ongoingDates.join('|') ?? ''
+  const {
+    refreshing: ongoingRefreshing,
+    error: ongoingError,
+    runRefresh: runOngoingRefresh
+  } = useRefreshStatus(`${queryKey}|${ongoingDateKey}`)
   const {
     refreshing: selectedRefreshing,
     error: selectedError,
@@ -143,6 +162,15 @@ export function useMatchdayWindow(
     )
   }, [date, enabled, timeZone, runSelectedRefresh])
 
+  const refreshOngoing = useCallback(async () => {
+    if (!enabled || !ongoingDateKey) return
+
+    await runOngoingRefresh(
+      () => refreshOngoingFixtureDates(ongoingDateKey.split('|'), timeZone),
+      'Could not refresh ongoing fixtures.'
+    )
+  }, [enabled, ongoingDateKey, timeZone, runOngoingRefresh])
+
   useStaleRefresh(enabled, cached !== undefined, cached?.windowStaleAt, refresh)
   useStaleRefresh(
     enabled && cached?.days.find((day) => day.date === date)?.query !== null,
@@ -150,11 +178,17 @@ export function useMatchdayWindow(
     cached?.selectedStaleAt,
     refreshSelected
   )
+  useStaleRefresh(
+    enabled && !!ongoingDateKey,
+    cached !== undefined,
+    cached?.ongoingStaleAt,
+    refreshOngoing
+  )
 
   return {
     cached,
-    refreshing: windowRefreshing || selectedRefreshing,
-    error: windowError ?? selectedError,
+    refreshing: windowRefreshing || selectedRefreshing || ongoingRefreshing,
+    error: windowError ?? selectedError ?? ongoingError,
     refresh
   }
 }
@@ -354,6 +388,26 @@ async function refreshMatchdayWindow(date: string, timeZone: string): Promise<vo
   } finally {
     if (windowRefreshes.get(key)?.promise === promise) windowRefreshes.delete(key)
   }
+}
+
+async function refreshOngoingFixtureDates(dates: string[], timeZone: string): Promise<void> {
+  const generation = refreshGeneration
+  const results = await Promise.allSettled(
+    dates.map(async (date) => {
+      const { query, fixtures } = await readFixtureQuery(date, timeZone)
+      if (
+        generation !== refreshGeneration ||
+        !query ||
+        Math.min(query.staleAt, query.fetchedAt + 30_000) > Date.now() ||
+        !fixtures.some(({ stateId }) => isFixtureOngoing(stateId))
+      )
+        return
+
+      await refreshFixtureQuery(date, timeZone)
+    })
+  )
+  const failed = results.find((result) => result.status === 'rejected')
+  if (failed) throw failed.reason
 }
 
 export async function refreshFixtureEntity(fixtureId: number): Promise<void> {

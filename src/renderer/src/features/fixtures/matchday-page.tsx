@@ -15,6 +15,7 @@ import { MatchdayNews } from '@/features/news/matchday-news'
 import { MatchdayCard, MatchdayMotion } from './matchday-card'
 import { FixtureGroups, FixtureRow, FixtureListSkeleton } from './fixture-list'
 import { FeaturedGame } from './featured-game'
+import { YourTeams } from './your-teams'
 
 const fixtureDayPreviewLimit = 8
 
@@ -29,6 +30,8 @@ export function MatchdayPage(): React.JSX.Element {
     () => buildMatchdaySections(cached?.days ?? [], date, today),
     [cached?.days, date, today]
   )
+  const loadingFixtures =
+    cached === undefined || (!cached.complete && refreshing && !hasAnyCachedDay(cached.days))
   const competitionImagePaths = useMemo(
     () =>
       new Map(
@@ -62,11 +65,8 @@ export function MatchdayPage(): React.JSX.Element {
 
           {error && <ErrorAlert>{error}</ErrorAlert>}
 
-          {cached === undefined ||
-          (!cached.complete && refreshing && !hasAnyCachedDay(cached.days)) ? (
-            <FixtureListSkeleton />
-          ) : (
-            <div className="flex flex-col gap-7">
+          <div className="flex flex-col gap-7">
+            {!loadingFixtures && (
               <FeaturedGame
                 date={today}
                 timeZone={timeZone}
@@ -74,47 +74,54 @@ export function MatchdayPage(): React.JSX.Element {
                 complete={!!cached?.days.find((day) => day.date === today)?.query}
                 online={online}
               />
-              {sections.live.length > 0 && (
-                <FixtureSection title="Live now">
-                  <FixtureGroups
-                    competitionImagePaths={competitionImagePaths}
-                    date={date}
-                    fixtures={sections.live}
-                    online={online}
-                  />
-                </FixtureSection>
-              )}
-
-              {(sections.selected.length > 0 || sections.live.length === 0) && (
-                <FixtureSection title={formatHubDate(date, today)}>
-                  {sections.selected.length > 0 ? (
+            )}
+            <YourTeams today={today} timeZone={timeZone} online={online} />
+            {loadingFixtures ? (
+              <FixtureListSkeleton />
+            ) : (
+              <>
+                {sections.live.length > 0 && (
+                  <FixtureSection title="Live now">
                     <FixtureGroups
                       competitionImagePaths={competitionImagePaths}
                       date={date}
-                      fixtures={sections.selected}
+                      fixtures={sections.live}
                       online={online}
                     />
-                  ) : (
-                    <p className="py-2 text-sm text-muted-foreground">
-                      {emptyDateLabel(date, today)}
-                    </p>
-                  )}
-                </FixtureSection>
-              )}
+                  </FixtureSection>
+                )}
 
-              <UpcomingFixtures days={cached?.days ?? []} today={today} online={online} />
+                {(sections.selected.length > 0 || sections.live.length === 0) && (
+                  <FixtureSection title={formatHubDate(date, today)}>
+                    {sections.selected.length > 0 ? (
+                      <FixtureGroups
+                        competitionImagePaths={competitionImagePaths}
+                        date={date}
+                        fixtures={sections.selected}
+                        online={online}
+                      />
+                    ) : (
+                      <p className="py-2 text-sm text-muted-foreground">
+                        {emptyDateLabel(date, today)}
+                      </p>
+                    )}
+                  </FixtureSection>
+                )}
 
-              {sections.earlier.length > 0 && (
-                <FixtureDayCollection
-                  competitionImagePaths={competitionImagePaths}
-                  days={sections.earlier}
-                  online={online}
-                  title={date === today ? 'Latest results' : 'Earlier'}
-                  today={today}
-                />
-              )}
-            </div>
-          )}
+                <UpcomingFixtures days={cached?.days ?? []} today={today} online={online} />
+
+                {sections.earlier.length > 0 && (
+                  <FixtureDayCollection
+                    competitionImagePaths={competitionImagePaths}
+                    days={sections.earlier}
+                    online={online}
+                    title={date === today ? 'Latest results' : 'Earlier'}
+                    today={today}
+                  />
+                )}
+              </>
+            )}
+          </div>
         </div>
         <MatchdayNews online={online} />
       </div>

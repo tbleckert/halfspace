@@ -112,6 +112,16 @@ During play, pair the green live dot with the reported minute or match phase rat
 filters, and paginated team cards. Use the shared star action in the directory and team header.
 Pinned teams appear beneath Teams in the sidebar and contribute to Featured game selection.
 
+**My teams:** place the section below Featured game, with its heading outside the cards like Today.
+Use one warm-neutral card per pinned team, in two columns when there is room and stacked otherwise.
+Each card header links the team name and logo to its profile. Follow it with one Upcoming fixture
+and one Previous result, using the shared fixture rows with local date and competition context.
+Query 30 days before and after today through the existing team-fixture cache. Omit a missing row;
+hide the team card when neither match exists. Matches between pinned teams appear in both cards.
+Keep unavailable/offline states explicit and retain cached content during refresh. Put Manage teams
+(or Browse teams with no pins) beside the section heading. Use the existing viewport entrance for
+content and static loading cards. Live matches remain in the global Matchday sections.
+
 **News:** one coral card per article, with its competition, headline, and necessary context.
 Combine previews and reports by newest match date, with undated articles last. Keep AI-written
 report labels. The rail has no News heading or feed tabs and scrolls independently. At narrow
