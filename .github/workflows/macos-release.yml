@@ -29,11 +29,18 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: pnpm/setup@703c52620218391530e48b9e8870d5c0082e1b9b # v2.1.0
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
-          runtime: node@24
-          cache: true
-          require-lockfile: true
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Install pnpm
+        # pnpm 11's standalone binary fails on Intel macOS; use Node.js instead.
+        run: npm install --global "$(node --print 'require("./package.json").packageManager')"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Check code and coverage artifacts
         run: pnpm check

@@ -61,11 +61,12 @@ after these steps succeed. Apple submission failures stop the release; the submi
 used with `xcrun notarytool log` to inspect a rejection.
 
 The [macOS alpha workflow](../.github/workflows/macos-release.yml) runs the same process on native
-Apple silicon and Intel runners. Once this workflow is on `main` and the secrets are configured,
-run **macOS alpha** manually from GitHub Actions with `main` selected. It runs `pnpm check` on both
-architectures and uploads verified DMG, ZIP, and checksum files for 14 days. It does not publish a
-GitHub Release or send files to testers. Complete the [pilot checklist](alpha-pilot.md) before
-distributing the downloaded installers.
+Apple silicon and Intel runners. It installs the repository's pinned pnpm version through npm
+so it runs with Node.js; pnpm 11's standalone binary fails on Intel macOS. Once this workflow is
+on `main` and the secrets are configured, run **macOS alpha** manually from GitHub Actions with
+`main` selected. It runs `pnpm check` on both architectures and uploads verified DMG, ZIP, and
+checksum files for 14 days. It does not publish a GitHub Release or send files to testers. Complete
+the [pilot checklist](alpha-pilot.md) before distributing the downloaded installers.
 
 See [Electron's signing guidance](https://www.electronjs.org/docs/latest/tutorial/code-signing)
 and [Apple's notarization documentation](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution)
