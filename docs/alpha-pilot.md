@@ -1,4 +1,4 @@
-# Personal alpha pilot
+# macOS alpha pilot
 
 Observe five people who already have Sportmonks access. Start with a 20-minute session and ask
 them to return on a later matchday. Use the results to decide what to fix before adding the next

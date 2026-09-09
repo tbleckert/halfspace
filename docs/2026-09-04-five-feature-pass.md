@@ -1,6 +1,6 @@
 # Five-feature data presentation pass
 
-Scope: use the expanded 30-competition subscription to deepen football data presentation.
+Scope: deepen football data presentation across brackets, news, match facts, lineups, and honours.
 Keep the existing design language; sharing and broad design passes remain deferred.
 
 ## Delivery checklist
@@ -29,13 +29,10 @@ Keep the existing design language; sharing and broad design passes remain deferr
 - [x] Live provider verification and rendered visual/interaction checks for each feature.
 - [x] Update AGENTS.md, the README checklist, and Sportmonks coverage for shipped scope only.
 - [x] `pnpm typecheck`, `pnpm format`, `pnpm lint`, full tests/coverage check, and production build.
-- [x] Audit every feature against the requested end state. No commit/push requested.
+- [x] Audit every feature against the requested end state.
 
 ## Verified provider observations
 
-- Token resources include News 168–172, Match Facts 289–292, Predicted Lineups 301–302,
-  and Season Brackets 303. Enrichments include trophies 126, news 130–132, facts 154,
-  and predicted lineups 157/162. No new access was purchased or changed by this task.
 - News feeds are paginated. `lines` contain typed plain-text paragraphs; pre-match lines can
   arrive in reverse order (away before home), so response order is not reading order.
 - News accepts `lines;fixture;league`, but nested fixture includes return 400. The sparse fixture
@@ -65,7 +62,7 @@ Keep the existing design language; sharing and broad design passes remain deferr
 
 ## Verification evidence
 
-- Production parsers exercised against the expanded subscription: season bracket and schedule
+- Production parsers exercised against provider responses: season bracket and schedule
   25654; predicted lineups, facts, and fixture news 19735186; season previews 28321; the global
   reports feed; honours for Arsenal 19, Erling Haaland 154421, and Mikel Arteta 307.
 - Rendered the production routes with these captured responses in an isolated browser preview.
@@ -79,7 +76,7 @@ Keep the existing design language; sharing and broad design passes remain deferr
 - Coverage declaration: 43/153 endpoints and 145/1320 includes. Predicted lineup includes are
   covered; standalone prediction endpoints and premium expected lineups remain unshipped.
 - Final validation: `pnpm check` and `pnpm build` pass; 487 tests across 115 files. The final
-  tracked diff passes whitespace checks, and the work remains uncommitted.
+  tracked diff passes whitespace checks.
 
 ## Primary references
 

@@ -5,3 +5,12 @@ dist
 .DS_Store
 .eslintcache
 *.log*
+
+# Local credentials and signing material
+.env
+.env.*
+!.env.example
+*.p12
+*.p8
+*.key
+*.pem

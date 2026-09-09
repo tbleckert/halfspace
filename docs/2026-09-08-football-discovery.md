@@ -1,6 +1,6 @@
 # Football discovery coverage
 
-This pass adds three browsing features using endpoints verified against the current subscription:
+This pass adds three browsing features using verified provider endpoints:
 
 - Players: a main-nav directory with immediate cached search, paginated provider search, country
   browsing, and linked player cards. Country and nationality remain distinct. The provider's

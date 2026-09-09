@@ -1,6 +1,6 @@
-# Personal macOS alpha
+# macOS alpha milestone
 
-Agreed direction: 8 September 2026. My teams, first-run setup, and macOS packaging are implemented.
+My teams, first-run setup, and macOS packaging are implemented.
 Signing credentials, clean-machine release validation, the usability pilot, and reusable
 investigations remain next.
 
@@ -15,13 +15,12 @@ through existing football data and any verified provider gaps those journeys exp
 
 ## Delivery sequence
 
-1. **Personal first session.** Explain where to find a Sportmonks token, show the competitions
+1. **First-run setup.** Explain where to find a Sportmonks token, show the competitions
    available to that account, and offer optional team pins and TV country selection. Reuse existing
    preferences and subscription metadata. Let people skip personalization and change it later.
    Finish on Matchday with useful available football; distinguish missing coverage from an empty day.
-2. **Your teams on Matchday.** Surface upcoming fixtures and recent results for pinned teams,
-   with direct match links. This is the first feature slice, detailed below, and makes the
-   existing pin action useful before extending setup.
+2. **My teams on Matchday.** Surface upcoming fixtures and recent results for pinned teams,
+   with direct match links. This gives pinned teams a useful place in the daily workspace.
 3. **Installable macOS alpha.** Add packaging and a repeatable release workflow. Verify installation
    on a clean machine, token setup, cached reopening, and the journey from Matchday to a match and
    its team or player profiles. Observe five testers and resolve the friction they encounter.
@@ -31,7 +30,7 @@ through existing football data and any verified provider gaps those journeys exp
 
 The first two steps now form one user experience: setup leads directly to personalized Matchday. Premium odds, exhaustive referee history, and image exports remain later work.
 
-## First feature brief: Your teams
+## My teams
 
 **User need:** When I open Halfspace, I can quickly see what is happening with the teams I pinned.
 
@@ -57,26 +56,6 @@ The first two steps now form one user experience: setup leads directly to person
 - [x] Cached cards work offline; missing cache data is distinguished from a completed empty query.
 - [x] Cards use a responsive grid and existing Matchday motion and loading conventions.
 
-### Revision on 9 September 2026
-
-User feedback replaced the combined list with individual team cards. Selection tests cover month
-boundaries, local midnight, qualifying states, shared matches, and chronological selection.
-Component tests cover reactive pins, linked headers, per-team rows, hidden empty cards, and offline
-cache gaps. All 754 tests, type checks, lint, formatting, coverage checks, and the production build
-pass. An isolated in-memory preview verified the two-column cards and long team names. This revision reuses the existing team-fixture endpoint; API coverage is unchanged.
-
-### Verification on 8 September 2026
-
-- The running Electron app showed existing pins, expandable upcoming/results lists, and links to
-  match Preview and team Fixtures with the correct date context.
-- An isolated in-memory visual harness covered six pins, long club names, 380px content width,
-  keyboard scrolling, loading, incomplete offline data, complete empty data, no pins, and reduced
-  motion emulation. The temporary harness was removed after verification.
-- Overnight regression tests verify continued daily refresh after midnight, completion, offline
-  and hidden pauses, independent failures, query changes, and credential invalidation.
-- All 763 tests pass, alongside TypeScript, lint, formatting, coverage checks, and the production
-  build. This feature reuses supported data; API coverage remains unchanged.
-
 ## First-run setup
 
 Implemented on 9 September 2026. The flow uses the existing secure token form and cache reset,
@@ -94,14 +73,6 @@ The token instructions follow the [Sportmonks authentication guide](https://docs
 - [x] Preserve the workspace for existing configured installations that predate the setup marker.
 - [x] Retain the credential-reset gate and surface storage failures with a retry path.
 
-An isolated in-memory preview verified token entry, competition presentation, team search and pins,
-TV selection, keyboard completion, long names, a narrow content width, and the resulting My teams
-card. The preview uses sample data and never changes the user's credentials or preferences.
-Automated checks cover setup persistence, skip, offline cached choices, storage recovery, provider
-access failures, and shared TV preferences. All 764 tests pass, alongside type checks, lint,
-formatting, API coverage checks, and the production build. At that point, packaging and
-clean-machine installation were next.
-
 ## Installable alpha
 
 The [release guide](macos-release.md) covers DMG and ZIP builds, required Apple credentials,
@@ -117,20 +88,13 @@ gate and five-person observation plan.
 - [ ] Validate downloaded signed installers on clean Apple silicon and Intel installations.
 - [ ] Observe five testers, record return visits, and resolve the friction they encounter.
 
-### Local verification on 9 September 2026
+### Validation status
 
-All 769 tests pass, alongside type checks, lint, formatting, API coverage validation, and the
-production build. Both Apple silicon and Intel unsigned DMG and ZIP builds pass archive
-verification. The Apple silicon DMG was mounted and its app copied to a temporary installation
-directory; the copied bundle passed
-signature integrity verification and opened the actual packaged renderer at Connect Sportmonks
-with an isolated fresh profile. The icon, bundle identifier, version, and runtime dependencies
-were also checked. The Intel executable's architecture and bundle integrity were verified,
-but it has not been launched on an Intel Mac. The test app and profile were removed afterward.
+Local unsigned packaging checks have covered both architectures. The Apple silicon package
+was launched with a fresh profile; Intel launch validation remains outstanding. Unsigned
+checks do not establish readiness for distribution.
 
-The signed command fails with a clear credential message on this Mac. No usable Developer ID
-signing certificate or repository signing secrets were available during verification. Actual
-Apple notarization, the hosted release workflow, clean-machine installation, authenticated
+Signed workflow execution, Apple notarization, clean-machine installation, authenticated
 packaged journeys, offline cached reopening, and tester sessions remain unverified.
 
 ## Pilot acceptance

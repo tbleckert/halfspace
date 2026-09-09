@@ -35,5 +35,3 @@
 - Full suite: 540 tests across 126 files. Typecheck, format, lint, production build, coverage check,
   and diff review passed.
 - Coverage: 48 of 153 endpoints and 169 of 1320 includes.
-
-No publication or subscription changes are part of this pass.

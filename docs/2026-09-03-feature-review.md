@@ -53,7 +53,7 @@ animation was added to the frequently used navigation or search flows.
 - The two commentary navigation cases passed in five consecutive additional runs.
 - `git diff --check`: passed. Temporary diagnostic logging was removed.
 - Live UI checks used Farai Hallam, Arsenal rankings, Premier League Round 1, the transfer date
-  feed, Arsenal/Liverpool and Haaland/Saka comparisons. Screenshots are shared in the conversation.
+  feed, Arsenal/Liverpool and Haaland/Saka comparisons.
 - API coverage: 36/153 endpoints and 121/1320 includes (11%). Comparisons reuse supported
   endpoints and do not inflate this count.
 
@@ -63,5 +63,3 @@ Transfer filters apply to the displayed page, and date windows are capped at 31 
 Latest updates are ordered by provider updates, not transfer date. A player's comparison
 covers the selected club record, not an invented all-clubs season total. Provider access and
 data availability still vary by entity and season. No premium endpoints were assumed available.
-
-Commits are local; this pass does not include a push.

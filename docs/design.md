@@ -5,7 +5,7 @@ typographic hierarchy, softly colored cards, and small moments of playful motion
 feel welcoming and light while making football information easy to scan. The content gives
 the workspace its structure.
 
-This guide records the direction agreed during the Matchday design pass. Use Matchday as the
+This guide defines the visual direction. Use Matchday as the
 reference for future visual work. Extend the style piece by piece; card entrance motion
 currently belongs only to Matchday. Product behavior and data requirements remain in
 [AGENTS.md](../AGENTS.md).
@@ -120,6 +120,7 @@ scoring explanation factual; points remain internal. Selection and visibility ru
 
 **Fixture hero:** reuse Featured game's violet tint, faded halftone venue background, and dot-pattern
 fallback behind the score and navigation. Keep the background decorative and the foreground legible.
+Show team crests on transparent containers, without a background plate.
 Place the active tab underline at the bottom of the hero, without a shared navigation divider.
 During play, pair the green live dot with the reported minute or match phase rather than a Live label.
 
@@ -180,9 +181,11 @@ For a visual change, inspect the actual view at wide and narrow widths, includin
 missing data, scrolling, focus, and reduced motion when relevant. Compare with Matchday's
 settled patterns and make one coherent change at a time.
 
-When a new design decision is agreed, update this guide and the matching rule in `AGENTS.md`
+When the design direction changes, update this guide and the matching rule in `AGENTS.md`
 together. Update token values here alongside changes to their source. This guide records
-approved decisions; keep exploratory alternatives separate until selected.
+the implemented design; keep exploratory alternatives separate.
+
+## TV Guide
 
 - TV Guide uses a saved country selection and shared Monday-to-Sunday week navigation with a
   URL-backed selected day. Show only that day's unfinished broadcasts in kickoff order, without competition
@@ -190,7 +193,7 @@ approved decisions; keep exploratory alternatives separate until selected.
   links beneath the teams. Omit not-started labels and pre-match scores. Preserve country-specific
   listings and cache complete daily windows.
 
-### Football discovery
+## Football discovery
 
 Players uses the existing directory layout with compact warm profile cards, a quiet search field,
 and country selection. Show the reported nationality and position, with a separate country label

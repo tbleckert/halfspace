@@ -17,8 +17,8 @@ unavailable periods never borrow full-match or season totals.
 
 ## Verification
 
-- The live subscription reports Euro Club Tournaments and Growth, including the three new gated
-  features. Coverage remains competition-specific; Basic xG does not establish live xG access.
+- Feature access was verified separately from competition coverage. Basic xG does not establish
+  live xG access.
 - Production parsers accepted four prediction categories, 41 expected squad entries, all four
   expected metrics, and 72 first-half plus 76 second-half statistic records.
 - The running Electron app was checked with Barcelona–Feyenoord's expected XIs and benches,

@@ -130,7 +130,7 @@ include should have a useful place in Halfspace.
 
 ### Ahead
 
-The next milestone is a [personal, installable macOS alpha](docs/personal-alpha.md): help people
+The next milestone is a [installable macOS alpha](docs/macos-alpha.md): help people
 connect their account, follow their teams, and return on another matchday. Use feedback from
 the first testers to focus subsequent football features and design passes.
 

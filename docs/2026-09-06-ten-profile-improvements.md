@@ -24,8 +24,7 @@ Fixture list refreshes preserve formations, groups, and aggregate context.
 
 ## Validation
 
-- Current resources and enrichments were checked before implementation. All selected includes
-  returned successful responses with the existing token.
+- Selected includes were verified against provider responses before implementation.
 - The six modified fetchers were then run against live player, team, coach, referee, venue, and
   fixture responses. All passed the production response schemas.
 - Nineteen new tests cover requests, normalization, cache preservation, unknown data, secure

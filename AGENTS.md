@@ -12,7 +12,7 @@ abstractions.
 
 ## Product priorities
 
-The next milestone is the [personal macOS alpha](docs/personal-alpha.md), agreed on 8 September 2026.
+The next milestone is the [macOS alpha](docs/macos-alpha.md).
 First-run setup, My teams on Matchday, and macOS packaging are implemented. Prioritize signed
 release validation and a small usability pilot, then saved comparisons and starter views that
 work without an AI key. Follow [the release guide](docs/macos-release.md): tester builds require
@@ -24,9 +24,9 @@ acceptance criteria; keep unimplemented items unchecked in the README.
 
 ## Product Design
 
-Read [the design guide](docs/design.md) before changing UI. It records the agreed visual style,
+Read [the design guide](docs/design.md) before changing UI. It records the visual style,
 its rationale, reference values, and Matchday patterns. Keep it and the rules below in sync when
-the user agrees to a new design decision; carry the style into other views incrementally.
+the design direction changes; carry the style into other views incrementally.
 
 - Build the interface identity around coral and violet, supported by white, warm neutrals, and
   dark ink. Keep it vibrant and energetic. Avoid restrained heritage-sports palettes that can
@@ -165,6 +165,7 @@ the user agrees to a new design decision; carry the style into other views incre
   queries, header, and navigation; reuse the shared Card surface for each view's data panels.
 - Fixture score heroes share Featured game's violet tint, faded halftone venue background, and
   dot-pattern fallback. Keep the decoration behind readable scores, team names, and navigation.
+  Show team crests on transparent containers, without a background plate.
 - Fixture Preview pairs that supporting column with season table context, each team’s five most
   recent completed matches before kickoff, and recent head-to-head meetings. Reuse standings and
   team-fixture caches, cache head-to-head separately, and prefetch Preview on intent.
@@ -502,7 +503,7 @@ the user agrees to a new design decision; carry the style into other views incre
 ## Generative Football Views
 
 - Keep complete Sportmonks coverage as the long-term development goal, with near-term work following
-  the personal alpha milestone. Generative views build on usable data and reusable components;
+  the macOS alpha milestone. Generative views build on usable data and reusable components;
   do not delay useful endpoint support to build speculative AI infrastructure. The generated
   coverage report remains the authority for percentages, not a number copied into these instructions.
 - The long-term direction is a personal football canvas: describe a workspace, watch the layout
@@ -553,8 +554,9 @@ the user agrees to a new design decision; carry the style into other views incre
 - Clean up unused code as part of the change.
 - Write idiomatic, simple, maintainable code. Prefer the most intuitive solution that fully solves
   the problem.
-- If you discover something new, or the user mentions something worth remembering, add it to
-  `AGENTS.md`.
+- Keep `AGENTS.md` focused on durable engineering and product requirements. Keep personal
+  discussions, account details, local machine paths, credentials, and session notes out of tracked
+  documentation. Use repository-relative links and public project references.
 - Run `pnpm typecheck`, `pnpm format`, and `pnpm lint` after touching JavaScript or TypeScript files.
 
 ## Compatibility Code
@@ -593,6 +595,8 @@ the user agrees to a new design decision; carry the style into other views incre
   - For visual design, prefer real visual snapshots over targeted assertions.
 - Browser tests that trigger refreshes must await completion before teardown. Use the rendered
   loading state; a provider error or call count can appear before parallel cache writes finish.
+
+## TV Guide
 
 - TV Guide uses a saved country selection and shared Monday-to-Sunday week navigation with a
   URL-backed selected day. Show only that day's unfinished broadcasts in kickoff order, without competition

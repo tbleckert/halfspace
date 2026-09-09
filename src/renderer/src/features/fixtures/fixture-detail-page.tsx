@@ -453,7 +453,7 @@ function FixtureTeam({
       {...intentPrefetchProps(online, () => prefetchTeamEntity(participant.id))}
     >
       <TeamLogo
-        className="size-16 rounded-xl bg-background sm:size-24"
+        className="size-16 rounded-xl bg-transparent sm:size-24"
         imagePath={participant.image_path ?? null}
         online={online}
       />
