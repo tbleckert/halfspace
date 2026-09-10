@@ -10,6 +10,8 @@ import {
 } from '@shared/views'
 import { db } from '@/data/db'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import { useOnline } from '@/lib/use-online'
@@ -277,10 +279,12 @@ function ViewEditor({
             <p>Bring fixtures, standings and player leaders into one view.</p>
             <div className="mt-6 flex flex-wrap justify-center gap-2">
               {suggestions.map((suggestion) => (
-                <button
+                <Button
                   key={suggestion.label}
                   type="button"
-                  className="view-suggestion"
+                  variant="outline"
+                  size="sm"
+                  className="gap-3 bg-card text-muted-foreground"
                   onClick={() => {
                     setPrompt(suggestion.prompt)
                     document.getElementById('view-prompt')?.focus()
@@ -288,7 +292,7 @@ function ViewEditor({
                 >
                   {suggestion.label}
                   <ArrowUpRight className="size-3.5" />
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -302,12 +306,12 @@ function ViewEditor({
                   </h2>
                 ) : (
                   <>
-                    <label className="sr-only" htmlFor="view-title">
+                    <Label className="sr-only" htmlFor="view-title">
                       View name
-                    </label>
-                    <input
+                    </Label>
+                    <Input
                       id="view-title"
-                      className="view-title"
+                      className="h-auto rounded-none border-0 border-b border-transparent px-0 py-0.5 text-[26px] font-semibold tracking-tight focus-visible:border-ring focus-visible:ring-0"
                       maxLength={80}
                       value={spec?.title ?? ''}
                       onChange={(event) => {

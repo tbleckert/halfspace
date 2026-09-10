@@ -1,6 +1,8 @@
 import { Link } from '@tanstack/react-router'
 import { ArrowUp, Check, KeyRound, LoaderCircle, Square } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 
 export function ViewComposer({
   prompt,
@@ -56,11 +58,12 @@ export function ViewComposer({
           if (!generating) onSubmit()
         }}
       >
-        <label htmlFor="view-prompt" className="sr-only">
+        <Label htmlFor="view-prompt" className="sr-only">
           {hasView ? 'Describe a change to your view' : 'Describe your football view'}
-        </label>
-        <textarea
+        </Label>
+        <Textarea
           id="view-prompt"
+          className="min-h-[88px] max-h-40 resize-none rounded-none border-0 px-[18px] pb-2.5 pt-[18px] text-[15px] leading-normal focus-visible:ring-0"
           rows={2}
           maxLength={2000}
           value={prompt}

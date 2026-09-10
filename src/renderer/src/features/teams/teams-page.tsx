@@ -5,6 +5,7 @@ import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import { db } from '@/data/db'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ErrorAlert } from '@/components/error-alert'
 import { useCompetitions } from '@/features/competitions/use-competitions'
@@ -16,9 +17,6 @@ import { usePinnedTeams } from './use-team-pins'
 import { useTeamDirectory } from './use-team-directory'
 import { prefetchTeamEntity } from './use-team'
 import { cn } from '@/lib/utils'
-
-const selectClass =
-  'h-8 max-w-56 rounded-md bg-card px-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
 export function TeamsPage(): React.JSX.Element {
   const online = useOnline()
@@ -142,34 +140,37 @@ export function TeamsPage(): React.JSX.Element {
         </div>
         {view === 'all' && (
           <>
-            <select
+            <NativeSelect
               aria-label="Filter teams by country"
-              className={selectClass}
+              className="max-w-56"
               value={filter.startsWith('country:') ? filter : ''}
               onChange={(event) => changeFilter(event.target.value)}
             >
-              <option value="">All countries</option>
+              <NativeSelectOption value="">All countries</NativeSelectOption>
               {countries.map((country) => (
-                <option key={country.id} value={`country:${country.id}`}>
+                <NativeSelectOption key={country.id} value={`country:${country.id}`}>
                   {country.name}
-                </option>
+                </NativeSelectOption>
               ))}
-            </select>
-            <select
+            </NativeSelect>
+            <NativeSelect
               aria-label="Filter teams by competition"
-              className={selectClass}
+              className="max-w-56"
               value={filter.startsWith('season:') ? filter : ''}
               onChange={(event) => changeFilter(event.target.value)}
             >
-              <option value="">All competitions</option>
+              <NativeSelectOption value="">All competitions</NativeSelectOption>
               {catalog?.competitions
                 .filter((competition) => competition.active && competition.currentSeasonId)
                 .map((competition) => (
-                  <option key={competition.id} value={`season:${competition.currentSeasonId}`}>
+                  <NativeSelectOption
+                    key={competition.id}
+                    value={`season:${competition.currentSeasonId}`}
+                  >
                     {competition.name}
-                  </option>
+                  </NativeSelectOption>
                 ))}
-            </select>
+            </NativeSelect>
           </>
         )}
       </div>

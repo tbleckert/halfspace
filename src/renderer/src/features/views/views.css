@@ -55,21 +55,6 @@
   margin: auto;
   padding: 36px 32px 48px;
 }
-.view-title {
-  width: 100%;
-  min-width: 0;
-  padding: 2px 0;
-  background: transparent;
-  color: var(--foreground);
-  font-size: 26px;
-  font-weight: 650;
-  letter-spacing: -0.035em;
-  outline: none;
-  border-bottom: 1px solid transparent;
-}
-.view-title:focus {
-  border-bottom-color: var(--ring);
-}
 .view-block-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -107,23 +92,6 @@
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
-.view-composer textarea {
-  display: block;
-  width: 100%;
-  resize: none;
-  border: 0;
-  outline: none;
-  background: transparent;
-  padding: 18px 18px 10px;
-  min-height: 88px;
-  max-height: 160px;
-  font: inherit;
-  font-size: 15px;
-  line-height: 1.5;
-}
-.view-composer textarea::placeholder {
-  color: var(--muted-foreground);
-}
 .view-build-button {
   transition:
     transform 150ms cubic-bezier(0.23, 1, 0.32, 1),
@@ -142,31 +110,6 @@
   background: var(--background);
   border-radius: 10px 10px 0 0;
 }
-.view-suggestion {
-  display: inline-flex;
-  align-items: center;
-  gap: 15px;
-  padding: 8px 11px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  background: var(--card);
-  font-size: 12px;
-  color: var(--muted-foreground);
-  transition:
-    color 160ms ease,
-    border-color 160ms ease;
-}
-.view-suggestion:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 3px;
-}
-@media (hover: hover) {
-  .view-suggestion:hover {
-    color: var(--primary);
-    border-color: color-mix(in oklab, var(--primary) 40%, var(--border));
-  }
-}
-
 .view-illustration {
   position: relative;
   width: 314px;
