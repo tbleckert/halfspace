@@ -1,4 +1,4 @@
-import type { ViewBlock, ViewContext, ViewSpec } from '@shared/views'
+import { validateViewSpec, type ViewBlock, type ViewContext, type ViewSpec } from '@shared/views'
 
 export const viewBlockTypes = [
   { value: 'standings', label: 'Standings' },
@@ -52,4 +52,38 @@ export function moveViewBlock(spec: ViewSpec, id: string, direction: -1 | 1): Vi
   const [block] = blocks.splice(index, 1)
   blocks.splice(target, 0, block)
   return { ...spec, blocks }
+}
+
+export function changeViewContext(
+  spec: ViewSpec,
+  context: ViewContext,
+  available: ViewContext[]
+): ViewSpec {
+  const first = spec.blocks[0]
+  const original = available.find(
+    (item) => item.competitionId === first?.competitionId && item.seasonId === first?.seasonId
+  )
+  const hasDefaultTitle =
+    original &&
+    spec.blocks.every(
+      (block) =>
+        block.competitionId === original.competitionId && block.seasonId === original.seasonId
+    ) &&
+    spec.title === `${original.competitionName} · ${original.seasonName}`.slice(0, 80)
+  return validateViewSpec(
+    {
+      ...spec,
+      title: hasDefaultTitle
+        ? `${context.competitionName} · ${context.seasonName}`.slice(0, 80)
+        : spec.title,
+      // A generated description can refer to the previous competition or season.
+      message: '',
+      blocks: spec.blocks.map((block) => ({
+        ...block,
+        competitionId: context.competitionId,
+        seasonId: context.seasonId
+      }))
+    },
+    available
+  )
 }

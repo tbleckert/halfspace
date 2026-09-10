@@ -18,7 +18,7 @@ comparison controls, navigation, and fixture charts.
 - [x] Open starter Views without an AI key.
 - [x] Add, remove, reorder, and resize View blocks manually.
 - [x] Duplicate a View as an independent saved copy.
-- [ ] Change a View's competition and season using available contexts.
+- [x] Change a View's competition and season using available contexts.
 
 Each feature has its own commit. Saved user work stays outside disposable football caches.
 Installer and pilot validation remain tracked separately in the [alpha milestone](macos-alpha.md).

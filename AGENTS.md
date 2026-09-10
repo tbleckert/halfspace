@@ -546,6 +546,9 @@ the design direction changes; carry the style into other views incrementally.
   Reordering and width changes must work with keyboard controls and never call AI.
 - Duplicating a View saves the current draft under a new identity and opens that copy. Preserve the
   source saved definition and keep the copy's undo history independent.
+- Changing a View's competition or season is an explicit action applying to all blocks. Preserve
+  block identity, types, metrics, and layout; validate the selected context, clear the old generated
+  description, and retain personal titles. Use the same undo flow and identity-scoped data queries.
 - Saved definitions are user content, separate from disposable Sportmonks data. They survive token
   replacement and cache clearing. Opening, filtering, and refreshing saved views must not call AI;
   cached views remain usable offline. Keep definitions versioned for future intentional migrations.

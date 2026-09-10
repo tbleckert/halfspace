@@ -22,6 +22,7 @@ import { ViewComposer } from './view-composer'
 import { useViewGeneration } from './use-view-generation'
 import { StarterViewPicker } from './starter-view-picker'
 import { ViewLayoutEditor } from './view-layout-editor'
+import { ViewContextEditor } from './view-context-editor'
 import './views.css'
 
 export function ViewsPage({ viewId }: { viewId?: string }): React.JSX.Element {
@@ -332,6 +333,16 @@ function ViewEditor({
                       }}
                     />
                     <p className="mt-2 text-sm text-muted-foreground">{spec?.message}</p>
+                    {spec && (
+                      <div className="mt-3">
+                        <ViewContextEditor
+                          spec={spec}
+                          contexts={contexts}
+                          disabled={saving || generation.generating}
+                          onChange={changeSpec}
+                        />
+                      </div>
+                    )}
                   </>
                 )}
               </div>

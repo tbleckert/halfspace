@@ -2,11 +2,17 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { createMemoryHistory, createRouter, RouterProvider } from '@tanstack/react-router'
 import { afterAll, beforeEach, expect, it, vi } from 'vitest'
-import { clearSportmonksCache, db, writeCompetitionRefresh } from '@/data/db'
+import {
+  clearSportmonksCache,
+  db,
+  writeCompetitionRefresh,
+  writeSeasonTopscorersRefresh
+} from '@/data/db'
 import { routeTree } from '@/routeTree.gen'
 import { mockViewsApi } from '../../../test/view-api'
 import { saveView } from '@/features/views/saved-views'
 import { createStarterView } from '@/features/views/starter-views'
+import { makeTopscorer } from '../../../test/topscorer-fixtures'
 
 vi.mock('@/components/app-shell', async () => ({
   AppShell: (await import('@tanstack/react-router')).Outlet
@@ -42,6 +48,46 @@ function openViews(): ReturnType<typeof createRouter<typeof routeTree>> {
   render(<RouterProvider router={router} />)
   return router
 }
+
+it('switches all blocks to the selected competition, replaces cached content, and supports undo', async () => {
+  for (const [seasonId, playerId, name] of [
+    [12, 100, 'Alex Forward'],
+    [22, 101, 'Sam Striker']
+  ] as const) {
+    await writeSeasonTopscorersRefresh(seasonId, {
+      fetchedAt: Date.now(),
+      pageCount: 1,
+      topscorers: [
+        makeTopscorer({
+          season_id: seasonId,
+          player_id: playerId,
+          player: { ...makeTopscorer().player!, id: playerId, display_name: name }
+        })
+      ]
+    })
+  }
+  const router = openViews()
+  fireEvent.click(await screen.findByRole('button', { name: /Goals & assists/ }))
+  await screen.findByRole('link', { name: 'Alex Forward' })
+  fireEvent.click(screen.getByRole('button', { name: 'Change competition or season' }))
+  fireEvent.change(await screen.findByLabelText('New competition and season'), {
+    target: { value: '384:22' }
+  })
+  fireEvent.click(screen.getByRole('button', { name: 'Apply to all blocks' }))
+  await screen.findByRole('link', { name: 'Sam Striker' })
+  expect(screen.queryByRole('link', { name: 'Alex Forward' })).toBeNull()
+  expect((screen.getByLabelText('View name') as HTMLInputElement).value).toBe('Serie A · 2026/27')
+  fireEvent.click(screen.getByRole('button', { name: 'Undo change' }))
+  await screen.findByRole('link', { name: 'Alex Forward' })
+  expect(screen.queryByRole('link', { name: 'Sam Striker' })).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: 'Save view' }))
+  await waitFor(() => expect(router.state.location.search.view).toBeTruthy())
+  const saved = await db.savedViews.get(router.state.location.search.view!)
+  expect(
+    saved?.spec.blocks.every((block) => block.competitionId === 8 && block.seasonId === 12)
+  ).toBe(true)
+  expect(window.halfspace.views.generate).not.toHaveBeenCalled()
+})
 
 it('duplicates the edited draft, opens its copy, and retains the original saved definition', async () => {
   const spec = createStarterView('leaders', {
