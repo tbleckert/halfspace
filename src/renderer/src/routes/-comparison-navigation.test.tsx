@@ -22,6 +22,7 @@ vi.mock('@/features/credentials/connection-state-provider', () => ({
 vi.mock('@/lib/use-online', () => ({ useOnline: () => false }))
 beforeEach(async () => {
   await clearSportmonksCache()
+  await db.savedComparisons.clear()
   const fetchedAt = Date.now()
   const current = { id: 12, league_id: 8, name: '2026/27', is_current: true }
   const italianSeason = { ...current, id: 22, league_id: 384 }
@@ -78,6 +79,53 @@ beforeEach(async () => {
   })
 })
 afterAll(() => db.close())
+
+it.each([
+  {
+    kind: 'teams' as const,
+    left: 19,
+    right: 8,
+    leftSeason: 12,
+    rightSeason: 11,
+    leftScope: 'home' as const,
+    rightScope: 'away' as const
+  },
+  {
+    kind: 'players' as const,
+    left: 100,
+    right: 100,
+    leftSeason: 12,
+    rightSeason: 22,
+    leftTeam: 19,
+    rightTeam: 8
+  }
+])('saves and reopens a $kind comparison with its exact context offline', async (selection) => {
+  const router = createRouter({
+    routeTree,
+    history: createMemoryHistory({ initialEntries: ['/compare'] })
+  })
+  render(<RouterProvider router={router} />)
+  await act(() => router.navigate({ to: '/compare', search: selection }))
+  await waitFor(() =>
+    expect(
+      (screen.getByRole('button', { name: 'Save comparison' }) as HTMLButtonElement).disabled
+    ).toBe(false)
+  )
+  fireEvent.click(screen.getByRole('button', { name: 'Save comparison' }))
+  fireEvent.change(await screen.findByLabelText('Comparison name'), {
+    target: { value: 'My comparison' }
+  })
+  fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+  await screen.findByText('Comparison saved locally')
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  await act(() => router.navigate({ to: '/compare', search: {} }))
+  fireEvent.click(screen.getByRole('button', { name: 'Saved comparisons' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Open My comparison' }))
+  await waitFor(() => expect(router.state.location.search).toMatchObject(selection))
+  fireEvent.click(screen.getByRole('button', { name: 'Saved comparisons' }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Delete My comparison' }))
+  await screen.findByText('No saved comparisons yet.')
+})
 
 it('compares cached teams, swaps sides, and never leaks a previous season into the next', async () => {
   for (const [teamId, count] of [

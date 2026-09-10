@@ -395,6 +395,10 @@ the design direction changes; carry the style into other views incrementally.
   axis to the pair's larger value, explicitly not a league percentile or league-strength adjustment;
   show actual values and playing time alongside the chart. Keep exact season totals below.
 
+- Saved comparisons retain both resolved entities, seasons, player clubs, and team match-location
+  selections as versioned user content. Keep them through football cache clearing and token replacement;
+  reopen the exact URL context and never substitute unavailable records.
+
 ## Expanded Football Data
 
 - Competition Knockout reuses the season schedule, bracket edges, and stage aggregates. Preserve

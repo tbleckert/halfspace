@@ -1,3 +1,4 @@
+import type { SavedComparison } from '@shared/comparisons'
 import type {
   ExpectedLineupsRefresh,
   FixtureExpectedMetricsRefresh,
@@ -654,6 +655,7 @@ class HalfspaceDatabase extends Dexie {
   transferRumourQueries!: Table<TransferRumoursQuery, string>
 
   savedViews!: Table<SavedView, string>
+  savedComparisons!: Table<SavedComparison, string>
   roundStandingQueries!: Table<RoundStandingQuery, string>
   subscriptionQueries!: Table<SubscriptionQuery, string>
   fixtureTvQueries!: Table<FixtureTvQuery, number>
@@ -1035,6 +1037,7 @@ class HalfspaceDatabase extends Dexie {
       countryCompetitionQueries: '&countryId, staleAt',
       teamSeasonsQueries: '&teamId, staleAt'
     })
+    this.version(43).stores({ savedComparisons: '&id, updatedAt' })
   }
 }
 

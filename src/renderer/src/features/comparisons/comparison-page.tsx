@@ -12,6 +12,8 @@ import { PlayerComparisonStatistics, TeamComparisonStatistics } from './comparis
 import { useComparisonSeason } from './use-comparison-season'
 import type { ComparisonKind } from './comparison-data'
 import type { TeamStatisticsScope } from '@/features/statistics/statistics-data'
+import type { ComparisonSelection } from '@shared/comparisons'
+import { SavedComparisonControls } from './saved-comparison-controls'
 
 export function ComparisonPage({
   kind = 'teams',
@@ -88,6 +90,28 @@ export function ComparisonPage({
     second.selected
   ])
   const contexts = { left: first, right: second }
+  const selection: ComparisonSelection | null =
+    left && right && first.selected && second.selected
+      ? kind === 'teams'
+        ? {
+            kind,
+            left,
+            right,
+            leftSeason: first.selected.season.id,
+            rightSeason: second.selected.season.id,
+            leftScope,
+            rightScope
+          }
+        : {
+            kind,
+            left,
+            right,
+            leftSeason: first.selected.season.id,
+            rightSeason: second.selected.season.id,
+            leftTeam: first.selected.teamId,
+            rightTeam: second.selected.teamId
+          }
+      : null
   const selectRecord = (side: 'left' | 'right', record: StatisticSeasonRecord): void => {
     void navigate({
       search: (previous) => ({
@@ -100,8 +124,12 @@ export function ComparisonPage({
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-5 p-7 lg:p-10">
-      <header>
+      <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-3xl font-semibold tracking-tight">Compare</h1>
+        <SavedComparisonControls
+          selection={selection}
+          onOpen={(saved) => void navigate({ search: saved })}
+        />
       </header>
       <EntitySubpageNavigation aria-label="Comparison type" className="border-b">
         {(['teams', 'players'] as const).map((value) => (
