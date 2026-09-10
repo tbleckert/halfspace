@@ -131,6 +131,7 @@ include should have a useful place in Halfspace.
 - [x] Saved team and player comparisons with complete season, club, and home/away context.
 
 - [x] Starter Views for fixtures, standings, goals and assists, available without an AI key.
+- [x] Manual View editing: add and remove blocks, reorder them, resize columns, and undo changes.
 
 ### Ahead
 

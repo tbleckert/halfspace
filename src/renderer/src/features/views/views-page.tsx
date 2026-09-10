@@ -21,6 +21,7 @@ import { ViewBlockContent, ViewBlockOutline } from './view-blocks'
 import { ViewComposer } from './view-composer'
 import { useViewGeneration } from './use-view-generation'
 import { StarterViewPicker } from './starter-view-picker'
+import { ViewLayoutEditor } from './view-layout-editor'
 import './views.css'
 
 export function ViewsPage({ viewId }: { viewId?: string }): React.JSX.Element {
@@ -160,8 +161,15 @@ function ViewEditor({
 
   function changeBlock(block: ViewBlock): void {
     if (!spec) return
+    changeSpec({
+      ...spec,
+      blocks: spec.blocks.map((item) => (item.id === block.id ? block : item))
+    })
+  }
+
+  function changeSpec(next: ViewSpec): void {
     setPrevious(spec)
-    setSpec({ ...spec, blocks: spec.blocks.map((item) => (item.id === block.id ? block : item)) })
+    setSpec(next)
   }
 
   function newView(): void {
@@ -204,6 +212,12 @@ function ViewEditor({
         <div className="flex shrink-0 items-center gap-1.5">
           {spec && (
             <>
+              <ViewLayoutEditor
+                spec={spec}
+                contexts={contexts}
+                disabled={saving || generation.generating}
+                onChange={changeSpec}
+              />
               <Button
                 variant="ghost"
                 size="icon"

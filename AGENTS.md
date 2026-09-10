@@ -541,6 +541,9 @@ the design direction changes; carry the style into other views incrementally.
 - Starter Views compose validated fixtures, standings, and leader blocks from a selected available
   competition and season, without generation or an AI key. Reuse the same editor, queries, and local
   save format as AI-composed views; keep missing offline data explicit.
+- Manual View editing uses the same versioned definition and undo/save flow. Offer the supported
+  block types, preserve independent block contexts, and keep one through eight blocks per saved view.
+  Reordering and width changes must work with keyboard controls and never call AI.
 - Saved definitions are user content, separate from disposable Sportmonks data. They survive token
   replacement and cache clearing. Opening, filtering, and refreshing saved views must not call AI;
   cached views remain usable offline. Keep definitions versioned for future intentional migrations.

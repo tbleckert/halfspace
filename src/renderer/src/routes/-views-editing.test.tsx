@@ -65,3 +65,28 @@ it('opens, saves, and reopens a starter offline without an AI key or generation 
   )
   expect(window.halfspace.views.generate).not.toHaveBeenCalled()
 })
+
+it('edits block content and layout, undoes removal, and persists the result without AI', async () => {
+  const router = openViews()
+  fireEvent.click(await screen.findByRole('button', { name: /Goals & assists/ }))
+  fireEvent.click(screen.getByRole('button', { name: 'Edit blocks' }))
+  fireEvent.change(await screen.findByLabelText('New block'), { target: { value: 'recent' } })
+  fireEvent.change(screen.getByLabelText('Competition and season for new block'), {
+    target: { value: '384:22' }
+  })
+  fireEvent.click(screen.getByRole('button', { name: 'Add block' }))
+  fireEvent.change(await screen.findByLabelText('Width of block 1'), { target: { value: 'full' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Move block 3 up' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Remove block 2' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Undo change' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Save view' }))
+  await waitFor(() => expect(router.state.location.search.view).toBeTruthy())
+  const saved = await db.savedViews.get(router.state.location.search.view!)
+  expect(saved?.spec.blocks).toMatchObject([
+    { type: 'leaders', category: 'goals', span: 'full', competitionId: 8, seasonId: 12 },
+    { type: 'fixtures', period: 'recent', competitionId: 384, seasonId: 22 },
+    { type: 'leaders', category: 'assists', competitionId: 8, seasonId: 12 }
+  ])
+  expect(window.halfspace.views.generate).not.toHaveBeenCalled()
+})
