@@ -1,0 +1,69 @@
+import { useState } from 'react'
+import { Link } from '@tanstack/react-router'
+import type { ViewContext, ViewSpec } from '@shared/views'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import { createStarterView, starterViews } from './starter-views'
+
+export function StarterViewPicker({
+  contexts,
+  onCreate
+}: {
+  contexts: ViewContext[]
+  onCreate: (spec: ViewSpec) => void
+}): React.JSX.Element {
+  const [selected, setSelected] = useState('')
+  const context =
+    contexts.find((item) => `${item.competitionId}:${item.seasonId}` === selected) ??
+    contexts.find((item) => item.isCurrent) ??
+    contexts[0]
+
+  if (!context)
+    return (
+      <Link to="/competitions" className="mt-6 text-sm text-primary hover:underline">
+        Open a competition to make its seasons available
+      </Link>
+    )
+
+  return (
+    <div className="mt-6 w-full max-w-2xl space-y-4">
+      <div className="mx-auto flex w-fit max-w-full flex-col gap-2">
+        <Label htmlFor="starter-context">Competition and season</Label>
+        <NativeSelect
+          id="starter-context"
+          className="max-w-full"
+          value={`${context.competitionId}:${context.seasonId}`}
+          onChange={(event) => setSelected(event.target.value)}
+        >
+          {contexts.map((item) => (
+            <NativeSelectOption
+              key={`${item.competitionId}:${item.seasonId}`}
+              value={`${item.competitionId}:${item.seasonId}`}
+            >
+              {item.competitionName} · {item.seasonName}
+            </NativeSelectOption>
+          ))}
+        </NativeSelect>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-3">
+        {starterViews.map((template) => (
+          <Button
+            key={template.id}
+            variant="ghost"
+            className="h-auto flex-col items-start whitespace-normal bg-card p-4 text-left"
+            onClick={() => onCreate(createStarterView(template.id, context))}
+          >
+            <span>{template.title}</span>
+            <span className="text-xs font-normal text-muted-foreground">
+              {template.description}
+            </span>
+          </Button>
+        ))}
+      </div>
+      <p className="text-center text-xs text-muted-foreground">
+        Start with a view, or describe one below. AI is optional.
+      </p>
+    </div>
+  )
+}

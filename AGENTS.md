@@ -538,6 +538,9 @@ the design direction changes; carry the style into other views incrementally.
   identity-scoped queries. Reuse the shared cache, TTLs, pagination rules, and refresh cancellation.
   Add a block when its underlying data is usable; do not introduce a second football cache, generic
   query language, or whole-app component refactor ahead of a concrete need.
+- Starter Views compose validated fixtures, standings, and leader blocks from a selected available
+  competition and season, without generation or an AI key. Reuse the same editor, queries, and local
+  save format as AI-composed views; keep missing offline data explicit.
 - Saved definitions are user content, separate from disposable Sportmonks data. They survive token
   replacement and cache clearing. Opening, filtering, and refreshing saved views must not call AI;
   cached views remain usable offline. Keep definitions versioned for future intentional migrations.

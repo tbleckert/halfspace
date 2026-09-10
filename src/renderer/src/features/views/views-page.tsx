@@ -20,6 +20,7 @@ import { readViewContexts, saveView, undoSavedView } from './saved-views'
 import { ViewBlockContent, ViewBlockOutline } from './view-blocks'
 import { ViewComposer } from './view-composer'
 import { useViewGeneration } from './use-view-generation'
+import { StarterViewPicker } from './starter-view-picker'
 import './views.css'
 
 export function ViewsPage({ viewId }: { viewId?: string }): React.JSX.Element {
@@ -177,23 +178,6 @@ function ViewEditor({
   }
 
   const blocks = generation.generating ? generation.blocks : (spec?.blocks ?? [])
-  const league = contexts[0]?.competitionName
-  const suggestions = league
-    ? [
-        {
-          label: 'The full picture',
-          prompt: `Build a ${league} view with upcoming fixtures, standings, and goals leaders.`
-        },
-        {
-          label: 'Goals & assists',
-          prompt: `Show ${league} goals and assists leaderboards side by side.`
-        },
-        {
-          label: 'Around matchday',
-          prompt: `Show upcoming fixtures and recent results for ${league}.`
-        }
-      ]
-    : []
 
   return (
     <div className="view-workspace" key={reset}>
@@ -277,24 +261,13 @@ function ViewEditor({
             <CanvasIllustration />
             <h2>Your football, your view.</h2>
             <p>Bring fixtures, standings and player leaders into one view.</p>
-            <div className="mt-6 flex flex-wrap justify-center gap-2">
-              {suggestions.map((suggestion) => (
-                <Button
-                  key={suggestion.label}
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="gap-3 bg-card text-muted-foreground"
-                  onClick={() => {
-                    setPrompt(suggestion.prompt)
-                    document.getElementById('view-prompt')?.focus()
-                  }}
-                >
-                  {suggestion.label}
-                  <ArrowUpRight className="size-3.5" />
-                </Button>
-              ))}
-            </div>
+            <StarterViewPicker
+              contexts={contexts}
+              onCreate={(next) => {
+                setSpec(next)
+                setStorageError(null)
+              }}
+            />
           </div>
         ) : (
           <div className="view-sheet">

@@ -130,6 +130,8 @@ include should have a useful place in Halfspace.
 
 - [x] Saved team and player comparisons with complete season, club, and home/away context.
 
+- [x] Starter Views for fixtures, standings, goals and assists, available without an AI key.
+
 ### Ahead
 
 The next milestone is a [installable macOS alpha](docs/macos-alpha.md): help people
@@ -137,7 +139,6 @@ connect their account, follow their teams, and return on another matchday. Use f
 the first testers to focus subsequent football features and design passes.
 
 - [ ] Signed macOS alpha validated on clean installations and a five-person usability pilot.
-- [ ] Starter personal views that can be opened without an AI key.
 - [ ] Complete referee appointment history beyond the recent six-month window.
 - [ ] Deeper in-play analysis.
 - [ ] Premium odds and deeper bookmaker coverage.

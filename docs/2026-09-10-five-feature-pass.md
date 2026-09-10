@@ -15,7 +15,7 @@ comparison controls, navigation, and fixture charts.
 ## Feature checklist
 
 - [x] Save and reopen comparisons with complete entity, season, club, and match-location context.
-- [ ] Open starter Views without an AI key.
+- [x] Open starter Views without an AI key.
 - [ ] Add, remove, reorder, and resize View blocks manually.
 - [ ] Duplicate a View as an independent saved copy.
 - [ ] Change a View's competition and season using available contexts.
