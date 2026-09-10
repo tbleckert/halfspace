@@ -20,6 +20,13 @@ export async function saveView(id: string, value: ViewSpec): Promise<SavedView> 
   })
 }
 
+export async function duplicateView(spec: ViewSpec): Promise<SavedView> {
+  return saveView(crypto.randomUUID(), {
+    ...spec,
+    title: `${spec.title.trim().slice(0, 75).trimEnd()} copy`
+  })
+}
+
 export async function undoSavedView(id: string): Promise<ViewSpec | null> {
   return db.transaction('rw', db.savedViews, async () => {
     const saved = await db.savedViews.get(id)

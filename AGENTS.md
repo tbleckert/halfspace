@@ -544,6 +544,8 @@ the design direction changes; carry the style into other views incrementally.
 - Manual View editing uses the same versioned definition and undo/save flow. Offer the supported
   block types, preserve independent block contexts, and keep one through eight blocks per saved view.
   Reordering and width changes must work with keyboard controls and never call AI.
+- Duplicating a View saves the current draft under a new identity and opens that copy. Preserve the
+  source saved definition and keep the copy's undo history independent.
 - Saved definitions are user content, separate from disposable Sportmonks data. They survive token
   replacement and cache clearing. Opening, filtering, and refreshing saved views must not call AI;
   cached views remain usable offline. Keep definitions versioned for future intentional migrations.

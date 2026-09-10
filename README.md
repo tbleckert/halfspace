@@ -132,6 +132,7 @@ include should have a useful place in Halfspace.
 
 - [x] Starter Views for fixtures, standings, goals and assists, available without an AI key.
 - [x] Manual View editing: add and remove blocks, reorder them, resize columns, and undo changes.
+- [x] Duplicate saved or draft Views into independent local copies.
 
 ### Ahead
 

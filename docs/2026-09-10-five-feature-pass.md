@@ -17,7 +17,7 @@ comparison controls, navigation, and fixture charts.
 - [x] Save and reopen comparisons with complete entity, season, club, and match-location context.
 - [x] Open starter Views without an AI key.
 - [x] Add, remove, reorder, and resize View blocks manually.
-- [ ] Duplicate a View as an independent saved copy.
+- [x] Duplicate a View as an independent saved copy.
 - [ ] Change a View's competition and season using available contexts.
 
 Each feature has its own commit. Saved user work stays outside disposable football caches.

@@ -5,6 +5,8 @@ import { afterAll, beforeEach, expect, it, vi } from 'vitest'
 import { clearSportmonksCache, db, writeCompetitionRefresh } from '@/data/db'
 import { routeTree } from '@/routeTree.gen'
 import { mockViewsApi } from '../../../test/view-api'
+import { saveView } from '@/features/views/saved-views'
+import { createStarterView } from '@/features/views/starter-views'
 
 vi.mock('@/components/app-shell', async () => ({
   AppShell: (await import('@tanstack/react-router')).Outlet
@@ -40,6 +42,28 @@ function openViews(): ReturnType<typeof createRouter<typeof routeTree>> {
   render(<RouterProvider router={router} />)
   return router
 }
+
+it('duplicates the edited draft, opens its copy, and retains the original saved definition', async () => {
+  const spec = createStarterView('leaders', {
+    competitionId: 8,
+    competitionName: 'Premier League',
+    seasonId: 12,
+    seasonName: '2026/27',
+    isCurrent: true
+  })
+  await saveView('original', spec)
+  const router = openViews()
+  await act(() => router.navigate({ to: '/views', search: { view: 'original' } }))
+  fireEvent.change(await screen.findByLabelText('View name'), { target: { value: 'My draft' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Duplicate view' }))
+  await waitFor(() => expect(router.state.location.search.view).not.toBe('original'))
+  await waitFor(() =>
+    expect((screen.getByLabelText('View name') as HTMLInputElement).value).toBe('My draft copy')
+  )
+  expect((await db.savedViews.get('original'))?.spec).toEqual(spec)
+  expect(await db.savedViews.count()).toBe(2)
+  expect(window.halfspace.views.generate).not.toHaveBeenCalled()
+})
 
 it('opens, saves, and reopens a starter offline without an AI key or generation request', async () => {
   const router = openViews()

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { ArrowUpRight, Check, LayoutTemplate, Plus, Save, Trash2, Undo2 } from 'lucide-react'
+import { ArrowUpRight, Check, Copy, LayoutTemplate, Plus, Save, Trash2, Undo2 } from 'lucide-react'
 import {
   viewSpecSchema,
   type SavedView,
@@ -16,7 +16,7 @@ import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import { useOnline } from '@/lib/use-online'
 import { cn } from '@/lib/utils'
-import { readViewContexts, saveView, undoSavedView } from './saved-views'
+import { duplicateView, readViewContexts, saveView, undoSavedView } from './saved-views'
 import { ViewBlockContent, ViewBlockOutline } from './view-blocks'
 import { ViewComposer } from './view-composer'
 import { useViewGeneration } from './use-view-generation'
@@ -147,6 +147,20 @@ function ViewEditor({
     }
   }
 
+  async function duplicate(): Promise<void> {
+    if (!spec) return
+    setSaving(true)
+    setStorageError(null)
+    try {
+      const copy = await duplicateView(spec)
+      onSelect(copy.id)
+    } catch {
+      setStorageError('Could not duplicate this view. Your draft is still open; please try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   async function remove(): Promise<void> {
     setSaving(true)
     try {
@@ -260,6 +274,18 @@ function ViewEditor({
               onClick={() => void remove()}
             >
               <Trash2 className="size-3.5" />
+            </Button>
+          )}
+          {spec && (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Duplicate view"
+              title="Duplicate view"
+              disabled={saving || generation.generating}
+              onClick={() => void duplicate()}
+            >
+              <Copy className="size-3.5" />
             </Button>
           )}
           <Button variant="ghost" size="sm" onClick={newView} disabled={saving}>
