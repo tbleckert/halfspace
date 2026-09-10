@@ -125,19 +125,14 @@ include should have a useful place in Halfspace.
 - [x] Subscription overview showing plans, add-ons, and feature access for your token.
 - [x] Global search across matches and football profiles, including referees, with cached results.
 - [x] Competition quick access and navigation prefetching.
-- [x] Personal AI views with an OpenAI key: streamed canvas composition, competition fixtures,
-      standings and player leaders, conversational edits, local saving, and undo.
-
 - [x] Saved team and player comparisons with complete season, club, and home/away context.
-
-- [x] Starter Views for fixtures, standings, goals and assists, available without an AI key.
-- [x] Manual View editing: add and remove blocks, reorder them, resize columns, and undo changes.
-- [x] Duplicate saved or draft Views into independent local copies.
-- [x] Reuse a View for another available competition or season, preserving its blocks and layout.
+- [x] Personal Views with starter layouts, manual block editing, local saving, duplication,
+      competition and season switching, and undo. Optional OpenAI composition and conversational
+      edits bring fixtures, standings, and player leaders together.
 
 ### Ahead
 
-The next milestone is a [installable macOS alpha](docs/macos-alpha.md): help people
+The next milestone is an [installable macOS alpha](docs/macos-alpha.md): help people
 connect their account, follow their teams, and return on another matchday. Use feedback from
 the first testers to focus subsequent football features and design passes.
 

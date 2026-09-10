@@ -201,3 +201,18 @@ when country differs from nationality. Keep player portraits compact and make th
 Competition country selection sits beside search. Team Seasons uses one shared card per competition
 with compact monospaced season links; keep every reported season accessible without inventing current
 membership from historical records.
+
+## Reusable investigations
+
+Comparisons use the shared Dialog, Input, Button, and Card surfaces for local saving and reopening.
+Keep the complete selections visible in the comparison workspace after reopening a saved item.
+
+Views offer compact warm starter cards with one competition-and-season selector. Keep manual block
+editing and context changes in focused dialogs, with explicit keyboard actions for reordering and
+width. The same toolbar saves drafts, duplicates views, and undoes changes. At narrower workspace
+widths, wrap the toolbar and stack blocks in one column. Keep titles editable and visibly prominent.
+
+Use shared Card, Skeleton, and ErrorAlert components for View data states. Reserve the drawing
+outlines for actual AI composition; offline or unavailable data uses a static status card. Respect
+shared button and input typography and motion; avoid unlayered font resets that override utility
+classes or local motion overrides that duplicate Button behavior.

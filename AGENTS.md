@@ -13,9 +13,8 @@ abstractions.
 ## Product priorities
 
 The next milestone is the [macOS alpha](docs/macos-alpha.md).
-First-run setup, My teams on Matchday, and macOS packaging are implemented. Prioritize signed
-release validation and a small usability pilot, then saved comparisons and starter views that
-work without an AI key. Follow [the release guide](docs/macos-release.md): tester builds require
+First-run setup, My teams, saved comparisons, starter Views, and macOS packaging are implemented.
+Prioritize signed release validation and a small usability pilot. Follow [the release guide](docs/macos-release.md): tester builds require
 Developer ID signing and notarization; unsigned packages are explicitly for local checks.
 
 Complete Sportmonks coverage remains the long-term goal. Choose near-term endpoint work around

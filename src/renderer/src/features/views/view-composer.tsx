@@ -120,7 +120,6 @@ export function ViewComposer({
             </Button>
           ) : (
             <Button
-              className="view-build-button"
               type="submit"
               size="icon"
               aria-label={hasView ? 'Update view' : 'Build view'}

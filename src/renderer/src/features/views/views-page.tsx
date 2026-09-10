@@ -211,7 +211,7 @@ function ViewEditor({
           {savedViews.length > 0 && (
             <NativeSelect
               aria-label="Saved views"
-              className="max-w-52 border-0 bg-transparent shadow-none"
+              className="max-w-52"
               value={initial?.id ?? ''}
               onChange={(event) => onSelect(event.target.value || undefined)}
             >
@@ -313,7 +313,7 @@ function ViewEditor({
         ) : (
           <div className="view-sheet">
             <div className="mb-7 flex items-end justify-between gap-4">
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 {generation.generating ? (
                   <h2 className="text-2xl font-semibold tracking-tight">
                     {spec ? 'Reshaping your view' : 'A view taking shape'}

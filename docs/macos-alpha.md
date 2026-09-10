@@ -1,8 +1,8 @@
 # macOS alpha milestone
 
-My teams, first-run setup, and macOS packaging are implemented.
-The signed release workflow passes on both architectures. Complete installation and first-session
-validation, run the usability pilot, then move to reusable investigations.
+My teams, first-run setup, reusable investigations, and macOS packaging are implemented.
+The signed release workflow passes on both architectures. Installation and first-session validation
+and the usability pilot remain the release gate.
 
 ## Outcome
 
@@ -24,9 +24,9 @@ through existing football data and any verified provider gaps those journeys exp
 3. **Installable macOS alpha.** Add packaging and a repeatable release workflow. Verify installation
    on a clean machine, token setup, cached reopening, and the journey from Matchday to a match and
    its team or player profiles. Observe five testers and resolve the friction they encounter.
-4. **Reusable investigations.** Add Save this comparison, retaining both entities, seasons, player
-   clubs, and home/away selections. Then offer starter Views that open without an AI key. Reuse
-   existing comparison and view foundations; AI remains an optional way to compose and edit views.
+4. **Reusable investigations (implemented).** Save comparisons with both entities, seasons, player
+   clubs, and home/away selections. Open starter Views without an AI key, edit their blocks and layout,
+   duplicate them, and change their competition or season. AI remains optional.
 
 The first two steps now form one user experience: setup leads directly to personalized Matchday. Premium odds, exhaustive referee history, and image exports remain later work.
 
@@ -102,6 +102,18 @@ The installed build details, clean-machine or fresh-account status, and first-la
 have not yet been recorded. Intel installation and launch, the remaining first-session checks,
 replacement installs, and tester sessions remain unverified. Use the [pilot checklist](alpha-pilot.md)
 to record these checks.
+
+## Reusable investigations
+
+Implemented in the [five-feature pass](2026-09-10-five-feature-pass.md).
+
+- [x] Save and reopen team and player comparisons with resolved seasons, clubs, and match locations.
+- [x] Keep saved comparisons through football cache clearing and credential changes.
+- [x] Open starter Views for standings, fixtures, and goals/assists without an AI key.
+- [x] Add, remove, reorder, and resize blocks with keyboard controls and undo.
+- [x] Duplicate the current draft into an independent saved copy.
+- [x] Apply an available competition and season to a View while preserving its layout and metrics.
+- [x] Preserve offline caches, exact query identities, and explicit unavailable-data states.
 
 ## Pilot acceptance
 

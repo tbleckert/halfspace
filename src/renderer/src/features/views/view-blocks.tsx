@@ -2,7 +2,9 @@ import { useMemo } from 'react'
 import { Link } from '@tanstack/react-router'
 import { ArrowUpRight, CalendarDays, ChartNoAxesColumnIncreasing, Table2 } from 'lucide-react'
 import type { ViewBlock } from '@shared/views'
-import { Card, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { ErrorAlert } from '@/components/error-alert'
 import { Button } from '@/components/ui/button'
 import { useCompetitionDetail } from '@/features/competitions/use-competition-detail'
 import {
@@ -21,8 +23,8 @@ import { EntityFixtureRow } from '@/features/fixtures/entity-fixture-panel'
 import { addDaysToIsoDate, currentTimeZone } from '@/lib/date'
 import { useTodayInTimeZone } from '@/lib/use-today'
 import { useOnline } from '@/lib/use-online'
-import { cn } from '@/lib/utils'
 import { isFixtureOngoing } from '@/lib/fixture-state'
+import { viewBlockLabel } from './view-editing'
 
 export function ViewBlockOutline({ block }: { block: ViewBlock }): React.JSX.Element {
   const Icon =
@@ -309,18 +311,29 @@ function BlockPending({
   loading: boolean
 }): React.JSX.Element {
   return (
-    <div className={cn('relative', loading && 'view-loading')}>
-      <ViewBlockOutline block={block} />
-      <p role="status" className="absolute inset-x-4 bottom-4 text-xs text-muted-foreground">
-        {error
-          ? 'Data unavailable'
-          : !online
-            ? 'Not cached for offline use'
-            : loading
-              ? 'Loading football data…'
-              : 'Data unavailable'}
-      </p>
-    </div>
+    <Card aria-busy={loading && online && !error}>
+      <CardHeader>
+        <CardTitle>{viewBlockLabel(block)}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {loading && online && !error && (
+          <div aria-hidden="true" className="mb-4 space-y-3">
+            <Skeleton className="h-3 w-4/5" />
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-2/3" />
+          </div>
+        )}
+        <p role="status" className="text-xs text-muted-foreground">
+          {error
+            ? 'Data unavailable'
+            : !online
+              ? 'Not cached for offline use'
+              : loading
+                ? 'Loading football data…'
+                : 'Data unavailable'}
+        </p>
+      </CardContent>
+    </Card>
   )
 }
 function BlockEmpty({ children }: { children: React.ReactNode }): React.JSX.Element {
@@ -336,11 +349,13 @@ function BlockError({
   refresh: () => Promise<void>
 }): React.JSX.Element | null {
   return error ? (
-    <div role="alert" className="flex items-center justify-between gap-2 text-xs text-destructive">
-      <span>{error}</span>
-      <Button size="sm" variant="ghost" disabled={!online} onClick={() => void refresh()}>
-        Retry
-      </Button>
-    </div>
+    <ErrorAlert>
+      <div className="flex items-center justify-between gap-2">
+        <span>{error}</span>
+        <Button size="sm" variant="ghost" disabled={!online} onClick={() => void refresh()}>
+          Retry
+        </Button>
+      </div>
+    </ErrorAlert>
   ) : null
 }
