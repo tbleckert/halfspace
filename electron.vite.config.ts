@@ -27,7 +27,7 @@ export default defineConfig({
       }
     },
     server: {
-      strictPort: true,
+      strictPort: false,
       port: 5173
     },
     plugins: [

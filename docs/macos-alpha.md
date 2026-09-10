@@ -1,8 +1,8 @@
 # macOS alpha milestone
 
 My teams, first-run setup, and macOS packaging are implemented.
-Signing credentials, clean-machine release validation, the usability pilot, and reusable
-investigations remain next.
+The signed release workflow passes on both architectures. Complete installation and first-session
+validation, run the usability pilot, then move to reusable investigations.
 
 ## Outcome
 
@@ -84,18 +84,24 @@ gate and five-person observation plan.
 - [x] Add a manual workflow that checks and builds both architectures and uploads verified artifacts.
 - [x] Keep explicitly unsigned local builds separate and label their filenames.
 - [x] Prepare installation, first-session, offline reopening, and return-visit pilot checks.
-- [ ] Configure Apple signing and notarization credentials and complete the signed release workflow.
+- [x] Configure Apple signing and notarization credentials and complete the signed release workflow.
 - [ ] Validate downloaded signed installers on clean Apple silicon and Intel installations.
 - [ ] Observe five testers, record return visits, and resolve the friction they encounter.
 
 ### Validation status
 
-Local unsigned packaging checks have covered both architectures. The Apple silicon package
-was launched with a fresh profile; Intel launch validation remains outstanding. Unsigned
-checks do not establish readiness for distribution.
+Both signed release jobs passed in [workflow run 34408077880](https://github.com/tbleckert/halfspace/actions/runs/34408077880)
+for commit [`0f19c65`](https://github.com/tbleckert/halfspace/commit/0f19c652396ca793203d71be317e22f2517abf99).
+Each job completed signing, notarization, verification, and installer upload.
 
-Signed workflow execution, Apple notarization, clean-machine installation, authenticated
-packaged journeys, offline cached reopening, and tester sessions remain unverified.
+Apple silicon download and installation have been reported successful. On 10 September 2026,
+the developer also confirmed pinning a team, opening a match, retaining the token and pins after
+reopening, and browsing previously loaded football offline in the installed app.
+
+The installed build details, clean-machine or fresh-account status, and first-launch security flow
+have not yet been recorded. Intel installation and launch, the remaining first-session checks,
+replacement installs, and tester sessions remain unverified. Use the [pilot checklist](alpha-pilot.md)
+to record these checks.
 
 ## Pilot acceptance
 

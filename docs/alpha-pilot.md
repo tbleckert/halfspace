@@ -9,7 +9,13 @@ feature. These checks and targets are planned; no tester results have been recor
 Record the version, source commit, architecture, macOS version, and checksum of the actual
 downloaded installer. Use the [signed release process](macos-release.md).
 
-- [ ] Apple silicon and Intel release jobs pass, including signing and notarization checks.
+Both release jobs passed in [workflow run 34408077880](https://github.com/tbleckert/halfspace/actions/runs/34408077880)
+for commit `0f19c65`. Apple silicon download and installation have been reported successful; Intel
+installation is untested. The developer confirmed the checked app journeys below on Apple silicon
+on 10 September 2026. The installed build details, clean-account status, and first-launch security
+flow still need to be recorded before completing the corresponding checks below.
+
+- [x] Apple silicon and Intel release jobs pass, including signing and notarization checks.
 - [ ] Download the DMG on a Mac or macOS account without a previous Halfspace installation.
 - [ ] Open the DMG, drag Halfspace to Applications, eject the disk, and open the installed app
       through the normal macOS flow without security overrides.
@@ -17,11 +23,13 @@ downloaded installer. Use the [signed release process](macos-release.md).
 - [ ] Complete token setup using the tester's own Sportmonks token; confirm the subscribed
       competitions are understandable and failed access has a usable recovery path.
 - [ ] Quit during personalization and reopen; confirm setup resumes at the saved step.
-- [ ] Pin a team, optionally choose a TV country, and reach today's Matchday.
-- [ ] Open a relevant match, then its team or a linked player, and return with the expected context.
-- [ ] Quit and reopen; the saved token, pins, completed setup, and cached football remain usable.
-- [ ] Reopen offline and browse previously loaded football; missing data stays distinct from
-      empty data. Reconnect and confirm overdue data refreshes.
+- [ ] Reach today's Matchday after setup, optionally choosing a TV country.
+- [x] Pin a team and open a match.
+- [ ] From a match, open its team or a linked player, and return with the expected context.
+- [x] Quit and reopen; the saved token and pins persist.
+- [ ] Confirm completed setup stays complete after reopening.
+- [x] Reopen offline and browse previously loaded football.
+- [ ] Confirm missing data stays distinct from empty data, then reconnect and check overdue refreshes.
 - [ ] Replace the app with the next signed build and confirm the same preferences and caches.
 - [ ] Repeat installation and launch on both architectures before claiming both are verified.
 
