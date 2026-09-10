@@ -1,8 +1,8 @@
+import { ViewContextSelect } from './view-context-select'
 import { useState } from 'react'
 import type { ViewContext, ViewSpec } from '@shared/views'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { changeViewContext } from './view-editing'
 
@@ -64,23 +64,15 @@ export function ViewContextEditor({
         >
           <div className="space-y-2">
             <Label htmlFor="view-context">New competition and season</Label>
-            <NativeSelect
+            <ViewContextSelect
               id="view-context"
               className="w-full"
               value={selected}
               disabled={disabled}
               onChange={(event) => setSelected(event.target.value)}
-            >
-              <NativeSelectOption value="">Choose competition and season</NativeSelectOption>
-              {contexts.map((item) => (
-                <NativeSelectOption
-                  key={`${item.competitionId}:${item.seasonId}`}
-                  value={`${item.competitionId}:${item.seasonId}`}
-                >
-                  {item.competitionName} · {item.seasonName}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
+              contexts={contexts}
+              placeholder="Choose competition and season"
+            />
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>

@@ -3,6 +3,7 @@ import { Bookmark, Save, Trash2 } from 'lucide-react'
 import { savedComparisonSchema, type ComparisonSelection } from '@shared/comparisons'
 import { db } from '@/data/db'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
@@ -71,16 +72,10 @@ export function SavedComparisonControls({
           }
         }}
       >
-        <Button
-          disabled={!selection}
-          onClick={() => {
-            setOpen(true)
-            setError(null)
-          }}
-        >
+        <DialogTrigger render={<Button disabled={!selection} />}>
           <Save className="size-4" />
           Save comparison
-        </Button>
+        </DialogTrigger>
         <DialogTrigger render={<Button variant="outline" />}>
           <Bookmark className="size-4" />
           Saved comparisons
@@ -123,7 +118,7 @@ export function SavedComparisonControls({
             {saved?.map((record) => {
               const valid = savedComparisonSchema.safeParse(record)
               return (
-                <div key={record.id} className="flex items-center gap-2 rounded-lg bg-card p-3">
+                <Card key={record.id} className="flex items-center gap-2 p-3">
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{record.name}</p>
                     <p className="text-xs text-muted-foreground">
@@ -158,11 +153,13 @@ export function SavedComparisonControls({
                   >
                     <Trash2 className="size-4" />
                   </Button>
-                </div>
+                </Card>
               )
             })}
             {!saved?.length && (
-              <p className="py-4 text-sm text-muted-foreground">No saved comparisons yet.</p>
+              <p role="status" className="py-4 text-sm text-muted-foreground">
+                {saved ? 'No saved comparisons yet.' : 'Loading saved comparisons…'}
+              </p>
             )}
           </div>
         </DialogContent>

@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, RefreshCw, Search } from 'lucide-react'
 import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import { db } from '@/data/db'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -187,7 +188,7 @@ export function TeamsPage(): React.JSX.Element {
       ) : displayed.length ? (
         <div className="grid gap-2 sm:grid-cols-2">
           {displayed.map((team) => (
-            <div key={team.id} className="flex items-center rounded-xl bg-card pr-2">
+            <Card key={team.id} className="flex items-center pr-2">
               <Link
                 to="/teams/$teamId"
                 params={{ teamId: String(team.id) }}
@@ -209,7 +210,7 @@ export function TeamsPage(): React.JSX.Element {
                 </span>
               </Link>
               <TeamPin team={team} />
-            </div>
+            </Card>
           ))}
         </div>
       ) : directory.error && view === 'all' ? null : (

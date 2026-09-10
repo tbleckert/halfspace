@@ -1,7 +1,9 @@
+import { ViewContextSelect } from './view-context-select'
 import { useState } from 'react'
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react'
 import type { ViewContext, ViewSpec } from '@shared/views'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
@@ -50,56 +52,58 @@ export function ViewLayoutEditor({
         </div>
         <ol className="space-y-3">
           {spec.blocks.map((block, index) => (
-            <li key={block.id} className="space-y-2 rounded-lg bg-card p-3">
-              <p className="text-sm font-medium">{viewBlockLabel(block)}</p>
-              <div className="flex flex-wrap items-center gap-1">
-                <NativeSelect
-                  size="sm"
-                  aria-label={`Width of block ${index + 1}`}
-                  value={block.span}
-                  disabled={disabled}
-                  onChange={(event) =>
-                    onChange({
-                      ...spec,
-                      blocks: spec.blocks.map((item) =>
-                        item.id === block.id
-                          ? { ...item, span: event.target.value as 'half' | 'full' }
-                          : item
-                      )
-                    })
-                  }
-                >
-                  <NativeSelectOption value="half">Half width</NativeSelectOption>
-                  <NativeSelectOption value="full">Full width</NativeSelectOption>
-                </NativeSelect>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  disabled={disabled || index === 0}
-                  aria-label={`Move block ${index + 1} up`}
-                  onClick={() => onChange(moveViewBlock(spec, block.id, -1))}
-                >
-                  <ArrowUp className="size-4" />
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  disabled={disabled || index === spec.blocks.length - 1}
-                  aria-label={`Move block ${index + 1} down`}
-                  onClick={() => onChange(moveViewBlock(spec, block.id, 1))}
-                >
-                  <ArrowDown className="size-4" />
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  disabled={disabled || spec.blocks.length === 1}
-                  aria-label={`Remove block ${index + 1}`}
-                  onClick={() => onChange(removeViewBlock(spec, block.id))}
-                >
-                  <Trash2 className="size-4" />
-                </Button>
-              </div>
+            <li key={block.id}>
+              <Card className="space-y-2 p-3">
+                <p className="text-sm font-medium">{viewBlockLabel(block)}</p>
+                <div className="flex flex-wrap items-center gap-1">
+                  <NativeSelect
+                    size="sm"
+                    aria-label={`Width of block ${index + 1}`}
+                    value={block.span}
+                    disabled={disabled}
+                    onChange={(event) =>
+                      onChange({
+                        ...spec,
+                        blocks: spec.blocks.map((item) =>
+                          item.id === block.id
+                            ? { ...item, span: event.target.value as 'half' | 'full' }
+                            : item
+                        )
+                      })
+                    }
+                  >
+                    <NativeSelectOption value="half">Half width</NativeSelectOption>
+                    <NativeSelectOption value="full">Full width</NativeSelectOption>
+                  </NativeSelect>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    disabled={disabled || index === 0}
+                    aria-label={`Move block ${index + 1} up`}
+                    onClick={() => onChange(moveViewBlock(spec, block.id, -1))}
+                  >
+                    <ArrowUp className="size-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    disabled={disabled || index === spec.blocks.length - 1}
+                    aria-label={`Move block ${index + 1} down`}
+                    onClick={() => onChange(moveViewBlock(spec, block.id, 1))}
+                  >
+                    <ArrowDown className="size-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    disabled={disabled || spec.blocks.length === 1}
+                    aria-label={`Remove block ${index + 1}`}
+                    onClick={() => onChange(removeViewBlock(spec, block.id))}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
+              </Card>
             </li>
           ))}
         </ol>
@@ -128,22 +132,14 @@ export function ViewLayoutEditor({
             </div>
             <div className="space-y-2">
               <Label htmlFor="block-context">Competition and season for new block</Label>
-              <NativeSelect
+              <ViewContextSelect
                 id="block-context"
                 className="max-w-full"
                 value={`${context.competitionId}:${context.seasonId}`}
                 disabled={disabled}
                 onChange={(event) => setContextKey(event.target.value)}
-              >
-                {contexts.map((item) => (
-                  <NativeSelectOption
-                    key={`${item.competitionId}:${item.seasonId}`}
-                    value={`${item.competitionId}:${item.seasonId}`}
-                  >
-                    {item.competitionName} · {item.seasonName}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
+                contexts={contexts}
+              />
             </div>
             <Button type="submit" disabled={disabled || spec.blocks.length >= 8}>
               <Plus className="size-4" />
