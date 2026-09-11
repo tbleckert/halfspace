@@ -5,9 +5,9 @@ import { cn } from '@/lib/utils'
 import {
   DayPicker,
   getDefaultClassNames,
+  useDayPicker,
   type ChevronProps,
   type DayButton,
-  type Locale,
   type RootProps
 } from 'react-day-picker'
 
@@ -123,7 +123,7 @@ function Calendar({
       components={{
         Root: CalendarRoot,
         Chevron: CalendarChevron,
-        DayButton: ({ ...props }) => <CalendarDayButton locale={locale} {...props} />,
+        DayButton: CalendarDayButton,
         WeekNumber: ({ children, ...props }) => {
           return (
             <td {...props}>
@@ -160,10 +160,10 @@ function CalendarDayButton({
   className,
   day,
   modifiers,
-  locale,
   ...props
-}: React.ComponentProps<typeof DayButton> & { locale?: Partial<Locale> }): React.JSX.Element {
+}: React.ComponentProps<typeof DayButton>): React.JSX.Element {
   const defaultClassNames = getDefaultClassNames()
+  const { dayPickerProps } = useDayPicker()
 
   const ref = React.useRef<HTMLButtonElement>(null)
   React.useEffect(() => {
@@ -174,7 +174,7 @@ function CalendarDayButton({
     <Button
       variant="ghost"
       size="icon"
-      data-day={day.date.toLocaleDateString(locale?.code)}
+      data-day={day.date.toLocaleDateString(dayPickerProps.locale?.code)}
       data-selected-single={
         modifiers.selected &&
         !modifiers.range_start &&
