@@ -6,6 +6,7 @@ import { format, resolveConfig } from 'prettier'
 const repositoryRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
 const catalogPath = join(repositoryRoot, 'docs/sportmonks-api.json')
 const coveragePath = join(repositoryRoot, 'docs/sportmonks-coverage.json')
+const capabilitiesPath = join(repositoryRoot, 'docs/sportmonks-capabilities.json')
 const reportPath = join(repositoryRoot, 'docs/sportmonks-coverage.md')
 const badgePath = join(repositoryRoot, '.github/badges/sportmonks-coverage.json')
 const endpointIndexUrl = 'https://docs.sportmonks.com/v3/sitemap.md'
@@ -26,9 +27,10 @@ async function main(command) {
 
   const catalog = await readJson(catalogPath)
   const coverage = await readJson(coveragePath)
-  const result = calculateCoverage(catalog, coverage)
+  const capabilities = await readJson(capabilitiesPath)
+  const result = calculateCoverage(catalog, coverage, capabilities)
   const generatedFiles = new Map([
-    [reportPath, renderReport(catalog, result)],
+    [reportPath, await format(renderReport(catalog, result), { filepath: reportPath })],
     [badgePath, `${JSON.stringify(renderBadge(result), null, 2)}\n`]
   ])
 
@@ -42,7 +44,7 @@ async function main(command) {
   }
 
   console.log(
-    `Sportmonks coverage: ${result.percentage}% (${result.coveredEndpoints}/${result.totalEndpoints} endpoints, ${result.coveredIncludes}/${result.totalIncludes} includes)`
+    `Sportmonks data coverage: ${result.percentage}% (${result.coveredCapabilities}/${result.totalCapabilities} capabilities); endpoints: ${result.endpointPercentage}% (${result.coveredEndpoints}/${result.totalEndpoints})`
   )
 }
 
@@ -166,7 +168,7 @@ export function parseEndpointPage(markdown) {
   }
 }
 
-export function calculateCoverage(catalog, coverage) {
+export function calculateCoverage(catalog, coverage, model = { schemaVersion: 1 }) {
   if (catalog.schemaVersion !== 1 || !Array.isArray(catalog.endpoints)) {
     throw new Error('Unsupported Sportmonks catalog format.')
   }
@@ -209,25 +211,122 @@ export function calculateCoverage(catalog, coverage) {
     (total, includes) => total + includes.length,
     0
   )
-  const totalCapabilities = totalEndpoints + totalIncludes
-  const coveredCapabilities = coveredEndpoints + coveredIncludes
-  const percentage =
-    totalCapabilities === 0 ? 0 : Math.round((coveredCapabilities / totalCapabilities) * 100)
+  const capabilities = calculateCapabilities(catalogById, coveredById, coverage, model)
+  const totalCapabilities = capabilities.size
+  const coveredCapabilities = [...capabilities.values()].filter(
+    (capability) => capability.sources.length > 0
+  ).length
 
   return {
     coveredById,
     coveredEndpoints,
     coveredIncludes,
-    percentage,
+    capabilities,
+    coveredCapabilities,
+    totalCapabilities,
+    percentage: percentageOf(coveredCapabilities, totalCapabilities),
+    endpointPercentage: percentageOf(coveredEndpoints, totalEndpoints),
     totalEndpoints,
     totalIncludes
   }
 }
 
+function calculateCapabilities(catalogById, coveredById, coverage, model) {
+  if (model.schemaVersion !== 1) throw new Error('Unsupported capability model format.')
+
+  const groups = model.groups ?? {}
+  const overrides = model.endpoints ?? {}
+  const aliases = model.aliases ?? {}
+  const endpointGroups = new Set(
+    [...catalogById.keys()].map((id) => id.slice(0, id.lastIndexOf('/')))
+  )
+  for (const group of Object.keys(groups)) {
+    if (!endpointGroups.has(group)) throw new Error(`Unknown capability endpoint group: ${group}`)
+  }
+  for (const id of Object.keys(overrides)) {
+    if (!catalogById.has(id)) throw new Error(`Unknown capability endpoint: ${id}`)
+  }
+
+  const raw = new Map()
+  function add(id, source) {
+    const sources = raw.get(id) ?? []
+    if (source) sources.push(source)
+    raw.set(id, sources)
+  }
+
+  for (const endpoint of catalogById.values()) {
+    const group = endpoint.id.slice(0, endpoint.id.lastIndexOf('/'))
+    const mapping = overrides[endpoint.id] ?? groups[group] ?? { entity: group }
+    const { entity, includeEntity = entity } = mapping
+    if (!entity || !includeEntity || entity.includes(':') || includeEntity.includes(':')) {
+      throw new Error(`Invalid capability entity for ${endpoint.id}`)
+    }
+    const supportedIncludes = coveredById.get(endpoint.id)
+    add(entity, supportedIncludes ? { endpoint: endpoint.id } : null)
+    for (const include of endpoint.includes) {
+      add(
+        `${includeEntity}:${include}`,
+        supportedIncludes?.includes(include) ? { endpoint: endpoint.id, include } : null
+      )
+    }
+  }
+
+  // Aliases merge equivalent data, including uncovered data, before counting it.
+  // Keep targets canonical so cycles and order-dependent chains cannot change the score.
+  for (const [source, target] of Object.entries(aliases)) {
+    if (!raw.has(source) || !raw.has(target)) {
+      throw new Error(`Unknown capability alias: ${source} -> ${target}`)
+    }
+    if (Object.hasOwn(aliases, target)) {
+      throw new Error(`Capability alias target must be canonical: ${source} -> ${target}`)
+    }
+  }
+
+  const capabilities = new Map()
+  for (const [id, sources] of raw) {
+    const canonical = aliases[id] ?? id
+    const capability = capabilities.get(canonical) ?? { id: canonical, sources: [] }
+    capability.sources.push(...sources)
+    capabilities.set(canonical, capability)
+  }
+
+  // A reviewed query can expose a relationship without requesting that include.
+  // Every required endpoint/include must still be declared as supported.
+  for (const [id, evidence] of Object.entries(coverage.equivalents ?? {})) {
+    const capability = capabilities.get(id)
+    if (!capability) throw new Error(`Unknown equivalent capability: ${id}`)
+    const requirements = Object.entries(evidence.requires ?? {})
+    if (!evidence.reason?.trim() || requirements.length === 0) {
+      throw new Error(`Equivalent capability needs a reason and requirements: ${id}`)
+    }
+    for (const [endpointId, includes] of requirements) {
+      const endpoint = catalogById.get(endpointId)
+      if (!endpoint) throw new Error(`Unknown equivalent endpoint: ${endpointId}`)
+      if (
+        !Array.isArray(includes) ||
+        includes.some((include) => !endpoint.includes.includes(include))
+      ) {
+        throw new Error(`Unknown equivalent include for ${endpointId}`)
+      }
+    }
+    const supported = requirements.every(([endpointId, includes]) => {
+      const declared = coveredById.get(endpointId)
+      return declared && includes.every((include) => declared.includes(include))
+    })
+    if (supported) capability.sources.push({ equivalent: evidence })
+  }
+
+  return new Map([...capabilities.keys()].sort().map((id) => [id, capabilities.get(id)]))
+}
+
+function percentageOf(covered, total) {
+  return total === 0 ? 0 : Math.round((covered / total) * 100)
+}
+
 function renderBadge(result) {
   return {
     schemaVersion: 1,
-    label: 'Sportmonks coverage',
+    label: 'Sportmonks data coverage',
     message: `${result.percentage}%`,
     color: badgeColor(result.percentage)
   }
@@ -245,25 +344,55 @@ function renderReport(catalog, result) {
   const lines = [
     '# Sportmonks API coverage',
     '',
-    `Halfspace currently covers **${result.coveredEndpoints} of ${result.totalEndpoints} endpoints** and **${result.coveredIncludes} of ${result.totalIncludes} documented endpoint includes**.`,
+    `Data capability coverage: **${result.percentage}%** (${result.coveredCapabilities} of ${result.totalCapabilities} capabilities).`,
     '',
-    `Overall coverage: **${result.percentage}%**`,
+    `Endpoint coverage: **${result.endpointPercentage}%** (${result.coveredEndpoints} of ${result.totalEndpoints} endpoints).`,
     '',
     `Source: [Sportmonks Football API 3.0 documentation index](${catalog.source})`,
     '',
     'The [catalog snapshot](sportmonks-api.json) lists every endpoint and supported top-level include in the Football API documentation, including odds. Other Sportmonks APIs and all possible nested include combinations are outside this count.',
     '',
-    'Coverage means the endpoint or include is fetched, cached locally, reachable in the interface, and presented in its football context. Nested includes count through their documented top-level include.',
+    'The badge counts each data type and each of its documented first-level relationships once, across all retrieval endpoints. Nested include combinations do not add units. Reviewed aliases merge equivalent data exposed through an include and a dedicated endpoint; other reviewed queries can also establish a relationship. Repeating the same data on a list, search, or detail endpoint earns no extra credit.',
     '',
-    'The percentage counts one unit per endpoint and per endpoint/include pair. It tracks reviewed product coverage, not automated proof of UI completeness or subscription access. Declarations live in `docs/sportmonks-coverage.json`.',
+    'Covered means the data is fetched, cached locally, reachable in the interface, and presented in its football context. This measures data breadth, not every possible field, statistic type, historical window, UI quality, or subscription entitlement. It is a reviewed declaration, not automated proof of product completeness. Unknown or unreviewed equivalences remain uncovered.',
+    '',
+    'The [capability model](sportmonks-capabilities.json) groups returned data types and merges equivalent capabilities independently of implementation status. The [product declarations](sportmonks-coverage.json) record supported endpoints/includes and evidence for equivalent queries. Pre-match and in-play feeds, team and player data, and current and historical odds remain distinct. Capability keys below identify a data type, optionally followed by `:include`.',
+    '',
+    'Endpoint coverage measures retrieval breadth separately. Its technical checklist retains exact endpoint/include counts, which do not contribute to the badge.',
     '',
     'Update the declarations as features ship, then run `pnpm coverage` to regenerate the report and badge. Run `pnpm coverage:refresh` to download the latest catalog from the public documentation; no API token is needed. `pnpm coverage:check` validates declarations and generated files offline and is part of `pnpm check`.',
     '',
     'The README badge reads the generated JSON from the default branch on GitHub and updates after those changes are pushed.',
     '',
-    '## Endpoints',
-    ''
+    '## Data capabilities',
+    '',
+    'Every denominator unit is listed below. A supported capability shows one sufficient access path; other supported paths do not increase its weight. Query equivalences require all listed endpoint/include declarations to remain supported.',
+    '',
+    '| Capability | Supported through |',
+    '| --- | --- |'
   ]
+
+  for (const capability of result.capabilities.values()) {
+    const source = capability.sources[0]
+    let evidence = 'Not declared'
+    if (source?.equivalent) {
+      const endpoints = Object.entries(source.equivalent.requires).map(([id, includes]) =>
+        endpointSource(catalog, id, includes)
+      )
+      evidence = `${source.equivalent.reason} ${endpoints.join('; ')}.`
+    } else if (source) {
+      evidence = endpointSource(catalog, source.endpoint, source.include ? [source.include] : [])
+    }
+    lines.push(`| ${source ? '✓' : '—'} \`${capability.id}\` | ${evidence} |`)
+  }
+
+  lines.push(
+    '',
+    '## Endpoint access paths',
+    '',
+    `Implemented: **${result.coveredEndpoints}/${result.totalEndpoints} endpoints** and **${result.coveredIncludes}/${result.totalIncludes} endpoint/include pairs**. These counts intentionally retain alternative routes to the same data.`,
+    ''
+  )
 
   for (const [category, endpoints] of categories) {
     lines.push(`### ${category}`, '')
@@ -281,6 +410,14 @@ function renderReport(catalog, result) {
   }
 
   return `${lines.join('\n').trim()}\n`
+}
+
+function endpointSource(catalog, id, includes) {
+  const endpoint = catalog.endpoints.find((entry) => entry.id === id)
+  const suffix = includes.length
+    ? ` with ${includes.map((include) => `\`${include}\``).join(', ')}`
+    : ''
+  return `[${endpoint.name}](${endpoint.documentation})${suffix}`
 }
 
 async function checkGeneratedFiles(files) {

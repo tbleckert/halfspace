@@ -191,5 +191,149 @@
     "players/get-players-by-country-id": ["country", "nationality", "position", "detailedPosition"],
     "leagues/get-leagues-by-country-id": ["country", "currentSeason"],
     "seasons/get-seasons-by-team-id": ["league"]
+  },
+  "equivalents": {
+    "expected-lineups:fixture": {
+      "requires": { "fixtures/get-fixture-by-id": ["expectedLineups"] },
+      "reason": "Expected lineups are fetched for, validated against, and presented inside their fixture."
+    },
+    "expected-lineups:player": {
+      "requires": { "fixtures/get-fixture-by-id": ["expectedLineups"] },
+      "reason": "The expectedLineups.player query hydrates the linked player identities shown on the pitch."
+    },
+    "expected-lineups:team": {
+      "requires": { "fixtures/get-fixture-by-id": ["expectedLineups", "participants"] },
+      "reason": "Expected lineups are grouped against the fixture's hydrated home and away teams."
+    },
+    "fixture-xg:fixture": {
+      "requires": { "fixtures/get-fixture-by-id": ["xGFixture"] },
+      "reason": "Expected metrics are fetched for, validated against, and presented inside their fixture."
+    },
+    "fixture-xg:participant": {
+      "requires": { "fixtures/get-fixture-by-id": ["xGFixture", "participants"] },
+      "reason": "Expected performance compares the reported values alongside the fixture's home and away teams."
+    },
+    "fixture-xg:type": {
+      "requires": { "fixtures/get-fixture-by-id": ["xGFixture"] },
+      "reason": "The xGFixture.type query preserves type metadata and presents the supported expected-metric categories."
+    },
+    "prematch-odds:fixture": {
+      "requires": {
+        "standard-odds-feed/pre-match-odds/get-odds-by-fixture-id": [],
+        "fixtures/get-fixture-by-id": []
+      },
+      "reason": "Pre-match quotes are validated against and displayed within their persistent fixture page."
+    },
+    "inplay-odds:fixture": {
+      "requires": {
+        "standard-odds-feed/inplay-odds/get-inplay-odds-by-fixture-id": [],
+        "fixtures/get-fixture-by-id": []
+      },
+      "reason": "In-play quotes are validated against and displayed within their persistent fixture page."
+    },
+    "prematch-predictions:fixture": {
+      "requires": {
+        "predictions/get-probabilities-by-fixture-id": [],
+        "fixtures/get-fixture-by-id": []
+      },
+      "reason": "Probabilities are validated against and displayed in their fixture's Preview."
+    },
+    "match-facts:fixture": {
+      "requires": {
+        "match-facts/get-match-facts-by-fixture-id": [],
+        "fixtures/get-fixture-by-id": []
+      },
+      "reason": "Match facts are cached per fixture and presented in that fixture's Preview."
+    },
+    "commentaries:fixture": {
+      "requires": {
+        "commentaries/get-commentaries-by-fixture-id": [],
+        "fixtures/get-fixture-by-id": []
+      },
+      "reason": "Commentary is cached per fixture and presented in that fixture's Commentary view."
+    },
+    "leagues:seasons": {
+      "requires": { "seasons/get-all-seasons": [] },
+      "reason": "Competition season selection uses the complete league-filtered seasons query."
+    },
+    "leagues:stages": {
+      "requires": { "schedules/get-schedules-by-season-id": [] },
+      "reason": "Competition Schedule presents the selected league season's reported stages."
+    },
+    "leagues:latest": {
+      "requires": { "fixtures/get-fixtures-by-date-range": ["league", "state", "scores"] },
+      "reason": "Competition Overview presents recent results from the league-filtered fixture window."
+    },
+    "leagues:upcoming": {
+      "requires": { "fixtures/get-fixtures-by-date-range": ["league", "state"] },
+      "reason": "Competition Overview presents upcoming matches from the league-filtered fixture window."
+    },
+    "leagues:today": {
+      "requires": { "fixtures/get-fixtures-by-date": ["league", "state"] },
+      "reason": "Matchday groups the complete local day's fixtures by their reported league."
+    },
+    "leagues:inplay": {
+      "requires": { "livescores/get-inplay-livescores": ["league", "state"] },
+      "reason": "The complete in-play feed retains each match's league in the shared cache and fixture links."
+    },
+    "seasons:teams": {
+      "requires": { "teams/get-teams-by-season-id": [] },
+      "reason": "Competition Teams presents the complete paginated team list for the selected season."
+    },
+    "seasons:stages": {
+      "requires": { "schedules/get-schedules-by-season-id": [] },
+      "reason": "Competition Schedule caches and presents the selected season's stages."
+    },
+    "seasons:currentStage": {
+      "requires": { "schedules/get-schedules-by-season-id": [] },
+      "reason": "Schedule navigation respects the stage's provider-reported is_current flag."
+    },
+    "seasons:fixtures": {
+      "requires": { "schedules/get-schedules-by-season-id": [] },
+      "reason": "Competition Schedule normalizes and presents the complete reported season fixture list."
+    },
+    "stages:rounds": {
+      "requires": { "schedules/get-schedules-by-season-id": [] },
+      "reason": "Schedule navigation presents the reported rounds nested beneath their stage."
+    },
+    "stages:currentRound": {
+      "requires": { "schedules/get-schedules-by-season-id": [] },
+      "reason": "Schedule navigation respects each round's provider-reported is_current flag."
+    },
+    "stages:fixtures": {
+      "requires": { "schedules/get-schedules-by-season-id": [] },
+      "reason": "Competition Schedule presents fixtures belonging to the selected stage."
+    },
+    "rounds": {
+      "requires": { "schedules/get-schedules-by-season-id": [] },
+      "reason": "Reported round records are cached and selectable in Schedule, Table, and Stats."
+    },
+    "rounds:fixtures": {
+      "requires": { "schedules/get-schedules-by-season-id": [] },
+      "reason": "Competition Schedule presents fixtures belonging to the selected round."
+    },
+    "teams:latest": {
+      "requires": { "fixtures/get-fixtures-by-date-range-for-team": ["state", "scores"] },
+      "reason": "Team Overview presents recent completed matches from the team fixture window."
+    },
+    "teams:upcoming": {
+      "requires": { "fixtures/get-fixtures-by-date-range-for-team": ["state"] },
+      "reason": "Team Overview presents scheduled upcoming matches from the team fixture window."
+    },
+    "teams:seasons": {
+      "requires": { "seasons/get-seasons-by-team-id": ["league"] },
+      "reason": "Team season history presents the provider's team-season membership with competition links."
+    },
+    "players:transfers": {
+      "requires": { "transfers/get-transfers-by-player-id": ["fromTeam", "toTeam", "type"] },
+      "reason": "Player Career presents the complete paginated player transfer history."
+    },
+    "tv-stations:fixtures": {
+      "requires": {
+        "fixtures/get-upcoming-fixtures-by-tv-station-id": ["tvStations"],
+        "fixtures/get-past-fixtures-by-tv-station-id": ["tvStations"]
+      },
+      "reason": "Broadcaster pages present both paginated upcoming and past station fixture feeds."
+    }
   }
 }

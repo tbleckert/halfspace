@@ -11,7 +11,7 @@
     <img src="https://github.com/tbleckert/halfspace/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI" />
   </a>
   <a href="docs/sportmonks-coverage.md">
-    <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Ftbleckert%2Fhalfspace%2Fmain%2F.github%2Fbadges%2Fsportmonks-coverage.json" alt="Sportmonks coverage" />
+    <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Ftbleckert%2Fhalfspace%2Fmain%2F.github%2Fbadges%2Fsportmonks-coverage.json" alt="Sportmonks data capability coverage" />
   </a>
   <a href="LICENSE">
     <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license" />
@@ -156,7 +156,7 @@ so they can also power personal views. Sharing and image exports follow once the
 An endpoint or include is considered covered when its data can be fetched safely, cached locally,
 reached through the interface, and understood in the context of the related entities.
 
-[Track endpoint and include coverage.](docs/sportmonks-coverage.md)
+[Track data capabilities and endpoint coverage.](docs/sportmonks-coverage.md)
 
 ## Development
 
@@ -171,6 +171,12 @@ Run `pnpm build` for a production build.
 
 ### Sportmonks coverage
 
+The badge measures **data capability coverage**: each data type and first-level relationship
+counts once, including reviewed equivalents fetched through separate endpoints. Endpoint coverage
+is reported separately. The percentage describes supported data breadth, not product completion
+or the leagues available on a particular subscription. See the
+[counting rules](docs/sportmonks-capability-model.md) and [full report](docs/sportmonks-coverage.md).
+
 When shipping endpoint or include support, update `docs/sportmonks-coverage.json` and run
 `pnpm coverage`. Commit the generated report and badge alongside the implementation. CI runs
 `pnpm check` and `pnpm build` on pull requests and pushes to `main`, rejecting stale coverage
@@ -179,7 +185,7 @@ artifacts. The README badge reads the generated file on `main`.
 The **Refresh Sportmonks catalog** workflow checks the official documentation every Monday at
 05:17 UTC and can also be run manually from Actions. Changes open or update one draft PR with
 the upstream catalog, report, and badge; declared product support is never changed automatically.
-If upstream changes invalidate a declaration, the workflow fails for manual review.
+If upstream changes invalidate a declaration or capability mapping, the workflow fails for manual review.
 
 The refresh needs **Settings → Actions → General → Allow GitHub Actions to create and approve
 pull requests** enabled. It uses the built-in `GITHUB_TOKEN`; no Sportmonks token or personal

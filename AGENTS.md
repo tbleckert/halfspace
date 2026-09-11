@@ -370,6 +370,12 @@ the design direction changes; carry the style into other views incrementally.
   Update `docs/sportmonks-coverage.json` whenever an endpoint or include becomes fully usable in the
   product, regenerate the report and badge with `pnpm coverage`, and refresh the upstream catalog
   with `pnpm coverage:refresh` when Sportmonks changes its documented API.
+- The badge counts data capabilities once per returned data type and first-level relationship,
+  including reviewed equivalent access paths. Keep endpoint breadth separate in the report.
+  Maintain entity mappings and aliases in `docs/sportmonks-capabilities.json`; record equivalent
+  queries with their required supported endpoints/includes and product rationale in the coverage
+  declarations. Follow `docs/sportmonks-capability-model.md`. Never infer a relationship from an ID
+  alone, equate different data scopes, or add redundant fetching to increase the badge.
 - Keep coverage checks in CI. Weekly upstream catalog refreshes propose only generated catalog,
   report, and badge changes in a draft PR; never infer product support or merge automatically.
   Mark refresh PRs ready for review to trigger CI after checking the upstream changes.

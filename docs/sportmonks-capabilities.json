@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "groups": {
+    "livescores": { "entity": "fixtures" },
+    "statistics": { "entity": "participant-season-statistics" },
+    "expected-xg": { "entity": "fixture-xg" },
+    "premium-expected-lineups": { "entity": "expected-lineups" },
+    "predictions": { "entity": "prematch-predictions" },
+    "standard-odds-feed/pre-match-odds": { "entity": "prematch-odds" },
+    "standard-odds-feed/inplay-odds": { "entity": "inplay-odds" },
+    "premium-odds-feed/premium-pre-match-odds": { "entity": "premium-odds" },
+    "news": { "entity": "prematch-news" },
+    "topscorers": { "entity": "season-topscorers" }
+  },
+  "endpoints": {
+    "seasons/get-brackets-by-season-id": {
+      "entity": "brackets",
+      "includeEntity": "fixtures"
+    },
+    "team-squads/get-extended-team-squad-by-team-id": {
+      "entity": "team-squads",
+      "includeEntity": "players"
+    },
+    "statistics/get-stage-statistics-by-id": { "entity": "stage-statistics" },
+    "statistics/get-round-statistics-by-id": { "entity": "round-statistics" },
+    "standings/get-standing-correction-by-season-id": { "entity": "standing-corrections" },
+    "topscorers/get-topscorers-by-stage-id": { "entity": "stage-topscorers" },
+    "expected-xg/get-expected-by-player": { "entity": "player-xg" },
+    "predictions/get-predictability-by-league-id": { "entity": "league-predictability" },
+    "predictions/get-value-bets": { "entity": "value-bets" },
+    "predictions/get-value-bets-by-fixture-id": { "entity": "value-bets" },
+    "predictions/get-live-probabilities-by-fixture-id": { "entity": "live-predictions" },
+    "predictions/get-live-probabilities": { "entity": "live-predictions" },
+    "premium-odds-feed/premium-pre-match-odds/get-updated-historical-odds-between-time-range": {
+      "entity": "historical-premium-odds"
+    },
+    "premium-odds-feed/premium-pre-match-odds/get-all-historical-odds": {
+      "entity": "historical-premium-odds"
+    },
+    "markets/get-all-premium-markets": { "entity": "premium-markets" },
+    "bookmakers/get-all-premium-bookmakers": { "entity": "premium-bookmakers" },
+    "bookmakers/get-bookmaker-match-id-mappings-by-fixture-id": {
+      "entity": "bookmaker-fixture-mappings"
+    },
+    "news/get-post-match-news": { "entity": "postmatch-news" },
+    "news/get-post-match-news-by-season-id": { "entity": "postmatch-news" }
+  },
+  "aliases": {
+    "prematch-odds": "fixtures:odds",
+    "inplay-odds": "fixtures:inplayOdds",
+    "premium-odds": "fixtures:premiumOdds",
+    "historical-premium-odds": "premium-odds:history",
+    "prematch-predictions": "fixtures:predictions",
+    "match-facts": "fixtures:matchfacts",
+    "commentaries": "fixtures:comments",
+    "fixture-xg": "fixtures:xGFixture",
+    "expected-lineups": "fixtures:expectedLineups",
+    "prematch-news": "fixtures:prematchNews",
+    "postmatch-news": "fixtures:postmatchNews",
+    "rivals": "teams:rivals",
+    "team-squads": "teams:players",
+    "season-topscorers": "seasons:topscorers",
+    "stage-topscorers": "stages:topscorers",
+    "stage-statistics": "stages:statistics",
+    "round-statistics": "rounds:statistics"
+  }
+}
