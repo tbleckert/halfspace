@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import type { RefreshTransferRumoursInput, TransferRumoursRefresh } from '@shared/transfer-rumours'
-import { playerSchema, teamSchema } from './sportmonks'
+import { playerSchema, positionSchema, teamSchema } from './sportmonks'
 import { requestSportmonks, SportmonksError } from './sportmonks-client'
 
 const inputSchema = z.object({
@@ -16,6 +16,8 @@ const responseSchema = z.object({
       from_team_id: z.number().int().nullable(),
       to_team_id: z.number().int().nullable(),
       type_id: z.number().int().nullable(),
+      position_id: z.number().int().nullish(),
+      position: positionSchema.nullish(),
       probability: z.string().nullable(),
       source_name: z.string().nullable(),
       source_url: z.string().nullable(),
@@ -46,7 +48,8 @@ export async function fetchTransferRumours(
   const url = new URL(
     `https://api.sportmonks.com/v3/football/transfer-rumours/${input.entity}/${input.entityId}`
   )
-  url.searchParams.set('include', 'player;fromTeam;toTeam;type')
+  // The live rumour API rejects detailedPosition, despite listing it in the include catalog.
+  url.searchParams.set('include', 'player;fromTeam;toTeam;type;position')
   url.searchParams.set('page', String(input.page))
   url.searchParams.set('per_page', '25')
   url.searchParams.set('order', 'desc')

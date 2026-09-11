@@ -86,8 +86,8 @@ include should have a useful place in Halfspace.
 - [x] Round-by-round league tables with season selection and offline history.
 - [x] Live league tables with in-play standings and automatic updates.
 - [x] Team pages with current competitions, fixtures, squad profiles, and transfer history.
-- [x] Transfer hub with latest updates, date ranges, paginated browsing, and linked player and club profiles.
-- [x] Team and player transfer rumours with sources, reported likelihood, and paginated browsing.
+- [x] Transfer hub with latest updates, date ranges, paginated browsing, reported player positions, and linked player and club profiles.
+- [x] Team and player transfer rumours with sources, reported likelihood and player positions, and paginated browsing.
 - [x] Historical team squads with season selection and offline browsing.
 - [x] Current team injuries and suspensions with linked player profiles.
 - [x] Team rivalries with direct links to rival clubs.
@@ -120,7 +120,7 @@ include should have a useful place in Halfspace.
 - [x] Fixture Preview TV guides with country-specific broadcast listings.
 - [x] Country-based TV Guide with live and upcoming matches and broadcaster links.
 - [x] Broadcaster pages with paginated upcoming and past schedules and match-specific broadcast regions.
-- [x] Competition Team of the Week with season and round browsing.
+- [x] Competition Team of the Week with season and round browsing, plus opponents, scores, and dates from the cached schedule.
 - [x] Pre-match and in-play odds explorer with market and bookmaker comparison.
 - [x] Subscription overview showing plans, add-ons, and feature access for your token.
 - [x] Global search across matches and football profiles, including referees, with cached results.

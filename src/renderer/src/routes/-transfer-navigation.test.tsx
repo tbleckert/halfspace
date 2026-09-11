@@ -25,8 +25,10 @@ it('browses cached pages, filters the displayed page and preserves club links wh
     type_id: 219,
     from_team_id: 19,
     to_team_id: null,
-    position_id: null,
-    detailed_position_id: null,
+    position_id: 26,
+    detailed_position_id: 150,
+    position: { id: 26, name: 'Midfielder' },
+    detailedPosition: { id: 150, name: 'Attacking Midfield' },
     date: '2026-09-01',
     career_ended: false,
     completed: false,
@@ -46,6 +48,8 @@ it('browses cached pages, filters the displayed page and preserves club links wh
           id: 2,
           player_id: 101,
           completed: true,
+          position: null,
+          detailedPosition: null,
           player: { ...makeTopscorer().player!, id: 101, display_name: 'Jamie Midfielder' }
         }
       ],
@@ -59,7 +63,8 @@ it('browses cached pages, filters the displayed page and preserves club links wh
     history: createMemoryHistory({ initialEntries: ['/transfers'] })
   })
   render(<RouterProvider router={router} />)
-  const player = await screen.findByRole('link', { name: 'Alex Forward' })
+  const player = await screen.findByRole('link', { name: /Alex Forward/ })
+  expect(screen.getByText('Attacking Midfield')).toBeTruthy()
   expect(player.getAttribute('href')).toContain('/players/100')
   expect(screen.getByRole('link', { name: 'Team 19' }).getAttribute('href')).toContain('/teams/19')
   expect(screen.getByText('Not reported')).toBeTruthy()
@@ -71,11 +76,12 @@ it('browses cached pages, filters the displayed page and preserves club links wh
   fireEvent.change(screen.getByRole('textbox', { name: 'Filter this page by player or club' }), {
     target: { value: '' }
   })
-  await screen.findByRole('link', { name: 'Alex Forward' })
+  await screen.findByRole('link', { name: /Alex Forward/ })
   fireEvent.click(screen.getByRole('button', { name: 'Next transfer page' }))
   await screen.findByRole('link', { name: 'Jamie Midfielder' })
   expect(router.state.location.search.page).toBe(2)
-  expect(screen.queryByRole('link', { name: 'Alex Forward' })).toBeNull()
+  expect(screen.queryByRole('link', { name: /Alex Forward/ })).toBeNull()
+  expect(screen.queryByText('Attacking Midfield')).toBeNull()
   expect(
     (screen.getByRole('button', { name: 'Next transfer page' }) as HTMLButtonElement).disabled
   ).toBe(true)

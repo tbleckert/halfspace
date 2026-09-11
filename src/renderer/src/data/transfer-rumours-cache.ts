@@ -58,9 +58,18 @@ export async function writeTransferRumoursRefresh(
       await db.transferRumours.bulkPut(
         values.map((rumour, index) => {
           const cached = existing[index]
-          return cached && cached.fetchedAt > refresh.fetchedAt
-            ? cached
-            : { id: rumour.id, raw: { ...cached?.raw, ...rumour }, fetchedAt: refresh.fetchedAt }
+          if (cached && cached.fetchedAt > refresh.fetchedAt) return cached
+          const position =
+            rumour.position !== undefined
+              ? rumour.position
+              : rumour.position_id === undefined || cached?.raw.position?.id === rumour.position_id
+                ? cached?.raw.position
+                : undefined
+          return {
+            id: rumour.id,
+            raw: { ...cached?.raw, ...rumour, position },
+            fetchedAt: refresh.fetchedAt
+          }
         })
       )
       const players = [

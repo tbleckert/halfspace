@@ -15,6 +15,7 @@ import { featureAccess } from '@/features/subscription/subscription-access'
 import { useSeasonSchedule } from './use-season-schedule'
 import { sortScheduleRounds } from './season-schedule-data'
 import { useTeamOfWeek } from './use-team-of-week'
+import { EntityFixtureRow } from '@/features/fixtures/entity-fixture-panel'
 
 export function TeamOfWeek({
   competitionId,
@@ -61,6 +62,11 @@ export function TeamOfWeek({
         (left.formation_position ?? Infinity) - (right.formation_position ?? Infinity)
     )
   const selectedRound = entries[0]?.round
+  const fixtures = new Map(
+    (schedule.cached?.fixtures ?? [])
+      .filter((fixture) => fixture.seasonId === seasonId && fixture.leagueId === competitionId)
+      .map((fixture) => [fixture.id, fixture])
+  )
   const formation = entries[0]?.formation
   const error = selection.error ?? schedule.error
   const loading =
@@ -148,8 +154,9 @@ export function TeamOfWeek({
         {entries.map((entry) => {
           const playerName = entry.player?.display_name ?? `Player ${entry.player_id}`
           const context = { competition: competitionId, date, season: entry.round.season_id }
+          const fixture = fixtures.get(entry.fixture_id)
           return (
-            <Card key={entry.id} className="gap-0 overflow-hidden">
+            <Card key={entry.id} className="flex flex-col gap-0 overflow-hidden">
               <CardHeader className="pb-3">
                 <Link
                   to="/players/$playerId"
@@ -192,15 +199,28 @@ export function TeamOfWeek({
                   {entry.team?.name ?? `Team ${entry.team_id}`}
                 </Link>
               </CardContent>
-              <Link
-                to="/fixtures/$fixtureId"
-                params={{ fixtureId: String(entry.fixture_id) }}
-                search={context}
-                className="mt-auto flex items-center justify-between px-4 pb-4 pt-3 text-xs text-muted-foreground hover:bg-sidebar-accent hover:text-primary"
-                {...intentPrefetchProps(online, () => prefetchFixtureEntity(entry.fixture_id))}
-              >
-                View match <ArrowUpRight aria-hidden="true" className="size-3.5" />
-              </Link>
+              {fixture ? (
+                <div className="mt-auto px-1 pb-1">
+                  <EntityFixtureRow
+                    fixture={fixture}
+                    context={context}
+                    online={online}
+                    dateDisplay="full"
+                    fixtureSeasonLinks={false}
+                    showCompetition={false}
+                  />
+                </div>
+              ) : (
+                <Link
+                  to="/fixtures/$fixtureId"
+                  params={{ fixtureId: String(entry.fixture_id) }}
+                  search={context}
+                  className="mt-auto flex items-center justify-between px-4 pb-4 pt-3 text-xs text-muted-foreground hover:bg-sidebar-accent hover:text-primary"
+                  {...intentPrefetchProps(online, () => prefetchFixtureEntity(entry.fixture_id))}
+                >
+                  View match <ArrowUpRight aria-hidden="true" className="size-3.5" />
+                </Link>
+              )}
             </Card>
           )
         })}

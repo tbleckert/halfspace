@@ -31,7 +31,9 @@ it('keeps pagination explicit and fetches the requested latest or date page', as
   const url = new URL(fetcher.mock.calls[0][0].toString())
   expect(url.pathname).toBe('/v3/football/transfers/latest')
   expect(url.searchParams.get('page')).toBe('2')
-  expect(url.searchParams.get('include')).toBe('player;type;fromTeam;toTeam')
+  expect(url.searchParams.get('include')).toBe(
+    'player;type;fromTeam;toTeam;position;detailedPosition'
+  )
   expect(url.searchParams.get('order')).toBe('desc')
   expect(result).toMatchObject({ page: 2, hasMore: true, transfers: [] })
   await fetchTransferFeed(
@@ -42,6 +44,45 @@ it('keeps pagination explicit and fetches the requested latest or date page', as
   expect(new URL(fetcher.mock.calls[1][0].toString()).pathname).toBe(
     '/v3/football/transfers/between/2026-08-01/2026-08-31'
   )
+})
+
+it('normalizes the provider detailedposition relationship and preserves missing positions', async () => {
+  const transfer = {
+    id: 596014,
+    sport_id: 1,
+    player_id: 2,
+    type_id: 219,
+    from_team_id: 3,
+    to_team_id: 8,
+    position_id: 26,
+    detailed_position_id: 150,
+    date: '2026-08-01',
+    career_ended: false,
+    completed: true,
+    position: { id: 26, name: 'Midfielder' },
+    detailedposition: { id: 150, name: 'Attacking Midfield' }
+  }
+  const result = await fetchTransferFeed({ feed: 'latest', page: 1 }, 'token', async () =>
+    Response.json({
+      data: [
+        transfer,
+        {
+          ...transfer,
+          id: 2,
+          position_id: null,
+          detailed_position_id: null,
+          position: null,
+          detailedposition: null
+        }
+      ],
+      pagination: { current_page: 1, has_more: false }
+    })
+  )
+  expect(result.transfers[0]).toMatchObject({
+    position: { id: 26, name: 'Midfielder' },
+    detailedPosition: { id: 150, name: 'Attacking Midfield' }
+  })
+  expect(result.transfers[1]).toMatchObject({ position: null, detailedPosition: null })
 })
 
 it('does not treat absent or mismatched pagination as a complete feed', async () => {

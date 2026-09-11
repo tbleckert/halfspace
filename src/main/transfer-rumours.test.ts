@@ -53,3 +53,24 @@ it('rejects unrelated players, clubs, page mismatches and incomplete pagination'
   expect(() => validateTransferRumoursInput({ ...input, entity: 'coaches' })).toThrow()
   expect(() => validateTransferRumoursInput({ ...input, page: 0 })).toThrow()
 })
+
+it('requests and retains the supported position relationship without detailedPosition', async () => {
+  const fetcher = vi.fn<typeof fetch>(async () =>
+    Response.json({
+      data: [{ ...rumour, position_id: 26, position: { id: 26, name: 'Midfielder' } }],
+      pagination: { current_page: 1, has_more: false }
+    })
+  )
+  const result = await fetchTransferRumours(
+    { entity: 'teams', entityId: 1, page: 1 },
+    'token',
+    fetcher
+  )
+  const includes = new URL(String(fetcher.mock.calls[0][0])).searchParams.get('include')?.split(';')
+  expect(includes).toContain('position')
+  expect(includes).not.toContain('detailedPosition')
+  expect(result.rumours[0]).toMatchObject({
+    position_id: 26,
+    position: { id: 26, name: 'Midfielder' }
+  })
+})

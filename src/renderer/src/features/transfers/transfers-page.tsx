@@ -27,6 +27,7 @@ import { intentPrefetchProps } from '@/lib/prefetch'
 import { cn } from '@/lib/utils'
 import { filterTransferPage, transferRangeError } from './transfer-feed-data'
 import { formatTransferDate, transferLabel } from './transfer-display'
+import { TransferPosition } from './transfer-position'
 import { TransferTeam } from './transfer-team'
 import { useTransferFeed } from './use-transfer-feed'
 
@@ -179,10 +180,13 @@ export function TransfersPage({
                       imagePath={transfer.raw.player?.image_path ?? null}
                       online={online}
                     />
-                    <span className="truncate text-sm font-medium">
-                      {transfer.raw.player?.display_name ??
-                        transfer.raw.player?.name ??
-                        `Player ${transfer.playerId}`}
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium">
+                        {transfer.raw.player?.display_name ??
+                          transfer.raw.player?.name ??
+                          `Player ${transfer.playerId}`}
+                      </span>
+                      <TransferPosition transfer={transfer.raw} />
                     </span>
                   </Link>
                 </TableCell>

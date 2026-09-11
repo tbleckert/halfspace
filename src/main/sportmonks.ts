@@ -351,7 +351,7 @@ const coachSchema = coachBaseSchema.extend({
   teams: z.array(coachTeamSchema).optional()
 })
 
-const positionSchema = z
+export const positionSchema = z
   .object({
     id: z.number().int(),
     name: z.string(),
@@ -449,6 +449,9 @@ const transferSchema = z
     completed: z.union([z.boolean(), z.literal(0), z.literal(1)]).transform(Boolean),
     amount: z.union([z.number(), z.string()]).nullable().optional().default(null),
     completed_at: z.string().nullable().optional(),
+    position: positionSchema.nullish(),
+    detailedPosition: positionSchema.nullish(),
+    detailedposition: positionSchema.nullish(),
     type: typeSchema.nullable().optional(),
     player: playerSchema.nullable().optional(),
     fromTeam: teamSchema.nullable().optional(),
@@ -457,10 +460,12 @@ const transferSchema = z
     toteam: teamSchema.nullable().optional()
   })
   .passthrough()
-  .transform(({ fromteam, toteam, ...transfer }) => ({
+  .transform(({ fromteam, toteam, detailedposition, ...transfer }) => ({
     ...transfer,
     fromTeam: transfer.fromTeam ?? fromteam,
-    toTeam: transfer.toTeam ?? toteam
+    toTeam: transfer.toTeam ?? toteam,
+    detailedPosition:
+      transfer.detailedPosition !== undefined ? transfer.detailedPosition : detailedposition
   }))
 
 export const lineupSchema = z
@@ -1775,7 +1780,7 @@ export async function fetchTeamTransfers(
 ): Promise<TransfersRefresh> {
   return fetchTransfers(
     `/transfers/teams/${input.teamId}`,
-    'player;type;fromTeam;toTeam',
+    'player;type;fromTeam;toTeam;position;detailedPosition',
     token,
     fetcher
   )
@@ -1808,7 +1813,7 @@ export async function fetchTransferFeed(
   const fetchedAt = Date.now()
   const path = input.feed === 'latest' ? 'latest' : `between/${input.startDate}/${input.endDate}`
   const url = new URL(`${apiBaseUrl}/transfers/${path}`)
-  url.searchParams.set('include', 'player;type;fromTeam;toTeam')
+  url.searchParams.set('include', 'player;type;fromTeam;toTeam;position;detailedPosition')
   url.searchParams.set('order', 'desc')
   url.searchParams.set('per_page', '50')
   url.searchParams.set('page', String(input.page))

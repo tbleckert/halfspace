@@ -11,6 +11,7 @@ import { prefetchPlayerEntity } from '@/features/players/use-player'
 import { intentPrefetchProps } from '@/lib/prefetch'
 import { formatTransferDate } from './transfer-display'
 import { TransferTeam } from './transfer-team'
+import { TransferPosition } from './transfer-position'
 
 export function TransferRumours({
   cached,
@@ -121,7 +122,7 @@ function RumourRow({
             to="/players/$playerId"
             params={{ playerId: String(rumour.player_id) }}
             search={{ competition: competitionId, season, date, team: undefined }}
-            className="flex items-center gap-3 hover:text-primary"
+            className="flex min-w-0 items-center gap-3 hover:text-primary"
             {...intentPrefetchProps(online, () => prefetchPlayerEntity(rumour.player_id))}
           >
             <PlayerPhoto
@@ -129,7 +130,12 @@ function RumourRow({
               imagePath={rumour.player?.image_path ?? null}
               online={online}
             />
-            <span className="text-sm font-semibold">{rumour.player?.display_name ?? 'Player'}</span>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-semibold">
+                {rumour.player?.display_name ?? 'Player'}
+              </span>
+              <TransferPosition transfer={rumour} />
+            </span>
           </Link>
           <div className="flex flex-wrap items-center gap-2">
             {teamId && (

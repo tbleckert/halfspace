@@ -688,6 +688,8 @@ export interface SportmonksTransfer {
   completed: boolean
   amount: number | string | null
   completed_at?: string | null
+  position?: SportmonksPosition | null
+  detailedPosition?: SportmonksPosition | null
   type?: SportmonksType | null
   player?: SportmonksPlayer | null
   fromTeam?: SportmonksTeam | null

@@ -1,4 +1,9 @@
-import type { SportmonksPlayer, SportmonksTeam, SportmonksType } from './contracts'
+import type {
+  SportmonksPlayer,
+  SportmonksPosition,
+  SportmonksTeam,
+  SportmonksType
+} from './contracts'
 
 export interface RefreshTransferRumoursInput {
   entity: 'teams' | 'players'
@@ -12,6 +17,8 @@ export interface SportmonksTransferRumour {
   from_team_id: number | null
   to_team_id: number | null
   type_id: number | null
+  position_id?: number | null
+  position?: SportmonksPosition | null
   probability: string | null
   source_name: string | null
   source_url: string | null

@@ -1171,7 +1171,9 @@ describe('Sportmonks client', () => {
     const [input, init] = fetcher.mock.calls[0]
     const url = new URL(input.toString())
     expect(url.pathname).toBe('/v3/football/transfers/teams/37')
-    expect(url.searchParams.get('include')).toBe('player;type;fromTeam;toTeam')
+    expect(url.searchParams.get('include')).toBe(
+      'player;type;fromTeam;toTeam;position;detailedPosition'
+    )
     expect(url.searchParams.get('order')).toBe('desc')
     expect(url.searchParams.get('per_page')).toBe('50')
     expect(new Headers(init?.headers).get('Authorization')).toBe('private-token')

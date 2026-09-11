@@ -11,6 +11,7 @@ import {
   transferTimestamp
 } from '@/features/transfers/transfer-display'
 import { intentPrefetchProps } from '@/lib/prefetch'
+import { TransferPosition } from '@/features/transfers/transfer-position'
 import { TeamLogo } from './team-logo'
 import { prefetchTeamEntity } from './use-team'
 
@@ -120,11 +121,7 @@ function TeamTransferRow({
           <span className="block truncate text-sm font-medium">
             {player?.display_name ?? player?.name ?? `Player ${transfer.playerId}`}
           </span>
-          {player?.position?.name && (
-            <span className="block truncate text-xs text-muted-foreground">
-              {player.position.name}
-            </span>
-          )}
+          <TransferPosition transfer={transfer.raw} />
         </span>
       </Link>
 

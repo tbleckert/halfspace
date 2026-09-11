@@ -69,3 +69,46 @@ it('preserves newer shared transfer data when an older player history arrives', 
     true
   )
 })
+
+it('retains reported positions across sparse career refreshes and clears changed relationships', async () => {
+  await writeTransferFeedRefresh(
+    { feed: 'latest', page: 1 },
+    {
+      transfers: [
+        {
+          ...transfer,
+          position_id: 26,
+          detailed_position_id: 150,
+          position: { id: 26, name: 'Midfielder' },
+          detailedPosition: { id: 150, name: 'Attacking Midfield' }
+        }
+      ],
+      page: 1,
+      hasMore: false,
+      fetchedAt: 1000
+    }
+  )
+  await writePlayerTransfersRefresh(
+    { playerId: 2 },
+    {
+      transfers: [{ ...transfer, position_id: 26, detailed_position_id: 150 }],
+      pageCount: 1,
+      fetchedAt: 2000
+    }
+  )
+  expect((await readTransferFeed({ feed: 'latest', page: 1 })).transfers[0].raw).toMatchObject({
+    position: { id: 26 },
+    detailedPosition: { id: 150 }
+  })
+  await writePlayerTransfersRefresh(
+    { playerId: 2 },
+    {
+      transfers: [{ ...transfer, position_id: 27, detailed_position_id: null }],
+      pageCount: 1,
+      fetchedAt: 3000
+    }
+  )
+  const updated = (await readTransferFeed({ feed: 'latest', page: 1 })).transfers[0].raw
+  expect(updated.position).toBeUndefined()
+  expect(updated.detailedPosition).toBeUndefined()
+})

@@ -3098,6 +3098,18 @@ async function normalizeTransferRefresh(
       raw: {
         ...existing?.raw,
         ...transfer,
+        position:
+          transfer.position !== undefined
+            ? transfer.position
+            : existing?.raw.position?.id === transfer.position_id
+              ? existing.raw.position
+              : undefined,
+        detailedPosition:
+          transfer.detailedPosition !== undefined
+            ? transfer.detailedPosition
+            : existing?.raw.detailedPosition?.id === transfer.detailed_position_id
+              ? existing.raw.detailedPosition
+              : undefined,
         player:
           transfer.player ??
           (existing?.raw.player?.id === transfer.player_id ? existing.raw.player : undefined),

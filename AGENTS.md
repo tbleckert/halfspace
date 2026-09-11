@@ -128,6 +128,8 @@ the design direction changes; carry the style into other views incrementally.
   the team Overview. Fixtures browses the complete cached date window across competitions. Squad
   uses the full content width. Transfers shows the complete team history with player-first rows,
   explicit incoming and outgoing direction, the counterpart club, and direct player and team links.
+  Show the transfer's reported detailed position, falling back to its broader position; never use
+  the player's current profile position for a historical move. Apply the same rule in the Transfers hub.
   Reuse the normalized transfer records shared with Player Career and never show amounts without a
   trustworthy currency.
 - On the team Fixtures page, the visible date is the first day of the fixture window. Do not expose
@@ -153,6 +155,8 @@ the design direction changes; carry the style into other views incrementally.
 - Competition Team of the Week browses the latest selection and explicit season rounds. Cache each
   query separately, hydrate shared player and team identities, preserve season context in links,
   and never display a latest selection from another season as the selected season's team.
+  Match each selection's fixture ID to the existing season schedule to show linked opponents,
+  scores, and dates. Require the same competition and season; retain View match when detail is missing.
 - Fixture pages keep Preview, Game, Commentary, Lineups, Stats, and Odds in horizontal navigation
   inside the score hero. Resolve generic fixture links to Preview before play and Game once the
   match has started, including breaks and completed matches. Keep postponed and cancelled fixtures
@@ -466,6 +470,8 @@ the design direction changes; carry the style into other views incrementally.
   Keep rumours separate from transfer history and current club membership. Show provider likelihood
   as a label, never a calculated probability or confirmation; link only HTTP(S) sources and display
   fees only with an explicit currency. Retain unknown clubs and source details as unknown.
+  Show the rumour's reported position when available. The live API rejects `detailedPosition` on
+  rumours despite listing it in the catalog; revalidate support before requesting it.
 
 ## Profile and Fixture Detail
 
