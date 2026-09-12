@@ -226,6 +226,19 @@
     "seasons/get-seasons-by-team-id": ["league"]
   },
   "equivalents": {
+    "venues:fixtures": {
+      "requires": {
+        "fixtures/get-fixtures-by-date-range": [
+          "venue",
+          "participants",
+          "league",
+          "state",
+          "scores",
+          "periods"
+        ]
+      },
+      "reason": "Venue pages show recent results, upcoming matches, and ongoing games from the complete paginated venue-filtered date window, with shared fixture caching and competition/season links."
+    },
     "team-of-the-week-totw:fixture": {
       "requires": {
         "team-of-the-week-totw/get-latest-totw": [],

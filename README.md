@@ -95,6 +95,7 @@ include should have a useful place in Halfspace.
 - [x] Referee profiles and recent match appointments, linked from fixture officials.
 - [x] Referee season statistics with reported disciplinary totals and per-match averages.
 - [x] Player pages with match records and career history, plus coach and venue profiles.
+- [x] Venue match previews with recent results, upcoming games, live updates, and offline browsing.
 - [x] Richer profiles with player birthplace, preferred foot and registrations, linked coach playing careers, referee background, club socials, and venue maps.
 - [x] Pending transfers on player Career pages, separate from completed moves and rumours.
 - [x] Team, player, and coach honours with competition, season, club, and reported placing.

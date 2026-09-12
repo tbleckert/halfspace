@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import { ArrowLeft, RefreshCw, Users } from 'lucide-react'
@@ -16,6 +17,9 @@ import { cn } from '@/lib/utils'
 import { useVenueEntity } from './use-venue'
 import { VenueImage } from './venue-image'
 import { VenueLocation } from './venue-location'
+import { VenueFixtures } from './venue-fixtures'
+import { useTodayInTimeZone } from '@/lib/use-today'
+import { addDaysToIsoDate, currentTimeZone } from '@/lib/date'
 
 export function VenuePage({
   competitionId,
@@ -33,6 +37,17 @@ export function VenuePage({
   const parsedVenueId = Number(venueId)
   const validVenueId = Number.isSafeInteger(parsedVenueId) && parsedVenueId > 0
   const online = useOnline()
+  const timeZone = currentTimeZone()
+  const today = useTodayInTimeZone(timeZone)
+  const fixtureInput = useMemo(
+    () => ({
+      venueId: parsedVenueId,
+      startDate: addDaysToIsoDate(today, -30),
+      endDate: addDaysToIsoDate(today, 30),
+      timeZone
+    }),
+    [parsedVenueId, today, timeZone]
+  )
   const venue = useVenueEntity(validVenueId ? parsedVenueId : null, online)
   const teams = useScopedLiveQuery(
     () => (validVenueId ? readVenueTeams(parsedVenueId) : Promise.resolve([])),
@@ -107,6 +122,7 @@ export function VenuePage({
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="flex flex-col gap-6">
+          <VenueFixtures input={fixtureInput} date={date ?? today} online={online} />
           <VenueDetails venue={identity} />
           <VenueLocation venue={identity} />
 
@@ -144,7 +160,7 @@ export function VenuePage({
         </div>
 
         <VenueImage
-          className="order-first aspect-[4/3] w-full bg-card lg:order-last"
+          className="order-first aspect-[4/3] w-full max-w-72 bg-card lg:order-last"
           imagePath={identity.image_path ?? null}
           online={online}
         />
@@ -237,7 +253,7 @@ function VenuePageSkeleton(): React.JSX.Element {
             </div>
           ))}
         </div>
-        <Skeleton className="order-first aspect-[4/3] w-full rounded-xl lg:order-last" />
+        <Skeleton className="order-first aspect-[4/3] w-full max-w-72 rounded-xl lg:order-last" />
       </div>
     </div>
   )

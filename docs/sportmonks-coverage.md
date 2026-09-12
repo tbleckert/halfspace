@@ -1,6 +1,6 @@
 # Sportmonks API coverage
 
-Data capability coverage: **65%** (168 of 258 capabilities).
+Data capability coverage: **66%** (169 of 258 capabilities).
 
 Endpoint coverage: **44%** (67 of 153 endpoints).
 
@@ -283,7 +283,7 @@ Every denominator unit is listed below. A supported capability shows one suffici
 | ✓ `venues`                                 | [Venue by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/venues/get-venue-by-id)                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | ✓ `venues:city`                            | [Venue by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/venues/get-venue-by-id) with `city`                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | ✓ `venues:country`                         | [Venue by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/venues/get-venue-by-id) with `country`                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| — `venues:fixtures`                        | Not declared                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ✓ `venues:fixtures`                        | Venue pages show recent results, upcoming matches, and ongoing games from the complete paginated venue-filtered date window, with shared fixture caching and competition/season links. [Fixtures by Date Range](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/fixtures/get-fixtures-by-date-range) with `venue`, `participants`, `league`, `state`, `scores`, `periods`.                                                                                                                                                                             |
 
 ## Endpoint access paths
 

@@ -255,6 +255,11 @@ export interface RefreshFixtureWindowInput {
   startDate: string
   endDate: string
   timeZone: string
+  venueId?: number
+}
+
+export interface RefreshVenueFixturesInput extends RefreshFixtureWindowInput {
+  venueId: number
 }
 
 export interface RefreshFixtureInput {

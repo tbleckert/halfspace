@@ -1,3 +1,4 @@
+import type { VenueFixturesQuery } from './venue-fixtures-cache'
 import type { SavedComparison } from '@shared/comparisons'
 import type {
   ExpectedLineupsRefresh,
@@ -726,6 +727,8 @@ class HalfspaceDatabase extends Dexie {
   transferFeedQueries!: Table<TransferFeedQuery, string>
   statisticSeasonQueries!: Table<StatisticSeasonQuery, string>
 
+  venueFixtureQueries!: Table<VenueFixturesQuery, string>
+
   constructor() {
     super('halfspace')
 
@@ -1038,6 +1041,7 @@ class HalfspaceDatabase extends Dexie {
       teamSeasonsQueries: '&teamId, staleAt'
     })
     this.version(43).stores({ savedComparisons: '&id, updatedAt' })
+    this.version(44).stores({ venueFixtureQueries: '&key, venueId, staleAt' })
   }
 }
 
@@ -3324,6 +3328,7 @@ export async function clearSportmonksCache(): Promise<void> {
       db.seasonTeamQueries,
       db.teamStatisticsQueries,
       db.venues,
+      db.venueFixtureQueries,
       db.players,
       db.coaches,
       db.referees,
@@ -3399,6 +3404,7 @@ export async function clearSportmonksCache(): Promise<void> {
       await db.seasonTeamQueries.clear()
       await db.teamStatisticsQueries.clear()
       await db.venues.clear()
+      await db.venueFixtureQueries.clear()
       await db.players.clear()
       await db.coaches.clear()
       await db.referees.clear()

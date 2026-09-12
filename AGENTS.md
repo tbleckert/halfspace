@@ -238,6 +238,14 @@ the design direction changes; carry the style into other views incrementally.
   ranking meaning; the standalone beta ranking endpoints are a separate resource.
 - Keep low-resolution provider imagery in compact supporting cards. Do not stretch it into hero
   treatment that exposes its limitations.
+- Venue pages show up to five recent completed results and five upcoming scheduled matches within
+  30 days before and after today, plus any ongoing games in that window. Use the paginated fixture
+  date-range endpoint with `venues:{id}`; the venue `fixtures` include returns a large history.
+  Cache venue/date/time-zone query memberships separately from shared fixture records. Keep
+  venue detail independent, reject unrelated venues and incomplete pages, preserve richer match
+  detail, and refresh ongoing windows every 30 seconds while visible and online. Label the date
+  window, omit placeholders and postponed/cancelled games from the previews, distinguish empty
+  from unavailable data, and link each match with its own competition and season.
 - Matchday fixture rows use one centered status column: a short terminal state such as FT, a green
   live ping beside the match minute or phase, or the scheduled kickoff time. Do not repeat the
   state in a separate badge. Use monospaced tabular typography for row status, time, minute, and

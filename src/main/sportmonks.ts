@@ -1269,7 +1269,13 @@ export function validateLiveFixturesInput(value: unknown): RefreshLiveFixturesIn
 }
 
 export function validateFixtureWindowInput(value: unknown): RefreshFixtureWindowInput {
-  return validateDateRange(value)
+  const range = validateDateRange(value)
+  const venueId = (value as Record<string, unknown>).venueId
+  if (venueId === undefined) return range
+  if (!isPositiveId(venueId)) {
+    throw new SportmonksError('invalid_input', 'Choose a valid venue.')
+  }
+  return { ...range, venueId }
 }
 
 export function validateFixtureInput(value: unknown): RefreshFixtureInput {
@@ -1555,14 +1561,25 @@ export async function fetchFixturesByDateRange(
   token: string,
   fetcher: typeof fetch = fetch
 ): Promise<FixtureRefresh> {
-  return fetchFixturePages(
+  const refresh = await fetchFixturePages(
     `fixtures/between/${input.startDate}/${input.endDate}`,
     input.timeZone,
     token,
     fetcher,
-    undefined,
-    'participants;league;state;scores;periods;venue;stage'
+    input.venueId === undefined ? undefined : `venues:${input.venueId}`,
+    'participants;league;state;scores;periods;venue;stage',
+    { requirePagination: input.venueId !== undefined }
   )
+  if (
+    input.venueId !== undefined &&
+    refresh.fixtures.some((fixture) => fixture.venue_id !== input.venueId)
+  ) {
+    throw new SportmonksError(
+      'invalid_response',
+      'Sportmonks returned fixtures for a different venue.'
+    )
+  }
+  return refresh
 }
 
 export async function fetchFixtureById(
@@ -1887,7 +1904,12 @@ async function fetchFixturePages(
   fetcher: typeof fetch,
   filters?: string,
   includes = 'participants;league;state;scores;periods',
-  options: { order?: 'asc' | 'desc'; pageLimit?: number; perPage?: number } = {}
+  options: {
+    order?: 'asc' | 'desc'
+    pageLimit?: number
+    perPage?: number
+    requirePagination?: boolean
+  } = {}
 ): Promise<FixtureRefresh> {
   const fixtures: SportmonksFixture[] = []
   const fetchedAt = Date.now()
@@ -1907,6 +1929,20 @@ async function fetchFixturePages(
     if (filters) url.searchParams.set('filters', filters)
 
     const parsed = await requestSportmonks(url, token, fixtureResponseSchema, fetcher)
+
+    // Empty first pages may omit pagination; populated pages must prove completion.
+    if (
+      options.requirePagination &&
+      ((parsed.pagination
+        ? parsed.pagination.current_page !== page
+        : page !== 1 || parsed.data.length > 0) ||
+        (parsed.timezone !== undefined && parsed.timezone !== timeZone))
+    ) {
+      throw new SportmonksError(
+        'invalid_response',
+        'Sportmonks returned an incomplete fixture page.'
+      )
+    }
 
     fixtures.push(...(parsed.data as SportmonksFixture[]))
     message = parsed.message ?? message

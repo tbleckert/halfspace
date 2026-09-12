@@ -2,19 +2,43 @@
 
 import { mockViewsApi } from '../../../../test/view-api'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Result, VenueRefresh } from '@shared/contracts'
+import type { FixtureRefresh, Result, VenueRefresh } from '@shared/contracts'
 import { db, readVenueIdentity } from '@/data/db'
-import { invalidateVenueRefreshes, prefetchVenueEntity, refreshVenueEntity } from './use-venue'
+import { readVenueFixtures } from '@/data/venue-fixtures-cache'
+import {
+  invalidateVenueRefreshes,
+  prefetchVenueEntity,
+  refreshVenueEntity,
+  refreshVenueFixtures
+} from './use-venue'
 
 beforeEach(async () => {
   invalidateVenueRefreshes()
   if (!db.isOpen()) await db.open()
   await db.venues.clear()
+  await db.venueFixtureQueries.clear()
 })
 
 afterAll(() => db.close())
 
 describe('venue refresh', () => {
+  it('deduplicates fixture requests and discards responses from old credentials', async () => {
+    const input = { venueId: 206, startDate: '2026-08-13', endDate: '2026-10-12', timeZone: 'UTC' }
+    const request = deferred<Result<FixtureRefresh>>()
+    const refreshFixtureWindow = vi.fn().mockReturnValue(request.promise)
+    installHalfspace({ refreshFixtureWindow })
+    const pending = refreshVenueFixtures(input)
+    const duplicate = refreshVenueFixtures(input)
+    expect(refreshFixtureWindow).toHaveBeenCalledTimes(1)
+    invalidateVenueRefreshes()
+    request.resolve({
+      ok: true,
+      data: { fixtures: [], timeZone: 'UTC', pageCount: 1, fetchedAt: 100 }
+    })
+    await Promise.all([pending, duplicate])
+    expect(await readVenueFixtures(input)).toBeNull()
+  })
+
   it('prefetches missing venue detail without refetching fresh data', async () => {
     const refreshVenue = vi
       .fn()
