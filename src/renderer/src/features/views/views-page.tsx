@@ -400,21 +400,21 @@ function ViewEditor({
             </div>
           </div>
         )}
-      </div>
 
-      <ViewComposer
-        prompt={prompt}
-        onPromptChange={setPrompt}
-        generating={generation.generating}
-        placed={blocks.length}
-        hasView={Boolean(spec)}
-        configured={configured}
-        online={online}
-        hasContexts={contexts.length > 0 || teams.length > 0}
-        error={storageError ?? generation.error}
-        onSubmit={() => void build()}
-        onCancel={generation.cancel}
-      />
+        <ViewComposer
+          prompt={prompt}
+          onPromptChange={setPrompt}
+          generating={generation.generating}
+          placed={blocks.length}
+          hasView={Boolean(spec)}
+          configured={configured}
+          online={online}
+          hasContexts={contexts.length > 0 || teams.length > 0}
+          error={storageError ?? generation.error}
+          onSubmit={() => void build()}
+          onCancel={generation.cancel}
+        />
+      </div>
     </div>
   )
 }

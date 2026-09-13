@@ -22,13 +22,15 @@
 }
 
 .view-canvas {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 0;
   overflow: auto;
 }
 .view-empty {
   display: flex;
-  min-height: 100%;
+  flex: 1;
   align-items: center;
   justify-content: center;
   flex-direction: column;
@@ -48,8 +50,10 @@
   color: var(--muted-foreground);
 }
 .view-sheet {
+  flex: none;
+  width: 100%;
   max-width: 1480px;
-  margin: auto;
+  margin: 0 auto;
   padding: 36px 32px 48px;
   container-type: inline-size;
   container-name: view-sheet;
@@ -208,29 +212,33 @@
 }
 
 .view-composer-wrap {
+  position: sticky;
+  bottom: 24px;
   flex: none;
   width: min(700px, calc(100% - 48px));
-  margin: 0 auto 24px;
+  margin: auto auto 24px;
   z-index: 2;
+  pointer-events: none;
 }
 .view-composer {
-  overflow: hidden;
-  border-radius: 14px;
-  background: var(--secondary);
-}
-.view-composer:focus-within {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
-}
-.view-composer-status {
   display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 12px 16px;
-  margin: 0 10px;
-  font-size: 12px;
-  background: var(--background);
-  border-radius: 10px 10px 0 0;
+  align-items: flex-end;
+  gap: 12px;
+  pointer-events: auto;
+}
+.view-composer-input {
+  field-sizing: content;
+  background: color-mix(in oklab, var(--background) 40%, transparent);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 4px 20px rgb(48 44 50 / 8%);
+}
+.view-composer-error {
+  margin: 0 60px 8px 0;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--background) 90%, transparent);
+  backdrop-filter: blur(18px);
+  pointer-events: auto;
 }
 .view-illustration {
   position: relative;
@@ -424,6 +432,7 @@
     display: none;
   }
   .view-composer-wrap {
+    bottom: 16px;
     width: calc(100% - 32px);
     margin-bottom: 16px;
   }

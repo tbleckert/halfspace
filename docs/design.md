@@ -7,7 +7,7 @@ the workspace its structure.
 
 This guide defines the visual direction. Use Matchday as the
 reference for future visual work. Extend the style piece by piece; card entrance motion
-currently belongs only to Matchday. Product behavior and data requirements remain in
+currently belongs only to Matchday. Broad product and engineering principles live in
 [AGENTS.md](../AGENTS.md).
 
 ## What gives it its character
@@ -116,7 +116,8 @@ for hover and focus. Loading states follow the same structure.
 **Featured game:** a compact violet-tinted card at the top of Matchday. Use the actual venue as
 low-contrast, dotted halftone background imagery, fading towards readable team names and compact
 football facts. Missing imagery gets a simple dot pattern. Keep the team crests small and the
-scoring explanation factual; points remain internal. Selection and visibility rules are in AGENTS.md.
+scoring explanation factual; points remain internal. Selection and visibility behavior lives in
+[the selection module](../src/renderer/src/features/fixtures/featured-game-selection.ts) and its tests.
 
 **Fixture hero:** reuse Featured game's violet tint, faded halftone venue background, and dot-pattern
 fallback behind the score and navigation. Keep the background decorative and the foreground legible.
@@ -181,9 +182,10 @@ For a visual change, inspect the actual view at wide and narrow widths, includin
 missing data, scrolling, focus, and reduced motion when relevant. Compare with Matchday's
 settled patterns and make one coherent change at a time.
 
-When the design direction changes, update this guide and the matching rule in `AGENTS.md`
-together. Update token values here alongside changes to their source. This guide records
-the implemented design; keep exploratory alternatives separate.
+Update this guide when a change establishes a reusable visual convention worth preserving.
+Update `AGENTS.md` only for clear, enduring directions that apply across the product or a
+substantial subsystem; routine design tweaks do not need a new rule. Update documented token
+values alongside changes to their source, and keep exploratory alternatives separate.
 
 ## TV Guide
 
@@ -219,6 +221,12 @@ editable and visibly prominent. Next match uses the shared violet fixture treatm
 cards use warm neutrals, monospaced facts and linked identity/season context. The
 [widget inventory](view-widgets.md) distinguishes the working supporter slice from planned widgets
 in the accepted three-story design studies.
+
+The View prompt floats over the scrolling canvas without a surrounding footer panel. Give only
+the input a translucent surface with backdrop blur; place the submit or stop button beside it.
+Start with one line and let the input grow with its contents up to a scrollable maximum. Omit the
+routine provider/capability row, retain accessible availability descriptions, and show failures
+only when they occur. Keep the final canvas content reachable above the floating controls.
 
 Use shared Card, Skeleton, and ErrorAlert components for View data states. Reserve the drawing
 outlines for actual AI composition; offline or unavailable data uses a static status card. Respect
