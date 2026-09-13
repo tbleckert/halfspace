@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Halfspace · Three personal workspaces</title>
+    <link rel="icon" href="../../resources/halfspace-logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./study.css" />
+  </head>
+  <body>
+    <div class="study-bar">
+      <div class="study-name">
+        <img src="../../resources/halfspace-logo.svg" alt="" /><strong>Halfspace</strong
+        ><span>Generative views · North-star study</span>
+      </div>
+      <span class="sample-label">Illustrative data · no live feeds</span>
+    </div>
+    <header class="study-controls">
+      <nav class="stories" aria-label="User story">
+        <button data-story="supporter" aria-pressed="true"><span>01</span> The supporter</button>
+        <button data-story="researcher" aria-pressed="false">
+          <span>02</span> The betting researcher
+        </button>
+        <button data-story="analyst" aria-pressed="false"><span>03</span> The analyst</button>
+      </nav>
+      <div class="review-controls">
+        <label
+          ><span class="sr-only">Example state</span
+          ><select id="stage">
+            <option value="composed">Composed view</option>
+            <option value="prompt">Initial request</option>
+            <option value="refined">After follow-up</option>
+          </select></label
+        >
+        <label
+          ><span class="sr-only">Data availability</span
+          ><select id="availability">
+            <option value="complete">Complete example</option>
+            <option value="missing">Missing data</option>
+          </select></label
+        >
+        <button id="narrow" aria-pressed="false">Narrow window</button>
+      </div>
+    </header>
+    <details class="story-brief">
+      <summary>Story &amp; quality criteria</summary>
+      <div id="brief"></div>
+    </details>
+    <div class="preview" id="preview">
+      <div class="workspace">
+        <aside class="sidebar" aria-label="Workspace context">
+          <div class="traffic" aria-hidden="true"><i></i><i></i><i></i></div>
+          <div class="brand">
+            <img src="../../resources/halfspace-logo.svg" alt="Halfspace" />
+            <div><strong>Halfspace</strong><small>Personal workspace</small></div>
+          </div>
+          <div class="shell-nav" aria-label="Application navigation context">
+            <span>◷ <span>Matchday</span></span
+            ><span>☷ <span>Fixtures</span></span
+            ><span>◉ <span>Competitions</span></span
+            ><span>⚑ <span>Teams</span></span
+            ><span>♙ <span>Players</span></span
+            ><span>⇄ <span>Comparisons</span></span
+            ><span class="active">▦ <span>Views</span></span>
+          </div>
+          <p class="sidebar-label">Your views</p>
+          <nav id="saved-nav" aria-label="Example views"></nav>
+          <div class="sidebar-bottom">
+            <div class="avatar small">TB</div>
+            <span>Your football.<br /><small>Your perspective.</small></span>
+          </div>
+        </aside>
+        <main id="main">
+          <div class="workspace-top">
+            <span>Views <span class="breadcrumb">/</span> <span id="view-name"></span></span>
+            <div>
+              <button id="layout-button" aria-pressed="false">Edit layout</button
+              ><button id="save-button">Save view</button>
+            </div>
+          </div>
+          <div id="content"></div>
+          <div id="composer"></div>
+        </main>
+      </div>
+    </div>
+    <footer class="study-footer">
+      <span>Three stories. One football design language.</span
+      ><span>All fixtures, prices, statistics and player profiles are fictional examples.</span>
+    </footer>
+    <div class="toast" id="toast" role="status"></div>
+    <dialog id="detail-dialog" aria-labelledby="dialog-title">
+      <div class="dialog-heading">
+        <h2 id="dialog-title"></h2>
+        <button id="close-dialog" aria-label="Close details">×</button>
+      </div>
+      <div id="dialog-body"></div>
+    </dialog>
+    <script>
+      /* The examples below are deterministic design fixtures, not provider records. */
+      const stories = {
+        supporter: {
+          name: 'My Arsenal',
+          prompt:
+            'Build me a home for Arsenal. Put the next match first, show me how the season is going, and keep me close to the team.',
+          followup:
+            'Make this all about the next match. Bring team news and recent form to the top.',
+          question: 'What do I need to know about my team today?',
+          quality:
+            'Find the next match, season position and current team news within ten seconds. Open match context without losing your home.',
+          missing: 'Broadcast listings are unavailable; the match still has its full context.'
+        },
+        researcher: {
+          name: 'Weekend watchlist',
+          prompt:
+            'Help me research this weekend’s matches. Compare available prices with probability estimates, and show me the evidence on both sides.',
+          followup: 'Focus on home wins. Keep the price comparison and the reasons to be cautious.',
+          question: 'Which matches deserve a closer look, and why?',
+          quality:
+            'Trace each shortlist signal to its price, probability source and counterevidence. Selecting a match updates every connected panel.',
+          missing:
+            'Probability estimates are unavailable; prices remain visible and every estimated gap becomes unknown.'
+        },
+        analyst: {
+          name: 'The next number nine',
+          prompt:
+            'Compare Elias Berg, Mateo Silva and Noah Laurent. Show their output per 90, playing time and different strengths. Help me build a striker shortlist.',
+          followup:
+            'Keep only players with at least 1,500 league minutes. Leave their comparison on the same scales.',
+          question: 'Which player fits the role, and what would I be trading off?',
+          quality:
+            'Explain the players’ differences using aligned metrics, explicit samples and consistent units. Refine the shortlist without losing context.',
+          missing:
+            'Mateo Silva’s chance-creation metric is unavailable; it stays unknown, with no zero-length bar.'
+        }
+      }
+      const state = {
+        story: 'supporter',
+        stage: 'composed',
+        missing: false,
+        layout: false,
+        widths: {},
+        market: 'all',
+        selected: 'brighton',
+        shortlist: new Set(['berg', 'silva', 'laurent'])
+      }
+      const markets = [
+        {
+          id: 'brighton',
+          home: 'Brighton',
+          away: 'Fulham',
+          time: 'Sat · 16:00',
+          market: 'Over 2.5 goals',
+          kind: 'goals',
+          price: 1.95,
+          otherPrices: [1.91, 1.88],
+          probability: 0.56,
+          reason: 'Both teams have scored in 4 of their last 5',
+          caution: 'Two of those matches had a first-half dismissal',
+          form: 'W D W L W',
+          sample: '10 recent team matches, 5 per team',
+          homeGoals: 1.8,
+          awayGoals: 1.4
+        },
+        {
+          id: 'arsenal',
+          home: 'Arsenal',
+          away: 'Chelsea',
+          time: 'Sun · 17:30',
+          market: 'Arsenal to win',
+          kind: 'home',
+          price: 2.12,
+          otherPrices: [2.06, 2.0],
+          probability: 0.51,
+          reason: 'Arsenal have won 4 of their last 5 home games',
+          caution: 'Chelsea have conceded once in their last 3 away games',
+          form: 'W W D W W',
+          sample: '5 home matches and 5 away matches',
+          homeGoals: 2.0,
+          awayGoals: 1.2
+        },
+        {
+          id: 'leipzig',
+          home: 'Leipzig',
+          away: 'Frankfurt',
+          time: 'Sat · 18:30',
+          market: 'Leipzig to win',
+          kind: 'home',
+          price: 2.28,
+          otherPrices: [2.2, 2.18],
+          probability: 0.47,
+          reason: 'Leipzig have scored in 6 consecutive home games',
+          caution: 'Their leading scorer is listed as doubtful',
+          form: 'W L W D W',
+          sample: '6 home matches and 6 away matches',
+          homeGoals: 1.7,
+          awayGoals: 1.5
+        },
+        {
+          id: 'lyon',
+          home: 'Lyon',
+          away: 'Nantes',
+          time: 'Sun · 20:45',
+          market: 'Lyon to win',
+          kind: 'home',
+          price: 1.87,
+          otherPrices: [1.84, 1.8],
+          probability: 0.55,
+          reason: 'Lyon have conceded 2 goals in their last 5 home games',
+          caution: 'Three of those opponents were in the bottom five',
+          form: 'D W W W L',
+          sample: '5 home matches and 5 away matches',
+          homeGoals: 1.6,
+          awayGoals: 0.9
+        }
+      ]
+      const players = [
+        {
+          id: 'berg',
+          name: 'Elias Berg',
+          short: 'Berg',
+          initials: 'EB',
+          club: 'Lille',
+          age: 23,
+          mins: 2160,
+          goals: 15,
+          assists: 4,
+          color: '',
+          traits: 'A scorer who stays close to goal.',
+          metrics: [0.625, 0.167, 3.25, 1.25],
+          totals: [15, 4, 78, 30]
+        },
+        {
+          id: 'silva',
+          name: 'Mateo Silva',
+          short: 'Silva',
+          initials: 'MS',
+          club: 'Benfica',
+          age: 24,
+          mins: 1980,
+          goals: 12,
+          assists: 7,
+          color: 'coral',
+          traits: 'More involvement in creating chances.',
+          metrics: [0.545, 0.318, 2.68, 1.95],
+          totals: [12, 7, 59, 43]
+        },
+        {
+          id: 'laurent',
+          name: 'Noah Laurent',
+          short: 'Laurent',
+          initials: 'NL',
+          club: 'Leipzig',
+          age: 21,
+          mins: 1080,
+          goals: 8,
+          assists: 2,
+          color: 'neutral',
+          traits: 'Promising output from fewer minutes.',
+          metrics: [0.667, 0.167, 3.5, 1.5],
+          totals: [8, 2, 42, 18]
+        }
+      ]
+      const content = document.querySelector('#content')
+      const dialog = document.querySelector('#detail-dialog')
+      let toastTimer
+      const crest = (name, color = '') =>
+        `<span class="crest ${color}" aria-hidden="true">${name}</span>`
+      const form = (value) =>
+        `<div class="form" aria-label="Recent form, oldest to newest: ${value}">${value
+          .split(' ')
+          .map(
+            (result) =>
+              `<span class="${result === 'D' ? 'draw' : result === 'L' ? 'loss' : ''}">${result}</span>`
+          )
+          .join('')}</div>`
+      const stat = (label, value, note = '') =>
+        `<div><span class="stat-label">${label}</span><div class="fact">${value}</div>${note ? `<div class="stat-note">${note}</div>` : ''}</div>`
+      const heading = (title, subtitle = '', action = '', target = '') =>
+        `<div class="card-heading"><div><h2>${title}</h2>${subtitle ? `<p>${subtitle}</p>` : ''}</div>${action ? `<button class="ghost" data-detail="${target}">${action} ↗</button>` : ''}</div>`
+      function widget(id, span, body, style = '', sizes = [1, 2, 3]) {
+        const chosen = state.widths[`${state.story}:${id}`] ?? span
+        return `<section class="widget" data-widget="${id}" data-span="${chosen}">${state.layout ? `<div class="size-controls"><span>${id.replaceAll('-', ' ')}</span>${sizes.map((size) => `<button data-size="${size}" data-widget-id="${id}" data-focus="${id}-${size}" aria-label="${id.replaceAll('-', ' ')}, ${size} column${size > 1 ? 's' : ''}" aria-pressed="${chosen === size}">${size}</button>`).join('')}</div>` : ''}<div class="card ${style}">${body}</div></section>`
+      }
+      function pageHeading(title, subtitle, team = false) {
+        return `<div class="page-heading"><div class="heading-identity">${team ? crest('A') : ''}<div><h1>${title}</h1><p>${subtitle}</p></div></div><span class="quiet-status">Illustrative season snapshot</span></div>${state.stage === 'refined' ? `<p class="refinement-note">${state.story === 'supporter' ? 'Match preparation comes first. Your season context is still below.' : state.story === 'researcher' ? 'Showing home-win markets. Every evidence panel follows your selection.' : 'Minimum 1,500 league minutes. The comparison keeps its original scales.'}</p>` : ''}`
+      }
+      function supporter() {
+        const nextMatch = widget(
+          'next-match',
+          2,
+          `${heading('Next match', 'Premier League · Matchweek 29', 'Match brief', 'match')}<div class="match-teams"><div class="match-team">${crest('A')}<span>Arsenal</span></div><div class="kickoff"><strong>17:30</strong><small>Sunday · 15 March</small></div><div class="match-team"><span>Chelsea</span>${crest('C', 'blue')}</div></div><div class="match-meta"><span>Emirates Stadium · London</span><span>Time in Stockholm</span></div><div class="broadcast"><span class="muted">Watch in Sweden</span>${state.missing ? '<span>Broadcast listings unavailable</span><button class="ghost" data-detail="broadcast">Details ↗</button>' : '<span class="channel">Sports channel 1</span><span class="channel">Streaming service</span>'}</div>`,
+          'violet-card match-hero'
+        )
+        const season = widget(
+          'season-snapshot',
+          1,
+          `${heading('In the chase', 'Premier League · 2026/27')}<div class="stats-strip">${stat('Position', '2nd')}${stat('Points', '61')}${stat('Played', '28')}</div><div class="stat-note" style="margin: 8px 0 20px">Three points behind the leaders.</div><span class="stat-label">Last five league matches</span>${form('W W D W W')}<p class="table-note">Oldest to newest</p>`
+        )
+        const fixtures = widget(
+          'fixtures',
+          1,
+          `${heading('On the calendar', 'Next three matches', 'Fixtures', 'fixtures')}${[
+            ['15', 'Sun', 'Chelsea', 'C', 'blue', 'Home · Premier League', '17:30'],
+            ['19', 'Thu', 'Inter', 'I', 'ink', 'Away · European competition', '21:00'],
+            ['22', 'Sun', 'Everton', 'E', 'blue', 'Away · Premier League', '15:00']
+          ]
+            .map(
+              ([d, day, name, c, color, competition, time]) =>
+                `<button class="link-row" data-detail="${name === 'Chelsea' ? 'match' : 'fixtures'}"><span class="fixture-row"><span class="fixture-date">${d}<small>Mar · ${day}</small></span><span class="fixture-opponent">${crest(c, color)}<span>${name}<small>${competition}</small></span></span><span class="score">${time}</span></span></button>`
+            )
+            .join('')}`
+        )
+        const table = widget(
+          'table',
+          1,
+          `${heading('The race', 'Top five · 28 matches played', 'Full table', 'table')}<table><thead><tr><th>Club</th><th class="wide-only">GD</th><th>Pts</th></tr></thead><tbody>${[
+            ['Liverpool', 'L', '64', '36'],
+            ['Arsenal', 'A', '61', '34'],
+            ['Man City', 'M', '58', '29'],
+            ['Chelsea', 'C', '52', '20'],
+            ['Newcastle', 'N', '48', '14']
+          ]
+            .map(
+              ([name, c, points, gd], index) =>
+                `<tr class="${index === 1 ? 'selected-table-row' : ''}"><td><span class="club-cell"><span class="position">${index + 1}</span>${crest(c, index > 1 ? 'blue' : '')}<span>${name}</span></span></td><td class="wide-only">+${gd}</td><td>${points}</td></tr>`
+            )
+            .join(
+              ''
+            )}</tbody></table><p class="table-note">Selected team highlighted · illustrative table</p>`
+        )
+        const news = widget(
+          'team-news',
+          1,
+          `${heading('Team news', 'Before Chelsea')}<div class="person-row"><span class="avatar small">JL</span><div>Jamie Lewis<small>Hamstring · unavailable</small></div></div><div class="person-row"><span class="avatar small coral">DM</span><div>Daniel Mensah<small>Ankle · doubtful</small></div></div><div class="person-row"><span class="avatar small neutral">AR</span><div>Alex Reed<small>Suspended · one match</small></div></div><p class="method-note">Reported statuses. Return dates have not been confirmed.</p><button class="ghost" data-detail="squad">Open squad report ↗</button>`
+        )
+        const trend = widget(
+          'recent-form',
+          2,
+          `${heading('A strong run at home', 'Goals in the last six home league matches', 'Results', 'results')}<div class="chart-legend"><span><i class="swatch"></i>Goals scored</span><span><i class="swatch coral"></i>Goals conceded</span></div><div class="trend-chart" role="img" aria-label="Last six home matches, goals scored and conceded: 2–0, 3–1, 1–1, 2–0, 3–1, 2–0."><div class="trend-rows"><div class="y-axis"><span>3</span><span>2</span><span>1</span><span>0</span></div><div class="plot-bars">${[
+            [2, 0, 'WOL'],
+            [3, 1, 'AVL'],
+            [1, 1, 'MCI'],
+            [2, 0, 'WHU'],
+            [3, 1, 'LEE'],
+            [2, 0, 'BRE']
+          ]
+            .map(
+              ([a, b, opponent]) =>
+                `<div><div class="bar-pair"><i style="height:${(a / 3) * 100}%"></i><i style="height:${(b / 3) * 100}%"></i></div><span class="bar-label">${opponent}</span></div>`
+            )
+            .join(
+              ''
+            )}</div></div><p class="axis-label">Goals per match · oldest to newest</p></div>`
+        )
+        const editorial = widget(
+          'reading',
+          1,
+          `<span class="news-label">Around the club · Match preview</span><p class="editorial-title">Another London afternoon. A little more at stake.</p><p class="editorial-text">Three points off the top, with a European away trip to follow. The next eight days bring a different kind of test.</p><div class="article-foot"><span>Illustrative editorial · 3 min</span><button class="ghost" data-detail="article">Read ↗</button></div>`,
+          'coral-card'
+        )
+        const first = state.stage === 'refined' ? `${nextMatch}${news}` : `${nextMatch}${season}`
+        const rest =
+          state.stage === 'refined'
+            ? `${trend}${editorial}${fixtures}${table}${season}`
+            : `${fixtures}${table}${news}${trend}${editorial}`
+        return `${pageHeading('My Arsenal', 'Your club, from the next kickoff to the bigger picture.', true)}<div class="grid">${first}</div><div class="section-heading"><h2>${state.stage === 'refined' ? 'The match in context' : 'Closer to the club'}</h2><p>March · 2026/27 sample season</p></div><div class="grid">${rest}</div>`
+      }
+      function gap(match) {
+        return match.probability * 100 - 100 / match.price
+      }
+      function visibleMarkets() {
+        return markets.filter((match) => state.market === 'all' || match.kind === state.market)
+      }
+      function researcher() {
+        const matches = visibleMarkets()
+        if (!matches.some((match) => match.id === state.selected)) state.selected = matches[0].id
+        const selected = matches.find((match) => match.id === state.selected)
+        const shortlist = widget(
+          'market-shortlist',
+          2,
+          `${heading('Matches worth a closer look', state.missing ? 'Probability estimates unavailable · prices retained' : 'Ordered by estimated probability gap', 'Method', 'method')}<table class="market-table"><thead><tr><th>Match / market</th><th>Best price</th><th class="implied-col">Implied</th><th>Gap</th></tr></thead><tbody>${matches.map((match) => `<tr class="${match.id === selected.id ? 'selected-table-row' : ''}"><td><button data-match="${match.id}" data-focus="match-${match.id}" aria-pressed="${match.id === selected.id}">${match.home} – ${match.away}<small>${match.time}<span class="market-detail"> · ${match.market}</span></small></button></td><td>${match.price.toFixed(2)}<small>Bookmaker A</small></td><td class="implied-col">${(100 / match.price).toFixed(1)}%</td><td>${state.missing ? '<span aria-label="Unknown">—</span>' : `<span class="signal">+${gap(match).toFixed(1)}<small style="display:inline;color:inherit"> pp</small></span>`}</td></tr>`).join('')}</tbody></table><p class="method-note">${state.missing ? 'Unknown probabilities cannot be ranked by estimated gap. Original example order retained.' : 'Gap compares the illustrative model estimate with 1 ÷ decimal odds. This is an unadjusted price threshold, not a margin-free market probability.'}</p>`
+        )
+        const evidence = widget(
+          'match-evidence',
+          1,
+          `${heading('Under the surface', selected.time)}<p class="evidence-title">${selected.home} – ${selected.away}</p><p class="evidence-subtitle">${selected.market}</p><div class="evidence-item"><strong><span class="reason-dot"></span>Supporting context</strong><p>${selected.reason}.</p></div><div class="evidence-item"><strong><span class="reason-dot caution"></span>Reason for caution</strong><p>${selected.caution}.</p></div><div class="evidence-item"><strong>Home team’s last five</strong><div style="margin-top:10px">${form(selected.form)}</div></div><p class="method-note">${selected.sample}. These observations do not establish a predictive advantage.</p><button class="ghost" data-detail="research-match">Open full match brief ↗</button>`,
+          'violet-card'
+        )
+        const prices = widget(
+          'bookmaker-prices',
+          1,
+          `${heading('The price picture', `${selected.market} · same market and settlement`)}<div class="price-list">${[selected.price, ...selected.otherPrices].map((price, index) => `<div class="price-row ${index === 0 ? 'best' : ''}"><span>Bookmaker ${'ABC'[index]}<small>Sample update · 11:${['42', '41', '40'][index]}</small></span><span>${price.toFixed(2)}</span></div>`).join('')}</div><p class="method-note">Best of three example quotes. Real views must exclude stopped or suspended prices.</p>`
+        )
+        const probability = widget(
+          'probability-context',
+          1,
+          `${heading('Price meets probability', 'Selected outcome only')}${state.missing ? '<div class="empty-state">No probability estimate available<p>The bookmaker prices are still available. We cannot calculate an estimated gap for this match.</p></div>' : `<div class="probability"><span>Price threshold</span><span class="fact">${(100 / selected.price).toFixed(1)}<small>%</small></span></div><div class="probability"><span>Illustrative model estimate</span><span class="fact">${(selected.probability * 100).toFixed(0)}<small>%</small></span></div><div class="probability"><span>Difference</span><span class="signal">+${gap(selected).toFixed(1)} pp</span></div><p class="method-note">Source: hand-authored study fixture. The model shown here has no measured calibration or uncertainty interval.</p>`}`
+        )
+        const scope = widget(
+          'research-context',
+          1,
+          `${heading('Keep the context', 'Before making a judgment')}<div class="scope-note"><div><strong>Lineups are not confirmed</strong>Revisit personnel and absences when the team sheets are reported.</div></div><div class="scope-note"><div><strong>A small sample</strong>Recent form describes the selected games. It does not account for every opponent or match condition.</div></div><div class="scope-note"><div><strong>Prices are snapshots</strong>Compare the same outcome and line at the time you investigate.</div></div>`
+        )
+        return `${pageHeading('Weekend watchlist', 'A few matches to investigate. Every signal has a source.')}<div class="filter-bar"><label>Market <select id="market" data-focus="market"><option value="all" ${state.market === 'all' ? 'selected' : ''}>All example markets</option><option value="home" ${state.market === 'home' ? 'selected' : ''}>Home win</option><option value="goals" ${state.market === 'goals' ? 'selected' : ''}>Over 2.5 goals</option></select></label><span class="muted">14–15 March · European leagues</span><span class="summary">${matches.length} matches · 3 bookmakers · decimal odds</span></div><div class="research-summary"><span class="fact">${state.missing ? '—' : String(matches.length).padStart(2, '0')}</span><div><p>${state.missing ? 'Price comparison is available. Estimated value is unknown.' : 'The starting point for your research.'}</p><small>${state.missing ? 'Probability-dependent signals are paused for this example.' : 'Select a match to connect its prices, football context and probability estimate.'}</small></div></div><div class="grid">${shortlist}${evidence}</div><div class="section-heading"><h2>Investigating ${selected.home} – ${selected.away}</h2><p>${selected.market}</p></div><div class="grid">${prices}${probability}${scope}</div>`
+      }
+      function eligiblePlayers() {
+        return players.filter((player) => state.stage !== 'refined' || player.mins >= 1500)
+      }
+      function analyst() {
+        const eligible = eligiblePlayers()
+        const compared = eligible.filter((player) => state.shortlist.has(player.id))
+        const profiles = eligible
+          .map((player) =>
+            widget(
+              `profile-${player.id}`,
+              1,
+              `<div class="player-header"><span class="avatar ${player.color}">${player.initials}</span><div><h2>${player.name}</h2><p>${player.club} · Forward · ${player.age}</p></div></div><div class="stats-strip">${stat('League minutes', player.mins.toLocaleString('en'))}${stat('Goals', player.goals)}${stat('Assists', player.assists)}</div><p class="player-description">${player.traits}</p><div class="player-selection"><span class="muted">2026/27 · own league</span><button data-player="${player.id}" data-focus="player-${player.id}" aria-pressed="${state.shortlist.has(player.id)}">${state.shortlist.has(player.id) ? '✓ Comparing' : '+ Compare'}</button></div>`,
+              'player-card'
+            )
+          )
+          .join('')
+        const metricNames = ['Goals', 'Assists', 'Shots', 'Chances created']
+        const limits = [0.8, 0.4, 4, 2.4]
+        const metrics = widget(
+          'performance-comparison',
+          2,
+          `${heading('Different ways to lead the line', 'Per 90 league minutes · 2026/27', 'Definitions', 'metrics')}<div class="chart-legend" style="margin-bottom:25px">${compared.map((player) => `<span><i class="swatch ${player.color}"></i>${player.name}</span>`).join('')}</div>${compared.length ? `<div class="compare-metrics">${metricNames.map((label, index) => `<div><div class="metric-heading"><strong>${label}</strong><span>per 90</span></div>${compared.map((player) => `<div class="comparison-bar"><span>${player.short}</span>${state.missing && player.id === 'silva' && index === 3 ? '<span class="muted">Not reported</span><span>—</span>' : `<div class="bar-track"><i class="${player.color}" style="width:${(player.metrics[index] / limits[index]) * 100}%"></i></div><span>${player.metrics[index].toFixed(2)}</span>`}</div>`).join('')}</div>`).join('')}</div><p class="comparison-scale">Within each metric, every player shares a fixed scale. These are raw rates, not league-adjusted percentiles.</p>` : '<div class="empty-state">Choose players to compare<p>Add a player using the Compare button on their profile.</p></div>'}`
+        )
+        const comparingBoth =
+          compared.some((player) => player.id === 'berg') &&
+          compared.some((player) => player.id === 'silva')
+        const observations = compared
+          .map((player) => {
+            if (player.id === 'berg')
+              return `<div class="scope-note"><div><strong>Berg gets into shooting positions</strong>${comparingBoth ? `More shots per 90 than Silva${state.missing ? '.' : ', with less reported chance creation.'}` : '3.25 shots and 0.63 goals per 90, over 2,160 league minutes.'}</div></div>`
+            if (player.id === 'silva')
+              return `<div class="scope-note"><div><strong>Silva contributes beyond scoring</strong>${comparingBoth ? 'More assists per 90 than Berg.' : 'Seven assists in 1,980 league minutes.'} ${state.missing ? 'His chance-creation metric is not available.' : '1.95 chances created per 90 in this sample.'}</div></div>`
+            return '<div class="scope-note"><div><strong>Laurent has fewer minutes</strong>1,080 minutes. Treat his 0.67 goals per 90 in that context.</div></div>'
+          })
+          .join('')
+        const context = widget(
+          'comparison-context',
+          1,
+          `${heading('Read the differences', 'Context before conclusions')}${observations || '<p class="empty-state">Select a player to see their context.</p>'}${state.stage === 'refined' ? '<div class="scope-note"><div><strong>Laurent is outside your filter</strong>1,080 minutes is below the 1,500-minute minimum.</div></div>' : ''}<p class="method-note">Comparisons describe this sample. League strength, role and team style are not adjusted.</p>`,
+          'coral-card'
+        )
+        const records = widget(
+          'source-records',
+          3,
+          `${heading('The numbers behind the rates', 'Reported totals in the selected league season')}${compared.length ? `<table><thead><tr><th>Player</th><th>Minutes</th><th>Goals</th><th>Assists</th><th class="wide-only">Shots</th><th class="wide-only">Chances</th></tr></thead><tbody>${compared.map((player) => `<tr><td><span class="club-cell"><span class="avatar small ${player.color}">${player.initials}</span><span>${player.name}</span></span></td><td>${player.mins.toLocaleString('en')}</td><td>${player.goals}</td><td>${player.assists}</td><td class="wide-only">${player.totals[2]}</td><td class="wide-only">${state.missing && player.id === 'silva' ? '—' : player.totals[3]}</td></tr>`).join('')}</tbody></table><p class="method-note">Per 90 = total ÷ minutes × 90. Rounded rates are shown above. All three players are fictional profiles created for this study.</p>` : '<p class="empty-state">No players selected.</p>'}`
+        )
+        return `${pageHeading('The next number nine', 'Three profiles. A clearer picture of the tradeoffs.')}<div class="filter-bar"><span class="muted">2026/27 · Domestic leagues · Forwards</span><button data-minutes data-focus="minutes" aria-pressed="${state.stage === 'refined'}">${state.stage === 'refined' ? '✓ ' : ''}Minimum 1,500 minutes</button><span class="summary">${compared.length} comparing · ${eligible.length} eligible</span></div><div class="grid">${profiles}</div><div class="section-heading"><h2>The comparison</h2><p>Independent club and season context</p></div><div class="grid">${metrics}${context}${records}</div>`
+      }
+      function promptScreen() {
+        return `<div class="prompt-screen"><div class="prompt-symbol" aria-hidden="true">✳</div><h1>A view of your own.</h1><p>Start with what you want to understand.</p><div class="request-card"><blockquote>${stories[state.story].prompt}</blockquote><div class="request-bottom"><span>Scripted interaction study · no AI request</span><button class="primary" data-compose>Open composed example →</button></div></div></div>`
+      }
+      function render() {
+        const focused = document.activeElement?.dataset.focus
+        const story = stories[state.story]
+        document
+          .querySelectorAll('[data-story]')
+          .forEach((button) =>
+            button.setAttribute('aria-pressed', String(button.dataset.story === state.story))
+          )
+        document.querySelector('#stage').value = state.stage
+        document.querySelector('#view-name').textContent = story.name
+        document.querySelector('#brief').innerHTML =
+          `<p><strong>The job</strong>${story.question}</p><p><strong>Quality test</strong>${story.quality}</p><p><strong>Missing-data example</strong>${story.missing}</p>`
+        document.querySelector('#saved-nav').innerHTML = Object.entries(stories)
+          .map(
+            ([key, value]) =>
+              `<button data-story="${key}" aria-pressed="${state.story === key}">${value.name}</button>`
+          )
+          .join('')
+        document.querySelector('#layout-button').setAttribute('aria-pressed', String(state.layout))
+        document.querySelector('#layout-button').disabled = state.stage === 'prompt'
+        document.querySelector('#save-button').disabled = state.stage === 'prompt'
+        content.innerHTML =
+          state.stage === 'prompt'
+            ? promptScreen()
+            : state.story === 'supporter'
+              ? supporter()
+              : state.story === 'researcher'
+                ? researcher()
+                : analyst()
+        document.querySelector('#composer').innerHTML =
+          state.stage === 'prompt'
+            ? ''
+            : `<div class="composer"><span class="composer-icon" aria-hidden="true">✳</span><div class="composer-copy"><p>${state.stage === 'refined' ? 'Your workspace, a little more personal.' : story.followup}</p><small>${state.stage === 'refined' ? 'The original composition is one step away.' : 'Try this follow-up · scripted example'}</small></div><button class="${state.stage === 'refined' ? '' : 'primary'}" data-followup data-focus="followup">${state.stage === 'refined' ? 'Undo refinement' : 'Apply follow-up →'}</button></div>`
+        if (focused)
+          document.querySelector(`[data-focus="${focused}"]`)?.focus({ preventScroll: true })
+      }
+      function notify(message) {
+        clearTimeout(toastTimer)
+        document.querySelector('#toast').textContent = message
+        toastTimer = setTimeout(() => {
+          document.querySelector('#toast').textContent = ''
+        }, 3500)
+      }
+      function openDetail(kind) {
+        const selected = markets.find((match) => match.id === state.selected)
+        const details = {
+          match: [
+            'Arsenal – Chelsea',
+            '<p class="muted">Premier League · Sunday 15 March · 17:30 Stockholm</p><p class="dialog-fact">Emirates Stadium</p><p>Arsenal enter this sample match three points behind the league leaders. Chelsea are fourth, nine points behind Arsenal.</p><ul><li>Arsenal, last five: W W D W W</li><li>Chelsea, last five: W D W W L</li><li>Three Arsenal players have a reported absence or doubt.</li><li>Starting lineups have not been confirmed.</li></ul><p class="muted">Fictional match briefing for layout review.</p>'
+          ],
+          fixtures: [
+            'The next eight days',
+            '<p>Three matches across two competitions.</p><ul><li>15 March · Chelsea · Home · 17:30</li><li>19 March · Inter · Away · 21:00</li><li>22 March · Everton · Away · 15:00</li></ul><p>The intended interaction opens the existing fixture workspace with team and date context intact.</p>'
+          ],
+          table: [
+            'The title race',
+            '<p class="dialog-fact">Liverpool 64 · Arsenal 61</p><p>The preview shows five of twenty teams. Arsenal are three points behind Liverpool after 28 matches in this illustrative season.</p><p>A production view would open the complete reported table for the exact selected season.</p>'
+          ],
+          squad: [
+            'Before the team sheets',
+            '<ul><li>Jamie Lewis · hamstring · unavailable</li><li>Daniel Mensah · ankle · doubtful</li><li>Alex Reed · suspended for one match</li></ul><p>No return dates are reported. These fictional players demonstrate status density and missing information.</p>'
+          ],
+          results: [
+            'Six home matches',
+            '<p class="dialog-fact">5 wins · 1 draw</p><ul><li>Arsenal 2–0 Wolves</li><li>Arsenal 3–1 Aston Villa</li><li>Arsenal 1–1 Manchester City</li><li>Arsenal 2–0 West Ham</li><li>Arsenal 3–1 Leeds</li><li>Arsenal 2–0 Brentford</li></ul><p>13 goals scored, 3 conceded. Oldest to newest; fictional sample matches.</p>'
+          ],
+          article: [
+            'Another London afternoon',
+            '<p>Arsenal arrive at the weekend three points off the lead. A home meeting with Chelsea is followed by a European away trip and a return to league action at Everton.</p><p>The question for this eight-day stretch is how to keep the rhythm while managing the squad. Two injury concerns and a suspension add to the decisions before the first team sheet.</p><p class="muted">Original fictional editorial written for this design study. It is not a current news report.</p>'
+          ],
+          broadcast: [
+            'Broadcast listings unavailable',
+            '<p>We could not load the fixture’s broadcast listings for Sweden. That does not establish that the match is not being broadcast.</p><p>The fixture, kickoff and venue remain usable. The finished widget should offer retry through the existing TV-guide query.</p>'
+          ],
+          method: [
+            'What the estimated gap means',
+            '<p>For decimal odds of 2.12, the break-even price threshold is 1 ÷ 2.12 = 47.17%. An example probability estimate of 51% gives a difference of +3.83 percentage points.</p><p>This comparison uses an individual quote. It does not remove the bookmaker margin across all outcomes or establish a profitable strategy.</p><p><strong>Source in this study:</strong> hand-authored prices and probability fixtures. No real forecasting model, calibration record or uncertainty interval is connected.</p><p><strong>Before implementation:</strong> verify account access, market/outcome alignment, quote freshness and the probability model’s meaning. Unsupported estimates must stay unavailable.</p>'
+          ],
+          'research-match': [
+            `${selected.home} – ${selected.away}`,
+            `<p>${selected.time} · ${selected.market}</p><p><strong>Supporting context</strong><br />${selected.reason}.</p><p><strong>Counterevidence</strong><br />${selected.caution}.</p><p>Sample scope: ${selected.sample}. Confirmed lineups are not available.</p><p class="muted">Every quote, probability and observation in this study is fictional.</p>`
+          ],
+          metrics: [
+            'Like-for-like rates',
+            '<p>Each player keeps their own domestic league and 2026/27 season record. Minutes and totals appear together beneath the charts.</p><p><strong>Per 90 = total ÷ minutes × 90.</strong> For Berg, 15 goals ÷ 2,160 minutes × 90 = 0.625 goals per 90.</p><p>Each metric uses one fixed scale for every player. Rates are not adjusted for league strength or role, and the chart does not present percentiles.</p><p>“Chances created” is a sample metric definition in this study. Provider type and definition must be confirmed before implementing it.</p>'
+          ]
+        }
+        const [title, body] = details[kind]
+        document.querySelector('#dialog-title').textContent = title
+        document.querySelector('#dialog-body').innerHTML = body
+        dialog.showModal()
+      }
+      function setStage(stage) {
+        state.stage = stage
+        if (state.story === 'researcher') state.market = stage === 'refined' ? 'home' : 'all'
+      }
+      document.addEventListener('click', (event) => {
+        const button = event.target.closest('button')
+        if (!button) return
+        if (button.dataset.story) {
+          state.story = button.dataset.story
+          const url = new URL(location.href)
+          url.searchParams.set('story', state.story)
+          history.replaceState(null, '', url)
+          setStage('composed')
+          state.layout = false
+          render()
+          return
+        }
+        if (button.hasAttribute('data-compose')) {
+          setStage('composed')
+          render()
+          return
+        }
+        if (button.hasAttribute('data-followup') || button.hasAttribute('data-minutes')) {
+          setStage(state.stage === 'refined' ? 'composed' : 'refined')
+          render()
+          notify(
+            state.stage === 'refined'
+              ? 'Follow-up applied to this example.'
+              : 'Original composition restored.'
+          )
+          return
+        }
+        if (button.dataset.match) {
+          state.selected = button.dataset.match
+          render()
+          notify(
+            `Investigating ${markets.find((match) => match.id === state.selected).home}. Connected panels updated.`
+          )
+          return
+        }
+        if (button.dataset.player) {
+          const id = button.dataset.player
+          if (state.shortlist.has(id)) state.shortlist.delete(id)
+          else state.shortlist.add(id)
+          render()
+          return
+        }
+        if (button.dataset.size) {
+          state.widths[`${state.story}:${button.dataset.widgetId}`] = Number(button.dataset.size)
+          render()
+          return
+        }
+        if (button.dataset.detail) {
+          openDetail(button.dataset.detail)
+          return
+        }
+        if (button.id === 'layout-button') {
+          state.layout = !state.layout
+          render()
+          return
+        }
+        if (button.id === 'narrow') {
+          const narrow = document.querySelector('#preview').classList.toggle('narrow')
+          button.setAttribute('aria-pressed', String(narrow))
+          button.textContent = narrow ? 'Full window' : 'Narrow window'
+          return
+        }
+        if (button.id === 'save-button') {
+          try {
+            localStorage.setItem(
+              `halfspace-north-star:${state.story}`,
+              JSON.stringify({
+                story: state.story,
+                stage: state.stage,
+                market: state.market,
+                selected: state.selected,
+                widths: state.widths,
+                shortlist: [...state.shortlist]
+              })
+            )
+            notify(
+              'Example saved in this browser. Reopen this story after reloading to restore it.'
+            )
+          } catch {
+            notify('This browser could not save the example. Your current view is still available.')
+          }
+          return
+        }
+        if (button.id === 'close-dialog') dialog.close()
+      })
+      document.addEventListener('change', (event) => {
+        if (event.target.id === 'stage') setStage(event.target.value)
+        if (event.target.id === 'availability') state.missing = event.target.value === 'missing'
+        if (event.target.id === 'market') {
+          state.market = event.target.value
+          state.stage = state.market === 'home' ? 'refined' : 'composed'
+        }
+        render()
+      })
+      const requestedStory = new URLSearchParams(location.search).get('story')
+      if (Object.hasOwn(stories, requestedStory)) state.story = requestedStory
+      try {
+        const saved = JSON.parse(localStorage.getItem(`halfspace-north-star:${state.story}`))
+        if (saved?.story === state.story && ['composed', 'refined'].includes(saved.stage)) {
+          state.stage = saved.stage
+          state.market = ['all', 'home', 'goals'].includes(saved.market) ? saved.market : 'all'
+          state.selected = markets.some((match) => match.id === saved.selected)
+            ? saved.selected
+            : 'brighton'
+          state.widths = Object.fromEntries(
+            Object.entries(saved.widths ?? {}).filter(([, width]) => [1, 2, 3].includes(width))
+          )
+          state.shortlist = new Set(
+            (saved.shortlist ?? []).filter((id) => players.some((player) => player.id === id))
+          )
+        }
+      } catch {
+        /* A missing or unreadable saved study never blocks its default example. */
+      }
+      render()
+    </script>
+  </body>
+</html>

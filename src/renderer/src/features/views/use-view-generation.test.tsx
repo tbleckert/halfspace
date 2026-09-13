@@ -7,10 +7,12 @@ import type { GenerateViewInput, ViewProgress, ViewSpec } from '@shared/views'
 import { useViewGeneration } from './use-view-generation'
 
 const spec: ViewSpec = {
-  version: 1,
+  version: 2,
   title: 'Premier League',
   message: '',
-  blocks: [{ id: 'table', type: 'standings', competitionId: 8, seasonId: 12, span: 'half' }]
+  blocks: [
+    { id: 'table', type: 'standings', teamId: null, competitionId: 8, seasonId: 12, span: 1 }
+  ]
 }
 const contexts = [
   {

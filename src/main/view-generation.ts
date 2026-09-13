@@ -1,5 +1,6 @@
 import { createOpenAI } from '@ai-sdk/openai'
 import { APICallError, Output, streamText } from 'ai'
+import { z } from 'zod'
 import {
   viewBlockSchema,
   viewModel,
@@ -9,17 +10,41 @@ import {
   type ViewProgress,
   type ViewSpec
 } from '@shared/views'
+import { implementedViewWidgets } from '@shared/view-widgets'
+
+// A declined request must not replace a useful view with fallback widgets.
+// This decision belongs to generation; saved definitions do not need it.
+const generationSchema = z.strictObject({
+  outcome: z.enum(['composed', 'unavailable']),
+  ...viewSpecSchema.shape
+})
 
 const instructions = `You compose personal football views in Halfspace.
-Return a version 1 view definition using only the provided competition/season contexts.
-Supported blocks: fixtures (upcoming or recent), standings (reported table for the selected season),
-and leaders (goals, assists, yellow-cards, red-cards). Fixture blocks cover a rolling 14-day window
-within the selected season. They are not a complete season schedule. Layout uses two columns;
-span full occupies both. Prefer a balanced layout of 2–4 blocks, with at most 8.
+Return a version 2 view definition using only the provided competition/season contexts and teams.
+First choose outcome: composed only if you can fulfill the request using supported widgets and known
+contexts; unavailable if an essential feature is unsupported or a required context is missing or ambiguous.
+For unavailable, return no blocks and explain the limitation in message. Do not offer a fallback composition.
+Supported widgets: ${JSON.stringify(implementedViewWidgets.map(({ type, description, context }) => ({ type, description, context })))}.
+Layout uses three columns. Every widget supports span 1 (compact), 2 (wide) or 3 (full width).
+Prefer 2–5 blocks, with at most 8. For a supporter home with an available season, include each of
+these distinct types exactly once: team-next-match (span 2), team-season (span 1), team-fixtures
+(span 1), standings (span 1, selected teamId), team-availability (span 1).
+The standings widget MUST have type "standings": it is the full league table. The team-season
+widget is only the selected team's summary. Never use a second team-season widget as standings.
+Avoid duplicate widgets with identical data bindings and settings unless the user asks for them.
+Only add season-based widgets when the requested competition and season are available. Never
+guess a team's current competition from its name. Pure team widgets do not need a season.
+Standings use teamId null unless a known team should be highlighted. Competition fixture blocks
+cover 14 days; team fixtures cover 30 days. Neither is a complete season schedule.
 Each block has a unique stable id. Preserve existing ids and context when editing.
-Use half width for a compact table or fixture list and full width for wide player leaderboards.
-Resolve names only against the supplied contexts. Keep the exact requested season. When no season
-is requested, use the context marked isCurrent. If no current season is known, ask for a season.
+When refining, change only what was requested. Preserve widget ids, selected entities, explicit
+seasons, metrics and user widths unless the requested edit requires changing them. A match-preparation
+request moves next match and current availability first, preserving the season context below.
+Resolve names only against the supplied contexts and teams. Keep the exact requested season.
+For a team's current season, only use its supplied currentSeasons memberships, matched to availableContexts.
+If more than one competition fits and none is requested, ask which competition to use.
+For a competition without a requested season, use the context marked isCurrent.
+If no current season is known, ask for a season or offer the pure team widgets.
 Do not silently
 substitute a different entity, season, or feature. If any essential requested feature or context is
 unsupported or ambiguous, return no blocks and explain what is needed in message.
@@ -41,9 +66,10 @@ export async function generateView(
     prompt: JSON.stringify({
       request: input.prompt,
       availableContexts: input.contexts,
+      availableTeams: input.teams,
       currentView: input.current
     }),
-    output: Output.object({ schema: viewSpecSchema }),
+    output: Output.object({ schema: generationSchema }),
     providerOptions: { openai: { store: false, reasoningEffort: 'low' } },
     maxOutputTokens: 5000,
     maxRetries: 0,
@@ -56,25 +82,35 @@ export async function generateView(
   for await (const partial of result.partialOutputStream) {
     if (signal.aborted) throw new Error('Generation cancelled.')
     const seen = new Set<string>()
-    const blocks = (partial.blocks ?? []).slice(0, 8).flatMap((block) => {
-      const parsed = viewBlockSchema.safeParse(block)
-      if (!parsed.success || seen.has(parsed.data.id)) return []
-      seen.add(parsed.data.id)
-      return input.contexts.some(
-        (context) =>
-          context.competitionId === parsed.data.competitionId &&
-          context.seasonId === parsed.data.seasonId
-      )
-        ? [parsed.data]
-        : []
-    })
+    const blocks = (partial.outcome === 'composed' ? (partial.blocks ?? []) : [])
+      .slice(0, 8)
+      .flatMap((block) => {
+        const parsed = viewBlockSchema.safeParse(block)
+        if (!parsed.success || seen.has(parsed.data.id)) return []
+        seen.add(parsed.data.id)
+        try {
+          validateViewSpec(
+            { version: 2, title: 'Draft', message: '', blocks: [parsed.data] },
+            input.contexts,
+            input.teams
+          )
+          return [parsed.data]
+        } catch {
+          return []
+        }
+      })
     const signature = JSON.stringify(blocks)
     if (signature === previous) continue
     previous = signature
     onProgress({ requestId: input.requestId, blocks })
   }
   if (streamError) throw streamError
-  const spec = validateViewSpec(await result.output, input.contexts)
+  const { outcome, ...definition } = await result.output
+  const spec = validateViewSpec(
+    { ...definition, blocks: outcome === 'unavailable' ? [] : definition.blocks },
+    input.contexts,
+    input.teams
+  )
   if ((await result.finishReason) !== 'stop') throw new Error('Generation did not complete.')
   if (signal.aborted) throw new Error('Generation cancelled.')
   return spec

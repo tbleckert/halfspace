@@ -1,4 +1,10 @@
-import { validateViewSpec, type ViewBlock, type ViewContext, type ViewSpec } from '@shared/views'
+import {
+  validateViewSpec,
+  type ViewBlock,
+  type ViewContext,
+  type ViewSpec,
+  type ViewTeamContext
+} from '@shared/views'
 
 export const starterViews = [
   {
@@ -16,23 +22,60 @@ export function createStarterView(template: StarterView, context: ViewContext): 
   const base = {
     competitionId: context.competitionId,
     seasonId: context.seasonId,
-    span: 'half' as const
+    span: 1 as const
   }
   const upcoming: ViewBlock = { ...base, id: 'upcoming', type: 'fixtures', period: 'upcoming' }
   const goals: ViewBlock = { ...base, id: 'goals', type: 'leaders', category: 'goals' }
   const blocks: ViewBlock[] =
     template === 'overview'
-      ? [{ ...base, id: 'table', type: 'standings' }, goals, { ...upcoming, span: 'full' }]
+      ? [{ ...base, id: 'table', type: 'standings', teamId: null }, goals, { ...upcoming, span: 3 }]
       : template === 'leaders'
         ? [goals, { ...base, id: 'assists', type: 'leaders', category: 'assists' }]
         : [upcoming, { ...base, id: 'recent', type: 'fixtures', period: 'recent' }]
   return validateViewSpec(
     {
-      version: 1,
+      version: 2,
       title: `${context.competitionName} · ${context.seasonName}`.slice(0, 80),
       message: '',
       blocks
     },
     [context]
+  )
+}
+
+export function createTeamStarterView(team: ViewTeamContext, context?: ViewContext): ViewSpec {
+  const blocks: ViewBlock[] = [
+    { id: 'next-match', type: 'team-next-match', teamId: team.teamId, span: 2 }
+  ]
+  if (context)
+    blocks.push({
+      id: 'season',
+      type: 'team-season',
+      teamId: team.teamId,
+      competitionId: context.competitionId,
+      seasonId: context.seasonId,
+      span: 1
+    })
+  blocks.push({
+    id: 'fixtures',
+    type: 'team-fixtures',
+    teamId: team.teamId,
+    period: 'upcoming',
+    span: 1
+  })
+  if (context)
+    blocks.push({
+      id: 'table',
+      type: 'standings',
+      teamId: team.teamId,
+      competitionId: context.competitionId,
+      seasonId: context.seasonId,
+      span: 1
+    })
+  blocks.push({ id: 'availability', type: 'team-availability', teamId: team.teamId, span: 1 })
+  return validateViewSpec(
+    { version: 2, title: `My ${team.teamName}`.slice(0, 80), message: '', blocks },
+    context ? [context] : [],
+    [team]
   )
 }

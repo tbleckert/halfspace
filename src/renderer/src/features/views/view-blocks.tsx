@@ -1,11 +1,8 @@
 import { useMemo } from 'react'
 import { Link } from '@tanstack/react-router'
 import { ArrowUpRight, CalendarDays, ChartNoAxesColumnIncreasing, Table2 } from 'lucide-react'
-import type { ViewBlock } from '@shared/views'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
-import { ErrorAlert } from '@/components/error-alert'
-import { Button } from '@/components/ui/button'
+import type { ViewBlock, CompetitionViewBlock } from '@shared/views'
+import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { useCompetitionDetail } from '@/features/competitions/use-competition-detail'
 import {
   useCompetitionFixtures,
@@ -25,6 +22,8 @@ import { useTodayInTimeZone } from '@/lib/use-today'
 import { useOnline } from '@/lib/use-online'
 import { isFixtureOngoing } from '@/lib/fixture-state'
 import { viewBlockLabel } from './view-editing'
+import { BlockPending, BlockEmpty, BlockError } from './view-block-state'
+import { TeamViewBlockContent } from './team-view-blocks'
 
 export function ViewBlockOutline({ block }: { block: ViewBlock }): React.JSX.Element {
   const Icon =
@@ -45,11 +44,7 @@ export function ViewBlockOutline({ block }: { block: ViewBlock }): React.JSX.Ele
       </svg>
       <div className="flex items-center gap-2 text-sm font-medium text-primary">
         <Icon className="size-4" />
-        {block.type === 'leaders'
-          ? 'Player leaders'
-          : block.type === 'standings'
-            ? 'Standings'
-            : 'Fixtures'}
+        {viewBlockLabel(block)}
       </div>
       <div className="mt-7 space-y-4" aria-hidden="true">
         {[80, 100, 65, 90].map((width, index) => (
@@ -68,6 +63,23 @@ export function ViewBlockContent({
   onChange
 }: {
   block: ViewBlock
+  onChange: (block: ViewBlock) => void
+}): React.JSX.Element {
+  if (
+    block.type === 'team-next-match' ||
+    block.type === 'team-fixtures' ||
+    block.type === 'team-season' ||
+    block.type === 'team-availability'
+  )
+    return <TeamViewBlockContent block={block} />
+  return <CompetitionBlockContent block={block} onChange={onChange} />
+}
+
+function CompetitionBlockContent({
+  block,
+  onChange
+}: {
+  block: CompetitionViewBlock
   onChange: (block: ViewBlock) => void
 }): React.JSX.Element {
   const online = useOnline()
@@ -151,7 +163,7 @@ function StandingsBlock({
       ) : groups.length === 0 ? (
         <BlockEmpty>No standings reported for this season.</BlockEmpty>
       ) : (
-        <div className="view-data-scroll space-y-3">
+        <div className="view-data-scroll view-standings space-y-3">
           {groups.map((group) => (
             <StandingsTable
               key={group.key}
@@ -161,6 +173,7 @@ function StandingsBlock({
               online={online}
               season={block.seasonId}
               standings={group.standings}
+              highlightedTeamId={block.teamId ?? undefined}
             />
           ))}
         </div>
@@ -192,7 +205,7 @@ function LeadersBlock({
           loading={cached === undefined || refreshing || (online && !error)}
         />
       ) : (
-        <div className="view-data-scroll">
+        <div className="view-data-scroll view-leaders">
           <PlayerLeaders
             competitionId={block.competitionId}
             date={date}
@@ -274,7 +287,7 @@ function FixturesBlock({
               {input!.startDate} – {input!.endDate}
             </p>
           </CardHeader>
-          <div className="view-data-scroll space-y-2 pb-2">
+          <div className="view-data-scroll view-fixture-list pb-2">
             {fixtures.length ? (
               fixtures.map((fixture) => (
                 <EntityFixtureRow
@@ -297,65 +310,4 @@ function FixturesBlock({
       )}
     </div>
   )
-}
-
-function BlockPending({
-  block,
-  online,
-  error,
-  loading
-}: {
-  block: ViewBlock
-  online: boolean
-  error: string | null
-  loading: boolean
-}): React.JSX.Element {
-  return (
-    <Card aria-busy={loading && online && !error}>
-      <CardHeader>
-        <CardTitle>{viewBlockLabel(block)}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {loading && online && !error && (
-          <div aria-hidden="true" className="mb-4 space-y-3">
-            <Skeleton className="h-3 w-4/5" />
-            <Skeleton className="h-3 w-full" />
-            <Skeleton className="h-3 w-2/3" />
-          </div>
-        )}
-        <p role="status" className="text-xs text-muted-foreground">
-          {error
-            ? 'Data unavailable'
-            : !online
-              ? 'Not cached for offline use'
-              : loading
-                ? 'Loading football data…'
-                : 'Data unavailable'}
-        </p>
-      </CardContent>
-    </Card>
-  )
-}
-function BlockEmpty({ children }: { children: React.ReactNode }): React.JSX.Element {
-  return <Card className="p-6 text-sm text-muted-foreground">{children}</Card>
-}
-function BlockError({
-  error,
-  online,
-  refresh
-}: {
-  error: string | null
-  online: boolean
-  refresh: () => Promise<void>
-}): React.JSX.Element | null {
-  return error ? (
-    <ErrorAlert>
-      <div className="flex items-center justify-between gap-2">
-        <span>{error}</span>
-        <Button size="sm" variant="ghost" disabled={!online} onClick={() => void refresh()}>
-          Retry
-        </Button>
-      </div>
-    </ErrorAlert>
-  ) : null
 }

@@ -533,9 +533,11 @@ the design direction changes; carry the style into other views incrementally.
   take shape, refine it conversationally, and save it for everyday use. Grow toward connected team
   and player views, cross-competition comparisons, interactive filters, and grounded analysis as
   real data coverage and reusable components expand.
-- Start with competition fixtures, standings, and player leaders. Keep the first release small but
-  functional: a personal OpenAI key, streamed composition, saved views, and conversational edits.
-  More providers, arbitrary visualizations, sharing, and deeper analysis are later work.
+- Track implemented and planned widgets in `src/shared/view-widgets.ts` and `docs/view-widgets.md`.
+  Update both when adding or completing a widget. Every widget must support 1-, 2- and 3-column
+  presentations before it is implemented; keep planned widgets out of generation and editing.
+  The accepted studies in `design/generative-views/` are visual targets. The supporter home is
+  the first working slice; researcher and analyst compositions remain planned.
 - Use AI SDK Core in Electron main, initially with its direct OpenAI provider. Store AI credentials
   with Electron secure storage, separately from the Sportmonks token. Expose narrow typed generation,
   progress, cancellation, and credential APIs through preload. Never persist keys in the renderer,
@@ -547,6 +549,9 @@ the design direction changes; carry the style into other views incrementally.
 - Keep model schemas inside OpenAI's supported JSON Schema subset. Use Zod unions for block
   alternatives: discriminated unions emit `oneOf`, which OpenAI rejects; regular unions emit
   supported `anyOf`. Test the serialized provider request as well as parsing streamed responses.
+  Put widget type before overlapping context fields in the model schema. Generation declares
+  composed or unavailable before its definition; unavailable output must never stream fallback
+  widgets or replace a usable view. Keep that decision out of saved user definitions.
   Restart Electron before live verification of main-process changes.
 - AI chooses composition and data bindings. Actual football values, calculations, missing-data states,
   provider ranks, and links belong to deterministic application code. Never treat the local cache as
@@ -560,12 +565,20 @@ the design direction changes; carry the style into other views incrementally.
 - Starter Views compose validated fixtures, standings, and leader blocks from a selected available
   competition and season, without generation or an AI key. Reuse the same editor, queries, and local
   save format as AI-composed views; keep missing offline data explicit.
+- Team-home starters use known teams and reported current competition membership. Next match,
+  team fixtures and current absences remain independent of historical season selection; season
+  snapshots and standings retain explicit competition/season identities. Reuse the team fixture
+  window and availability queries. Do not infer current membership from historical standings.
+- Version 2 definitions use numeric spans 1, 2 and 3. Adapt widget content to its actual container
+  width, clamp the canvas to available columns, and preserve the stored span when resizing.
+  Upgrade existing version 1 definitions and their undo history at the saved-data boundary.
 - Manual View editing uses the same versioned definition and undo/save flow. Offer the supported
   block types, preserve independent block contexts, and keep one through eight blocks per saved view.
   Reordering and width changes must work with keyboard controls and never call AI.
 - Duplicating a View saves the current draft under a new identity and opens that copy. Preserve the
   source saved definition and keep the copy's undo history independent.
-- Changing a View's competition or season is an explicit action applying to all blocks. Preserve
+- Changing a View's competition or season is an explicit action applying to season-bound blocks.
+  Leave team-only blocks and their current time windows unchanged. Preserve
   block identity, types, metrics, and layout; validate the selected context, clear the old generated
   description, and retain personal titles. Use the same undo flow and identity-scoped data queries.
 - Saved definitions are user content, separate from disposable Sportmonks data. They survive token

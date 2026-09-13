@@ -130,6 +130,9 @@ include should have a useful place in Halfspace.
 - [x] Personal Views with starter layouts, manual block editing, local saving, duplication,
       competition and season switching, and undo. Optional OpenAI composition and conversational
       edits bring fixtures, standings, and player leaders together.
+- [x] Team-home Views with next match, season snapshot, team fixtures, current absences and
+      highlighted standings. Every implemented widget supports one-, two- and three-column layouts;
+      see the [implemented and planned widget inventory](docs/view-widgets.md).
 
 ### Ahead
 

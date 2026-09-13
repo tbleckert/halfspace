@@ -32,7 +32,7 @@ export function TeamAvailability({
           {current ? 'No absences reported' : 'Absence data unavailable'}
         </CardContent>
       ) : (
-        <div className="space-y-2 pb-2">
+        <div className="team-availability-list space-y-2 pb-2">
           {current.map((absence) => (
             <Link
               key={absence.id}

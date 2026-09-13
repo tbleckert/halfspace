@@ -5,12 +5,9 @@
   height: 100%;
   min-height: 500px;
   isolation: isolate;
-  background-image: radial-gradient(
-    color-mix(in oklab, var(--foreground) 13%, transparent) 0.7px,
-    transparent 0.7px
-  );
-  background-size: 22px 22px;
+  background: var(--background);
   container-type: inline-size;
+  container-name: view-workspace;
 }
 
 .view-toolbar {
@@ -51,21 +48,154 @@
   color: var(--muted-foreground);
 }
 .view-sheet {
-  max-width: 1180px;
+  max-width: 1480px;
   margin: auto;
   padding: 36px 32px 48px;
+  container-type: inline-size;
+  container-name: view-sheet;
 }
 .view-block-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 24px 20px;
   align-items: start;
 }
 .view-block {
   min-width: 0;
+  container-type: inline-size;
+  container-name: view-widget;
 }
-.view-block-full {
+.view-block[data-span='2'] {
+  grid-column: span 2;
+}
+.view-block[data-span='3'] {
   grid-column: 1 / -1;
+}
+.view-fixture-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+.view-next-match {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+.view-match-pair {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 18px;
+}
+.view-match-team {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+.view-match-team > span {
+  overflow-wrap: anywhere;
+}
+.view-match-kickoff {
+  text-align: center;
+}
+.view-season-body {
+  display: grid;
+  gap: 24px;
+  margin-top: 20px;
+}
+.view-season-values {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 14px;
+}
+.view-season-values dd {
+  margin-left: 0;
+}
+.view-leaders [data-slot='card-header'] {
+  flex-wrap: wrap;
+}
+.view-leaders td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.view-standings table {
+  min-width: 0;
+}
+.view-team-availability .team-availability-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+@container view-widget (min-width: 520px) {
+  .view-match-pair {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+  }
+  .view-match-team:last-child {
+    flex-direction: row-reverse;
+    text-align: right;
+  }
+  .view-season-values {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .view-fixture-list,
+  .view-team-availability .team-availability-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@container view-widget (min-width: 860px) {
+  .view-next-match {
+    gap: 34px;
+    padding: 28px;
+  }
+  .view-match-team {
+    font-size: 28px;
+  }
+  .view-fixture-list,
+  .view-team-availability .team-availability-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .view-season-body {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    align-items: center;
+  }
+}
+@container view-widget (max-width: 380px) {
+  .view-standings th:nth-child(3),
+  .view-standings td:nth-child(3),
+  .view-standings th:nth-child(4),
+  .view-standings td:nth-child(4) {
+    display: none;
+  }
+  .view-leaders th:nth-child(3),
+  .view-leaders td:nth-child(3) {
+    display: none;
+  }
+  .view-leaders .view-leader-team {
+    display: block;
+  }
+  .view-leaders th,
+  .view-leaders td {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}
+@container view-sheet (max-width: 900px) {
+  .view-block-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@container view-sheet (max-width: 580px) {
+  .view-block-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .view-block[data-span] {
+    grid-column: 1 / -1;
+  }
 }
 .view-data-scroll {
   max-height: 470px;
@@ -282,10 +412,7 @@
   }
 }
 
-@container (max-width: 740px) {
-  .view-block-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
+@container view-workspace (max-width: 740px) {
   .view-sheet {
     padding: 26px 20px 36px;
   }

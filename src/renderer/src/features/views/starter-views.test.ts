@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { createStarterView, starterViews } from './starter-views'
+import { createStarterView, createTeamStarterView, starterViews } from './starter-views'
 import { validateViewSpec } from '@shared/views'
 
 const context = {
@@ -10,15 +10,35 @@ const context = {
   isCurrent: true
 }
 
+it('builds a supporter home with explicit season scope and a useful season-free fallback', () => {
+  const team = { teamId: 19, teamName: 'Arsenal' }
+  const spec = createTeamStarterView(team, context)
+  expect(validateViewSpec(spec, [context], [team])).toEqual(spec)
+  expect(spec.blocks.map(({ type, span }) => ({ type, span }))).toEqual([
+    { type: 'team-next-match', span: 2 },
+    { type: 'team-season', span: 1 },
+    { type: 'team-fixtures', span: 1 },
+    { type: 'standings', span: 1 },
+    { type: 'team-availability', span: 1 }
+  ])
+  expect(createTeamStarterView(team).blocks.map(({ type }) => type)).toEqual([
+    'team-next-match',
+    'team-fixtures',
+    'team-availability'
+  ])
+})
+
 it.each(['overview', 'leaders', 'matchday'] as const)(
   'builds a complete %s starter for the exact selected season',
   (template) => {
     const spec = createStarterView(template, context)
     expect(validateViewSpec(spec, [context])).toEqual(spec)
     expect(spec.blocks.length).toBeGreaterThan(1)
-    expect(spec.blocks.every((block) => block.competitionId === 8 && block.seasonId === 12)).toBe(
-      true
-    )
+    expect(
+      spec.blocks.every(
+        (block) => 'competitionId' in block && block.competitionId === 8 && block.seasonId === 12
+      )
+    ).toBe(true)
     expect(new Set(spec.blocks.map((block) => block.id)).size).toBe(spec.blocks.length)
   }
 )

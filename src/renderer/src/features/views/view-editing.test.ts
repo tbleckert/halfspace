@@ -1,5 +1,7 @@
 import { expect, it } from 'vitest'
-import { createStarterView } from './starter-views'
+import { createStarterView, createTeamStarterView } from './starter-views'
+import { implementedViewWidgets } from '@shared/view-widgets'
+import { validateViewSpec } from '@shared/views'
 import { addViewBlock, changeViewContext, moveViewBlock, removeViewBlock } from './view-editing'
 
 const context = {
@@ -11,11 +13,38 @@ const context = {
 }
 const initial = createStarterView('leaders', context)
 
+it.each(implementedViewWidgets)(
+  'creates a valid $type widget in all three column modes',
+  (widget) => {
+    const team = { teamId: 19, teamName: 'Arsenal' }
+    const next = addViewBlock({ ...initial, blocks: [] }, widget.type, context, team)
+    for (const span of widget.columns) {
+      const spec = { ...next, blocks: next.blocks.map((block) => ({ ...block, span })) }
+      expect(validateViewSpec(spec, [context], [team])).toEqual(spec)
+    }
+  }
+)
+
+it('changes only season-bound widgets while retaining the team, widths and personal title', () => {
+  const spec = createTeamStarterView({ teamId: 19, teamName: 'Arsenal' }, context)
+  const historical = { ...context, seasonId: 11, seasonName: '2025/26', isCurrent: false }
+  const next = changeViewContext(spec, historical, [context, historical])
+  expect(next.title).toBe(spec.title)
+  expect(next.blocks).toEqual(
+    spec.blocks.map((block) => ('seasonId' in block ? { ...block, seasonId: 11 } : block))
+  )
+})
+
 it('adds blocks with their selected context and unique identities without mutating the draft', () => {
   const next = addViewBlock(initial, 'standings', context)
   expect(initial.blocks).toHaveLength(2)
   expect(next.blocks).toHaveLength(3)
-  expect(next.blocks[2]).toMatchObject({ type: 'standings', competitionId: 8, seasonId: 12 })
+  expect(next.blocks[2]).toMatchObject({
+    type: 'standings',
+    teamId: null,
+    competitionId: 8,
+    seasonId: 12
+  })
   expect(new Set(next.blocks.map((block) => block.id)).size).toBe(3)
 })
 
@@ -45,7 +74,7 @@ it('changes every block to a verified competition and season without altering la
   expect(next.blocks).toEqual(
     initial.blocks.map((block) => ({ ...block, competitionId: 384, seasonId: 22 }))
   )
-  expect(initial.blocks[0].seasonId).toBe(12)
+  expect('seasonId' in initial.blocks[0] && initial.blocks[0].seasonId).toBe(12)
   expect(() => changeViewContext(initial, nextContext, [context])).toThrow()
 })
 
@@ -56,5 +85,5 @@ it('preserves a personal title and allows switching to an explicit historical se
     historical
   ])
   expect(next.title).toBe('My investigation')
-  expect(next.blocks.every((block) => block.seasonId === 11)).toBe(true)
+  expect(next.blocks.every((block) => 'seasonId' in block && block.seasonId === 11)).toBe(true)
 })

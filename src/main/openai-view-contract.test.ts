@@ -5,6 +5,7 @@ import type { GenerateViewInput } from '@shared/views'
 const input: GenerateViewInput = {
   requestId: 'fa3197ee-c3b7-4a09-81d8-aa11a133ab66',
   prompt: 'Show the league table',
+  teams: [],
   contexts: [
     {
       competitionId: 8,
@@ -17,10 +18,12 @@ const input: GenerateViewInput = {
   current: null
 }
 const spec = {
-  version: 1,
+  version: 2,
   title: 'My league',
   message: '',
-  blocks: [{ id: 'table', type: 'standings', competitionId: 8, seasonId: 12, span: 'half' }]
+  blocks: [
+    { id: 'table', type: 'standings', teamId: null, competitionId: 8, seasonId: 12, span: 1 }
+  ]
 }
 afterEach(() => vi.unstubAllGlobals())
 
@@ -32,7 +35,7 @@ it('uses the direct OpenAI Responses endpoint with a strict schema and streams i
       type: 'response.output_text.delta',
       item_id: 'msg_1',
       output_index: 0,
-      delta: JSON.stringify(spec)
+      delta: JSON.stringify({ outcome: 'composed', ...spec })
     },
     { type: 'response.output_item.done', output_index: 0, item: { type: 'message', id: 'msg_1' } },
     { type: 'response.completed', response: { usage: { input_tokens: 10, output_tokens: 100 } } }
@@ -61,8 +64,16 @@ it('uses the direct OpenAI Responses endpoint with a strict schema and streams i
   })
   // OpenAI rejects oneOf from Zod discriminated unions before generation starts.
   const blockAlternatives = body.text.format.schema.properties.blocks.items
+  expect(Object.keys(body.text.format.schema.properties)[0]).toBe('outcome')
   expect(blockAlternatives).toHaveProperty('anyOf')
   expect(blockAlternatives).not.toHaveProperty('oneOf')
+  // Choosing type first avoids committing to overlapping entity fields before the widget kind.
+  expect(blockAlternatives.anyOf).toHaveLength(7)
+  for (const option of blockAlternatives.anyOf) {
+    expect(Object.keys(option.properties)[0]).toBe('type')
+    expect(option.required).toEqual(Object.keys(option.properties))
+    expect(option.additionalProperties).toBe(false)
+  }
   expect(body.input).toBeDefined()
   expect(progress).toHaveBeenCalledWith(expect.objectContaining({ blocks: spec.blocks }))
 })

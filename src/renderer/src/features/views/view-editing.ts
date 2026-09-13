@@ -1,16 +1,45 @@
-import { validateViewSpec, type ViewBlock, type ViewContext, type ViewSpec } from '@shared/views'
+import {
+  viewSpecSchema,
+  type ViewBlock,
+  type ViewContext,
+  type ViewSpec,
+  type ViewTeamContext
+} from '@shared/views'
+import { implementedViewWidgets, viewWidget, type ViewWidgetType } from '@shared/view-widgets'
 
-export const viewBlockTypes = [
-  { value: 'standings', label: 'Standings' },
-  { value: 'upcoming', label: 'Upcoming fixtures' },
-  { value: 'recent', label: 'Recent results' },
-  { value: 'goals', label: 'Goals leaders' },
-  { value: 'assists', label: 'Assists leaders' },
-  { value: 'yellow-cards', label: 'Yellow cards' },
-  { value: 'red-cards', label: 'Red cards' }
-] as const
-
-export type ViewBlockType = (typeof viewBlockTypes)[number]['value']
+export type ViewBlockType =
+  | ViewWidgetType
+  | 'upcoming'
+  | 'recent'
+  | 'goals'
+  | 'assists'
+  | 'yellow-cards'
+  | 'red-cards'
+  | 'team-upcoming'
+  | 'team-recent'
+export const viewBlockTypes = implementedViewWidgets.flatMap<{
+  value: ViewBlockType
+  label: string
+  widget: ViewWidgetType
+}>((widget) => {
+  if (widget.type === 'fixtures')
+    return [
+      { value: 'upcoming', label: 'Upcoming fixtures', widget: widget.type },
+      { value: 'recent', label: 'Recent results', widget: widget.type }
+    ]
+  if (widget.type === 'leaders')
+    return (['goals', 'assists', 'yellow-cards', 'red-cards'] as const).map((category) => ({
+      value: category,
+      label: `${category.replace('-', ' ')} leaders`,
+      widget: widget.type
+    }))
+  if (widget.type === 'team-fixtures')
+    return [
+      { value: 'team-upcoming', label: 'Upcoming team fixtures', widget: widget.type },
+      { value: 'team-recent', label: 'Recent team results', widget: widget.type }
+    ]
+  return [{ value: widget.type, label: widget.label, widget: widget.type }]
+})
 
 export function viewBlockLabel(block: ViewBlock): string {
   const value =
@@ -19,23 +48,71 @@ export function viewBlockLabel(block: ViewBlock): string {
       : block.type === 'leaders'
         ? block.category
         : block.type
-  return viewBlockTypes.find((item) => item.value === value)!.label
+  if (block.type === 'team-fixtures')
+    return block.period === 'upcoming' ? 'Upcoming team fixtures' : 'Recent team results'
+  return viewBlockTypes.find((item) => item.value === value)?.label ?? viewWidget(block.type).label
 }
 
-export function addViewBlock(spec: ViewSpec, type: ViewBlockType, context: ViewContext): ViewSpec {
+export function addViewBlock(
+  spec: ViewSpec,
+  type: ViewBlockType,
+  context?: ViewContext,
+  team?: ViewTeamContext
+): ViewSpec {
   if (spec.blocks.length >= 8) return spec
   const base = {
     id: crypto.randomUUID(),
-    competitionId: context.competitionId,
-    seasonId: context.seasonId,
-    span: 'half' as const
+    span: 1 as const
   }
-  const block: ViewBlock =
-    type === 'standings'
-      ? { ...base, type }
-      : type === 'upcoming' || type === 'recent'
-        ? { ...base, type: 'fixtures', period: type }
-        : { ...base, type: 'leaders', category: type }
+  const widgetType =
+    viewBlockTypes.find((preset) => preset.value === type)?.widget ?? (type as ViewWidgetType)
+  const widget = viewWidget(widgetType)
+  if (widget.context !== 'competition' && !team) throw new Error('Choose a team for this widget.')
+  if (widget.context !== 'team' && !context) throw new Error('Choose a competition and season.')
+  const competition = context
+    ? { competitionId: context.competitionId, seasonId: context.seasonId }
+    : null
+  let block: ViewBlock
+  switch (widgetType) {
+    case 'team-next-match':
+      block = { ...base, type: widgetType, teamId: team!.teamId, span: 2 }
+      break
+    case 'team-availability':
+      block = { ...base, type: widgetType, teamId: team!.teamId }
+      break
+    case 'team-fixtures':
+      block = {
+        ...base,
+        type: widgetType,
+        teamId: team!.teamId,
+        period: type === 'team-recent' ? 'recent' : 'upcoming'
+      }
+      break
+    case 'team-season':
+      block = { ...base, ...competition!, type: widgetType, teamId: team!.teamId }
+      break
+    case 'standings':
+      block = { ...base, ...competition!, type: widgetType, teamId: null }
+      break
+    case 'fixtures':
+      block = {
+        ...base,
+        ...competition!,
+        type: widgetType,
+        period: type === 'recent' ? 'recent' : 'upcoming'
+      }
+      break
+    case 'leaders':
+      block = {
+        ...base,
+        ...competition!,
+        type: widgetType,
+        category: (['goals', 'assists', 'yellow-cards', 'red-cards'].includes(type)
+          ? type
+          : 'goals') as Extract<ViewBlock, { type: 'leaders' }>['category']
+      }
+      break
+  }
   return { ...spec, blocks: [...spec.blocks, block] }
 }
 
@@ -59,7 +136,7 @@ export function changeViewContext(
   context: ViewContext,
   available: ViewContext[]
 ): ViewSpec {
-  const first = spec.blocks[0]
+  const first = spec.blocks.find((block) => 'competitionId' in block)
   const original = available.find(
     (item) => item.competitionId === first?.competitionId && item.seasonId === first?.seasonId
   )
@@ -67,23 +144,32 @@ export function changeViewContext(
     original &&
     spec.blocks.every(
       (block) =>
-        block.competitionId === original.competitionId && block.seasonId === original.seasonId
+        'competitionId' in block &&
+        block.competitionId === original.competitionId &&
+        block.seasonId === original.seasonId
     ) &&
     spec.title === `${original.competitionName} · ${original.seasonName}`.slice(0, 80)
-  return validateViewSpec(
-    {
-      ...spec,
-      title: hasDefaultTitle
-        ? `${context.competitionName} · ${context.seasonName}`.slice(0, 80)
-        : spec.title,
-      // A generated description can refer to the previous competition or season.
-      message: '',
-      blocks: spec.blocks.map((block) => ({
-        ...block,
-        competitionId: context.competitionId,
-        seasonId: context.seasonId
-      }))
-    },
-    available
+  if (
+    !available.some(
+      (item) => item.competitionId === context.competitionId && item.seasonId === context.seasonId
+    )
   )
+    throw new Error('The competition or season is unavailable.')
+  return viewSpecSchema.parse({
+    ...spec,
+    title: hasDefaultTitle
+      ? `${context.competitionName} · ${context.seasonName}`.slice(0, 80)
+      : spec.title,
+    // A generated description can refer to the previous competition or season.
+    message: '',
+    blocks: spec.blocks.map((block) =>
+      'competitionId' in block
+        ? {
+            ...block,
+            competitionId: context.competitionId,
+            seasonId: context.seasonId
+          }
+        : block
+    )
+  })
 }

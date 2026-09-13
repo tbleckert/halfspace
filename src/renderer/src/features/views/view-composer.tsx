@@ -104,7 +104,7 @@ export function ViewComposer({
                 <Check className="size-3.5" />
                 {hasView ? 'Edit with OpenAI' : 'OpenAI'}
                 <span className="mx-1 opacity-40">/</span>
-                <span>Fixtures, standings, leaders</span>
+                <span>Teams, fixtures, standings, leaders</span>
               </span>
             )}
           </div>

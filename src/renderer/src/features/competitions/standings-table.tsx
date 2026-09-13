@@ -34,7 +34,8 @@ export function StandingsTable({
   online,
   season,
   standings,
-  activeTeamIds = []
+  activeTeamIds = [],
+  highlightedTeamId
 }: {
   competitionId: number
   date: string
@@ -43,6 +44,7 @@ export function StandingsTable({
   season?: number
   standings: CachedStanding[]
   activeTeamIds?: number[]
+  highlightedTeamId?: number
 }): React.JSX.Element {
   const rules = [
     ...new Map(
@@ -79,7 +81,13 @@ export function StandingsTable({
             const goalDifference = standingDetailValue(standing.raw.details, 179)
             const rule = standing.raw.rule?.type
             return (
-              <TableRow key={standing.id} className="hover:bg-transparent">
+              <TableRow
+                key={standing.id}
+                className={cn(
+                  'hover:bg-transparent',
+                  standing.participantId === highlightedTeamId && 'bg-sidebar-accent'
+                )}
+              >
                 <TableCell
                   className="relative px-3 py-2.5 font-mono tabular-nums text-muted-foreground"
                   title={rule?.name}

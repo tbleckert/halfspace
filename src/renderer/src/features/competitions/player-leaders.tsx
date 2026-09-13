@@ -108,6 +108,7 @@ export function PlayerLeaders({
                 </TableCell>
                 <TableCell>
                   <Link
+                    aria-label={row.player?.display_name ?? `Player ${row.player_id}`}
                     to="/players/$playerId"
                     params={{ playerId: String(row.player_id) }}
                     search={{
@@ -124,7 +125,13 @@ export function PlayerLeaders({
                       imagePath={row.player?.image_path ?? null}
                       online={online}
                     />
-                    {row.player?.display_name ?? `Player ${row.player_id}`}
+                    <span>
+                      {row.player?.display_name ?? `Player ${row.player_id}`}
+                      <span className="view-leader-team hidden text-xs font-normal text-muted-foreground">
+                        {row.participant?.name ??
+                          (row.participant_id ? `Team ${row.participant_id}` : 'Team not reported')}
+                      </span>
+                    </span>
                   </Link>
                 </TableCell>
                 <TableCell>

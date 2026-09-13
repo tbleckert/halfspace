@@ -6,6 +6,8 @@ import {
   clearSportmonksCache,
   db,
   writeCompetitionRefresh,
+  writeTeamRefresh,
+  writeTeamCompetitionsRefresh,
   writeSeasonTopscorersRefresh
 } from '@/data/db'
 import { routeTree } from '@/routeTree.gen'
@@ -84,7 +86,9 @@ it('switches all blocks to the selected competition, replaces cached content, an
   await waitFor(() => expect(router.state.location.search.view).toBeTruthy())
   const saved = await db.savedViews.get(router.state.location.search.view!)
   expect(
-    saved?.spec.blocks.every((block) => block.competitionId === 8 && block.seasonId === 12)
+    saved?.spec.blocks.every(
+      (block) => 'competitionId' in block && block.competitionId === 8 && block.seasonId === 12
+    )
   ).toBe(true)
   expect(window.halfspace.views.generate).not.toHaveBeenCalled()
 })
@@ -126,7 +130,9 @@ it('opens, saves, and reopens a starter offline without an AI key or generation 
   const saved = await db.savedViews.get(id)
   expect(saved?.spec.blocks).toHaveLength(2)
   expect(
-    saved?.spec.blocks.every((block) => block.competitionId === 384 && block.seasonId === 22)
+    saved?.spec.blocks.every(
+      (block) => 'competitionId' in block && block.competitionId === 384 && block.seasonId === 22
+    )
   ).toBe(true)
   await act(() => router.navigate({ to: '/views', search: {} }))
   await act(() => router.navigate({ to: '/views', search: { view: id } }))
@@ -145,7 +151,7 @@ it('edits block content and layout, undoes removal, and persists the result with
     target: { value: '384:22' }
   })
   fireEvent.click(screen.getByRole('button', { name: 'Add block' }))
-  fireEvent.change(await screen.findByLabelText('Width of block 1'), { target: { value: 'full' } })
+  fireEvent.change(await screen.findByLabelText('Width of block 1'), { target: { value: '3' } })
   fireEvent.click(screen.getByRole('button', { name: 'Move block 3 up' }))
   fireEvent.click(screen.getByRole('button', { name: 'Remove block 2' }))
   fireEvent.click(screen.getByRole('button', { name: 'Done' }))
@@ -154,9 +160,53 @@ it('edits block content and layout, undoes removal, and persists the result with
   await waitFor(() => expect(router.state.location.search.view).toBeTruthy())
   const saved = await db.savedViews.get(router.state.location.search.view!)
   expect(saved?.spec.blocks).toMatchObject([
-    { type: 'leaders', category: 'goals', span: 'full', competitionId: 8, seasonId: 12 },
+    { type: 'leaders', category: 'goals', span: 3, competitionId: 8, seasonId: 12 },
     { type: 'fixtures', period: 'recent', competitionId: 384, seasonId: 22 },
     { type: 'leaders', category: 'assists', competitionId: 8, seasonId: 12 }
   ])
+  expect(window.halfspace.views.generate).not.toHaveBeenCalled()
+})
+
+it('creates a team home offline, changes its widths, saves and reopens after cache clearing', async () => {
+  await writeTeamRefresh({
+    fetchedAt: Date.now(),
+    team: {
+      id: 19,
+      country_id: 1,
+      name: 'Arsenal',
+      sport_id: 1,
+      venue_id: null,
+      gender: 'male',
+      founded: 1886,
+      placeholder: false,
+      sidelined: []
+    }
+  })
+  await writeTeamCompetitionsRefresh(19, {
+    teamId: 19,
+    fetchedAt: Date.now(),
+    pageCount: 1,
+    competitions: [(await db.competitions.get(8))!.raw]
+  })
+  const router = openViews()
+  await screen.findByLabelText('Season context')
+  fireEvent.click(screen.getByRole('button', { name: 'Create team home' }))
+  expect(((await screen.findByLabelText('View name')) as HTMLInputElement).value).toBe('My Arsenal')
+  fireEvent.click(screen.getByRole('button', { name: 'Edit blocks' }))
+  fireEvent.change(await screen.findByLabelText('Width of block 1'), { target: { value: '1' } })
+  fireEvent.change(screen.getByLabelText('Width of block 2'), { target: { value: '2' } })
+  fireEvent.change(screen.getByLabelText('Width of block 3'), { target: { value: '3' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Save view' }))
+  await waitFor(() => expect(router.state.location.search.view).toBeTruthy())
+  const id = router.state.location.search.view!
+  const saved = (await db.savedViews.get(id))!
+  expect(saved.spec.blocks.map(({ span }) => span)).toEqual([1, 2, 3, 1, 1])
+  expect(saved.spec.blocks.every((block) => 'teamId' in block && block.teamId === 19)).toBe(true)
+  await act(() => router.navigate({ to: '/views', search: {} }))
+  await act(() => clearSportmonksCache())
+  await act(() => router.navigate({ to: '/views', search: { view: id } }))
+  expect(((await screen.findByLabelText('View name')) as HTMLInputElement).value).toBe('My Arsenal')
+  expect((await db.savedViews.get(id))?.spec).toEqual(saved.spec)
   expect(window.halfspace.views.generate).not.toHaveBeenCalled()
 })

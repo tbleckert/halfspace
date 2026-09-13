@@ -33,6 +33,7 @@ import { registerViewsIpc, cancelViewGenerations } from './views-ipc'
 const input: GenerateViewInput = {
   requestId: 'fa3197ee-c3b7-4a09-81d8-aa11a133ab66',
   prompt: 'A league table',
+  teams: [],
   contexts: [
     {
       competitionId: 8,
@@ -45,10 +46,12 @@ const input: GenerateViewInput = {
   current: null
 }
 const spec = {
-  version: 1,
+  version: 2,
   title: 'My league',
   message: '',
-  blocks: [{ id: 'table', type: 'standings', competitionId: 8, seasonId: 12, span: 'half' }]
+  blocks: [
+    { id: 'table', type: 'standings', teamId: null, competitionId: 8, seasonId: 12, span: 1 }
+  ]
 }
 
 function owner(id = 1): { event: IpcMainInvokeEvent; send: ReturnType<typeof vi.fn> } {

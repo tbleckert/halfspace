@@ -209,8 +209,16 @@ Keep the complete selections visible in the comparison workspace after reopening
 
 Views offer compact warm starter cards with one competition-and-season selector. Keep manual block
 editing and context changes in focused dialogs, with explicit keyboard actions for reordering and
-width. The same toolbar saves drafts, duplicates views, and undoes changes. At narrower workspace
-widths, wrap the toolbar and stack blocks in one column. Keep titles editable and visibly prominent.
+width. The same toolbar saves drafts, duplicates views, and undoes changes. Team-home starters
+pair a known team with its reported current competition and season when available.
+
+Views use a quiet white canvas and a three-column grid. Every widget supports compact (1), wide (2)
+and full-width (3) spans, with content adapting to its actual width. Reduce the grid to two and then
+one column as space narrows, retaining the user's saved spans. Wrap the toolbar and keep titles
+editable and visibly prominent. Next match uses the shared violet fixture treatment; supporting
+cards use warm neutrals, monospaced facts and linked identity/season context. The
+[widget inventory](view-widgets.md) distinguishes the working supporter slice from planned widgets
+in the accepted three-story design studies.
 
 Use shared Card, Skeleton, and ErrorAlert components for View data states. Reserve the drawing
 outlines for actual AI composition; offline or unavailable data uses a static status card. Respect

@@ -7,11 +7,19 @@ const provider = vi.hoisted(() => ({ responses: vi.fn() }))
 vi.mock('@ai-sdk/openai', () => ({ createOpenAI: () => provider }))
 import { generateView } from './view-generation'
 
-const block = { id: 'table', type: 'standings', competitionId: 8, seasonId: 12, span: 'half' }
-const spec = { version: 1, title: 'Premier League', message: 'Your league table.', blocks: [block] }
+const block = {
+  id: 'table',
+  type: 'standings',
+  teamId: null,
+  competitionId: 8,
+  seasonId: 12,
+  span: 1
+}
+const spec = { version: 2, title: 'Premier League', message: 'Your league table.', blocks: [block] }
 const input: GenerateViewInput = {
   requestId: 'fa3197ee-c3b7-4a09-81d8-aa11a133ab66',
   prompt: 'Show a league table',
+  teams: [],
   contexts: [
     {
       competitionId: 8,
@@ -24,7 +32,8 @@ const input: GenerateViewInput = {
   current: null
 }
 
-function streamingModel(text: string): MockLanguageModelV4 {
+function streamingModel(text: string, outcome = 'composed'): MockLanguageModelV4 {
+  text = `{"outcome":"${outcome}",${text.slice(1)}`
   return new MockLanguageModelV4({
     doStream: async () => ({
       stream: simulateReadableStream({
@@ -85,6 +94,38 @@ it('rejects truncated output instead of accepting a partial view', async () => {
   await expect(
     generateView(input, 'test-key', new AbortController().signal, () => undefined)
   ).rejects.toThrow()
+})
+
+it('rejects invented team identities before streaming them to the canvas', async () => {
+  provider.responses.mockReturnValue(
+    streamingModel(
+      JSON.stringify({
+        ...spec,
+        blocks: [{ id: 'next', type: 'team-next-match', teamId: 999, span: 2 }]
+      })
+    )
+  )
+  const updates: ViewProgress[] = []
+  await expect(
+    generateView(
+      { ...input, teams: [{ teamId: 19, teamName: 'Arsenal' }] },
+      'test-key',
+      new AbortController().signal,
+      (progress) => updates.push(progress)
+    )
+  ).rejects.toThrow(/team/i)
+  expect(updates.flatMap((update) => update.blocks)).toEqual([])
+})
+
+it('does not stream or return fallback widgets when an essential request is unavailable', async () => {
+  const declined = { ...spec, message: 'Team news is not available yet.' }
+  provider.responses.mockReturnValue(streamingModel(JSON.stringify(declined), 'unavailable'))
+  const updates: ViewProgress[] = []
+  const result = await generateView(input, 'test-key', new AbortController().signal, (progress) =>
+    updates.push(progress)
+  )
+  expect(result).toEqual({ ...declined, blocks: [] })
+  expect(updates.flatMap((update) => update.blocks)).toEqual([])
 })
 
 it('does not return a completed view after cancellation', async () => {

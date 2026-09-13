@@ -10,8 +10,15 @@ const context = [
     isCurrent: true
   }
 ]
-const block = { id: 'table', type: 'standings', competitionId: 8, seasonId: 12, span: 'half' }
-const spec = { version: 1, title: 'Match centre', message: '', blocks: [block] }
+const block = {
+  id: 'table',
+  type: 'standings',
+  teamId: null,
+  competitionId: 8,
+  seasonId: 12,
+  span: 1
+}
+const spec = { version: 2, title: 'Match centre', message: '', blocks: [block] }
 
 describe('view definitions', () => {
   it('accepts supported blocks bound to a known competition and season', () => {

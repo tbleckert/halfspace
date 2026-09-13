@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { validateViewSpec, type ViewBlock, type ViewContext, type ViewSpec } from '@shared/views'
+import {
+  validateViewSpec,
+  type ViewBlock,
+  type ViewContext,
+  type ViewSpec,
+  type ViewTeamContext
+} from '@shared/views'
 
 export function useViewGeneration(): {
   generating: boolean
@@ -8,7 +14,8 @@ export function useViewGeneration(): {
   generate: (
     prompt: string,
     contexts: ViewContext[],
-    current: ViewSpec | null
+    current: ViewSpec | null,
+    teams?: ViewTeamContext[]
   ) => Promise<ViewSpec | null>
   cancel: () => void
 } {
@@ -40,7 +47,8 @@ export function useViewGeneration(): {
   async function generate(
     prompt: string,
     contexts: ViewContext[],
-    current: ViewSpec | null
+    current: ViewSpec | null,
+    teams: ViewTeamContext[] = []
   ): Promise<ViewSpec | null> {
     cancel()
     const requestId = crypto.randomUUID()
@@ -49,17 +57,23 @@ export function useViewGeneration(): {
     setBlocks([])
     setError(null)
     try {
-      const result = await window.halfspace.views.generate({ requestId, prompt, contexts, current })
+      const result = await window.halfspace.views.generate({
+        requestId,
+        prompt,
+        contexts,
+        teams,
+        current
+      })
       if (request.current !== requestId) return null
       if (!result.ok) {
         setError(result.error.message)
         return null
       }
-      const spec = validateViewSpec(result.data, contexts)
+      const spec = validateViewSpec(result.data, contexts, teams)
       if (!spec.blocks.length) {
         setError(
           spec.message ||
-            'This view is not supported yet. Try fixtures, standings, or player leaders.'
+            'This view is not supported yet. Try a team home, fixtures, standings, or player leaders.'
         )
         return null
       }

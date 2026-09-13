@@ -24,7 +24,8 @@ export function ViewContextEditor({
     context &&
     spec.blocks.every(
       (block) =>
-        block.competitionId === context.competitionId && block.seasonId === context.seasonId
+        !('competitionId' in block) ||
+        (block.competitionId === context.competitionId && block.seasonId === context.seasonId)
     )
 
   return (
@@ -50,7 +51,8 @@ export function ViewContextEditor({
       <DialogContent className="p-5" aria-describedby="view-context-description">
         <DialogTitle>Change competition or season</DialogTitle>
         <p id="view-context-description" className="mt-2 text-sm text-muted-foreground">
-          Apply the selection to every block in this view. You can undo the change before saving.
+          Apply the selection to season-based blocks. Current team fixtures and absences keep their
+          team. You can undo the change before saving.
         </p>
         <form
           className="mt-5 space-y-4"

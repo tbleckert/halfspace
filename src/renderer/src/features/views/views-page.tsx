@@ -6,6 +6,7 @@ import {
   type SavedView,
   type ViewBlock,
   type ViewContext,
+  type ViewTeamContext,
   type ViewSpec
 } from '@shared/views'
 import { db } from '@/data/db'
@@ -15,28 +16,33 @@ import { Label } from '@/components/ui/label'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import { useOnline } from '@/lib/use-online'
-import { cn } from '@/lib/utils'
-import { duplicateView, readViewContexts, saveView, undoSavedView } from './saved-views'
+import {
+  duplicateView,
+  readViewContexts,
+  readViewTeams,
+  readSavedViews,
+  saveView,
+  undoSavedView
+} from './saved-views'
 import { ViewBlockContent, ViewBlockOutline } from './view-blocks'
 import { ViewComposer } from './view-composer'
 import { useViewGeneration } from './use-view-generation'
 import { StarterViewPicker } from './starter-view-picker'
 import { ViewLayoutEditor } from './view-layout-editor'
 import { ViewContextEditor } from './view-context-editor'
+import { TeamViewStarter } from './team-view-starter'
 import './views.css'
 
 export function ViewsPage({ viewId }: { viewId?: string }): React.JSX.Element {
-  const savedViews = useScopedLiveQuery(
-    () => db.savedViews.orderBy('updatedAt').reverse().toArray(),
-    []
-  )
+  const savedViews = useScopedLiveQuery(readSavedViews, [])
   const contexts = useScopedLiveQuery(readViewContexts, [])
+  const teams = useScopedLiveQuery(readViewTeams, [])
   const navigate = useNavigate({ from: '/views' })
   const selected = savedViews?.find((view) => view.id === viewId)
   const onSelect = (id?: string): void => {
     void navigate({ search: { view: id } })
   }
-  if (!savedViews || !contexts)
+  if (!savedViews || !contexts || !teams)
     return (
       <div role="status" className="p-8 text-sm text-muted-foreground">
         Opening your views…
@@ -58,6 +64,7 @@ export function ViewsPage({ viewId }: { viewId?: string }): React.JSX.Element {
       initial={selected ?? null}
       savedViews={savedViews}
       contexts={contexts}
+      teams={teams}
       onSelect={onSelect}
     />
   )
@@ -67,11 +74,13 @@ function ViewEditor({
   initial,
   savedViews,
   contexts,
+  teams,
   onSelect
 }: {
   initial: SavedView | null
   savedViews: SavedView[]
   contexts: ViewContext[]
+  teams: ViewTeamContext[]
   onSelect: (id?: string) => void
 }): React.JSX.Element {
   const [id] = useState(() => initial?.id ?? crypto.randomUUID())
@@ -104,9 +113,10 @@ function ViewEditor({
   }, [])
 
   async function build(): Promise<void> {
-    if (!configured || !online || !contexts.length || !prompt.trim() || saving) return
+    if (!configured || !online || (!contexts.length && !teams.length) || !prompt.trim() || saving)
+      return
     setStorageError(null)
-    const next = await generation.generate(prompt, contexts, spec)
+    const next = await generation.generate(prompt, contexts, spec, teams)
     if (!next) return
     setPrevious(spec)
     setSpec(next)
@@ -230,6 +240,7 @@ function ViewEditor({
               <ViewLayoutEditor
                 spec={spec}
                 contexts={contexts}
+                teams={teams}
                 disabled={saving || generation.generating}
                 onChange={changeSpec}
               />
@@ -301,7 +312,15 @@ function ViewEditor({
           <div className="view-empty">
             <CanvasIllustration />
             <h2>Your football, your view.</h2>
-            <p>Bring fixtures, standings and player leaders into one view.</p>
+            <p>A home for your team, or a new perspective on a competition.</p>
+            <TeamViewStarter
+              teams={teams}
+              contexts={contexts}
+              onCreate={(next) => {
+                setSpec(next)
+                setStorageError(null)
+              }}
+            />
             <StarterViewPicker
               contexts={contexts}
               onCreate={(next) => {
@@ -333,7 +352,7 @@ function ViewEditor({
                       }}
                     />
                     <p className="mt-2 text-sm text-muted-foreground">{spec?.message}</p>
-                    {spec && (
+                    {spec && spec.blocks.some((block) => 'competitionId' in block) && (
                       <div className="mt-3">
                         <ViewContextEditor
                           spec={spec}
@@ -355,8 +374,11 @@ function ViewEditor({
             >
               {blocks.map((block) => (
                 <div
-                  key={`${generation.generating ? 'draft' : 'view'}:${block.id}:${block.competitionId}:${block.seasonId}`}
-                  className={cn('view-block', block.span === 'full' && 'view-block-full')}
+                  key={`${generation.generating ? 'draft' : 'view'}:${block.id}`}
+                  className="view-block"
+                  data-span={block.span}
+                  data-widget={block.type}
+                  aria-label={`${block.type} widget, ${block.span} column${block.span === 1 ? '' : 's'}`}
                 >
                   {generation.generating ? (
                     <ViewBlockOutline block={block} />
@@ -388,7 +410,7 @@ function ViewEditor({
         hasView={Boolean(spec)}
         configured={configured}
         online={online}
-        hasContexts={contexts.length > 0}
+        hasContexts={contexts.length > 0 || teams.length > 0}
         error={storageError ?? generation.error}
         onSubmit={() => void build()}
         onCancel={generation.cancel}
