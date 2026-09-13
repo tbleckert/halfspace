@@ -6,662 +6,143 @@ token; browsing cached football data should feel instant.
 Stack: Electron/electron-vite, React + TypeScript, shadcn/ui + Tailwind, TanStack Router, and
 Dexie/IndexedDB.
 
-Keep Electron thin: secrets and Sportmonks requests live in main, cached football data lives in
-the renderer, and preload exposes only narrow typed APIs. Avoid duplicate caches and premature
-abstractions.
+## Maintaining these instructions
 
-## Product priorities
-
-The next milestone is the [macOS alpha](docs/macos-alpha.md).
-First-run setup, My teams, saved comparisons, starter Views, and macOS packaging are implemented.
-Prioritize signed release validation and a small usability pilot. Follow [the release guide](docs/macos-release.md): tester builds require
-Developer ID signing and notarization; unsigned packages are explicitly for local checks.
-
-Complete Sportmonks coverage remains the long-term goal. Choose near-term endpoint work around
-these user journeys and observed tester needs. The milestone document records planned scope and
-acceptance criteria; keep unimplemented items unchecked in the README.
-
-## Product Design
-
-Read [the design guide](docs/design.md) before changing UI. It records the visual style,
-its rationale, reference values, and Matchday patterns. Keep it and the rules below in sync when
-the design direction changes; carry the style into other views incrementally.
-
-- Build the interface identity around coral and violet, supported by white, warm neutrals, and
-  dark ink. Keep it vibrant and energetic. Avoid restrained heritage-sports palettes that can
-  make the product feel like an American football brand.
-- Treat shadcn/ui as a component foundation, not as Halfspace's visual identity. Build an
-  editorial football-workbench language through typography, spacing, match presentation, and
-  selective graphic accents. Keep data surfaces calm and concentrate vibrant interface
-  color in navigation, section framing, and meaningful state.
-- Use monospaced tabular typography as the shared language for compact football facts: scores,
-  clocks, event minutes, match states, table values, statistics, odds, shirt numbers, and W/D/L.
-  Keep names, headings, labels, positions, and prose in the regular interface font.
-- Keep the application shell quiet. Use white for the content canvas and both sidebars, with no
-  borders separating those columns. Use muted active-item backgrounds and violet for active
-  text instead of large areas of solid brand color.
-- Cards use muted background fills, with no outer borders or shadows. Use a warm neutral for
-  shared data cards and a muted coral for Matchday news cards. Apply the same treatment to entity
-  cards and their loading states; use a background change for clickable-card hover feedback.
-- Use coral and violet for graphic accents and opposing chart series, with dark ink for text.
-  Retain green, red, and yellow where they communicate football states. Use spacing and heading
-  weight instead of card-header and repeated row dividers; align compact facts in clear columns.
-- Keep card entrance motion scoped to Matchday while its feel is being refined. Use an explicit
-  Motion card component with a spring pop-in from 95% scale, bounce 0.35, and a short capped stagger.
-  Animate scale and opacity once when each card enters the visible scroll area, keeping card height
-  in normal layout. Use Motion's viewport support so the independently scrolling news rail follows
-  the same rule. Do not animate skeletons or replay on scrolling back or cached-data updates.
-  Skip keyboard-triggered and reduced-motion entrances, keep content usable
-  throughout, and preserve persistent route shells. Avoid automatic app-wide DOM animation observers.
-- Keep a dedicated drag region across the empty top strip of setup states. In the main workspace,
-  limit that region to the sidebar so the live ticker can sit flush against the top edge; keep
-  interactive controls outside it or explicitly mark them as non-draggable.
-- Use shadcn/ui's Nova style (`b0`) as the density reference: compact 32px default controls,
-  restrained radii, and tighter page and card spacing. Preserve Halfspace's own palette and
-  football-specific presentation rather than applying a preset as a wholesale visual reset.
-- Use `resources/halfspace-logo.svg` as the canonical brand mark and preserve its legibility down
-  to 16px. Treat the logo as a separate asset with its own colors; use coral and violet for the
-  interface palette.
-- Required setup states use a focused fullscreen flow before the main app appears.
-- First-run setup guides token creation, shows the subscribed competition catalog, then offers team
-  search and optional TV country selection before opening today's Matchday. Reuse existing search,
-  team pins, subscription metadata, and TV listings; load TV choices only when expanded and keep
-  access failures distinct from empty data. Personalization can be skipped. Save progress before
-  token storage and persist completion outside disposable football caches; resume unfinished setup
-  after restarting, and leave already configured installations without a setup marker in their
-  workspace. Credential changes still reset and gate football caches before setup continues.
-  Existing team pins and the shared TV preference remain editable in Teams and TV Guide.
-
-- Use direct, singular page headings. Do not add eyebrow labels or pretitles above them.
-- Avoid prototype copy, implementation explanations, and redundant guidance. Text should name the
-  current thing, communicate a meaningful state, or enable an action.
-- Skip routine Sportmonks attribution on football data cards; name the provider only where account,
-  access, or error context makes it useful. Align headings and team rows across adjacent match cards.
-- Build the product outward through dedicated football entity pages and natural links between
-  them. Prioritize entity depth before secondary tools or dashboards.
-- Prioritize football data presentation, then dedicated design passes. Defer image exports and
-  sharing until the visual design is settled; do not build export layouts ahead of that work.
-- Horizontal local navigation uses one shared rule. Only the active item has its own indicator;
-  inherit its color from the active text and layer it directly over the shared rule.
-  Fixture hero navigation omits the shared rule and places the active underline at the bottom.
-- Keep entity subpages nested beneath one persistent entity route shell so changing a horizontal
-  navigation view does not remount shared data, headers, or context.
-- Use scoped live queries for identity-dependent cache reads. Retain results during same-query
-  background updates, but never show a previous entity, season, or date under a new query identity.
-- Scope refresh errors and loading state to the current query and request as well. A response from
-  a previous page must not overwrite the status of the page the user is viewing.
-- Competition pages use horizontal local navigation for Overview, Fixtures, and Teams. Overview is
-  the current-season snapshot, Fixtures browses the complete cached date window without truncating
-  it, and Teams fetches the complete season team list, adds reported standings, and falls back to
-  cached standings and fixture participants only until that list is available. Offer the
-  ten most recent seasons in a compact URL-backed selector; keep standings and fixture windows
-  season-scoped, and keep the selected season when changing competition views or opening a fixture.
-  Changing the selected season must retain the active competition subpage.
-- Season-team responses can return the complete list without pagination metadata on the first
-  response. Accept that observed provider form; when pagination is present, consume every page and
-  reject a later page that drops or changes its pagination identity.
-- Competition tables show provider-reported played matches and goal difference from standing
-  details, plus the last five W/D/L results from standing form. Request only the detail types shown;
-  preserve missing values as unknown. Sort form by provider `sort_order`, oldest to newest, and link
-  each result to its fixture with competition and season context intact.
-- Show competition qualification and relegation places from `rule.type`, with matching row markers
-  and a deduplicated legend. Keep provider labels and never infer rules from table positions.
-- Competition Table browses the current table and reported standings for completed or current rounds.
-  Keep round snapshots separate from current standings, keyed by season and round, and reject responses
-  for a different query. Round selection is URL-backed and clears when the season changes. Reuse the
-  schedule's round catalog, order numbered rounds numerically, and never fabricate historical tables.
-- Competition Schedule browses the complete season by stage and round. Fetch the schedule once per
-  cache window, normalize its fixtures into the shared cache, and keep stage and round selections
-  in the URL. Default to the current stage and round; clear those selections when switching seasons.
-  The schedules endpoint is non-paginated and does not accept includes.
-  While a schedule contains ongoing matches, shorten its cache window to 30 seconds.
-- Competition pages refresh their identity directly through League by ID. Cache detail freshness
-  separately from subscription catalog membership; search and discovery must preserve newer identities.
-- Team Overview shows Current competitions from the complete paginated current-leagues endpoint,
-  with each competition's own current season. Keep this membership separate from historical standings,
-  originating season context, and subscribed sidebar membership. Cache it for a day and retain identities
-  when membership changes. Unknown current seasons must not borrow an old standing's season.
-- Team pages use horizontal local navigation beneath the team header and above their competition
-  context. Keep Overview, Fixtures, and Squad there, and extend that menu when more team views are
-  added. Make the active item prominent with the shared active-indicator treatment.
-- Keep competition and venue context cards plus compact upcoming and recent fixture snapshots on
-  the team Overview. Fixtures browses the complete cached date window across competitions. Squad
-  uses the full content width. Transfers shows the complete team history with player-first rows,
-  explicit incoming and outgoing direction, the counterpart club, and direct player and team links.
-  Show the transfer's reported detailed position, falling back to its broader position; never use
-  the player's current profile position for a historical move. Apply the same rule in the Transfers hub.
-  Reuse the normalized transfer records shared with Player Career and never show amounts without a
-  trustworthy currency.
-- On the team Fixtures page, the visible date is the first day of the fixture window. Do not expose
-  a hidden midpoint as the navigation date. Keep Overview centered on recent and upcoming fixtures.
-- Competition and team Stats are season-scoped entity views. Fetch league totals and team
-  performance separately, cache each query locally, preserve the selected season when moving from
-  a competition to a team, and request only the statistic types shown in the UI. Use the compact
-  URL-backed selector for the ten most recent seasons on both views.
-- Competition Stats includes player leaders for goals, assists, yellow cards, and red cards.
-  Fetch all pages from the season topscorers endpoint with player, participant, and type includes;
-  cache the four categories together per season. Preserve provider ranks and totals, keep card
-  types separate, and retain competition and season context in player and team links.
-- Competition Stats defaults to full-season totals and offers URL-backed stage and round selectors
-  from the season schedule. Changing seasons clears both selections. Cache stage/round totals
-  separately from season statistics; validate provider model IDs and keep request state scoped to
-  season, stage, and round. Stage player leaders use the complete paginated stage topscorers feed,
-  preserve provider ranks, and remain explicitly stage-wide when round statistics are selected.
-  Never substitute season totals or another stage for an unavailable selection.
-- Competition Overview shows compact Top scorer and Top assists profile cards above Upcoming,
-  reusing the season leaderboard cache. Keep portraits circular and totals monospaced; acknowledge
-  equal totals as a shared lead even when provider ranks differ. Hide categories without positive
-  totals, and link to the matching URL-backed leaderboard category in Stats.
-- Competition Team of the Week browses the latest selection and explicit season rounds. Cache each
-  query separately, hydrate shared player and team identities, preserve season context in links,
-  and never display a latest selection from another season as the selected season's team.
-  Match each selection's fixture ID to the existing season schedule to show linked opponents,
-  scores, and dates. Require the same competition and season; retain View match when detail is missing.
-- Fixture pages keep Preview, Game, Commentary, Lineups, Stats, and Odds in horizontal navigation
-  inside the score hero. Resolve generic fixture links to Preview before play and Game once the
-  match has started, including breaks and completed matches. Keep postponed and cancelled fixtures
-  on Preview. Record that initial choice in the URL; explicit subpages always win, and background
-  status updates must not change the active view. Preview stacks the venue card below Details.
-  Before recording a default fixture subpage, check the router's latest destination so an early
-  explicit navigation cannot be overwritten by a delayed render effect.
-- Keep fixture subview presentation in focused components. The persistent entity shell owns shared
-  queries, header, and navigation; reuse the shared Card surface for each view's data panels.
-- Fixture score heroes share Featured game's violet tint, faded halftone venue background, and
-  dot-pattern fallback. Keep the decoration behind readable scores, team names, and navigation.
-  Show team crests on transparent containers, without a background plate.
-- Fixture Preview pairs that supporting column with season table context, each team’s five most
-  recent completed matches before kickoff, and recent head-to-head meetings. Reuse standings and
-  team-fixture caches, cache head-to-head separately, and prefetch Preview on intent.
-- Fixture Preview shows match-specific absences from `sidelined.player` and `sidelined.type`, grouped
-  by `participant_id` with linked player profiles. Preserve historical match absences separately
-  from current team availability and distinguish missing data from no reported absences.
-- Keep `weatherReport` in a compact Preview card. Distinguish recorded conditions from forecasts,
-  use reported temperature units, and never infer kickoff weather from daily values. Omit missing
-  weather and measurements whose units are unknown. Preserve weather and absences during list refreshes.
-- Sportmonks fixture detail owns events, statistics, and lineups; fixture list refreshes must
-  preserve that richer cached detail. Fetch and cache the much larger odds payload only when the
-  Odds view opens.
-- Fixture Game pairs Pressure and compact key stats in a 2:1 grid, with the full-width timeline
-  below. Stack the cards on narrower screens. Show possession, shots, shots on target, big chances,
-  and corners when reported, with comparison bars and a Full stats link. Omit unavailable pressure
-  instead of reserving an empty card, and let key stats use the available width. Keep detailed match
-  and player performance metrics in Stats.
-- Fixture Game shows per-minute Sportmonks Pressure Index bars, home above zero
-  and away below, on the same scale. Keep original values rather than percentages or smoothed
-  estimates, and leave missing readings absent. Load pressure only on Game, cache per fixture,
-  and refresh every 30 seconds while an ongoing match's Game view is open. Annotate goals and
-  dismissals with their original match-minute labels, excluding rescinded events. Pressure records
-  have no period IDs; preserve reported minutes without guessing halftime offsets. Access requires
-  the fixture resource and Pressure Index enrichment; empty data alone is not an access denial.
-- Render both complete starting XIs from Sportmonks `formation_field` coordinates on one shared
-  horizontal pitch, mirrored from their own goals. Use nested lineup portraits, link every player,
-  and annotate goals, assists, cards, missed penalties, and substitutions from fixture events. Keep
-  both benches together below the pitch, and fall back to lists when formation data is incomplete.
-- Fetch only the lineup-detail statistic types used by the fixture UI. Keep the pitch readable by
-  showing only each player's rating there; place minutes and position-relevant performance metrics
-  in the Fixture Stats view, grouped by team and linked to the existing player pages.
-- Give lineup portraits solid warm-white circular backplates with a subtle shadow rather than
-  outline rings. Keep shirt numbers and event annotations offset as separate, smaller markers.
-- Keep provider rate limits distinct from connectivity. Show connectivity persistently beneath the
-  Halfspace name in the sidebar and place a compact rate-limit status below it, retain cached data, and
-  remove the status automatically when the limit resets. Use Sportmonks' exact reset time when
-  supplied; otherwise say it will be available within an hour rather than inventing a timestamp.
-- Treat Sportmonks states 2, 6, 9, and 22 as live. Show a reduced-motion-safe live indicator and
-  refresh live fixture data every 30 seconds.
-- Keep current matches visible in a global top ticker backed by the complete in-play livescore
-  endpoint. Hide the ticker when no matches are in play, link each score to its fixture, and use
-  horizontal overflow rather than an automatic marquee. Cache the live snapshot separately,
-  refresh it every 30 seconds only while online and visible, and keep its requests in the shared
-  Fixture rate-limit bucket.
-- Keep that ticker 36px high and span the full window above the sidebar and content. Align its contents
-  with the macOS traffic lights and center the Live dot beside its label. Place Live
-  after the macOS traffic lights, without a match count. Omit competition names; use reported team
-  short codes with full-name fallbacks and accessible labels. Keep both logos beside the score,
-  inside their team names, and place the minute or phase in a bold white badge with 2px corners
-  between the two scores in place of a dash. Omit the minute mark in that badge. Reserve the left
-  label area for window dragging and keep fixture links outside it. Account for the ticker height
-  in the news rail so its footer and independent scrolling remain within the workspace.
-- Present squads as position-grouped player profile cards with rounded portraits and only essential
-  identity and football data rather than a dense table or list.
-- Squad season selection offers the current squad plus the competition's ten most recent seasons.
-  Cache historical rosters per team and season without overwriting current squad membership, retain
-  season context in player links, and keep the Squad view open when the season changes.
-- Team Overview shows current absences from `sidelined.player` and `sidelined.type`, separate from
-  the selected historical season. Respect the provider's completed flag, distinguish missing data
-  from no reported absences, and never invent return dates or infer availability from season IDs.
-  Refresh team detail hourly and retain it when basic search results update team identity.
-- Team Overview links provider-reported rival clubs in a compact card. Cache rival relationships
-  per team for a day, deduplicate both directions, and hydrate the shared team cache without
-  replacing richer detail. Rival links keep the date but resolve their own competition and season.
-- Team Overview shows rankings from the supported team `rankings` include. Name the ranking system,
-  preserve reported points, and omit empty rankings. Do not invent a season, update date, or global
-  ranking meaning; the standalone beta ranking endpoints are a separate resource.
-- Keep low-resolution provider imagery in compact supporting cards. Do not stretch it into hero
-  treatment that exposes its limitations.
-- Venue pages show up to five recent completed results and five upcoming scheduled matches within
-  30 days before and after today, plus any ongoing games in that window. Use the paginated fixture
-  date-range endpoint with `venues:{id}`; the venue `fixtures` include returns a large history.
-  Cache venue/date/time-zone query memberships separately from shared fixture records. Keep
-  venue detail independent, reject unrelated venues and incomplete pages, preserve richer match
-  detail, and refresh ongoing windows every 30 seconds while visible and online. Label the date
-  window, omit placeholders and postponed/cancelled games from the previews, distinguish empty
-  from unavailable data, and link each match with its own competition and season.
-- Matchday fixture rows use one centered status column: a short terminal state such as FT, a green
-  live ping beside the match minute or phase, or the scheduled kickoff time. Do not repeat the
-  state in a separate badge. Use monospaced tabular typography for row status, time, minute, and
-  score. The fixture hero pairs its live ping with the reported minute or match phase instead of Live.
-- Treat “today” as live calendar state rather than a value captured when a module or app shell
-  mounts. Refresh it across midnight and when the app regains focus, and use the current day when
-  returning to Matchday. Keep the Today action inside the Fixtures date picker.
-- Matchday competition groups use the shared `Card`, `CardHeader`, and `CardTitle` hierarchy. Keep
-  headers on the normal muted card surface and link each competition name together with its logo.
-  Use typography and spacing instead of header borders or separators between fixtures: give the
-  competition heading breathing room, keep each team pair close together, and leave a larger gap
-  between matches. Give both team names equal emphasis, keep times and terminal states quieter,
-  and align scores with their teams. Use inset rounded rows with the sidebar active-item background
-  for hover and keyboard focus. Match loading states to the same structure.
-- Matchday always follows today in the user's time zone, including midnight and focus changes.
-  Keep its heading, quiet date, refresh action, live fixtures, today's competition groups, news,
-  and recent results. Fixtures is the separate main-nav destination for date browsing with the
-  shared week navigator and compact date picker. Preserve date context in fixture return links.
-- Matchday Up next is one chronological list of the next ten scheduled fixtures after today,
-  without league grouping, with quiet date/competition context and a View all link to Fixtures.
-  Reuse the rolling daily cache window; refresh today separately from the surrounding window.
-- Featured game is a compact violet card above today's fixtures, with a dotted halftone venue
-  background and a graphic fallback when imagery is missing. Preserve readable team names and facts.
-  Score explicit competition weights, current top-four meetings only after half the full league
-  schedule has been completed, previous completed season top-four meetings separately, confirmed
-  rivalry, and same-city matches only when both home-venue city IDs equal the fixture venue city ID.
-  Missing evidence earns no bonus; group tables are not league-wide top-four evidence.
-- Add quarter-final/semi-final/final bonuses of 10/15/20 separately from competition weight.
-  Rivalry adds 25, same-city adds 10, current top four adds 20, previous top four adds 15,
-  pinned competition adds 15, one/both pinned teams add 25/35, and live or kickoff within 90 minutes
-  adds 10. Hide Featured game below five real games; five through ten require 45 points;
-  above ten always choose an eligible game. Count the whole day, including finished games, and
-  exclude cancelled/postponed fixtures and placeholders. Keep the choice through kickoff and live
-  play, rotate after completion, and retain the final featured result when the day is over.
-  Persist selection per local date/time zone; warm shared context sequentially and stop on unmount,
-  hidden/offline state, or credential reset. Do not expose the internal points in the interface.
-- Teams is a main-nav directory with All teams and Pinned views, immediate cached search, provider
-  search, country and current-competition filters, and explicit page navigation. Cache each query
-  page separately with hasMore and preserve richer/newer team detail when hydrating shared identities.
-  Pin teams from directory rows or their persistent header, and show pinned teams in the sidebar.
-  Team pins are local user preferences and survive disposable football-cache clearing.
-- Matchday My teams sits below Featured game with its heading outside the cards, like Today.
-  Give each pinned team a warm card with its linked name and logo in the header, followed by one
-  upcoming scheduled game and one previous completed result. Reuse the shared team-fixture query
-  for 30 days before and after today. Omit missing rows and hide cards with neither match; a shared
-  fixture belongs in each participating team's card. Keep local dates and competition context,
-  preserve cached content while refreshing, and distinguish unavailable data from an empty query.
-  Use a responsive two-column grid, stacking cards on narrower windows. With no pins, offer Browse
-  teams beside the section heading. Keep live matches in the existing global Matchday sections.
-- Refresh non-today dates containing ongoing Matchday fixtures every 30 seconds through shared
-  daily queries. Keep the surrounding window's normal cache lifetime, pause while hidden/offline,
-  and stop ongoing-date polling once the match finishes. Scope request status to the date window,
-  time zone, and ongoing date set; keep credential-reset invalidation and shared request deduplication.
-- Derive live match time from Sportmonks periods rather than elapsed wall-clock time.
-- Period minutes can be null, including penalty shootouts. Preserve the missing value and fall
-  back to the match phase; never reject the entire fixture window or invent a zero-minute clock.
-- Fixture timelines include the event player relationship so player portraits can accompany events.
-  Respect Sportmonks `sort_order` when sequencing events that share a match minute.
-- Fixture Commentary is lazy-loaded from the dedicated non-paginated endpoint. Keep it cached per
-  fixture, newest first by provider `order`, with an All updates / Key events filter and linked
-  player identities. Refresh every 30 seconds only while an ongoing match's Commentary tab is open.
-- Fetch pre-match and in-play odds lazily from their dedicated non-paginated endpoints into separate
-  caches. Refresh in-play odds every 30 seconds only while an ongoing match's Odds view is open.
-  Keep feed, market, and bookmaker selections in the URL. Compare like-for-like outcomes and lines,
-  retain provider update times, and exclude stopped or suspended quotes from price highlights.
-- Fixture TV guide uses fixture-specific `tvStations.tvStation` and `tvStations.country` includes;
-  a station's general countries do not establish where a particular match is broadcast. Cache the
-  guide separately, filter by country, and distinguish an empty guide from unavailable data. Keep
-  it in a compact Preview card below the venue, not a separate tab, with long station lists contained
-  in a scrollable region. Preserve distinct provider station IDs; similar names alone are not enough
-  to merge broadcasters.
-- Settings shows the token's Football plans, add-ons, and feature access from My Resources and My
-  Enrichments. Keep access separate from coverage: an included feature can have no data for a
-  particular league or fixture. Unknown access is not a denial, and empty results do not imply an
-  upgrade. Clear subscription metadata with the rest of the cache when credentials change.
-- Do not infer player appearances from team fixtures or bench selection. Name lineup data for what
-  it confirms, and reserve appearances for verified participation.
-- Player pages use a persistent horizontal workspace navigation. Overview keeps compact identity
-  and team context; Matches browses confirmed team-sheet records without presenting bench selection
-  as an appearance. Stats is season-scoped, requests only the player statistic types shown, and
-  keeps each player-and-season response in the local cache. When competition context is available,
-  show the same compact URL-backed season selector and keep the date inside the selected season.
-- Player Career shows the complete Sportmonks transfer history as a compact chronological list with
-  direct links to both teams. Cache transfers as normalized records so the same foundation can power
-  Team Transfers later. Do not display a transfer amount without a trustworthy currency.
-- The Transfers hub browses latest-updated records and transfer-date ranges of at most 31 days.
-  Cache each feed page separately with explicit `hasMore`; do not present a page as a complete feed.
-  Scope local player, club, and status filters to the displayed page. Preserve normalized transfer
-  details across feed and career refreshes, and show unknown clubs as unknown, not free agency.
-- Coach pages keep identity, current club, career history, and recent club fixtures together in one
-  focused view. Normalize coaches into the shared entity cache, link them from teams and fixture
-  previews, and include them in global search. Team coach includes contain historical assignments;
-  show only active assignments on Team Overview. Do not add empty navigation for speculative
-  subpages.
-- Referee profiles are reached through fixture officials. Keep each appointment's officiating role
-  explicit, normalize its fixture into the shared cache, and label the `latest` history as the last
-  six months rather than a complete career. Preserve fixture and season context on the return link.
-- Referee season stats reuse the profile cache with `statistics.details` and `statistics.season.league`.
-  Offer the ten most recent reported seasons per competition. Keep the `statsSeason` selection separate
-  from the originating fixture's season, show provider counts and averages, and keep straight red and
-  second-yellow cards separate. Never derive these totals from the recent appointments list.
-- Refresh fixture pages through the fixture-by-ID endpoint. When fixture lists update shared cache
-  records, preserve richer match context already fetched for the entity page.
-- Keep normalized fixture state and daily query snapshots monotonic by request timestamp so late
-  responses cannot roll newer data back. Refresh subscription membership without deleting entity
-  identities discovered elsewhere; catalog membership and cached identity are separate concerns.
-- Read existing records and merge or remove cached data inside the same write transaction. Never
-  prepare a replacement from a pre-transaction snapshot that concurrent refreshes can invalidate.
-- Show every active subscribed competition in the sidebar when there are 10 or fewer. Above 10,
-  show only locally pinned competitions.
-- Global entity search opens from a standard navigation row immediately above Settings or with
-  Command-K. Do not style the trigger like an input. Show cached Dexie results immediately, then
-  search Sportmonks through main and hydrate the existing entity tables. Keep the palette opaque
-  and free of open and close animation. Until a query is entered, show only the search row without
-  a divider or reserved results area.
-- Global search includes matches and referees. Match results show competition, date, score, and
-  status; request recent matches first with `order=desc`. Reuse shared fixture and referee caches,
-  preserving richer match detail, referee appointments, and newer data when search updates identity.
-- Keep navigation prefetch non-blocking and stale-aware. TanStack Router preloads routes on intent;
-  data intent should warm the existing Dexie queries without bypassing their TTLs. After startup,
-  warm today’s Matchday and each visible sidebar competition in the background, one competition at
-  a time, so likely destinations are ready without flooding Sportmonks. Prefetch fixture, team,
-  squad, player, and venue detail on keyboard focus or deliberate hover; cancel incidental hovers,
-  and keep fixture Odds lazy until that view opens.
-- Pause automatic query refreshes while offline or hidden. On focus or reconnect, refresh only
-  overdue data; retry failed stale queries at a bounded cadence without overlapping requests.
-- Keep authentication, timeouts, response parsing, and rate-limit backoff in the shared main-process
-  Sportmonks client. Honor each entity's cooldown without blocking unrelated entities, and clear
-  cooldowns and notices when credentials change. Never cache a partial paginated response as complete.
-- Changing credentials resets the mounted workspace and all pending refresh/search generations.
-  Gate the workspace until cached football data has been cleared; surface reset failures and retry
-  the reset before reopening. Stop abandoned sidebar warming queues on unmount or disconnect.
-- Track the goal of complete Sportmonks Football API coverage against the official endpoint index.
-  Update `docs/sportmonks-coverage.json` whenever an endpoint or include becomes fully usable in the
-  product, regenerate the report and badge with `pnpm coverage`, and refresh the upstream catalog
-  with `pnpm coverage:refresh` when Sportmonks changes its documented API.
-- The badge counts data capabilities once per returned data type and first-level relationship,
-  including reviewed equivalent access paths. Keep endpoint breadth separate in the report.
-  Maintain entity mappings and aliases in `docs/sportmonks-capabilities.json`; record equivalent
-  queries with their required supported endpoints/includes and product rationale in the coverage
-  declarations. Follow `docs/sportmonks-capability-model.md`. Never infer a relationship from an ID
-  alone, equate different data scopes, or add redundant fetching to increase the badge.
-- Keep coverage checks in CI. Weekly upstream catalog refreshes propose only generated catalog,
-  report, and badge changes in a draft PR; never infer product support or merge automatically.
-  Mark refresh PRs ready for review to trigger CI after checking the upstream changes.
-- Keep the README roadmap as a major-feature checklist. Check off shipped feature scope while the
-  coverage catalog tracks the remaining endpoint and include detail.
-- Keep the public README product-first, with the canonical logo centered at the top. Leave app
-  screenshots out until the planned subscription upgrade and news work are ready to show; describe
-  unshipped features only in the roadmap.
-- Comparisons start with a team or player, then that entity's ten most recent available seasons.
-  Discover season records through `statistics.season.league` and player clubs through `statistics.team`;
-  cache this metadata per entity separately from the lazily loaded performance details. Omit records
-  without values or accessible season and competition context. Group equivalent year labels such as
-  2025/26 and 2025/2026, but keep calendar-year and cross-year seasons distinct. Show club/competition
-  as quiet context when only one record exists; reveal a combined selector only for multiple records.
-  Reuse team and player season-statistic caches with independent context for each side. Allow
-  cross-league comparisons and the same entity in different seasons. Keep entity, resolved season,
-  and player club selections in the URL, derive competition from the record, and swap the entire context.
-  Compare one explicit club record per player; never combine unweighted averages across clubs.
-  Missing values remain unknown, not zero. Search candidates through the existing typed search API,
-  restricted to teams or players. Player radars use reported actions per 90 from each selected club
-  record, with at least four shared metrics and positive reported minutes on both sides. Scale each
-  axis to the pair's larger value, explicitly not a league percentile or league-strength adjustment;
-  show actual values and playing time alongside the chart. Keep exact season totals below.
-
-- Saved comparisons retain both resolved entities, seasons, player clubs, and team match-location
-  selections as versioned user content. Keep them through football cache clearing and token replacement;
-  reopen the exact URL context and never substitute unavailable records.
-
-## Expanded Football Data
-
-- Competition Knockout reuses the season schedule, bracket edges, and stage aggregates. Preserve
-  fixtures nested inside schedule aggregates. Group legs only by explicit aggregate IDs, distinguish
-  placeholders from real teams, and use reported aggregate winners. Prefer provider advancement
-  edges; infer a result link only when the winner is a known participant in the immediately following
-  round. Never skip an unreported round or invent an undrawn path. Keep season context in links.
-- News uses separately cached feed pages with explicit pagination, competition/season filters, and
-  a plain-text article reader. Order article lines by ID, preserve paragraphs, label AI-written
-  reports, and call the fixture date Match date rather than inventing a publication time. Fixture
-  Preview and Game show their related news. Sparse fixture context from news must never overwrite
-  richer shared fixture records; nested fixture includes are unsupported on news endpoints.
-- Matchday has a borderless news rail on the right, with independent scrolling and a separate card
-  for each article. Combine the first cached pages of previews and reports, newest match date first,
-  with undated articles last. Keep competition logos and AI-written report labels, omit the News
-  heading and feed tabs, and reuse the shared article reader. Keep the feed independent of the
-  selected fixture date. At narrower widths, place news below fixtures rather than squeezing the
-  match list. Adapt the Matchday header to its available column width, not only the viewport width.
-  Keep the Matchday header and news cards close beneath the live ticker.
-- Match facts belong in Fixture Preview with participant, category, and scope filters. Fetch every page
-  before caching the response; show provider-written facts verbatim and omit records without wording.
-  Facts can describe the referee as well as home, away, or both teams. Accept referee records even
-  without wording so they cannot invalidate a complete response; label written referee facts explicitly.
-  A fact labelled streak can mean X of Y recent matches, not consecutive matches. Preserve that
-  distinction and keep empty results separate from denied access.
-- Predicted lineups use their own fixture-keyed cache and only appear before play when confirmed
-  team sheets are absent. Label them explicitly, reuse the shared pitch, and never add predictions to
-  confirmed lineups, appearances, event annotations, or ratings. Confirmed sheets take precedence.
-- Honours use separately cached trophy includes for teams, players, and coaches. Show competition,
-  season, club, and reported placing; distinguish winners from runners-up and preserve unknown
-  metadata. Never present every trophy record as a title or imply the available history is complete.
-
-- Live competition tables are an explicit current-season Table selection. Cache provider snapshots
-  separately by league and season, validate both identities, and retain provider positions, values,
-  form, and rules. Refresh every 30 seconds while that league has matches in play and once when its
-  final live match ends. Keep the snapshot time visible, clear live selection when seasons change,
-  and distinguish unavailable data from an empty response; no active stage can mean no live table.
-- Fixture Game loads match trends lazily for possession, shots, shots on target, and corners.
-  Preserve reported values and minute labels, keep periods separate, and leave missing readings
-  absent. Never guess half-time offsets, smooth observations, or treat missing values as zero.
-  Cache by fixture, refresh every 30 seconds while an ongoing match's Game view is active, and
-  fetch final readings when it ends.
-- Fixture TV listings link to broadcaster pages with Upcoming and Past schedules. Cache each station,
-  feed, and page separately with explicit pagination; preserve richer and newer shared fixtures.
-  Show regions from each fixture's listings for that station, never from general station countries.
-  Retain the originating fixture, competition, and season on the return link.
-
-- Competition Referees and Venues browse the selected season through their dedicated endpoints.
-  Fetch every referee page; venues are non-paginated. Keep memberships separate from shared profile
-  identities, preserve richer and newer detail, and retain competition and season on profile returns.
-- Current competition tables show season standings adjustments separately from reported standings.
-  Preserve the provider's points, calculation direction, stage, group, and active flag. Never apply
-  corrections again to table totals or assume a missing calculation direction means a deduction.
-  Do not present current adjustment status as a historical round snapshot.
-- Team Schedule fetches the complete season-and-team schedule without includes or pagination. Cache
-  it separately from the competition schedule, normalize its fixtures into the shared cache, and
-  preserve aggregate legs. Show all stages by default, keep competition, season, and stage in the URL,
-  clear stage on season changes, and use a 30-second cache window while matches are ongoing.
-- Team and player Rumours use dedicated, explicitly paginated feeds ordered by latest update.
-  Keep rumours separate from transfer history and current club membership. Show provider likelihood
-  as a label, never a calculated probability or confirmation; link only HTTP(S) sources and display
-  fees only with an explicit currency. Retain unknown clubs and source details as unknown.
-  Show the rumour's reported position when available. The live API rejects `detailedPosition` on
-  rumours despite listing it in the catalog; revalidate support before requesting it.
-
-## Profile and Fixture Detail
-
-- Expected match metrics are lazy-loaded on Fixture Stats into their own fixture cache. Show
-  reported xG, xG on target, non-penalty xG, and expected points, preserving missing values and
-  rounding only for display. Keep full-match expected values out of a selected period's statistics.
-  Access and timing vary by subscription and competition; empty data does not establish a denial.
-- Fixture Preview shows pre-match probabilities from the dedicated fixture predictions endpoint.
-  Request only match result, both teams to score, over/under 2.5, and correct score. Preserve
-  provider percentages without reweighting or inventing missing outcomes; retain all correct-score
-  categories behind a compact disclosure. Keep predictions separately cached and useful offline.
-- Fixture Lineups offers Expected squad and Predicted XI before confirmed sheets arrive. Expected
-  starters and substitutes retain their own provider types and fixture cache, use the shared pitch
-  with list fallback, and never become confirmed lineups, appearances, ratings, or event annotations.
-  Confirmed sheets always take precedence. Preserve an explicit forecast choice in the URL.
-- Fixture Stats keeps period selection in the URL and loads period statistics separately on demand.
-  Resolve each statistic's home/away side from the fixture participant metadata; period records
-  report participant IDs without a location. Validate both fixture and period identities, and reject
-  unknown participants. Never replace an unavailable period with full-match
-  totals. Keep player performance explicitly full-match. Refresh visible live analysis every
-  30 seconds and fetch final readings when play ends; pause automatic refresh while hidden/offline.
-- Team comparisons offer independent All/Home/Away selections in the URL. Swap both selections
-  with their team and season contexts. Reuse season caches and only read reported split values;
-  metrics without a selected split stay unknown rather than borrowing season totals.
-- Product API coverage measures usable fetching, caching, and presentation. Features can be fully
-  implemented even when a token grants access for only some leagues. Keep subscription access,
-  league/fixture coverage, and reported empty data distinct.
-
-- Player detail includes birthplace, preferred-foot metadata, reported team registrations, and pending
-  transfers. Keep birth country separate from nationality. Registration dates, shirt numbers, and
-  captain flags are reported facts; do not infer current membership from the include or overwrite
-  current/historical squad membership. Keep pending moves in player detail, separate from rumours
-  and completed transfer history, and never display fees without a reported currency.
-- Hydrate registration clubs, pending-transfer clubs, and coach playing profiles into the shared
-  entity cache. Search and other sparse identity refreshes must preserve richer and newer profile
-  data and must not extend detail freshness. Cache merges read existing values within their writes.
-- Club socials use reported channel names and secure links. Venue maps distinguish stadium
-  coordinates from city coordinates; never place a stadium pin at an inferred city center.
-- Prefer reported fixture formations for the lineup labels, retaining lineup coordinates for the
-  pitch and keeping predictions separate. Fixture Preview shows reported group and aggregate tie
-  context; related-match links come only from the aggregate's fixture IDs and retain its season.
-  Preserve these includes during fixture list refreshes and clear explicitly removed relations.
-
-## Generative Football Views
-
-- Keep complete Sportmonks coverage as the long-term development goal, with near-term work following
-  the macOS alpha milestone. Generative views build on usable data and reusable components;
-  do not delay useful endpoint support to build speculative AI infrastructure. The generated
-  coverage report remains the authority for percentages, not a number copied into these instructions.
-- The long-term direction is a personal football canvas: describe a workspace, watch the layout
-  take shape, refine it conversationally, and save it for everyday use. Grow toward connected team
-  and player views, cross-competition comparisons, interactive filters, and grounded analysis as
-  real data coverage and reusable components expand.
-- Track implemented and planned widgets in `src/shared/view-widgets.ts` and `docs/view-widgets.md`.
-  Update both when adding or completing a widget. Every widget must support 1-, 2- and 3-column
-  presentations before it is implemented; keep planned widgets out of generation and editing.
-  The accepted studies in `design/generative-views/` are visual targets. The supporter home is
-  the first working slice; researcher and analyst compositions remain planned.
-- Use AI SDK Core in Electron main, initially with its direct OpenAI provider. Store AI credentials
-  with Electron secure storage, separately from the Sportmonks token. Expose narrow typed generation,
-  progress, cancellation, and credential APIs through preload. Never persist keys in the renderer,
-  send the Sportmonks token to an AI provider, or put a hosted gateway between users and their provider.
-- Generate a versioned, validated view definition from an explicit catalog of supported blocks and
-  query parameters. Render trusted React components; never execute generated JavaScript, HTML, SQL,
-  arbitrary network requests, or IPC commands. Validate entity and season identities against the
-  supplied context as well as validating the schema. Reject unsupported requests clearly.
-- Keep model schemas inside OpenAI's supported JSON Schema subset. Use Zod unions for block
-  alternatives: discriminated unions emit `oneOf`, which OpenAI rejects; regular unions emit
-  supported `anyOf`. Test the serialized provider request as well as parsing streamed responses.
-  Put widget type before overlapping context fields in the model schema. Generation declares
-  composed or unavailable before its definition; unavailable output must never stream fallback
-  widgets or replace a usable view. Keep that decision out of saved user definitions.
-  Restart Electron before live verification of main-process changes.
-- AI chooses composition and data bindings. Actual football values, calculations, missing-data states,
-  provider ranks, and links belong to deterministic application code. Never treat the local cache as
-  complete coverage or let the model fabricate facts, infer unavailable access, or silently substitute
-  a different team, competition, or season. Send only the prompt, current definition, and the minimum
-  identity metadata needed for composition; explain the provider boundary where users configure AI.
-- Keep each new football feature reusable through focused presentation components and typed,
-  identity-scoped queries. Reuse the shared cache, TTLs, pagination rules, and refresh cancellation.
-  Add a block when its underlying data is usable; do not introduce a second football cache, generic
-  query language, or whole-app component refactor ahead of a concrete need.
-- Starter Views compose validated fixtures, standings, and leader blocks from a selected available
-  competition and season, without generation or an AI key. Reuse the same editor, queries, and local
-  save format as AI-composed views; keep missing offline data explicit.
-- Team-home starters use known teams and reported current competition membership. Next match,
-  team fixtures and current absences remain independent of historical season selection; season
-  snapshots and standings retain explicit competition/season identities. Reuse the team fixture
-  window and availability queries. Do not infer current membership from historical standings.
-- Version 2 definitions use numeric spans 1, 2 and 3. Adapt widget content to its actual container
-  width, clamp the canvas to available columns, and preserve the stored span when resizing.
-  Upgrade existing version 1 definitions and their undo history at the saved-data boundary.
-- Manual View editing uses the same versioned definition and undo/save flow. Offer the supported
-  block types, preserve independent block contexts, and keep one through eight blocks per saved view.
-  Reordering and width changes must work with keyboard controls and never call AI.
-- Duplicating a View saves the current draft under a new identity and opens that copy. Preserve the
-  source saved definition and keep the copy's undo history independent.
-- Changing a View's competition or season is an explicit action applying to season-bound blocks.
-  Leave team-only blocks and their current time windows unchanged. Preserve
-  block identity, types, metrics, and layout; validate the selected context, clear the old generated
-  description, and retain personal titles. Use the same undo flow and identity-scoped data queries.
-- Saved definitions are user content, separate from disposable Sportmonks data. They survive token
-  replacement and cache clearing. Opening, filtering, and refreshing saved views must not call AI;
-  cached views remain usable offline. Keep definitions versioned for future intentional migrations.
-- Treat generation as a cancellable draft. Stream validated blocks into the canvas, retain the last
-  usable definition on failure, and ignore late events from abandoned requests or credential changes.
-  Save only complete validated definitions. Provide clear retry and undo affordances.
-- Make progress visually distinctive and truthful: a quiet canvas, a prominent prompt composer,
-  outlined layout blocks appearing as they arrive, followed by real data. Use brief drawing and
-  reveal motion with reduced-motion support. Never invent percentage progress, staged waiting, or
-  fabricated football values to make generation look busy. Keep the canvas responsive and keyboard
-  accessible; save infinite-canvas tooling and drag-and-drop editing for a demonstrated need.
-
-## Mindset & Process
-
-- Fix issues from first principles. Do not apply bandaids when the root cause can be identified and
-  solved directly.
-- Leave no breadcrumbs when moving or deleting code. Remove the old code cleanly.
-- Clean up unused code as part of the change.
-- Write idiomatic, simple, maintainable code. Prefer the most intuitive solution that fully solves
-  the problem.
-- Keep `AGENTS.md` focused on durable engineering and product requirements. Keep personal
-  discussions, account details, local machine paths, credentials, and session notes out of tracked
+- Record only clear, enduring directions that apply across the product or a substantial subsystem.
+  A routine feature change or design tweak is not a reason to update `AGENTS.md`.
+- Keep individual page layouts, control styling, exact values and copy, endpoint recipes,
+  implementation checklists, feature status, and session notes out of this file.
+- Read [the design guide](docs/design.md) before changing UI. Update it when a change establishes
+  a reusable visual convention worth preserving. Update this file only if the broad direction
+  itself changes; do not mirror each design-guide edit here.
+- Keep feature scope and progress in the relevant milestone or inventory. Use code and tests for
+  implementation behavior, and focused documentation when additional explanation is useful.
+  Link to those references instead of duplicating their details here.
+- Keep personal discussions, account details, local machine paths, and credentials out of tracked
   documentation. Use repository-relative links and public project references.
-- Run `pnpm typecheck`, `pnpm format`, and `pnpm lint` after touching JavaScript or TypeScript files.
 
-## Compatibility Code
+## Product direction
 
-- Treat compatibility code as a temporary cost, not a default precaution.
-- Only introduce it when an existing deployed, external, or non-atomic boundary requires old and
-  new behavior to coexist.
-- If we control all consumers and can update them in the same change, do not write a shim; update
-  the code directly.
-- Never add compatibility layers for speculative needs, undeployed changes, or internal-only
-  package transitions.
-- Any required compatibility path must state what it preserves, why it is needed, and when it
-  should be removed.
+- Follow the [macOS alpha milestone](docs/macos-alpha.md) for current priorities and acceptance
+  criteria, and [the release guide](docs/macos-release.md) for packaging. Tester builds require
+  Developer ID signing and notarization; unsigned packages are for local checks.
+- Complete Sportmonks Football API coverage is the long-term goal. Choose near-term work around
+  useful football journeys and observed user needs. Build entity depth and natural links between
+  football entities before speculative tools or infrastructure.
+- Keep the README product-first and its roadmap a major-feature checklist. Distinguish implemented
+  features from planned work; track endpoint and include detail in the coverage catalog.
 
-## Testing Discipline
+## Design direction
 
-- Use the three laws of TDD as a guiding discipline for logic-heavy code, not as a strict rule for
-  all development:
-  - Write a failing test before writing production code.
-  - Do not write more of a test than is sufficient to fail or fail to compile.
-  - Do not write more production code than is sufficient to make the currently failing test pass.
-- Prioritize tests for:
-  - Core business logic
-  - Critical user flows
-  - Previously broken functionality
-- Regression tests are for preventing confirmed bugs from returning.
-- For regression tests:
-  - Write a test that reproduces the bug.
-  - Run it and confirm it fails for the right reason.
-  - Fix the bug.
-  - Rerun the test and confirm it passes.
-- Do not write regression tests for discussion outcomes, design direction changes, or speculative
-  behavior that was never a reproduced bug.
-- Test behavior, not implementation details.
-  - Avoid asserting incidental structure such as class names, private helpers, or internal wiring.
-  - For visual design, prefer real visual snapshots over targeted assertions.
-- Browser tests that trigger refreshes must await completion before teardown. Use the rendered
-  loading state; a provider error or call count can appear before parallel cache writes finish.
+- Build an airy editorial football identity around coral and violet, supported by white, warm
+  neutrals, and dark ink. Treat shadcn/ui as a component foundation; preserve Halfspace's identity.
+- Keep the shell quiet and data surfaces calm. Use softly filled cards, clear typography, spacing,
+  and alignment for hierarchy, with selective color for navigation, graphics, and meaningful state.
+  Reuse the shared components, semantic tokens, and canonical brand assets.
+- Use monospaced tabular typography for compact football facts. Keep names, headings, labels, and
+  prose in the regular interface font. Retain semantic colors where they communicate football states.
+- Use direct headings and purposeful copy. Avoid redundant guidance, prototype explanations, and
+  implementation details that do not help users make a decision.
+- Preserve keyboard access, clear focus, readable contrast, and reduced-motion support. Adapt
+  content to its available width. Keep motion purposeful and scoped; do not extend local experiments
+  across the app automatically.
+- Keep entity navigation inside persistent route shells. Preserve meaningful selections and
+  originating context in the URL; explicit user choices take precedence over automatic defaults.
+- Show loading, empty, unavailable, offline, and error states accurately. Retain usable cached
+  content during refresh and make progress truthful.
 
-## TV Guide
+## Architecture and cache integrity
 
-- TV Guide uses a saved country selection and shared Monday-to-Sunday week navigation with a
-  URL-backed selected day. Show only that day's unfinished broadcasts in kickoff order, without competition
-  grouping. Place prominent monospaced kickoff times to the left of team logos, with broadcaster
-  links beneath the teams. Omit not-started labels and pre-match scores. Preserve country-specific
-  listings and cache complete daily windows.
+- Keep Electron thin. Secrets and provider requests live in main, cached football data lives in
+  the renderer, and preload exposes narrow typed APIs. Use secure storage for credentials.
+- Reuse shared normalized entity caches and focused, typed queries. Keep query membership,
+  subscription membership, and detail freshness separate from entity identity. Avoid duplicate caches.
+- Preserve richer and newer data when sparse search, list, or included records update an identity.
+  Honor explicit removals, and prevent late responses from rolling newer records back.
+- Read existing records and merge or remove cached data inside the same write transaction.
+- Scope queries, loading states, errors, and refresh responses to their full identity and request.
+  Retain data during same-query updates, but never show a previous entity, season, or date under
+  a new query. Reject responses for another identity instead of silently substituting data.
+- Keep current membership and availability separate from historical records. Cache distinct data
+  scopes independently, including historical snapshots and forecasts.
+- Keep user preferences and versioned saved content separate from disposable football caches so
+  they survive cache clearing and credential replacement.
+- Credential changes invalidate pending work and reset football caches before the workspace
+  reopens. Surface reset failures and ignore late results from abandoned requests.
+- Keep authentication, timeouts, response parsing, and rate-limit backoff in the shared main-process
+  provider client. Keep access, rate limiting, and connectivity failures distinct.
+- Fetch only what the interface uses. Keep expensive detail lazy, and make prefetch non-blocking
+  and stale-aware. Reuse query lifetimes and request deduplication instead of bypassing them.
+- Pause automatic refresh while hidden or offline. Refresh overdue data on return without
+  overlapping requests; refresh ongoing matches while relevant and stop when they finish.
+- Treat today as changing calendar state in the user's time zone. Use reported football timing
+  and state rather than inventing match clocks from elapsed wall time.
 
-## Football Discovery
+## Football data and coverage
 
-- Players is a main-nav directory with immediate cached search, paginated provider search, and country
-  browsing. Cache every query page separately with explicit `hasMore`. Keep country and nationality
-  distinct, normalize the provider's `detailedposition` alias, and never imply directory membership
-  confirms a current club or active career. Preserve richer and newer player detail during hydration.
-- Competition country browsing fetches every page from leagues/countries and caches membership separately
-  from the subscribed catalog. Hydrate shared identities without replacing subscription membership or
-  losing an existing country/current season when an included basic identity omits it.
-- Team Seasons shows all reported records from the non-paginated seasons/teams endpoint, grouped by
-  competition with recent seasons first. Keep history separate from current competition membership.
-  Links retain the exact competition, season, and a date inside that season. Competition selectors
-  offer the ten most recent seasons plus an explicitly linked older season; an unknown requested season
-  must never fall back to a different season's data.
+- Preserve provider-reported values, ranks, relationships, units, and scope. Missing values remain
+  unknown, not zero. Do not infer current membership, participation, or confirmed outcomes from
+  records that do not establish them.
+- Keep predictions, rumours, pending changes, and confirmed history distinct. Label generated
+  content and forecasts clearly; never let them replace verified football facts.
+- Keep comparisons aligned to explicit samples and contexts. Do not mix seasons, periods, clubs,
+  feeds, or market definitions silently, or replace unavailable selections with broader totals.
+  Display amounts and measurements only when their units are trustworthy.
+- Respect each endpoint's actual pagination contract. Never cache a partial response as complete
+  or imply that a page, date window, or local cache represents the entire available history.
+- Distinguish subscription access, competition or fixture coverage, and empty data. An empty
+  response does not establish denied access, and unknown access is not a denial.
+- Product coverage requires usable fetching, caching, and presentation. Follow the
+  [capability model](docs/sportmonks-capability-model.md), keep coverage declarations current,
+  and regenerate the report with `pnpm coverage`. The generated report owns coverage percentages.
+- Count equivalent capabilities only with reviewed evidence. Do not add redundant fetching to
+  inflate coverage. Keep coverage checks in CI; upstream catalog updates must not imply product
+  support or merge automatically.
+
+## Generative Views
+
+- Grow toward a personal football canvas that users can compose, refine, and save. Build on
+  usable data and reusable presentation components rather than speculative AI infrastructure.
+  Use the [accepted design studies](design/generative-views/README.md) as visual targets.
+- Track implemented and planned widgets in [the catalog](src/shared/view-widgets.ts) and
+  [the inventory](docs/view-widgets.md), updating both when status changes. Every implemented
+  widget must support 1-, 2-, and 3-column presentations. Adapt to actual container width while
+  preserving the saved layout preference. Keep planned widgets out of generation and editing.
+- Generate versioned, validated definitions from an explicit catalog of supported widgets and
+  query parameters. Render trusted components; never execute generated code, queries, arbitrary
+  network requests, or IPC commands. Validate identities as well as schema shape.
+- AI chooses composition and data bindings. Deterministic application code owns football values,
+  calculations, missing-data states, and links. Reject unsupported requests clearly instead of
+  fabricating facts or substituting another team, competition, or season.
+- Keep AI requests in Electron main and credentials separate from Sportmonks credentials. Connect
+  directly to the user's provider. Send only the prompt, relevant definition, and minimum identity
+  context needed for composition; never send the Sportmonks token or persist keys in the renderer.
+- Keep model schemas compatible with the provider's supported schema format. Verify the serialized
+  request boundary as well as response parsing when changing generation contracts.
+- Use the same validated definition, editor, undo flow, and save format for manual, starter, and
+  generated Views. Opening and using saved Views must not require AI; cached Views work offline.
+- Treat generation as a cancellable draft. Stream validated content, preserve the last usable
+  definition on failure, ignore abandoned events, and save only complete validated definitions.
+  Show actual progress without invented percentages, staged waiting, or fabricated data.
+
+## Engineering and verification
+
+- Write idiomatic, simple, maintainable code. Prefer descriptive names, focused functions,
+  straightforward control flow, and existing patterns. Avoid premature abstraction and indirection.
+- Fix root causes and remove obsolete or unused code within the change. Handle real external
+  failure points without speculative guards around controlled internal inputs.
+- Introduce compatibility code only when an existing deployed, external, or non-atomic boundary
+  requires it. If all consumers can change together, update them directly. Required compatibility
+  paths must explain what they preserve, why they are needed, and when they can be removed.
+- Use test-first development for logic-heavy changes where useful. Prioritize core logic, critical
+  user flows, and confirmed bugs. Reproduce a regression and confirm the test fails for the right
+  reason before fixing it.
+- Test behavior rather than incidental classes, private helpers, or internal wiring. Do not add
+  regression tests for discussion outcomes, styling tweaks, or speculative behavior.
+- Verify visual work in the actual Electron shell. Use visual inspection or snapshots for design
+  changes; a browser preview alone does not establish native-shell behavior. Restart Electron when
+  verifying main-process changes.
+- Await asynchronous refreshes and cache writes before test teardown. A provider call or error
+  alone does not establish that related work has finished.
+- Run `pnpm typecheck`, `pnpm format`, and `pnpm lint` after JavaScript or TypeScript changes.
+  Run relevant tests and other checks required by the changed behavior.
