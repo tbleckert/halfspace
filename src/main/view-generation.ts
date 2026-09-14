@@ -26,9 +26,9 @@ contexts; unavailable if an essential feature is unsupported or a required conte
 For unavailable, return no blocks and explain the limitation in message. Do not offer a fallback composition.
 Supported widgets: ${JSON.stringify(implementedViewWidgets.map(({ type, description, context }) => ({ type, description, context })))}.
 Layout uses three columns. Every widget supports span 1 (compact), 2 (wide) or 3 (full width).
-Prefer 2–5 blocks, with at most 8. For a supporter home with an available season, include each of
+Prefer 2–6 blocks, with at most 8. For a supporter home with an available season, include each of
 these distinct types exactly once: team-next-match (span 2), team-season (span 1), team-fixtures
-(span 1), standings (span 1, selected teamId), team-availability (span 1).
+(span 1), standings (span 1, selected teamId), team-availability (span 1), form-trend (span 2).
 The standings widget MUST have type "standings": it is the full league table. The team-season
 widget is only the selected team's summary. Never use a second team-season widget as standings.
 Avoid duplicate widgets with identical data bindings and settings unless the user asks for them.
@@ -36,6 +36,9 @@ Only add season-based widgets when the requested competition and season are avai
 guess a team's current competition from its name. Pure team widgets do not need a season.
 Standings use teamId null unless a known team should be highlighted. Competition fixture blocks
 cover 14 days; team fixtures cover 30 days. Neither is a complete season schedule.
+Form trend shows up to six completed matches in the last 100 days across all competitions.
+Set matchLocation to all, home or away as requested. It does not support league-only or historical
+season samples, xG, or other performance metrics beyond goals and results.
 Each block has a unique stable id. Preserve existing ids and context when editing.
 When refining, change only what was requested. Preserve widget ids, selected entities, explicit
 seasons, metrics and user widths unless the requested edit requires changing them. A match-preparation

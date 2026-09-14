@@ -73,6 +73,13 @@ export function createTeamStarterView(team: ViewTeamContext, context?: ViewConte
       span: 1
     })
   blocks.push({ id: 'availability', type: 'team-availability', teamId: team.teamId, span: 1 })
+  blocks.push({
+    id: 'form',
+    type: 'form-trend',
+    teamId: team.teamId,
+    span: 2,
+    matchLocation: 'all'
+  })
   return validateViewSpec(
     { version: 2, title: `My ${team.teamName}`.slice(0, 80), message: '', blocks },
     context ? [context] : [],

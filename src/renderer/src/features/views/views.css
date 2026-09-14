@@ -133,7 +133,60 @@
   grid-template-columns: minmax(0, 1fr);
   align-items: start;
 }
+.view-form-body {
+  display: grid;
+  gap: 20px;
+}
+.view-form-chart {
+  display: flex;
+  gap: 8px;
+}
+.view-form-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 110px;
+}
+.view-form-plot {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  flex: 1;
+  min-width: 0;
+  gap: 8px;
+}
+.view-form-bars {
+  display: flex;
+  justify-content: center;
+  height: 110px;
+  gap: 3px;
+  border-bottom: 1px solid var(--border);
+}
+.view-form-bar-track {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 30%;
+  max-width: 28px;
+  height: 100%;
+}
+.view-form-bar-track > div {
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+}
+.view-form-results {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+}
 @container view-widget (min-width: 520px) {
+  .view-form-results {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .view-form-bars,
+  .view-form-axis {
+    height: 160px;
+  }
   .view-match-pair {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -152,6 +205,13 @@
   }
 }
 @container view-widget (min-width: 860px) {
+  .view-form-body {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: 32px;
+  }
+  .view-form-results {
+    grid-template-columns: minmax(0, 1fr);
+  }
   .view-next-match {
     gap: 34px;
     padding: 28px;

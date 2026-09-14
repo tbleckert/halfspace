@@ -49,6 +49,23 @@ it('validates the team and competition-season identities independently', () => {
   ).toThrow(/team/i)
 })
 
+it('accepts a team form sample in every width while rejecting unknown bindings and unsupported scopes', () => {
+  for (const span of [1, 2, 3]) {
+    const spec = {
+      version: 2,
+      title: 'Form',
+      message: '',
+      blocks: [{ id: 'trend', type: 'form-trend', teamId: 19, span, matchLocation: 'home' }]
+    }
+    expect(validateViewSpec(spec, [], teams)).toEqual(spec)
+    expect(() => validateViewSpec(spec, [], [])).toThrow(/team/i)
+    expect(viewBlockSchema.safeParse({ ...spec.blocks[0], matchLocation: 'neutral' }).success).toBe(
+      false
+    )
+    expect(viewBlockSchema.safeParse({ ...spec.blocks[0], seasonId: 12 }).success).toBe(false)
+  }
+})
+
 it('opens saved version-one layouts while retaining identities and explicit full widths', () => {
   const original = {
     version: 1,

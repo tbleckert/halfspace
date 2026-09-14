@@ -8,6 +8,7 @@ import {
   writeCompetitionRefresh,
   writeTeamRefresh,
   writeTeamCompetitionsRefresh,
+  writeTeamFixtureRefresh,
   writeSeasonTopscorersRefresh
 } from '@/data/db'
 import { routeTree } from '@/routeTree.gen'
@@ -15,6 +16,8 @@ import { mockViewsApi } from '../../../test/view-api'
 import { saveView } from '@/features/views/saved-views'
 import { createStarterView } from '@/features/views/starter-views'
 import { makeTopscorer } from '../../../test/topscorer-fixtures'
+import { formTrendInput } from '@/features/views/form-trend-data'
+import { currentTimeZone, todayInTimeZone } from '@/lib/date'
 
 vi.mock('@/components/app-shell', async () => ({
   AppShell: (await import('@tanstack/react-router')).Outlet
@@ -201,12 +204,84 @@ it('creates a team home offline, changes its widths, saves and reopens after cac
   await waitFor(() => expect(router.state.location.search.view).toBeTruthy())
   const id = router.state.location.search.view!
   const saved = (await db.savedViews.get(id))!
-  expect(saved.spec.blocks.map(({ span }) => span)).toEqual([1, 2, 3, 1, 1])
+  expect(saved.spec.blocks.map(({ span }) => span)).toEqual([1, 2, 3, 1, 1, 2])
   expect(saved.spec.blocks.every((block) => 'teamId' in block && block.teamId === 19)).toBe(true)
   await act(() => router.navigate({ to: '/views', search: {} }))
   await act(() => clearSportmonksCache())
   await act(() => router.navigate({ to: '/views', search: { view: id } }))
   expect(((await screen.findByLabelText('View name')) as HTMLInputElement).value).toBe('My Arsenal')
   expect((await db.savedViews.get(id))?.spec).toEqual(saved.spec)
+  expect(window.halfspace.views.generate).not.toHaveBeenCalled()
+})
+
+it('filters a cached form sample, undoes the filter, and saves and duplicates it without AI', async () => {
+  const timeZone = currentTimeZone()
+  const today = todayInTimeZone(timeZone)
+  await writeTeamFixtureRefresh(formTrendInput(19, today, timeZone), {
+    timeZone,
+    fetchedAt: Date.now(),
+    pageCount: 1,
+    fixtures: [
+      {
+        id: 100,
+        league_id: 8,
+        season_id: 12,
+        state_id: 5,
+        starting_at_timestamp: (Date.now() - 86400000) / 1000,
+        placeholder: false,
+        has_odds: false,
+        participants: [
+          { id: 19, name: 'Arsenal', meta: { location: 'home' } },
+          { id: 20, name: 'Chelsea', meta: { location: 'away' } }
+        ],
+        scores: [
+          {
+            id: 1,
+            participant_id: 19,
+            description: 'CURRENT',
+            score: { goals: 2, participant: 'home' }
+          },
+          {
+            id: 2,
+            participant_id: 20,
+            description: 'CURRENT',
+            score: { goals: 0, participant: 'away' }
+          }
+        ]
+      }
+    ]
+  })
+  await saveView('form', {
+    version: 2,
+    title: 'My form',
+    message: '',
+    blocks: [{ id: 'trend', type: 'form-trend', teamId: 19, span: 2, matchLocation: 'all' }]
+  })
+  const router = openViews()
+  await act(() => router.navigate({ to: '/views', search: { view: 'form' } }))
+  const result = await screen.findByRole('link', { name: /Win home to Chelsea/ })
+  expect(result.getAttribute('href')).toContain('season=12')
+  fireEvent.change(screen.getByLabelText('Form match location'), { target: { value: 'away' } })
+  await screen.findByText('No completed away matches reported in this window.')
+  expect(screen.queryByRole('link', { name: /Win home to Chelsea/ })).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: 'Undo change' }))
+  await screen.findByRole('link', { name: /Win home to Chelsea/ })
+  fireEvent.change(screen.getByLabelText('Form match location'), { target: { value: 'home' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Save view' }))
+  await waitFor(async () =>
+    expect((await db.savedViews.get('form'))?.spec.blocks[0]).toMatchObject({
+      matchLocation: 'home',
+      span: 2
+    })
+  )
+  await act(() => router.navigate({ to: '/views', search: {} }))
+  await act(() => router.navigate({ to: '/views', search: { view: 'form' } }))
+  await screen.findByRole('link', { name: /Win home to Chelsea/ })
+  expect((screen.getByLabelText('Form match location') as HTMLSelectElement).value).toBe('home')
+  fireEvent.click(screen.getByRole('button', { name: 'Duplicate view' }))
+  await waitFor(() => expect(router.state.location.search.view).not.toBe('form'))
+  expect(
+    (await db.savedViews.get(router.state.location.search.view!))?.spec.blocks[0]
+  ).toMatchObject({ type: 'form-trend', matchLocation: 'home', span: 2 })
   expect(window.halfspace.views.generate).not.toHaveBeenCalled()
 })

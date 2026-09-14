@@ -65,10 +65,11 @@ export const viewWidgets = [
   {
     type: 'form-trend',
     label: 'Form trend',
-    status: 'planned',
+    status: 'implemented',
     context: 'team',
     columns: widgetColumns,
-    description: 'Defined match samples with aligned goals and performance trends.'
+    description:
+      'Goals scored, conceded and results for up to six completed matches in the last 100 days, across all competitions. Supports all, home or away matches; not a league-only or season sample.'
   },
   {
     type: 'team-news',

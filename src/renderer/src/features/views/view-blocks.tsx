@@ -69,9 +69,10 @@ export function ViewBlockContent({
     block.type === 'team-next-match' ||
     block.type === 'team-fixtures' ||
     block.type === 'team-season' ||
-    block.type === 'team-availability'
+    block.type === 'team-availability' ||
+    block.type === 'form-trend'
   )
-    return <TeamViewBlockContent block={block} />
+    return <TeamViewBlockContent block={block} onChange={onChange} />
   return <CompetitionBlockContent block={block} onChange={onChange} />
 }
 

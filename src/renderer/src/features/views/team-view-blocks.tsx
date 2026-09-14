@@ -25,8 +25,15 @@ import { recentStandingForm, standingDetailValue } from '@/features/competitions
 import { useCompetitionDetail } from '@/features/competitions/use-competition-detail'
 import { BlockPending, BlockEmpty, BlockError } from './view-block-state'
 import { selectTeamViewFixtures } from './team-view-data'
+import { FormTrendBlock } from './form-trend-block'
 
-export function TeamViewBlockContent({ block }: { block: TeamViewBlock }): React.JSX.Element {
+export function TeamViewBlockContent({
+  block,
+  onChange
+}: {
+  block: TeamViewBlock
+  onChange: (block: TeamViewBlock) => void
+}): React.JSX.Element {
   const online = useOnline()
   const identity = useTeamEntity(block.teamId, online)
   const team = identity.cached?.team ?? identity.cached?.participant
@@ -47,7 +54,15 @@ export function TeamViewBlockContent({ block }: { block: TeamViewBlock }): React
         <span className="truncate">{team?.name ?? `Team ${block.teamId}`}</span>
         <ArrowUpRight className="size-3 shrink-0" />
       </Link>
-      {block.type === 'team-season' ? (
+      {block.type === 'form-trend' ? (
+        <FormTrendBlock
+          block={block}
+          online={online}
+          today={today}
+          timeZone={timeZone}
+          onChange={onChange}
+        />
+      ) : block.type === 'team-season' ? (
         <TeamSeasonBlock block={block} online={online} date={today} />
       ) : block.type === 'team-availability' ? (
         <div className="view-team-availability space-y-2">

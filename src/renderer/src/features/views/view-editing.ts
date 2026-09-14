@@ -80,6 +80,9 @@ export function addViewBlock(
     case 'team-availability':
       block = { ...base, type: widgetType, teamId: team!.teamId }
       break
+    case 'form-trend':
+      block = { ...base, type: widgetType, teamId: team!.teamId, span: 2, matchLocation: 'all' }
+      break
     case 'team-fixtures':
       block = {
         ...base,

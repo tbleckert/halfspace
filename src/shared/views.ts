@@ -44,7 +44,13 @@ export const viewBlockSchema = z.union([
     period: z.enum(['upcoming', 'recent'])
   }),
   z.strictObject({ type: z.literal('team-season'), ...blockContext, ...teamBinding }),
-  z.strictObject({ type: z.literal('team-availability'), ...blockLayout, ...teamBinding })
+  z.strictObject({ type: z.literal('team-availability'), ...blockLayout, ...teamBinding }),
+  z.strictObject({
+    type: z.literal('form-trend'),
+    ...blockLayout,
+    ...teamBinding,
+    matchLocation: z.enum(['all', 'home', 'away'])
+  })
 ])
 
 export const viewSpecSchema = z.strictObject({
@@ -84,7 +90,7 @@ export type ViewBlock = z.infer<typeof viewBlockSchema>
 export type ViewSpec = z.infer<typeof viewSpecSchema>
 export type ViewContext = z.infer<typeof viewContextSchema>
 export type ViewTeamContext = z.infer<typeof viewTeamContextSchema>
-export type TeamViewBlock = Extract<ViewBlock, { type: `team-${string}` }>
+export type TeamViewBlock = Extract<ViewBlock, { type: `team-${string}` | 'form-trend' }>
 export type CompetitionViewBlock = Exclude<ViewBlock, TeamViewBlock>
 export type GenerateViewInput = z.infer<typeof generateViewInputSchema>
 export interface ViewProgress {
