@@ -1,9 +1,10 @@
 # View widgets
 
 The [three accepted design studies](../design/generative-views/README.md) are our visual targets.
-The catalog contains **19 implemented widgets and 2 planned widgets**.
-The supporter home and player study are working compositions. The researcher study has bookmaker
-price comparisons; match shortlisting and probability context remain planned.
+The catalog contains **21 implemented widgets and 0 planned widgets**.
+The supporter home, player study, match preparation and match research are working compositions.
+Research connects a full-time result shortlist to prices, provider probabilities and match context.
+Probability gaps, value rankings and profitability claims remain outside the implemented scope.
 
 The application catalog is [`src/shared/view-widgets.ts`](../src/shared/view-widgets.ts).
 It records implementation status, data context and column support, and supplies the available
@@ -26,17 +27,20 @@ selection and data. Compact tables retain essential values and link to the full 
 | `standings`            | Complete reported standing groups for a competition and season; optional team highlight                                    | Position, team, points and form                   | Adds played and goal difference                     | Expanded team and table spacing  |
 | `leaders`              | Season goals, assists, yellow cards or red cards; provider ranks and totals                                                | Club beneath player name                          | Separate club column                                | Expanded player and club spacing |
 | `form-trend`           | Up to six completed team matches in the last 100 days, across all competitions; All/Home/Away selection                    | Compact goal chart and linked results below       | Taller chart and two-column results                 | Chart and results side by side   |
-| `fixture-broadcasts`   | Next fixture from a linked Next match widget; preferred country, all countries or an explicit country                      | Stacked match, country and station list           | Match and country side by side; two station columns | Three station columns            |
+| `fixture-broadcasts`   | Resolved fixture from a linked match source; preferred country, all countries or an explicit country                       | Stacked match, country and station list           | Match and country side by side; two station columns | Three station columns            |
 | `team-news`            | Up to three upcoming and three recent team fixtures, 30 days either side; Sportmonks previews and AI-written match reports | Linked headlines and sources                      | Two columns with excerpts                           | Three columns with excerpts      |
 | `player-profile`       | Exact player, club, competition and season; reported identity, minutes and statistics                                      | Stacked identity and two-column facts             | Three-column facts                                  | Identity beside facts            |
 | `player-comparison`    | Independent player, club and season samples; shared per-90 metrics and reported minutes                                    | Stacked paired metrics                            | Two metric columns                                  | Three metric columns             |
 | `team-comparison`      | Independent team, competition, season and All/Home/Away scopes                                                             | Stacked paired metrics                            | Two metric columns                                  | Three metric columns             |
-| `odds-comparison`      | Linked Next match; pre-match feed, selected market and bookmaker, exact lines/outcomes and quote times                     | Stacked outcomes and bookmaker prices             | Two outcome columns                                 | Three outcome columns            |
-| `fixture-head-to-head` | Linked Next match participants; up to five completed previous meetings before kickoff, across competitions                 | One match column                                  | Two match columns                                   | Three match columns              |
-| `fixture-absences`     | Reported absences for both teams in the linked Next match                                                                  | Teams stacked                                     | Teams side by side                                  | Two player columns per team      |
-| `fixture-weather`      | Linked Next match's provider weather report; forecast/recorded status and known units                                      | Conditions above two-column facts                 | Three-column facts                                  | Conditions beside facts          |
+| `odds-comparison`      | Linked match source; pre-match feed, selected market and bookmaker, exact lines/outcomes and quote times                   | Stacked outcomes and bookmaker prices             | Two outcome columns                                 | Three outcome columns            |
+| `fixture-head-to-head` | Linked match participants; up to five completed previous meetings before kickoff, across competitions                      | One match column                                  | Two match columns                                   | Three match columns              |
+| `fixture-absences`     | Reported absences for both teams in the linked match                                                                       | Teams stacked                                     | Teams side by side                                  | Two player columns per team      |
+| `fixture-weather`      | Linked match's provider weather report; forecast/recorded status and known units                                           | Conditions above two-column facts                 | Three-column facts                                  | Conditions beside facts          |
 | `team-squad`           | Exact team and season squad; up to twelve players, with a link to the full reported squad                                  | One player column                                 | Two player columns                                  | Three player columns             |
 | `team-transfers`       | Up to six completed moves in the last 365 days; All/Incoming/Outgoing selection                                            | One transfer column                               | Two transfer columns                                | Three transfer columns           |
+
+| `market-shortlist` | Exact competition and season; seven-day or weekend window, full-time result prices, outcome filter and selected match | One match column | Two match columns | Three match columns |
+| `probability-context` | Linked match; Sportmonks pre-match result, BTTS or goals 2.5 probabilities, provenance and missing-data context | Stacked outcomes and source | Outcomes side by side | Outcomes across; source and uncertainty side by side |
 
 Presentation adapts to **actual container width**, so a two-column preference on a small window can
 still use the compact arrangement. The canvas has three columns, reduces to two below 900px of
@@ -47,10 +51,8 @@ content width, and to one below 580px. Stored spans are retained when the window
 All planned widgets must support all three column modes before being marked implemented.
 An existing entity page or endpoint does not, by itself, mean its View widget is implemented.
 
-| Widget                | First story | Remaining work                                                    |
-| --------------------- | ----------- | ----------------------------------------------------------------- |
-| `market-shortlist`    | Researcher  | Match filters and selection connected to evidence and prices      |
-| `probability-context` | Researcher  | Verified probability semantics, source, alignment and uncertainty |
+No catalog entries are currently planned. The boundaries and remaining research capabilities below
+are tracked separately from completed widget contracts.
 
 ## Completion rule
 
@@ -79,9 +81,11 @@ produce an honest limitation rather than fabricated panels.
 
 ## Saved format
 
-New definitions use version 2 with numeric `span: 1 | 2 | 3`. Existing version 1 records are upgraded
+New definitions use version 3 with numeric `span: 1 | 2 | 3`. Existing version 1 records are upgraded
 at the storage read boundary: `half` becomes 1 and `full` becomes 3. IDs, titles, bindings and undo
-history are retained. Saving writes version 2; clearing football caches preserves saved definitions.
+history are retained. Version 2 next-match links migrate to `fixtureSourceBlockId`, preserving block
+IDs and saved selections. Migration runs only when reading storage; model and IPC requests use the
+strict version 3 contract. Saving writes version 3; clearing football caches preserves saved definitions.
 
 ## Form trend scope
 
@@ -133,11 +137,11 @@ duplicate, undo and generation flow. Width changes preserve the sample selection
 
 ## Where to watch scope
 
-Where to watch references a Next match widget by its stable block ID. It shares that widget's
-team-fixture query and selection rules, so a change of team or next fixture updates the broadcasts.
-The scope is the next scheduled match across competitions in the next 30 days; arbitrary fixture
-selection remains outside this slice. The editor can choose another Next match block. Removing a
-source also removes its dependent broadcast and odds widgets in the same undoable edit.
+Where to watch references a Next match or Market shortlist widget by its stable block ID. A Next match
+source shares its team-fixture query and selection rules, so changing team or next fixture updates the
+broadcasts. That scope is the next scheduled match across competitions in the next 30 days. A shortlist
+source follows the user's selection within its date window instead. The editor can choose either
+kind of source; removing one also removes all its dependents in the same undoable edit.
 
 The country choice is saved in the View: the app's preferred TV country (default), all countries,
 or an explicit country ID. With no preferred country, the default shows all countries. Local edits
@@ -189,14 +193,14 @@ missing articles, uncached data and request failures have distinct states.
 
 ## Odds comparison scope
 
-Odds comparison follows a Next match widget through the same source binding as Where to watch.
+Odds comparison follows a Next match or Market shortlist through the same source binding as Where to watch.
 Its saved market is automatic or explicit; its bookmaker choice is all or explicit. Automatic
-market selection prefers match result when available. Unavailable explicit choices remain selected.
+market selection prefers match result when available; a shortlist source always defaults to full-time result. Unavailable explicit choices remain selected.
 The shared odds comparison groups exact market descriptions, lines and outcomes, uses each
 bookmaker's newest quotes, and retains stopped/suspended states and quote timestamps. The highest
 available price is highlighted without implying expected value or a betting recommendation.
-This slice uses pre-match prices only. Live odds, arbitrary fixture selection, market shortlisting
-and probability estimates remain outside its scope.
+This slice uses pre-match prices only. Live odds and arbitrary fixture IDs remain outside its scope. Match selection and reported probabilities
+are provided through the separate research widgets.
 
 ### Five-widget verification · 14 September 2026
 
@@ -255,4 +259,55 @@ of the View's season. Explicit selections and spans survive football-cache clear
 - Keyboard activation of the starter and editor, Escape and restored focus passed browser checks.
 - No additional Sportmonks capability is claimed for composing existing data.
 - `pnpm check` passed 899 tests, typecheck, lint, formatting and coverage checks; the production
+  build passed.
+
+## Match research
+
+The **Research matches** starter creates a Market shortlist (2 columns), Probability context (1),
+Odds comparison (3), Head-to-head (2) and Match absences (1). Selecting a match updates every linked
+card. All six match-dependent widget types, including weather and broadcasters, can follow either
+Next match or a shortlist. Source deletion removes dependents in the same undoable edit.
+
+The shortlist uses one exact competition and season. Its rolling window is today plus six days,
+or Saturday/Sunday of the current or upcoming weekend in the user's time zone. Only future,
+not-started fixtures in that window are included. Six matches are shown per page in kickoff order;
+price fetching is limited to that page. Each outcome shows its highest active, newest-per-bookmaker
+standard full-time result quote. The oldest displayed quote time stays visible; expandable details show each bookmaker,
+quote timestamp and separate fetch time. Other periods,
+handicaps and totals are excluded. The home/draw/away filter changes displayed outcomes, not fixture
+membership. Missing prices stay visible and never imply denied access or a betting opportunity.
+
+A null selection follows the first match. An explicit selection stays selected when it becomes
+unavailable or leaves the window; connected cards show that state instead of choosing another match.
+Changing competition/season clears the old fixture selection. Saving, undo, duplication and football
+cache clearing retain explicit selections and source links. Generation may select only a known fixture
+in the matching competition and season, or use automatic selection.
+
+Probability context uses the existing fixture prediction query and provider-reported percentages:
+full-time result (type 237), BTTS (231), and over/under 2.5 (235). Mappings were checked against the
+[Sportmonks probability guide](https://docs.sportmonks.com/v3/tutorials-and-guides/tutorials/odds-and-predictions/predictions/probabilities)
+and [provider examples](https://www.sportmonks.com/blogs/how-to-use-the-sportmonks-football-predictions-api/).
+Missing outcomes remain unknown, zero stays zero, duplicate reports are treated as conflicting,
+and percentages are never renormalized. The card labels Sportmonks as its pre-match model source,
+shows fetch time separately and states that model update time, calibration and confidence intervals
+are not supplied in this report. It does not calculate probability gaps, expected value or recommendations.
+
+### Research verification · 14 September 2026
+
+- Storage migration preserves v1/v2 layouts, source links and undo definitions; new requests use v3.
+- Schema and serialized OpenAI contract checks cover both widgets, all spans, exact selected-fixture
+  identity and invalid source references. Unsupported generated selections are rejected.
+- Route checks cover connected selection, late results, explicit selection leaving the window,
+  outcome/market filters, missing/zero probabilities, save/reopen, duplication, cache clearing,
+  manual addition, source removal, undo and the research starter.
+- No additional Sportmonks capability is claimed. Live OpenAI generation and live provider data
+  were not checked in this batch.
+- Refresh failure/retry preserves cached probabilities until a complete response arrives. Price queries
+  are limited to the visible six-match page, and subscription denial is distinct from empty predictions.
+- Both new widgets passed Electron overflow checks for all three spans at 1740, 1512, 1240 and
+  900px window widths (24 combinations). The revised starter, expanded quote details, missing
+  probabilities and an unavailable explicit match selection were visually reviewed with example data.
+- Browser keyboard checks passed starter creation, editor activation, Escape/focus restoration,
+  connected match selection and quote-detail disclosure.
+- `pnpm check` passed 915 tests, typecheck, lint, formatting and coverage checks; the production
   build passed.

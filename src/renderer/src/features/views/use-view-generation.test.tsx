@@ -7,7 +7,7 @@ import type { GenerateViewInput, ViewProgress, ViewSpec } from '@shared/views'
 import { useViewGeneration } from './use-view-generation'
 
 const spec: ViewSpec = {
-  version: 2,
+  version: 3,
   title: 'Premier League',
   message: '',
   blocks: [

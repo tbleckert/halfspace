@@ -61,7 +61,7 @@ export function addViewBlock(
   context?: ViewContext,
   team?: ViewTeamContext,
   options: {
-    nextMatchBlockId?: string
+    fixtureSourceBlockId?: string
     left?: ViewStatisticContext
     right?: ViewStatisticContext
   } = {}
@@ -79,14 +79,15 @@ export function addViewBlock(
     widgetType === 'fixture-broadcasts' ||
     widgetType === 'fixture-head-to-head' ||
     widgetType === 'fixture-absences' ||
-    widgetType === 'fixture-weather'
+    widgetType === 'fixture-weather' ||
+    widgetType === 'probability-context'
   ) {
     const source = spec.blocks.find(
       (block) =>
-        block.type === 'team-next-match' &&
-        (!options.nextMatchBlockId || block.id === options.nextMatchBlockId)
+        (block.type === 'team-next-match' || block.type === 'market-shortlist') &&
+        (!options.fixtureSourceBlockId || block.id === options.fixtureSourceBlockId)
     )
-    if (!source) throw new Error('Add a Next match widget first.')
+    if (!source) throw new Error('Add a Next match or Market shortlist widget first.')
     return {
       ...spec,
       blocks: [
@@ -95,13 +96,20 @@ export function addViewBlock(
           ? {
               ...base,
               type: 'odds-comparison',
-              nextMatchBlockId: source.id,
+              fixtureSourceBlockId: source.id,
               marketId: null,
               bookmakerId: null
             }
           : widgetType === 'fixture-broadcasts'
-            ? { ...base, type: widgetType, nextMatchBlockId: source.id, countryId: 'preferred' }
-            : { ...base, type: widgetType, nextMatchBlockId: source.id }
+            ? { ...base, type: widgetType, fixtureSourceBlockId: source.id, countryId: 'preferred' }
+            : widgetType === 'probability-context'
+              ? {
+                  ...base,
+                  type: widgetType,
+                  fixtureSourceBlockId: source.id,
+                  market: 'match-result'
+                }
+              : { ...base, type: widgetType, fixtureSourceBlockId: source.id }
       ]
     }
   }
@@ -163,6 +171,16 @@ export function addViewBlock(
         period: type === 'team-recent' ? 'recent' : 'upcoming'
       }
       break
+    case 'market-shortlist':
+      block = {
+        ...base,
+        ...competition!,
+        type: widgetType,
+        period: 'next-seven-days',
+        outcome: 'all',
+        selectedFixtureId: null
+      }
+      break
     case 'team-transfers':
       block = { ...base, type: widgetType, teamId: team!.teamId, direction: 'all' }
       break
@@ -198,7 +216,8 @@ export function addViewBlock(
 export function removeViewBlock(spec: ViewSpec, id: string): ViewSpec {
   if (spec.blocks.length <= 1) return spec
   const blocks = spec.blocks.filter(
-    (block) => block.id !== id && !('nextMatchBlockId' in block && block.nextMatchBlockId === id)
+    (block) =>
+      block.id !== id && !('fixtureSourceBlockId' in block && block.fixtureSourceBlockId === id)
   )
   return blocks.length ? { ...spec, blocks } : spec
 }
@@ -248,6 +267,10 @@ export function changeViewContext(
       'competitionId' in block
         ? {
             ...block,
+            ...(block.type === 'market-shortlist' &&
+            (block.competitionId !== context.competitionId || block.seasonId !== context.seasonId)
+              ? { selectedFixtureId: null }
+              : {}),
             competitionId: context.competitionId,
             seasonId: context.seasonId
           }

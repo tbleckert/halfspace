@@ -7,11 +7,11 @@ const next = { id: 'next', type: 'team-next-match', teamId: 19, span: 2 }
 const broadcasts = {
   id: 'tv',
   type: 'fixture-broadcasts',
-  nextMatchBlockId: 'next',
+  fixtureSourceBlockId: 'next',
   countryId: 'preferred',
   span: 1
 }
-const spec = { version: 2, title: 'My team', message: '', blocks: [next, broadcasts] }
+const spec = { version: 3, title: 'My team', message: '', blocks: [next, broadcasts] }
 
 it('validates a connected broadcast widget at all three widths and each supported country choice', () => {
   for (const span of [1, 2, 3]) {
@@ -35,9 +35,9 @@ it('rejects invented countries and missing or incompatible next-match references
   for (const blocks of [
     [broadcasts],
     [next, { ...next, teamId: 20 }, broadcasts],
-    [next, { ...broadcasts, nextMatchBlockId: 'other' }],
+    [next, { ...broadcasts, fixtureSourceBlockId: 'other' }],
     [{ ...next, type: 'team-availability' }, broadcasts],
-    [{ ...broadcasts, nextMatchBlockId: 'tv' }]
+    [{ ...broadcasts, fixtureSourceBlockId: 'tv' }]
   ]) {
     expect(() => readStoredViewSpec({ ...spec, blocks })).toThrow()
     expect(() => validateViewSpec({ ...spec, blocks }, [], teams, countries)).toThrow()

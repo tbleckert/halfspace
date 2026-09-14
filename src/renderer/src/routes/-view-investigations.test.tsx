@@ -41,7 +41,7 @@ const right = { ...selection, playerId: 101 }
 const leftTeam = { teamId: 19, competitionId: 8, seasonId: 12, matchLocation: 'all' as const }
 const next = { id: 'next', type: 'team-next-match' as const, teamId: 19, span: 2 as const }
 const spec: ViewSpec = {
-  version: 2,
+  version: 3,
   title: 'Investigation',
   message: '',
   blocks: [
@@ -59,7 +59,7 @@ const spec: ViewSpec = {
     {
       id: 'odds',
       type: 'odds-comparison',
-      nextMatchBlockId: 'next',
+      fixtureSourceBlockId: 'next',
       marketId: null,
       bookmakerId: null,
       span: 3

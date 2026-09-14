@@ -14,7 +14,7 @@ const teams = [{ teamId: 19, teamName: 'Arsenal' }]
 it('accepts every supported column mode and refuses unknown teams and planned widgets', () => {
   for (const span of [1, 2, 3]) {
     const spec = {
-      version: 2,
+      version: 3,
       title: 'My Arsenal',
       message: '',
       blocks: [{ id: 'next', type: 'team-next-match', teamId: 19, span }]
@@ -25,7 +25,7 @@ it('accepts every supported column mode and refuses unknown teams and planned wi
   expect(
     viewBlockSchema.safeParse({ id: 'next', type: 'team-next-match', teamId: 19, span: 4 }).success
   ).toBe(false)
-  for (const widget of viewWidgets.filter((item) => item.status === 'planned')) {
+  for (const widget of viewWidgets.filter((item) => item.status !== 'implemented')) {
     expect(
       viewBlockSchema.safeParse({ id: 'planned', type: widget.type, teamId: 19, span: 1 }).success
     ).toBe(false)
@@ -35,7 +35,7 @@ it('accepts every supported column mode and refuses unknown teams and planned wi
 
 it('validates the team and competition-season identities independently', () => {
   const spec = {
-    version: 2,
+    version: 3,
     title: 'Season',
     message: '',
     blocks: [
@@ -52,7 +52,7 @@ it('validates the team and competition-season identities independently', () => {
 it('accepts a team form sample in every width while rejecting unknown bindings and unsupported scopes', () => {
   for (const span of [1, 2, 3]) {
     const spec = {
-      version: 2,
+      version: 3,
       title: 'Form',
       message: '',
       blocks: [{ id: 'trend', type: 'form-trend', teamId: 19, span, matchLocation: 'home' }]
@@ -84,7 +84,7 @@ it('opens saved version-one layouts while retaining identities and explicit full
     ]
   }
   expect(readStoredViewSpec(original)).toMatchObject({
-    version: 2,
+    version: 3,
     blocks: [
       { id: 'table', span: 1, teamId: null },
       { id: 'games', span: 3 }

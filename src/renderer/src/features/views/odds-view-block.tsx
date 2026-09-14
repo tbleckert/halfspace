@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import type { ViewBlock } from '@shared/views'
+import type { ViewBlock, FixtureSourceBlock } from '@shared/views'
 import type { CachedFixture } from '@/data/db'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { NativeSelect } from '@/components/ui/native-select'
@@ -17,7 +17,7 @@ export function OddsViewBlockContent({
   onChange
 }: {
   block: OddsBlock
-  source: Extract<ViewBlock, { type: 'team-next-match' }>
+  source: FixtureSourceBlock
   onChange: (block: ViewBlock) => void
 }): React.JSX.Element {
   return (
@@ -28,6 +28,7 @@ export function OddsViewBlockContent({
           block={block}
           fixture={fixture}
           online={online}
+          defaultMarketId={source.type === 'market-shortlist' ? 1 : undefined}
           onChange={onChange}
         />
       )}
@@ -38,8 +39,10 @@ function Prices({
   block,
   fixture,
   online,
-  onChange
+  onChange,
+  defaultMarketId
 }: {
+  defaultMarketId?: number
   block: OddsBlock
   fixture: CachedFixture
   online: boolean
@@ -57,7 +60,8 @@ function Prices({
       odds.map((quote) => [quote.market_id, quote.market?.name ?? `Market ${quote.market_id}`])
     ).entries()
   ]
-  const marketId = block.marketId ?? (markets.some(([id]) => id === 1) ? 1 : markets[0]?.[0])
+  const marketId =
+    block.marketId ?? defaultMarketId ?? (markets.some(([id]) => id === 1) ? 1 : markets[0]?.[0])
   const all = oddsComparison(odds, marketId ?? 0)
   const comparison = oddsComparison(odds, marketId ?? 0, block.bookmakerId ?? undefined)
   const fetchedAt = query.cached?.query?.fetchedAt

@@ -84,10 +84,10 @@ export const viewWidgets = [
     type: 'fixture-broadcasts',
     label: 'Where to watch',
     status: 'implemented',
-    context: 'next-match',
+    context: 'match-source',
     columns: widgetColumns,
     description:
-      'Broadcasters for the match in a linked Next match widget, following its team and fixture changes. Uses the preferred country, all countries, or a known broadcast country.'
+      'Broadcasters for the match in a linked match source, following its resolved fixture. Uses the preferred country, all countries, or a known broadcast country.'
   },
   {
     type: 'player-profile',
@@ -118,28 +118,28 @@ export const viewWidgets = [
     type: 'fixture-head-to-head',
     label: 'Head-to-head',
     status: 'implemented',
-    context: 'next-match',
+    context: 'match-source',
     columns: widgetColumns,
     description:
-      'Up to five completed previous meetings between the linked Next match participants, before its kickoff. Cross-competition sample, not an all-time record.'
+      'Up to five completed previous meetings between the linked match participants, before its kickoff. Cross-competition sample, not an all-time record.'
   },
   {
     type: 'fixture-absences',
     label: 'Match absences',
     status: 'implemented',
-    context: 'next-match',
+    context: 'match-source',
     columns: widgetColumns,
     description:
-      'Reported absences for both participants of a linked Next match. Missing data is not a confirmed healthy squad.'
+      'Reported absences for both participants of a linked match source. Missing data is not a confirmed healthy squad.'
   },
   {
     type: 'fixture-weather',
     label: 'Match weather',
     status: 'implemented',
-    context: 'next-match',
+    context: 'match-source',
     columns: widgetColumns,
     description:
-      'Provider-reported weather for a linked Next match, with forecast or recorded status and known units. No inferred match effects.'
+      'Provider-reported weather for a linked match source, with forecast or recorded status and known units. No inferred match effects.'
   },
   {
     type: 'team-squad',
@@ -162,27 +162,29 @@ export const viewWidgets = [
   {
     type: 'market-shortlist',
     label: 'Market shortlist',
-    status: 'planned',
-    context: 'fixtures',
+    status: 'implemented',
+    context: 'competition',
     columns: widgetColumns,
-    description: 'A filtered selection of matches linked to evidence and prices.'
+    description:
+      'A competition-season shortlist of upcoming matches in the next seven days or this weekend, with full-time result prices and an All/Home/Draw/Away outcome filter. Selected match drives linked widgets; no value ranking.'
   },
   {
     type: 'odds-comparison',
     label: 'Odds comparison',
     status: 'implemented',
-    context: 'next-match',
+    context: 'match-source',
     columns: widgetColumns,
     description:
-      'Pre-match bookmaker prices for a linked Next match. Select an available market and bookmaker; preserve exact outcomes, lines and quote timestamps.'
+      'Pre-match bookmaker prices for a linked match source. Automatic selection uses full-time result for a shortlist. Select an available market and bookmaker; preserve exact outcomes, lines and quote timestamps.'
   },
   {
     type: 'probability-context',
     label: 'Probability context',
-    status: 'planned',
-    context: 'fixture',
+    status: 'implemented',
+    context: 'match-source',
     columns: widgetColumns,
-    description: 'Verified probability sources, market alignment and explicit uncertainty.'
+    description:
+      'Sportmonks pre-match probabilities for match result, both teams to score or total goals 2.5, following a match source. Shows provider provenance, fetch time and unknown calibration; no inferred edge.'
   }
 ] as const
 

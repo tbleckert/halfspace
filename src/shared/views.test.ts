@@ -18,7 +18,7 @@ const block = {
   seasonId: 12,
   span: 1
 }
-const spec = { version: 2, title: 'Match centre', message: '', blocks: [block] }
+const spec = { version: 3, title: 'Match centre', message: '', blocks: [block] }
 
 describe('view definitions', () => {
   it('accepts supported blocks bound to a known competition and season', () => {

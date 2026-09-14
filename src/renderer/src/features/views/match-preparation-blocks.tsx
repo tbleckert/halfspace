@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { Link } from '@tanstack/react-router'
 import { CloudSun } from 'lucide-react'
-import type { ViewBlock } from '@shared/views'
+import type { ViewBlock, FixtureSourceBlock } from '@shared/views'
 import type { CachedFixture } from '@/data/db'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { fixtureParticipantAt } from '@/lib/fixture'
@@ -31,7 +31,7 @@ export function MatchPreparationBlockContent({
   source
 }: {
   block: MatchPreparationBlock
-  source: Extract<ViewBlock, { type: 'team-next-match' }>
+  source: FixtureSourceBlock
 }): React.JSX.Element {
   return (
     <LinkedMatchView block={block} source={source}>

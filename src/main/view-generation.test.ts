@@ -15,9 +15,9 @@ const block = {
   seasonId: 12,
   span: 1
 }
-const spec = { version: 2, title: 'Premier League', message: 'Your league table.', blocks: [block] }
+const spec = { version: 3, title: 'Premier League', message: 'Your league table.', blocks: [block] }
 const input: GenerateViewInput = {
-  research: { statistics: [], markets: [], bookmakers: [] },
+  research: { fixtures: [], statistics: [], markets: [], bookmakers: [] },
   countries: [],
   requestId: 'fa3197ee-c3b7-4a09-81d8-aa11a133ab66',
   prompt: 'Show a league table',
@@ -142,7 +142,7 @@ it('waits for a valid referenced next match before streaming broadcasts', async 
   const tv = {
     id: 'tv',
     type: 'fixture-broadcasts',
-    nextMatchBlockId: 'next',
+    fixtureSourceBlockId: 'next',
     countryId: 47,
     span: 1
   }
@@ -181,7 +181,7 @@ it.each(['country', 'source'] as const)(
         {
           id: 'tv',
           type: 'fixture-broadcasts',
-          nextMatchBlockId: invalid === 'source' ? 'missing' : 'next',
+          fixtureSourceBlockId: invalid === 'source' ? 'missing' : 'next',
           countryId: 999,
           span: 1
         }
@@ -225,6 +225,7 @@ it('never streams a player comparison with an invented club-season binding', asy
         ...input,
         research: {
           ...input.research,
+          fixtures: [],
           statistics: [
             {
               kind: 'players',

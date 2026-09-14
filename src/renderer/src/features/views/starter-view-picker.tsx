@@ -38,7 +38,7 @@ export function StarterViewPicker({
           contexts={contexts}
         />
       </div>
-      <div className="grid gap-2 sm:grid-cols-3">
+      <div className="grid gap-2 sm:grid-cols-2">
         {starterViews.map((template) => (
           <Button
             key={template.id}

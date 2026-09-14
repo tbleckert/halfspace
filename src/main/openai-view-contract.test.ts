@@ -5,6 +5,7 @@ import { implementedViewWidgets } from '@shared/view-widgets'
 
 const input: GenerateViewInput = {
   research: {
+    fixtures: [],
     statistics: [
       ...[100, 101].map((entityId) => ({
         kind: 'players' as const,
@@ -48,7 +49,7 @@ const input: GenerateViewInput = {
   current: null
 }
 const spec = {
-  version: 2,
+  version: 3,
   title: 'My league',
   message: '',
   blocks: [
@@ -61,36 +62,68 @@ const firstTeam = { teamId: 19, competitionId: 8, seasonId: 12, matchLocation: '
 
 it.each([
   {
-    version: 2,
+    version: 3,
+    title: 'Match research',
+    message: '',
+    blocks: [
+      {
+        id: 'shortlist',
+        type: 'market-shortlist',
+        competitionId: 8,
+        seasonId: 12,
+        span: 3,
+        period: 'weekend',
+        outcome: 'home',
+        selectedFixtureId: null
+      },
+      {
+        id: 'probability',
+        type: 'probability-context',
+        fixtureSourceBlockId: 'shortlist',
+        market: 'match-result',
+        span: 1
+      },
+      {
+        id: 'prices',
+        type: 'odds-comparison',
+        fixtureSourceBlockId: 'shortlist',
+        marketId: 1,
+        bookmakerId: null,
+        span: 2
+      }
+    ]
+  },
+  {
+    version: 3,
     title: 'Match preparation',
     message: '',
     blocks: [
       { id: 'next', type: 'team-next-match', teamId: 19, span: 2 },
-      { id: 'weather', type: 'fixture-weather', nextMatchBlockId: 'next', span: 1 },
-      { id: 'meetings', type: 'fixture-head-to-head', nextMatchBlockId: 'next', span: 2 },
-      { id: 'absences', type: 'fixture-absences', nextMatchBlockId: 'next', span: 3 },
+      { id: 'weather', type: 'fixture-weather', fixtureSourceBlockId: 'next', span: 1 },
+      { id: 'meetings', type: 'fixture-head-to-head', fixtureSourceBlockId: 'next', span: 2 },
+      { id: 'absences', type: 'fixture-absences', fixtureSourceBlockId: 'next', span: 3 },
       { id: 'squad', type: 'team-squad', teamId: 19, competitionId: 8, seasonId: 12, span: 2 },
       { id: 'transfers', type: 'team-transfers', teamId: 19, direction: 'incoming', span: 1 }
     ]
   },
   spec,
   {
-    version: 2,
+    version: 3,
     title: 'Home form',
     message: '',
     blocks: [{ id: 'trend', type: 'form-trend', teamId: 19, span: 2, matchLocation: 'home' }]
   },
   {
-    version: 2,
+    version: 3,
     title: 'Where to watch',
     message: '',
     blocks: [
       { id: 'next', type: 'team-next-match', teamId: 19, span: 2 },
-      { id: 'tv', type: 'fixture-broadcasts', nextMatchBlockId: 'next', countryId: 47, span: 1 }
+      { id: 'tv', type: 'fixture-broadcasts', fixtureSourceBlockId: 'next', countryId: 47, span: 1 }
     ]
   },
   {
-    version: 2,
+    version: 3,
     title: 'Five-widget study',
     message: '',
     blocks: [
@@ -114,7 +147,7 @@ it.each([
       {
         id: 'odds',
         type: 'odds-comparison',
-        nextMatchBlockId: 'next',
+        fixtureSourceBlockId: 'next',
         marketId: 1,
         bookmakerId: null,
         span: 1

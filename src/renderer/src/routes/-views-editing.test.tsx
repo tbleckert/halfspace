@@ -208,7 +208,7 @@ it('creates a team home offline, changes its widths, saves and reopens after cac
   expect(
     saved.spec.blocks.every((block) =>
       block.type === 'fixture-broadcasts'
-        ? block.nextMatchBlockId === 'next-match'
+        ? block.fixtureSourceBlockId === 'next-match'
         : 'teamId' in block && block.teamId === 19
     )
   ).toBe(true)
@@ -258,7 +258,7 @@ it('filters a cached form sample, undoes the filter, and saves and duplicates it
     ]
   })
   await saveView('form', {
-    version: 2,
+    version: 3,
     title: 'My form',
     message: '',
     blocks: [{ id: 'trend', type: 'form-trend', teamId: 19, span: 2, matchLocation: 'all' }]

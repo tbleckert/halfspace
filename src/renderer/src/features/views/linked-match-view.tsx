@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { Link } from '@tanstack/react-router'
 import { ArrowUpRight } from 'lucide-react'
-import type { ViewBlock } from '@shared/views'
+import type { ViewBlock, FixtureSourceBlock } from '@shared/views'
 import type { CachedFixture } from '@/data/db'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useOnline } from '@/lib/use-online'
@@ -11,6 +11,7 @@ import { currentTimeZone } from '@/lib/date'
 import { useTeamEntity, useTeamFixtures } from '@/features/teams/use-team'
 import { BlockPending, BlockError } from './view-block-state'
 import { selectTeamViewFixtures, teamViewFixtureInput } from './team-view-data'
+import { useMarketShortlist } from './use-market-shortlist'
 import { viewBlockLabel } from './view-editing'
 
 export function LinkedMatchView({
@@ -18,8 +19,28 @@ export function LinkedMatchView({
   source,
   children
 }: {
-  block: Extract<ViewBlock, { nextMatchBlockId: string }>
-  source: Extract<ViewBlock, { type: 'team-next-match' }>
+  block: Extract<ViewBlock, { fixtureSourceBlockId: string }>
+  source: FixtureSourceBlock
+  children: (fixture: CachedFixture, online: boolean, date: string) => React.ReactNode
+}): React.JSX.Element {
+  return source.type === 'market-shortlist' ? (
+    <ShortlistMatchView block={block} source={source}>
+      {children}
+    </ShortlistMatchView>
+  ) : (
+    <NextMatchView block={block} source={source}>
+      {children}
+    </NextMatchView>
+  )
+}
+
+function NextMatchView({
+  block,
+  source,
+  children
+}: {
+  block: Extract<ViewBlock, { fixtureSourceBlockId: string }>
+  source: Extract<FixtureSourceBlock, { type: 'team-next-match' }>
   children: (fixture: CachedFixture, online: boolean, date: string) => React.ReactNode
 }): React.JSX.Element {
   const online = useOnline()
@@ -67,6 +88,46 @@ export function LinkedMatchView({
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
             No scheduled match reported in the next 30 days.
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  )
+}
+
+function ShortlistMatchView({
+  block,
+  source,
+  children
+}: {
+  block: Extract<ViewBlock, { fixtureSourceBlockId: string }>
+  source: Extract<FixtureSourceBlock, { type: 'market-shortlist' }>
+  children: (fixture: CachedFixture, online: boolean, date: string) => React.ReactNode
+}): React.JSX.Element {
+  const online = useOnline()
+  const { query, selected, today } = useMarketShortlist(source, online)
+  return (
+    <div className="space-y-2">
+      <p className="text-xs text-muted-foreground">Market shortlist · Selected match</p>
+      <BlockError error={query.error} online={online} refresh={query.refresh} />
+      {!query.cached?.query ? (
+        <BlockPending
+          block={block}
+          online={online}
+          error={query.error}
+          loading={query.refreshing || query.cached === undefined}
+        />
+      ) : selected ? (
+        children(selected, online, today)
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>{viewBlockLabel(block)}</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            {source.selectedFixtureId !== null
+              ? 'Selected match is outside this window or no longer scheduled. Choose a match in the shortlist.'
+              : 'No scheduled match in this shortlist.'}
           </CardContent>
         </Card>
       )}

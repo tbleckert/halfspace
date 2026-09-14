@@ -26,6 +26,8 @@ import { BlockPending, BlockEmpty, BlockError } from './view-block-state'
 import { StatisticViewBlockContent } from './statistic-view-blocks'
 import { OddsViewBlockContent } from './odds-view-block'
 import { BroadcastViewBlockContent } from './broadcast-view-block'
+import { MarketShortlistBlockContent } from './market-shortlist-block'
+import { ProbabilityBlockContent } from './probability-block'
 import { MatchPreparationBlockContent } from './match-preparation-blocks'
 import { TeamViewBlockContent } from './team-view-blocks'
 
@@ -77,12 +79,18 @@ export function ViewBlockContent({
     block.type === 'team-comparison'
   )
     return <StatisticViewBlockContent block={block} onChange={onChange} />
-  if ('nextMatchBlockId' in block) {
+  if (block.type === 'market-shortlist')
+    return <MarketShortlistBlockContent block={block} onChange={onChange} />
+  if ('fixtureSourceBlockId' in block) {
     const source = blocks.find(
-      (candidate) => candidate.type === 'team-next-match' && candidate.id === block.nextMatchBlockId
+      (candidate) =>
+        (candidate.type === 'team-next-match' || candidate.type === 'market-shortlist') &&
+        candidate.id === block.fixtureSourceBlockId
     )
-    return source?.type === 'team-next-match' ? (
-      block.type === 'odds-comparison' ? (
+    return source?.type === 'team-next-match' || source?.type === 'market-shortlist' ? (
+      block.type === 'probability-context' ? (
+        <ProbabilityBlockContent block={block} source={source} onChange={onChange} />
+      ) : block.type === 'odds-comparison' ? (
         <OddsViewBlockContent block={block} source={source} onChange={onChange} />
       ) : block.type === 'fixture-broadcasts' ? (
         <BroadcastViewBlockContent block={block} source={source} onChange={onChange} />
@@ -90,7 +98,7 @@ export function ViewBlockContent({
         <MatchPreparationBlockContent block={block} source={source} />
       )
     ) : (
-      <BlockEmpty>Choose a Next match widget in Edit blocks.</BlockEmpty>
+      <BlockEmpty>Choose a match source in Edit blocks.</BlockEmpty>
     )
   }
   if (

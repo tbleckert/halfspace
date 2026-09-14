@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { RefreshCw } from 'lucide-react'
-import type { BroadcastViewBlock, ViewBlock } from '@shared/views'
+import type { FixtureSourceBlock, BroadcastViewBlock, ViewBlock } from '@shared/views'
 import type { CachedFixture } from '@/data/db'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -22,7 +22,7 @@ export function BroadcastViewBlockContent({
   onChange
 }: {
   block: BroadcastViewBlock
-  source: Extract<ViewBlock, { type: 'team-next-match' }>
+  source: FixtureSourceBlock
   onChange: (block: ViewBlock) => void
 }): React.JSX.Element {
   return (
@@ -32,7 +32,7 @@ export function BroadcastViewBlockContent({
           key={fixture.id}
           block={block}
           fixture={fixture}
-          teamId={source.teamId}
+          teamId={source.type === 'team-next-match' ? source.teamId : undefined}
           date={date}
           online={online}
           onChange={onChange}
@@ -52,7 +52,7 @@ function BroadcastListings({
 }: {
   block: BroadcastViewBlock
   fixture: CachedFixture
-  teamId: number
+  teamId: number | undefined
   date: string
   online: boolean
   onChange: (block: ViewBlock) => void

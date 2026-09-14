@@ -39,13 +39,16 @@ export function ViewLayoutEditor({
   const [teamId, setTeamId] = useState<number | null>(null)
   const [left, setLeft] = useState<ViewStatisticContext | null>(null)
   const [right, setRight] = useState<ViewStatisticContext | null>(null)
-  const [nextMatchBlockId, setNextMatchBlockId] = useState('')
-  const sources = spec.blocks.filter((block) => block.type === 'team-next-match')
-  const source = sources.find((block) => block.id === nextMatchBlockId) ?? sources[0]
+  const [fixtureSourceBlockId, setFixtureSourceBlockId] = useState('')
+  const sources = spec.blocks.filter(
+    (block) => block.type === 'team-next-match' || block.type === 'market-shortlist'
+  )
+  const source = sources.find((block) => block.id === fixtureSourceBlockId) ?? sources[0]
   const sourceOptions = sources.map((block) => (
     <NativeSelectOption key={block.id} value={block.id}>
-      Next match ·{' '}
-      {teams.find((team) => team.teamId === block.teamId)?.teamName ?? `Team ${block.teamId}`}
+      {block.type === 'team-next-match'
+        ? `Next match · ${teams.find((team) => team.teamId === block.teamId)?.teamName ?? `Team ${block.teamId}`}`
+        : `Market shortlist · ${contexts.find((context) => context.competitionId === block.competitionId && context.seasonId === block.seasonId)?.competitionName ?? `Competition ${block.competitionId}`}`}
       {' · Block '}
       {spec.blocks.indexOf(block) + 1}
     </NativeSelectOption>
@@ -66,7 +69,7 @@ export function ViewLayoutEditor({
     ? Boolean(
         left?.kind === statisticKind && (type === 'player-profile' || right?.kind === statisticKind)
       )
-    : binding === 'next-match'
+    : binding === 'match-source'
       ? Boolean(source)
       : (binding === 'team' || Boolean(contexts.length)) &&
         (binding === 'competition' || Boolean(team))
@@ -145,10 +148,10 @@ export function ViewLayoutEditor({
                     <Trash2 className="size-4" />
                   </Button>
                 </div>
-                {'nextMatchBlockId' in block && (
+                {'fixtureSourceBlockId' in block && (
                   <NativeSelect
-                    aria-label={`Next match for block ${index + 1}`}
-                    value={block.nextMatchBlockId}
+                    aria-label={`Match source for block ${index + 1}`}
+                    value={block.fixtureSourceBlockId}
                     className="w-full"
                     disabled={disabled}
                     onChange={(event) =>
@@ -156,7 +159,7 @@ export function ViewLayoutEditor({
                         ...spec,
                         blocks: spec.blocks.map((item) =>
                           item.id === block.id
-                            ? { ...block, nextMatchBlockId: event.target.value }
+                            ? { ...block, fixtureSourceBlockId: event.target.value }
                             : item
                         )
                       })
@@ -165,9 +168,10 @@ export function ViewLayoutEditor({
                     {sourceOptions}
                   </NativeSelect>
                 )}
-                {block.type === 'team-next-match' &&
+                {(block.type === 'team-next-match' || block.type === 'market-shortlist') &&
                   spec.blocks.some(
-                    (item) => 'nextMatchBlockId' in item && item.nextMatchBlockId === block.id
+                    (item) =>
+                      'fixtureSourceBlockId' in item && item.fixtureSourceBlockId === block.id
                   ) && (
                     <p className="text-xs text-muted-foreground">
                       Removing this block also removes all widgets linked to it.
@@ -250,7 +254,7 @@ export function ViewLayoutEditor({
               if (canAdd && !disabled)
                 onChange(
                   addViewBlock(spec, type, context, team, {
-                    nextMatchBlockId: source?.id,
+                    fixtureSourceBlockId: source?.id,
                     left: left ?? undefined,
                     right: right ?? undefined
                   })
@@ -335,14 +339,14 @@ export function ViewLayoutEditor({
                 onPending={() => setRight(null)}
               />
             )}
-            {binding === 'next-match' && source && (
+            {binding === 'match-source' && source && (
               <div className="space-y-2">
-                <Label htmlFor="block-next-match">Follow next match</Label>
+                <Label htmlFor="block-next-match">Follow match source</Label>
                 <NativeSelect
                   id="block-next-match"
                   value={source.id}
                   disabled={disabled}
-                  onChange={(event) => setNextMatchBlockId(event.target.value)}
+                  onChange={(event) => setFixtureSourceBlockId(event.target.value)}
                 >
                   {sourceOptions}
                 </NativeSelect>
@@ -352,8 +356,8 @@ export function ViewLayoutEditor({
               <p className="text-xs text-muted-foreground">
                 {statistical
                   ? 'Choose club and season for each selection.'
-                  : binding === 'next-match'
-                    ? 'Add a Next match widget first.'
+                  : binding === 'match-source'
+                    ? 'Add a Next match or Market shortlist widget first.'
                     : 'Open the team or competition to make its context available.'}
               </p>
             )}

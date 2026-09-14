@@ -27,7 +27,7 @@ vi.mock('@/features/credentials/connection-state-provider', () => ({
 const connection = vi.hoisted(() => ({ online: false }))
 vi.mock('@/lib/use-online', () => ({ useOnline: () => connection.online }))
 const spec: ViewSpec = {
-  version: 2,
+  version: 3,
   title: 'My match',
   message: '',
   blocks: [
@@ -35,7 +35,7 @@ const spec: ViewSpec = {
     {
       id: 'tv',
       type: 'fixture-broadcasts',
-      nextMatchBlockId: 'next',
+      fixtureSourceBlockId: 'next',
       countryId: 'preferred',
       span: 1
     }
@@ -197,7 +197,7 @@ it('adds a linked widget manually and removes dependents in one undoable edit', 
   fireEvent.change(await screen.findByLabelText('New block'), {
     target: { value: 'fixture-broadcasts' }
   })
-  expect((screen.getByLabelText('Follow next match') as HTMLSelectElement).value).toBe('next')
+  expect((screen.getByLabelText('Follow match source') as HTMLSelectElement).value).toBe('next')
   fireEvent.click(screen.getByRole('button', { name: 'Add block' }))
   fireEvent.click(screen.getByRole('button', { name: 'Done' }))
   await screen.findByRole('link', { name: 'Swedish Sports' })

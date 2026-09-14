@@ -620,3 +620,35 @@
     align-items: center;
   }
 }
+
+.view-research-controls,
+.view-shortlist-matches,
+.view-probability-outcomes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.5rem;
+}
+.view-research-controls {
+  gap: 0.5rem;
+}
+.view-probability-provenance {
+  display: grid;
+  gap: 0.75rem;
+}
+@container view-widget (min-width: 520px) {
+  .view-research-controls,
+  .view-shortlist-matches {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .view-probability-outcomes {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@container view-widget (min-width: 860px) {
+  .view-shortlist-matches {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .view-probability-provenance {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  }
+}

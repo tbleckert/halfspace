@@ -20,7 +20,7 @@ const generationSchema = z.strictObject({
 })
 
 const instructions = `You compose personal football views in Halfspace.
-Return a version 2 view definition using only the provided competition/season contexts and teams.
+Return a version 3 view definition using only the provided competition/season contexts and teams.
 First choose outcome: composed only if you can fulfill the request using supported widgets and known
 contexts; unavailable if an essential feature is unsupported or a required context is missing or ambiguous.
 For unavailable, return no blocks and explain the limitation in message. Do not offer a fallback composition.
@@ -29,7 +29,7 @@ Layout uses three columns. Every widget supports span 1 (compact), 2 (wide) or 3
 Prefer 2–8 blocks, with at most 8. For a supporter home with an available season, include each of
 these distinct types exactly once: team-next-match (span 2), team-season (span 1), team-fixtures
 (span 1), standings (span 1, selected teamId), team-availability (span 1), form-trend (span 2),
-fixture-broadcasts (span 1, nextMatchBlockId referencing the team-next-match block, countryId preferred),
+fixture-broadcasts (span 1, fixtureSourceBlockId referencing the team-next-match block, countryId preferred),
 team-news (span 1).
 The standings widget MUST have type "standings": it is the full league table. The team-season
 widget is only the selected team's summary. Never use a second team-season widget as standings.
@@ -41,8 +41,8 @@ cover 14 days; team fixtures cover 30 days. Neither is a complete season schedul
 Form trend shows up to six completed matches in the last 100 days across all competitions.
 Set matchLocation to all, home or away as requested. It does not support league-only or historical
 season samples, xG, or other performance metrics beyond goals and results.
-Where to watch must reference an existing team-next-match widget by nextMatchBlockId. Emit its
-source first. It follows that source's team and next fixture; never invent or freeze a fixture ID.
+Where to watch must reference an existing team-next-match or market-shortlist widget by fixtureSourceBlockId. Emit its
+source first. It follows the source's resolved match; never invent or freeze a fixture ID.
 Use countryId "preferred" by default, "all" for all countries, or an exact ID from availableCountries
 when a specific country is requested. If the requested country is unknown, explain what is missing.
 Preserve country selections and next-match links on unrelated edits. If removing a next-match
@@ -56,10 +56,10 @@ Each side has its own selection. Keep these season selections independent of the
 Team comparison supports independent matchLocation all, home or away. Player comparison shows shared
 reported per-90 rates with each player's minutes; no percentile ranking or adjusted league strength.
 For a player study, use two player-profile widgets and a player-comparison with the exact same selections.
-Odds comparison follows a Next match source by nextMatchBlockId and compares pre-match decimal prices.
+Odds comparison follows a match source by fixtureSourceBlockId and compares pre-match decimal prices.
 Set marketId null for the default available market and bookmakerId null for all bookmakers. Specific
 IDs must come from availableResearch.markets/bookmakers. Preserve explicit selections on unrelated edits.
-Head-to-head, match absences and match weather also follow a Next match source by nextMatchBlockId.
+Head-to-head, match absences and match weather also follow a match source by fixtureSourceBlockId.
 Emit the source first and preserve links when editing. Head-to-head shows up to five completed meetings
 before that kickoff, across competitions; it is not an all-time record. Match absences reports both teams.
 Weather retains the provider's forecast/recorded label and known units; do not infer effects on football.
@@ -67,7 +67,16 @@ Team squad requires an exact known team, competition and season and links to the
 Team transfers shows up to six completed moves in the last 365 days, independent of historical season.
 Use direction all, incoming or outgoing; pending moves and rumours are excluded.
 For match preparation, prefer Next match, Head-to-head, Match absences, Match weather and Where to watch.
-In-play comparisons, probability estimates, betting recommendations and market shortlists are unsupported.
+Market shortlist uses an exact competition and season, with period next-seven-days or weekend and
+outcome all, home, draw or away. It compares full-time result pre-match prices in kickoff order.
+Set selectedFixtureId null for automatic first match, or an exact matching ID from availableResearch.fixtures.
+Never invent fixture IDs; preserve explicit selections on unrelated edits, including unavailable selections.
+Probability context follows a match source and uses market match-result, both-teams-to-score or total-goals-2.5.
+It shows Sportmonks pre-match estimates, not AI-generated probabilities, expected value or betting advice.
+All match-linked widgets can follow either team-next-match or market-shortlist using fixtureSourceBlockId.
+Emit the source first; remove its dependents when removing the source unless relinking them explicitly.
+For match research use a Market shortlist, Probability context, Odds comparison, Head-to-head and Match absences.
+In-play comparisons, computed probability gaps, value rankings and betting recommendations are unsupported.
 Each block has a unique stable id. Preserve existing ids and context when editing.
 When refining, change only what was requested. Preserve widget ids, selected entities, explicit
 seasons, metrics and user widths unless the requested edit requires changing them. A match-preparation
@@ -126,12 +135,12 @@ export async function generateView(
       })
     const blocks = candidates.filter((block) => {
       const source =
-        'nextMatchBlockId' in block
-          ? candidates.find((candidate) => candidate.id === block.nextMatchBlockId)
+        'fixtureSourceBlockId' in block
+          ? candidates.find((candidate) => candidate.id === block.fixtureSourceBlockId)
           : undefined
       try {
         validateViewSpec(
-          { version: 2, title: 'Draft', message: '', blocks: source ? [source, block] : [block] },
+          { version: 3, title: 'Draft', message: '', blocks: source ? [source, block] : [block] },
           input.contexts,
           input.teams,
           input.countries,

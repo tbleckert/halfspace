@@ -48,6 +48,19 @@ export const viewBlockSchema = z.union([
   }),
   z.strictObject({ type: z.literal('team-next-match'), ...blockLayout, ...teamBinding }),
   z.strictObject({
+    type: z.literal('market-shortlist'),
+    ...blockContext,
+    period: z.enum(['next-seven-days', 'weekend']),
+    outcome: z.enum(['all', 'home', 'draw', 'away']),
+    selectedFixtureId: z.number().int().positive().nullable()
+  }),
+  z.strictObject({
+    type: z.literal('probability-context'),
+    ...blockLayout,
+    fixtureSourceBlockId: blockLayout.id,
+    market: z.enum(['match-result', 'both-teams-to-score', 'total-goals-2.5'])
+  }),
+  z.strictObject({
     type: z.literal('team-fixtures'),
     ...blockLayout,
     ...teamBinding,
@@ -72,17 +85,17 @@ export const viewBlockSchema = z.union([
   z.strictObject({
     type: z.literal('fixture-head-to-head'),
     ...blockLayout,
-    nextMatchBlockId: blockLayout.id
+    fixtureSourceBlockId: blockLayout.id
   }),
   z.strictObject({
     type: z.literal('fixture-absences'),
     ...blockLayout,
-    nextMatchBlockId: blockLayout.id
+    fixtureSourceBlockId: blockLayout.id
   }),
   z.strictObject({
     type: z.literal('fixture-weather'),
     ...blockLayout,
-    nextMatchBlockId: blockLayout.id
+    fixtureSourceBlockId: blockLayout.id
   }),
 
   z.strictObject({
@@ -105,21 +118,21 @@ export const viewBlockSchema = z.union([
   z.strictObject({
     type: z.literal('odds-comparison'),
     ...blockLayout,
-    nextMatchBlockId: blockLayout.id,
+    fixtureSourceBlockId: blockLayout.id,
     marketId: z.number().int().positive().nullable(),
     bookmakerId: z.number().int().positive().nullable()
   }),
   z.strictObject({
     type: z.literal('fixture-broadcasts'),
     ...blockLayout,
-    nextMatchBlockId: blockLayout.id,
+    fixtureSourceBlockId: blockLayout.id,
     countryId: z.union([z.literal('preferred'), z.literal('all'), z.number().int().positive()])
   })
 ])
 
 export const viewSpecSchema = z
   .strictObject({
-    version: z.literal(2),
+    version: z.literal(3),
     title: z.string().min(1).max(80),
     message: z.string().max(500),
     blocks: z.array(viewBlockSchema).max(8)
@@ -132,12 +145,14 @@ export const viewSpecSchema = z
     (spec) =>
       spec.blocks.every(
         (block) =>
-          !('nextMatchBlockId' in block) ||
+          !('fixtureSourceBlockId' in block) ||
           spec.blocks.some(
-            (source) => source.id === block.nextMatchBlockId && source.type === 'team-next-match'
+            (source) =>
+              source.id === block.fixtureSourceBlockId &&
+              (source.type === 'team-next-match' || source.type === 'market-shortlist')
           )
       ),
-    'Match-linked widgets must follow an existing Next match widget.'
+    'Match-linked widgets must follow an existing Next match or Market shortlist widget.'
   )
 
 export const viewContextSchema = z.strictObject({
@@ -172,6 +187,15 @@ const namedIdentitySchema = z.strictObject({
   name: z.string().min(1).max(200)
 })
 export const viewResearchContextSchema = z.strictObject({
+  fixtures: z
+    .array(
+      z.strictObject({
+        fixtureId: z.number().int().positive(),
+        ...competitionBinding,
+        name: z.string().min(1).max(300)
+      })
+    )
+    .max(250),
   statistics: z.array(viewStatisticContextSchema).max(250),
   markets: z.array(namedIdentitySchema).max(250),
   bookmakers: z.array(namedIdentitySchema).max(250)
@@ -181,6 +205,7 @@ export type ViewResearchContext = z.infer<typeof viewResearchContextSchema>
 export type PlayerViewSelection = z.infer<typeof playerViewSelectionSchema>
 export type TeamViewSelection = z.infer<typeof teamViewSelectionSchema>
 export const emptyViewResearchContext: ViewResearchContext = {
+  fixtures: [],
   statistics: [],
   markets: [],
   bookmakers: []
@@ -203,6 +228,10 @@ export const generateViewInputSchema = z
   )
 
 export type ViewBlock = z.infer<typeof viewBlockSchema>
+export type FixtureSourceBlock = Extract<
+  ViewBlock,
+  { type: 'team-next-match' | 'market-shortlist' }
+>
 export type ViewSpec = z.infer<typeof viewSpecSchema>
 export type ViewContext = z.infer<typeof viewContextSchema>
 export type ViewTeamContext = z.infer<typeof viewTeamContextSchema>
@@ -285,6 +314,17 @@ export function validateViewSpec(
           throw new Error('The view references an unavailable statistics selection.')
       }
     }
+    if (
+      block.type === 'market-shortlist' &&
+      block.selectedFixtureId !== null &&
+      !research.fixtures.some(
+        (fixture) =>
+          fixture.fixtureId === block.selectedFixtureId &&
+          fixture.competitionId === block.competitionId &&
+          fixture.seasonId === block.seasonId
+      )
+    )
+      throw new Error('The view references an unavailable fixture selection.')
     if (block.type === 'odds-comparison') {
       if (
         block.marketId !== null &&
@@ -324,8 +364,14 @@ export function validateViewSpec(
   return spec
 }
 
-// Saved v1 definitions already exist on user installations. Upgrade only this storage
-// boundary; the model, IPC, editor and all new writes use the strict v2 schema.
+// Saved v1/v2 definitions exist on user installations. Upgrade only this storage
+// boundary; the model, IPC, editor and all new writes use the strict v3 schema.
+// V2 links named their only source (Next match); v3 also supports shortlist selection.
+const legacyV2Schema = z.strictObject({
+  ...viewSpecSchema.shape,
+  version: z.literal(2),
+  blocks: z.array(z.record(z.string(), z.unknown())).max(8)
+})
 const legacyBlockContext = { ...blockContext, span: z.enum(['half', 'full']) }
 const legacyViewSchema = z.strictObject({
   ...viewSpecSchema.shape,
@@ -352,10 +398,27 @@ const legacyViewSchema = z.strictObject({
 export function readStoredViewSpec(value: unknown): ViewSpec {
   const current = viewSpecSchema.safeParse(value)
   if (current.success) return current.data
+  const v2 = legacyV2Schema.safeParse(value)
+  if (v2.success)
+    return viewSpecSchema.parse({
+      ...v2.data,
+      version: 3,
+      blocks: v2.data.blocks.map((block) => {
+        if (
+          'fixtureSourceBlockId' in block ||
+          block.type === 'market-shortlist' ||
+          block.type === 'probability-context'
+        )
+          throw new Error('Invalid v2 widget.')
+        if (!('nextMatchBlockId' in block)) return block
+        const { nextMatchBlockId, ...rest } = block
+        return { ...rest, fixtureSourceBlockId: nextMatchBlockId }
+      })
+    })
   const legacy = legacyViewSchema.parse(value)
   return viewSpecSchema.parse({
     ...legacy,
-    version: 2,
+    version: 3,
     blocks: legacy.blocks.map((block) => ({
       ...block,
       span: block.span === 'full' ? 3 : 1,

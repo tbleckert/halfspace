@@ -57,7 +57,7 @@ export function PlayerStudyStarter({
               onCreate(
                 validateViewSpec(
                   {
-                    version: 2,
+                    version: 3,
                     title: `${left.entityName} & ${right.entityName}`.slice(0, 80),
                     message: '',
                     blocks: [
@@ -75,7 +75,7 @@ export function PlayerStudyStarter({
                   [],
                   [],
                   [],
-                  { statistics: [left, right], markets: [], bookmakers: [] }
+                  { fixtures: [], statistics: [left, right], markets: [], bookmakers: [] }
                 )
               )
               setOpen(false)

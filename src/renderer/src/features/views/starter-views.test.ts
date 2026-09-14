@@ -50,7 +50,7 @@ it.each(['overview', 'leaders', 'matchday'] as const)(
 )
 
 it('offers distinct useful compositions and bounds long competition titles', () => {
-  expect(starterViews).toHaveLength(3)
+  expect(starterViews).toHaveLength(4)
   expect(
     createStarterView('leaders', context).blocks.map(
       (block) => block.type === 'leaders' && block.category

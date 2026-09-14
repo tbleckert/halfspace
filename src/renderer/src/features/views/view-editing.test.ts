@@ -34,7 +34,7 @@ it.each(implementedViewWidgets)(
       {
         ...initial,
         blocks:
-          widget.context === 'next-match'
+          widget.context === 'match-source'
             ? [{ id: 'next', type: 'team-next-match', teamId: 19, span: 2 }]
             : []
       },
@@ -47,6 +47,7 @@ it.each(implementedViewWidgets)(
       const spec = { ...next, blocks: next.blocks.map((block) => ({ ...block, span })) }
       expect(
         validateViewSpec(spec, [context], [team], [], {
+          fixtures: [],
           statistics: [left, right],
           markets: [],
           bookmakers: []
@@ -128,9 +129,12 @@ it('links broadcasts to the selected next match and removes dependents in the sa
   })
   const sourceId = second.blocks[3].id
   const spec = addViewBlock(second, 'fixture-broadcasts', undefined, undefined, {
-    nextMatchBlockId: sourceId
+    fixtureSourceBlockId: sourceId
   })
-  expect(spec.blocks.at(-1)).toMatchObject({ nextMatchBlockId: sourceId, countryId: 'preferred' })
+  expect(spec.blocks.at(-1)).toMatchObject({
+    fixtureSourceBlockId: sourceId,
+    countryId: 'preferred'
+  })
   expect(removeViewBlock(spec, sourceId).blocks).toEqual(first.blocks)
   expect(spec.blocks).toHaveLength(5)
   expect(() => addViewBlock(initial, 'fixture-broadcasts')).toThrow('Add a Next match')

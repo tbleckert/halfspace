@@ -14,6 +14,7 @@ const context = {
   teamName: 'Arsenal'
 }
 const research: ViewResearchContext = {
+  fixtures: [],
   statistics: [
     { ...context, kind: 'players', entityId: 100, entityName: 'First player' },
     { ...context, kind: 'players', entityId: 101, entityName: 'Second player' },
@@ -53,13 +54,13 @@ const widgets: ViewBlock[] = [
   {
     id: 'odds',
     type: 'odds-comparison',
-    nextMatchBlockId: 'next',
+    fixtureSourceBlockId: 'next',
     marketId: 1,
     bookmakerId: 7,
     span: 3
   }
 ]
-const spec = { version: 2, title: 'Investigation', message: '', blocks: [next, ...widgets] }
+const spec = { version: 3, title: 'Investigation', message: '', blocks: [next, ...widgets] }
 it.each(widgets)(
   'accepts $type in all three widths and round-trips its exact selections',
   (widget) => {
@@ -91,7 +92,11 @@ it('rejects real players bound to unreported clubs, competitions or seasons', ()
   }
 })
 it('rejects unknown odds selections and removed next-match sources', () => {
-  for (const change of [{ marketId: 99 }, { bookmakerId: 99 }, { nextMatchBlockId: 'missing' }]) {
+  for (const change of [
+    { marketId: 99 },
+    { bookmakerId: 99 },
+    { fixtureSourceBlockId: 'missing' }
+  ]) {
     expect(() =>
       validateViewSpec(
         { ...spec, blocks: [next, { ...widgets[4], ...change }] },

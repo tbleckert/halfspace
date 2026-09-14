@@ -4,7 +4,7 @@ import { duplicateView, readSavedViews, saveView, undoSavedView } from './saved-
 import type { ViewSpec } from '@shared/views'
 
 const spec: ViewSpec = {
-  version: 2,
+  version: 3,
   title: 'My league',
   message: '',
   blocks: [
@@ -38,7 +38,7 @@ it('opens and edits a persisted v1 view and restores it through undo in the new 
   })
   const [opened] = await readSavedViews()
   expect(opened.spec).toMatchObject({
-    version: 2,
+    version: 3,
     blocks: [{ id: 'table', span: 3, teamId: null }]
   })
   await saveView('legacy', { ...opened.spec, title: 'Edited' })
