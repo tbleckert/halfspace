@@ -23,7 +23,10 @@ if (typeof window !== 'undefined') {
     readonly root = null
     readonly rootMargin = '0px'
     readonly thresholds = [0]
-    observe = vi.fn()
+    constructor(private callback: IntersectionObserverCallback) {}
+    observe = vi.fn((target: Element) => {
+      this.callback([{ target, isIntersecting: true } as IntersectionObserverEntry], this)
+    })
     unobserve = vi.fn()
     disconnect = vi.fn()
     takeRecords = vi.fn(() => [])

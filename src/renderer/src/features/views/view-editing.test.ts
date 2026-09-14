@@ -80,10 +80,11 @@ it('adds blocks with their selected context and unique identities without mutati
   expect(new Set(next.blocks.map((block) => block.id)).size).toBe(3)
 })
 
-it('enforces eight blocks and retains at least one block', () => {
+it('adds beyond eight blocks and retains at least one block', () => {
   let spec = initial
-  while (spec.blocks.length < 8) spec = addViewBlock(spec, 'standings', context)
-  expect(addViewBlock(spec, 'standings', context)).toBe(spec)
+  for (let index = 0; index < 22; index++) spec = addViewBlock(spec, 'standings', context)
+  expect(spec.blocks).toHaveLength(24)
+  expect(validateViewSpec(spec, [context])).toEqual(spec)
   const single = removeViewBlock(initial, initial.blocks[0].id)
   expect(removeViewBlock(single, single.blocks[0].id)).toBe(single)
 })

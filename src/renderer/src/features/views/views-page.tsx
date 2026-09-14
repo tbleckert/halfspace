@@ -30,6 +30,7 @@ import {
   undoSavedView
 } from './saved-views'
 import { ViewBlockContent, ViewBlockOutline } from './view-blocks'
+import { ViewBlockContainer } from './view-block-container'
 import { ViewComposer } from './view-composer'
 import { useViewGeneration } from './use-view-generation'
 import { StarterViewPicker } from './starter-view-picker'
@@ -408,19 +409,17 @@ function ViewEditor({
               aria-busy={generation.generating}
             >
               {blocks.map((block) => (
-                <div
+                <ViewBlockContainer
                   key={`${generation.generating ? 'draft' : 'view'}:${block.id}`}
-                  className="view-block"
-                  data-span={block.span}
-                  data-widget={block.type}
-                  aria-label={`${block.type} widget, ${block.span} column${block.span === 1 ? '' : 's'}`}
+                  block={block}
+                  defer={!generation.generating}
                 >
                   {generation.generating ? (
                     <ViewBlockOutline block={block} />
                   ) : (
                     <ViewBlockContent block={block} blocks={blocks} onChange={changeBlock} />
                   )}
-                </div>
+                </ViewBlockContainer>
               ))}
               {generation.generating && blocks.length === 0 && (
                 <div className="view-awaiting">

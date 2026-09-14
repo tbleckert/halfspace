@@ -90,7 +90,8 @@ function fixture(id: number): SportmonksFixture {
   }
 }
 function card(title: string): HTMLElement {
-  return screen.getByRole('heading', { name: title }).closest('[data-slot="card"]') as HTMLElement
+  // The widget persists while its deferred, pending and loaded cards are replaced.
+  return screen.getByRole('heading', { name: title }).closest('[data-widget]') as HTMLElement
 }
 function open(path = '/views?view=research'): ReturnType<typeof createRouter<typeof routeTree>> {
   const router = createRouter({

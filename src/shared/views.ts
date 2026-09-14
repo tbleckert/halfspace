@@ -135,7 +135,7 @@ export const viewSpecSchema = z
     version: z.literal(3),
     title: z.string().min(1).max(80),
     message: z.string().max(500),
-    blocks: z.array(viewBlockSchema).max(8)
+    blocks: z.array(viewBlockSchema)
   })
   .refine(
     (spec) => new Set(spec.blocks.map((block) => block.id)).size === spec.blocks.length,
@@ -370,29 +370,27 @@ export function validateViewSpec(
 const legacyV2Schema = z.strictObject({
   ...viewSpecSchema.shape,
   version: z.literal(2),
-  blocks: z.array(z.record(z.string(), z.unknown())).max(8)
+  blocks: z.array(z.record(z.string(), z.unknown()))
 })
 const legacyBlockContext = { ...blockContext, span: z.enum(['half', 'full']) }
 const legacyViewSchema = z.strictObject({
   ...viewSpecSchema.shape,
   version: z.literal(1),
-  blocks: z
-    .array(
-      z.union([
-        z.strictObject({
-          ...legacyBlockContext,
-          type: z.literal('fixtures'),
-          period: z.enum(['upcoming', 'recent'])
-        }),
-        z.strictObject({ ...legacyBlockContext, type: z.literal('standings') }),
-        z.strictObject({
-          ...legacyBlockContext,
-          type: z.literal('leaders'),
-          category: z.enum(['goals', 'assists', 'yellow-cards', 'red-cards'])
-        })
-      ])
-    )
-    .max(8)
+  blocks: z.array(
+    z.union([
+      z.strictObject({
+        ...legacyBlockContext,
+        type: z.literal('fixtures'),
+        period: z.enum(['upcoming', 'recent'])
+      }),
+      z.strictObject({ ...legacyBlockContext, type: z.literal('standings') }),
+      z.strictObject({
+        ...legacyBlockContext,
+        type: z.literal('leaders'),
+        category: z.enum(['goals', 'assists', 'yellow-cards', 'red-cards'])
+      })
+    ])
+  )
 })
 
 export function readStoredViewSpec(value: unknown): ViewSpec {

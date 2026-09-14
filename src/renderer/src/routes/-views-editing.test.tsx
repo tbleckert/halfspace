@@ -291,3 +291,52 @@ it('filters a cached form sample, undoes the filter, and saves and duplicates it
   ).toMatchObject({ type: 'form-trend', matchLocation: 'home', span: 2 })
   expect(window.halfspace.views.generate).not.toHaveBeenCalled()
 })
+
+it('adds beyond eight widgets, undoes an edit, and saves and reopens all column modes', async () => {
+  const starter = createStarterView('leaders', {
+    competitionId: 8,
+    competitionName: 'Premier League',
+    seasonId: 12,
+    seasonName: '2026/27',
+    isCurrent: true
+  })
+  await saveView('large', {
+    ...starter,
+    blocks: Array.from({ length: 8 }, (_, index) => ({
+      ...starter.blocks[0],
+      id: `block-${index}`
+    }))
+  })
+  const router = openViews()
+  await act(() => router.navigate({ to: '/views', search: { view: 'large' } }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Edit blocks' }))
+  fireEvent.change(await screen.findByLabelText('New block'), { target: { value: 'standings' } })
+  for (let count = 9; count <= 12; count++) {
+    fireEvent.click(screen.getByRole('button', { name: 'Add block' }))
+    await screen.findByLabelText(`Width of block ${count}`)
+  }
+  for (const [index, span] of [
+    [10, 1],
+    [11, 2],
+    [12, 3]
+  ]) {
+    fireEvent.change(screen.getByLabelText(`Width of block ${index}`), {
+      target: { value: String(span) }
+    })
+  }
+  fireEvent.click(screen.getByRole('button', { name: 'Remove block 12' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Undo change' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Save view' }))
+  await waitFor(async () =>
+    expect((await db.savedViews.get('large'))?.spec.blocks).toHaveLength(12)
+  )
+  const saved = (await db.savedViews.get('large'))!.spec
+  expect(saved.blocks.slice(-3).map(({ span }) => span)).toEqual([1, 2, 3])
+  await act(() => router.navigate({ to: '/views', search: {} }))
+  await act(() => router.navigate({ to: '/views', search: { view: 'large' } }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Edit blocks' }))
+  expect(((await screen.findByLabelText('Width of block 12')) as HTMLSelectElement).value).toBe('3')
+  expect((await db.savedViews.get('large'))?.spec).toEqual(saved)
+  expect(window.halfspace.views.generate).not.toHaveBeenCalled()
+})

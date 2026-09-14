@@ -32,17 +32,22 @@ describe('view definitions', () => {
     expect(() => validateViewSpec({ ...spec, blocks: [block, block] }, context)).toThrow(/unique/i)
   })
 
-  it('rejects executable content, unknown blocks, and excessive layouts', () => {
+  it('rejects executable content and unknown blocks', () => {
     expect(
       viewBlockSchema.safeParse({ ...block, code: 'fetch("https://example.com")' }).success
     ).toBe(false)
     expect(viewBlockSchema.safeParse({ ...block, type: 'html' }).success).toBe(false)
-    expect(() =>
-      validateViewSpec(
-        { ...spec, blocks: Array.from({ length: 9 }, (_, i) => ({ ...block, id: String(i) })) },
-        context
-      )
-    ).toThrow()
+  })
+
+  it('accepts larger compositions while validating every block', () => {
+    const blocks = Array.from({ length: 24 }, (_, index) => ({
+      ...block,
+      id: String(index),
+      span: (index % 3) + 1
+    }))
+    expect(validateViewSpec({ ...spec, blocks }, context).blocks).toEqual(blocks)
+    blocks[23].seasonId = 99
+    expect(() => validateViewSpec({ ...spec, blocks }, context)).toThrow(/season/i)
   })
 
   it('allows an explanation when the requested view cannot be built', () => {

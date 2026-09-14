@@ -62,6 +62,15 @@ const firstTeam = { teamId: 19, competitionId: 8, seasonId: 12, matchLocation: '
 
 it.each([
   {
+    ...spec,
+    title: 'A larger football canvas',
+    blocks: Array.from({ length: 24 }, (_, index) => ({
+      ...spec.blocks[0],
+      id: `table-${index}`,
+      span: (index % 3) + 1
+    }))
+  },
+  {
     version: 3,
     title: 'Match research',
     message: '',
@@ -202,6 +211,7 @@ it.each([
       strict: true,
       schema: { additionalProperties: false }
     })
+    expect(body.text.format.schema.properties.blocks).not.toHaveProperty('maxItems')
     // OpenAI rejects oneOf from Zod discriminated unions before generation starts.
     const blockAlternatives = body.text.format.schema.properties.blocks.items
     expect(Object.keys(body.text.format.schema.properties)[0]).toBe('outcome')

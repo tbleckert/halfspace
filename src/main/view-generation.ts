@@ -26,7 +26,9 @@ contexts; unavailable if an essential feature is unsupported or a required conte
 For unavailable, return no blocks and explain the limitation in message. Do not offer a fallback composition.
 Supported widgets: ${JSON.stringify(implementedViewWidgets.map(({ type, description, context }) => ({ type, description, context })))}.
 Layout uses three columns. Every widget supports span 1 (compact), 2 (wide) or 3 (full width).
-Prefer 2–8 blocks, with at most 8. For a supporter home with an available season, include each of
+For a broad dashboard, default to 6–8 useful blocks. Use fewer for focused requests and more when
+the user asks or the task needs them. Do not trim an existing view to meet the default size.
+For a supporter home with an available season, include each of
 these distinct types exactly once: team-next-match (span 2), team-season (span 1), team-fixtures
 (span 1), standings (span 1, selected teamId), team-availability (span 1), form-trend (span 2),
 fixture-broadcasts (span 1, fixtureSourceBlockId referencing the team-next-match block, countryId preferred),
@@ -114,7 +116,7 @@ export async function generateView(
     }),
     output: Output.object({ schema: generationSchema }),
     providerOptions: { openai: { store: false, reasoningEffort: 'low' } },
-    maxOutputTokens: 5000,
+    maxOutputTokens: 16000,
     maxRetries: 0,
     abortSignal: signal,
     onError: ({ error }) => {
@@ -125,14 +127,14 @@ export async function generateView(
   for await (const partial of result.partialOutputStream) {
     if (signal.aborted) throw new Error('Generation cancelled.')
     const seen = new Set<string>()
-    const candidates = (partial.outcome === 'composed' ? (partial.blocks ?? []) : [])
-      .slice(0, 8)
-      .flatMap((block) => {
+    const candidates = (partial.outcome === 'composed' ? (partial.blocks ?? []) : []).flatMap(
+      (block) => {
         const parsed = viewBlockSchema.safeParse(block)
         if (!parsed.success || seen.has(parsed.data.id)) return []
         seen.add(parsed.data.id)
         return [parsed.data]
-      })
+      }
+    )
     const blocks = candidates.filter((block) => {
       const source =
         'fixtureSourceBlockId' in block

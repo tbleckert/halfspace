@@ -46,6 +46,22 @@ Presentation adapts to **actual container width**, so a two-column preference on
 still use the compact arrangement. The canvas has three columns, reduces to two below 900px of
 content width, and to one below 580px. Stored spans are retained when the window shrinks.
 
+## Composition size and loading
+
+Views have no fixed widget-count limit. Generation defaults to 6–8 useful widgets for a broad
+dashboard, uses fewer for focused requests, and can include more when requested or needed. Refining
+a larger view preserves its existing widgets unless the requested edit changes them. Model output
+still has a finite token budget; incomplete generation leaves the last usable definition intact.
+
+Manual editing, streamed drafts and saved definitions use the same uncapped widget list. All
+widgets retain their 1/2/3-column preferences. Offscreen widget content mounts as it approaches
+within 400px of the canvas viewport, or receives keyboard focus. Deferred cards show their title;
+they do not claim a data request is running. Generation outlines remain immediate.
+
+Once visited, widgets remain mounted to preserve controls and shared-query subscriptions. This
+reduces the initial data burst; it does not virtualize visited cards or bound the memory of an
+arbitrarily large canvas. Existing cache, deduplication, offline and refresh rules still apply.
+
 ## Planned
 
 All planned widgets must support all three column modes before being marked implemented.

@@ -66,7 +66,6 @@ export function addViewBlock(
     right?: ViewStatisticContext
   } = {}
 ): ViewSpec {
-  if (spec.blocks.length >= 8) return spec
   const base = {
     id: crypto.randomUUID(),
     span: 1 as const

@@ -361,15 +361,10 @@ export function ViewLayoutEditor({
                     : 'Open the team or competition to make its context available.'}
               </p>
             )}
-            <Button type="submit" disabled={disabled || !canAdd || spec.blocks.length >= 8}>
+            <Button type="submit" disabled={disabled || !canAdd}>
               <Plus className="size-4" />
               Add block
             </Button>
-            {spec.blocks.length >= 8 && (
-              <p className="text-xs text-muted-foreground">
-                A view can contain up to eight blocks.
-              </p>
-            )}
           </form>
         }
       </DialogContent>
