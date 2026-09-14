@@ -31,6 +31,8 @@ vi.mock('./view-generation', () => ({
 import { registerViewsIpc, cancelViewGenerations } from './views-ipc'
 
 const input: GenerateViewInput = {
+  research: { statistics: [], markets: [], bookmakers: [] },
+  countries: [],
   requestId: 'fa3197ee-c3b7-4a09-81d8-aa11a133ab66',
   prompt: 'A league table',
   teams: [],

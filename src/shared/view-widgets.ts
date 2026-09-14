@@ -74,40 +74,43 @@ export const viewWidgets = [
   {
     type: 'team-news',
     label: 'Team news',
-    status: 'planned',
+    status: 'implemented',
     context: 'team',
     columns: widgetColumns,
-    description: 'Relevant sourced news and editorial context.'
+    description:
+      'Match previews and AI-written reports for up to three recent and three upcoming team fixtures in a 30-day window. Not general club or transfer news.'
   },
   {
     type: 'fixture-broadcasts',
     label: 'Where to watch',
-    status: 'planned',
-    context: 'fixture',
+    status: 'implemented',
+    context: 'next-match',
     columns: widgetColumns,
-    description: 'Fixture-specific broadcasters in the selected country.'
+    description:
+      'Broadcasters for the match in a linked Next match widget, following its team and fixture changes. Uses the preferred country, all countries, or a known broadcast country.'
   },
   {
     type: 'player-profile',
     label: 'Player profile',
-    status: 'planned',
-    context: 'player',
+    status: 'implemented',
+    context: 'player-statistics',
     columns: widgetColumns,
-    description: 'Identity, selected club and season, playing time and key metrics.'
+    description:
+      'Player identity and reported statistics for an exact player, club, competition and season selection.'
   },
   {
     type: 'player-comparison',
     label: 'Player comparison',
-    status: 'planned',
-    context: 'comparison',
+    status: 'implemented',
+    context: 'player-comparison',
     columns: widgetColumns,
     description: 'Connected player selection, aligned per-90 metrics and sample sizes.'
   },
   {
     type: 'team-comparison',
     label: 'Team comparison',
-    status: 'planned',
-    context: 'comparison',
+    status: 'implemented',
+    context: 'team-comparison',
     columns: widgetColumns,
     description: 'Independent team, season and home/away comparisons.'
   },
@@ -121,11 +124,12 @@ export const viewWidgets = [
   },
   {
     type: 'odds-comparison',
-    label: 'Price comparison',
-    status: 'planned',
-    context: 'fixture',
+    label: 'Odds comparison',
+    status: 'implemented',
+    context: 'next-match',
     columns: widgetColumns,
-    description: 'Like-for-like active bookmaker quotes with update times.'
+    description:
+      'Pre-match bookmaker prices for a linked Next match. Select an available market and bookmaker; preserve exact outcomes, lines and quote timestamps.'
   },
   {
     type: 'probability-context',

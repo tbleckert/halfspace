@@ -4,6 +4,35 @@ import type { GenerateViewInput } from '@shared/views'
 import { implementedViewWidgets } from '@shared/view-widgets'
 
 const input: GenerateViewInput = {
+  research: {
+    statistics: [
+      ...[100, 101].map((entityId) => ({
+        kind: 'players' as const,
+        entityId,
+        entityName: `Player ${entityId}`,
+        teamId: 19,
+        teamName: 'Arsenal',
+        competitionId: 8,
+        competitionName: 'Premier League',
+        seasonId: 12,
+        seasonName: '2026/27'
+      })),
+      ...[19, 20].map((entityId) => ({
+        kind: 'teams' as const,
+        entityId,
+        entityName: `Team ${entityId}`,
+        teamId: entityId,
+        teamName: `Team ${entityId}`,
+        competitionId: 8,
+        competitionName: 'Premier League',
+        seasonId: 12,
+        seasonName: '2026/27'
+      }))
+    ],
+    markets: [{ id: 1, name: 'Match winner' }],
+    bookmakers: []
+  },
+  countries: [{ countryId: 47, countryName: 'Sweden' }],
   requestId: 'fa3197ee-c3b7-4a09-81d8-aa11a133ab66',
   prompt: 'Show the league table',
   teams: [{ teamId: 19, teamName: 'Arsenal' }],
@@ -27,6 +56,8 @@ const spec = {
   ]
 }
 afterEach(() => vi.unstubAllGlobals())
+const firstPlayer = { playerId: 100, teamId: 19, competitionId: 8, seasonId: 12 }
+const firstTeam = { teamId: 19, competitionId: 8, seasonId: 12, matchLocation: 'all' }
 
 it.each([
   spec,
@@ -35,6 +66,47 @@ it.each([
     title: 'Home form',
     message: '',
     blocks: [{ id: 'trend', type: 'form-trend', teamId: 19, span: 2, matchLocation: 'home' }]
+  },
+  {
+    version: 2,
+    title: 'Where to watch',
+    message: '',
+    blocks: [
+      { id: 'next', type: 'team-next-match', teamId: 19, span: 2 },
+      { id: 'tv', type: 'fixture-broadcasts', nextMatchBlockId: 'next', countryId: 47, span: 1 }
+    ]
+  },
+  {
+    version: 2,
+    title: 'Five-widget study',
+    message: '',
+    blocks: [
+      { id: 'next', type: 'team-next-match', teamId: 19, span: 2 },
+      { id: 'news', type: 'team-news', teamId: 19, span: 1 },
+      { id: 'profile', type: 'player-profile', selection: firstPlayer, span: 1 },
+      {
+        id: 'players',
+        type: 'player-comparison',
+        left: firstPlayer,
+        right: { ...firstPlayer, playerId: 101 },
+        span: 3
+      },
+      {
+        id: 'teams',
+        type: 'team-comparison',
+        left: firstTeam,
+        right: { ...firstTeam, teamId: 20, matchLocation: 'away' },
+        span: 2
+      },
+      {
+        id: 'odds',
+        type: 'odds-comparison',
+        nextMatchBlockId: 'next',
+        marketId: 1,
+        bookmakerId: null,
+        span: 1
+      }
+    ]
   }
 ])(
   'uses the direct OpenAI Responses endpoint with a strict schema and streams $title',

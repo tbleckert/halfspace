@@ -17,6 +17,8 @@ const block = {
 }
 const spec = { version: 2, title: 'Premier League', message: 'Your league table.', blocks: [block] }
 const input: GenerateViewInput = {
+  research: { statistics: [], markets: [], bookmakers: [] },
+  countries: [],
   requestId: 'fa3197ee-c3b7-4a09-81d8-aa11a133ab66',
   prompt: 'Show a league table',
   teams: [],
@@ -118,7 +120,7 @@ it('rejects invented team identities before streaming them to the canvas', async
 })
 
 it('does not stream or return fallback widgets when an essential request is unavailable', async () => {
-  const declined = { ...spec, message: 'Team news is not available yet.' }
+  const declined = { ...spec, message: 'Transfer news is not available in Views yet.' }
   provider.responses.mockReturnValue(streamingModel(JSON.stringify(declined), 'unavailable'))
   const updates: ViewProgress[] = []
   const result = await generateView(input, 'test-key', new AbortController().signal, (progress) =>
@@ -134,4 +136,114 @@ it('does not return a completed view after cancellation', async () => {
   await expect(
     generateView(input, 'test-key', controller.signal, () => controller.abort())
   ).rejects.toThrow()
+})
+
+it('waits for a valid referenced next match before streaming broadcasts', async () => {
+  const tv = {
+    id: 'tv',
+    type: 'fixture-broadcasts',
+    nextMatchBlockId: 'next',
+    countryId: 47,
+    span: 1
+  }
+  const next = { id: 'next', type: 'team-next-match', teamId: 19, span: 2 }
+  const definition = { ...spec, blocks: [tv, next] }
+  provider.responses.mockReturnValue(streamingModel(JSON.stringify(definition)))
+  const updates: ViewProgress[] = []
+  await expect(
+    generateView(
+      {
+        ...input,
+        teams: [{ teamId: 19, teamName: 'Arsenal' }],
+        countries: [{ countryId: 47, countryName: 'Sweden' }]
+      },
+      'test-key',
+      new AbortController().signal,
+      (progress) => updates.push(progress)
+    )
+  ).resolves.toEqual(definition)
+  expect(updates.some(({ blocks }) => blocks.length === 2)).toBe(true)
+  expect(
+    updates.every(
+      ({ blocks }) =>
+        !blocks.some((block) => block.id === 'tv') || blocks.some((block) => block.id === 'next')
+    )
+  ).toBe(true)
+})
+
+it.each(['country', 'source'] as const)(
+  'never streams broadcasts with an unknown %s',
+  async (invalid) => {
+    const definition = {
+      ...spec,
+      blocks: [
+        { id: 'next', type: 'team-next-match', teamId: 19, span: 2 },
+        {
+          id: 'tv',
+          type: 'fixture-broadcasts',
+          nextMatchBlockId: invalid === 'source' ? 'missing' : 'next',
+          countryId: 999,
+          span: 1
+        }
+      ]
+    }
+    provider.responses.mockReturnValue(streamingModel(JSON.stringify(definition)))
+    const updates: ViewProgress[] = []
+    await expect(
+      generateView(
+        { ...input, teams: [{ teamId: 19, teamName: 'Arsenal' }] },
+        'test-key',
+        new AbortController().signal,
+        (progress) => updates.push(progress)
+      )
+    ).rejects.toThrow()
+    expect(
+      updates.flatMap(({ blocks }) => blocks).every((block) => block.type !== 'fixture-broadcasts')
+    ).toBe(true)
+  }
+)
+
+it('never streams a player comparison with an invented club-season binding', async () => {
+  const selection = { playerId: 100, teamId: 19, competitionId: 8, seasonId: 12 }
+  const definition = {
+    ...spec,
+    blocks: [
+      {
+        id: 'players',
+        type: 'player-comparison',
+        span: 2,
+        left: selection,
+        right: { ...selection, teamId: 99 }
+      }
+    ]
+  }
+  provider.responses.mockReturnValue(streamingModel(JSON.stringify(definition)))
+  const updates: ViewProgress[] = []
+  await expect(
+    generateView(
+      {
+        ...input,
+        research: {
+          ...input.research,
+          statistics: [
+            {
+              kind: 'players',
+              entityId: 100,
+              entityName: 'Player',
+              teamId: 19,
+              teamName: 'Arsenal',
+              competitionId: 8,
+              competitionName: 'League',
+              seasonId: 12,
+              seasonName: 'Season'
+            }
+          ]
+        }
+      },
+      'test-key',
+      new AbortController().signal,
+      (progress) => updates.push(progress)
+    )
+  ).rejects.toThrow(/statistics selection/)
+  expect(updates.flatMap(({ blocks }) => blocks)).toEqual([])
 })

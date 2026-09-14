@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   validateViewSpec,
+  emptyViewResearchContext,
+  type ViewResearchContext,
   type ViewBlock,
   type ViewContext,
+  type ViewCountryContext,
   type ViewSpec,
   type ViewTeamContext
 } from '@shared/views'
@@ -15,7 +18,9 @@ export function useViewGeneration(): {
     prompt: string,
     contexts: ViewContext[],
     current: ViewSpec | null,
-    teams?: ViewTeamContext[]
+    teams?: ViewTeamContext[],
+    countries?: ViewCountryContext[],
+    research?: ViewResearchContext
   ) => Promise<ViewSpec | null>
   cancel: () => void
 } {
@@ -48,7 +53,9 @@ export function useViewGeneration(): {
     prompt: string,
     contexts: ViewContext[],
     current: ViewSpec | null,
-    teams: ViewTeamContext[] = []
+    teams: ViewTeamContext[] = [],
+    countries: ViewCountryContext[] = [],
+    research: ViewResearchContext = emptyViewResearchContext
   ): Promise<ViewSpec | null> {
     cancel()
     const requestId = crypto.randomUUID()
@@ -62,6 +69,8 @@ export function useViewGeneration(): {
         prompt,
         contexts,
         teams,
+        countries,
+        research,
         current
       })
       if (request.current !== requestId) return null
@@ -69,7 +78,7 @@ export function useViewGeneration(): {
         setError(result.error.message)
         return null
       }
-      const spec = validateViewSpec(result.data, contexts, teams)
+      const spec = validateViewSpec(result.data, contexts, teams, countries, research)
       if (!spec.blocks.length) {
         setError(
           spec.message ||

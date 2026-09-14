@@ -1,4 +1,19 @@
+import type { RefreshTeamFixturesInput } from '@shared/contracts'
 import type { CachedFixture } from '@/data/db'
+import { addDaysToIsoDate } from '@/lib/date'
+
+export function teamViewFixtureInput(
+  teamId: number,
+  today: string,
+  timeZone: string
+): RefreshTeamFixturesInput {
+  return {
+    teamId,
+    startDate: addDaysToIsoDate(today, -30),
+    endDate: addDaysToIsoDate(today, 30),
+    timeZone
+  }
+}
 
 export function selectTeamViewFixtures(
   fixtures: CachedFixture[],

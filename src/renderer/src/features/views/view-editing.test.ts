@@ -17,10 +17,41 @@ it.each(implementedViewWidgets)(
   'creates a valid $type widget in all three column modes',
   (widget) => {
     const team = { teamId: 19, teamName: 'Arsenal' }
-    const next = addViewBlock({ ...initial, blocks: [] }, widget.type, context, team)
+    const left = {
+      ...context,
+      kind: widget.type === 'team-comparison' ? ('teams' as const) : ('players' as const),
+      entityId: widget.type === 'team-comparison' ? 19 : 100,
+      entityName: 'Selected entity',
+      teamId: 19,
+      teamName: 'Arsenal'
+    }
+    const right = {
+      ...left,
+      entityId: widget.type === 'team-comparison' ? 20 : 101,
+      teamId: widget.type === 'team-comparison' ? 20 : 19
+    }
+    const next = addViewBlock(
+      {
+        ...initial,
+        blocks:
+          widget.type === 'fixture-broadcasts' || widget.type === 'odds-comparison'
+            ? [{ id: 'next', type: 'team-next-match', teamId: 19, span: 2 }]
+            : []
+      },
+      widget.type,
+      context,
+      team,
+      { left, right }
+    )
     for (const span of widget.columns) {
       const spec = { ...next, blocks: next.blocks.map((block) => ({ ...block, span })) }
-      expect(validateViewSpec(spec, [context], [team])).toEqual(spec)
+      expect(
+        validateViewSpec(spec, [context], [team], [], {
+          statistics: [left, right],
+          markets: [],
+          bookmakers: []
+        })
+      ).toEqual(spec)
     }
   }
 )
@@ -86,4 +117,23 @@ it('preserves a personal title and allows switching to an explicit historical se
   ])
   expect(next.title).toBe('My investigation')
   expect(next.blocks.every((block) => 'seasonId' in block && block.seasonId === 11)).toBe(true)
+})
+
+it('links broadcasts to the selected next match and removes dependents in the same edit', () => {
+  const team = { teamId: 19, teamName: 'Arsenal' }
+  const first = addViewBlock(initial, 'team-next-match', undefined, team)
+  const second = addViewBlock(first, 'team-next-match', undefined, {
+    teamId: 20,
+    teamName: 'Chelsea'
+  })
+  const sourceId = second.blocks[3].id
+  const spec = addViewBlock(second, 'fixture-broadcasts', undefined, undefined, {
+    nextMatchBlockId: sourceId
+  })
+  expect(spec.blocks.at(-1)).toMatchObject({ nextMatchBlockId: sourceId, countryId: 'preferred' })
+  expect(removeViewBlock(spec, sourceId).blocks).toEqual(first.blocks)
+  expect(spec.blocks).toHaveLength(5)
+  expect(() => addViewBlock(initial, 'fixture-broadcasts')).toThrow('Add a Next match')
+  const pair = { ...spec, blocks: spec.blocks.slice(3) }
+  expect(removeViewBlock(pair, sourceId)).toBe(pair)
 })

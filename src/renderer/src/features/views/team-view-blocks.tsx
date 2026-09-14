@@ -7,7 +7,7 @@ import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { useOnline } from '@/lib/use-online'
 import { useCurrentTime } from '@/lib/use-current-time'
 import { useTodayInTimeZone } from '@/lib/use-today'
-import { addDaysToIsoDate, currentTimeZone, formatFixtureTime } from '@/lib/date'
+import { currentTimeZone, formatFixtureTime } from '@/lib/date'
 import { fixtureParticipantAt } from '@/lib/fixture'
 import { intentPrefetchProps } from '@/lib/prefetch'
 import { useTeamEntity, useTeamFixtures } from '@/features/teams/use-team'
@@ -24,7 +24,8 @@ import { groupStandings } from '@/features/competitions/competition-workspace-da
 import { recentStandingForm, standingDetailValue } from '@/features/competitions/standing-details'
 import { useCompetitionDetail } from '@/features/competitions/use-competition-detail'
 import { BlockPending, BlockEmpty, BlockError } from './view-block-state'
-import { selectTeamViewFixtures } from './team-view-data'
+import { selectTeamViewFixtures, teamViewFixtureInput } from './team-view-data'
+import { TeamNewsBlock } from './team-news-block'
 import { FormTrendBlock } from './form-trend-block'
 
 export function TeamViewBlockContent({
@@ -54,7 +55,9 @@ export function TeamViewBlockContent({
         <span className="truncate">{team?.name ?? `Team ${block.teamId}`}</span>
         <ArrowUpRight className="size-3 shrink-0" />
       </Link>
-      {block.type === 'form-trend' ? (
+      {block.type === 'team-news' ? (
+        <TeamNewsBlock block={block} online={online} today={today} timeZone={timeZone} />
+      ) : block.type === 'form-trend' ? (
         <FormTrendBlock
           block={block}
           online={online}
@@ -101,12 +104,7 @@ function TeamFixturesBlock({
   timeZone: string
 }): React.JSX.Element {
   const input = useMemo(
-    () => ({
-      teamId: block.teamId,
-      startDate: addDaysToIsoDate(today, -30),
-      endDate: addDaysToIsoDate(today, 30),
-      timeZone
-    }),
+    () => teamViewFixtureInput(block.teamId, today, timeZone),
     [block.teamId, today, timeZone]
   )
   const query = useTeamFixtures(input, online)

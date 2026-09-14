@@ -26,9 +26,11 @@ contexts; unavailable if an essential feature is unsupported or a required conte
 For unavailable, return no blocks and explain the limitation in message. Do not offer a fallback composition.
 Supported widgets: ${JSON.stringify(implementedViewWidgets.map(({ type, description, context }) => ({ type, description, context })))}.
 Layout uses three columns. Every widget supports span 1 (compact), 2 (wide) or 3 (full width).
-Prefer 2–6 blocks, with at most 8. For a supporter home with an available season, include each of
+Prefer 2–8 blocks, with at most 8. For a supporter home with an available season, include each of
 these distinct types exactly once: team-next-match (span 2), team-season (span 1), team-fixtures
-(span 1), standings (span 1, selected teamId), team-availability (span 1), form-trend (span 2).
+(span 1), standings (span 1, selected teamId), team-availability (span 1), form-trend (span 2),
+fixture-broadcasts (span 1, nextMatchBlockId referencing the team-next-match block, countryId preferred),
+team-news (span 1).
 The standings widget MUST have type "standings": it is the full league table. The team-season
 widget is only the selected team's summary. Never use a second team-season widget as standings.
 Avoid duplicate widgets with identical data bindings and settings unless the user asks for them.
@@ -39,6 +41,25 @@ cover 14 days; team fixtures cover 30 days. Neither is a complete season schedul
 Form trend shows up to six completed matches in the last 100 days across all competitions.
 Set matchLocation to all, home or away as requested. It does not support league-only or historical
 season samples, xG, or other performance metrics beyond goals and results.
+Where to watch must reference an existing team-next-match widget by nextMatchBlockId. Emit its
+source first. It follows that source's team and next fixture; never invent or freeze a fixture ID.
+Use countryId "preferred" by default, "all" for all countries, or an exact ID from availableCountries
+when a specific country is requested. If the requested country is unknown, explain what is missing.
+Preserve country selections and next-match links on unrelated edits. If removing a next-match
+widget, also remove its linked broadcast and odds widgets unless explicitly relinking them to another source.
+Team news covers previews and provider-written AI match reports for three recent and three upcoming
+team fixtures within 30 days. It cannot provide general club, transfer or breaking news.
+Player profile and player comparison selections must exactly match availableResearch.statistics with
+kind players, including playerId (the context entityId), teamId, competitionId and seasonId.
+Team comparison selections must exactly match kind teams, including teamId, competitionId and seasonId.
+Each side has its own selection. Keep these season selections independent of the View's main season.
+Team comparison supports independent matchLocation all, home or away. Player comparison shows shared
+reported per-90 rates with each player's minutes; no percentile ranking or adjusted league strength.
+For a player study, use two player-profile widgets and a player-comparison with the exact same selections.
+Odds comparison follows a Next match source by nextMatchBlockId and compares pre-match decimal prices.
+Set marketId null for the default available market and bookmakerId null for all bookmakers. Specific
+IDs must come from availableResearch.markets/bookmakers. Preserve explicit selections on unrelated edits.
+In-play comparisons, probability estimates, betting recommendations and market shortlists are unsupported.
 Each block has a unique stable id. Preserve existing ids and context when editing.
 When refining, change only what was requested. Preserve widget ids, selected entities, explicit
 seasons, metrics and user widths unless the requested edit requires changing them. A match-preparation
@@ -70,6 +91,8 @@ export async function generateView(
       request: input.prompt,
       availableContexts: input.contexts,
       availableTeams: input.teams,
+      availableCountries: input.countries,
+      availableResearch: input.research,
       currentView: input.current
     }),
     output: Output.object({ schema: generationSchema }),
@@ -85,23 +108,32 @@ export async function generateView(
   for await (const partial of result.partialOutputStream) {
     if (signal.aborted) throw new Error('Generation cancelled.')
     const seen = new Set<string>()
-    const blocks = (partial.outcome === 'composed' ? (partial.blocks ?? []) : [])
+    const candidates = (partial.outcome === 'composed' ? (partial.blocks ?? []) : [])
       .slice(0, 8)
       .flatMap((block) => {
         const parsed = viewBlockSchema.safeParse(block)
         if (!parsed.success || seen.has(parsed.data.id)) return []
         seen.add(parsed.data.id)
-        try {
-          validateViewSpec(
-            { version: 2, title: 'Draft', message: '', blocks: [parsed.data] },
-            input.contexts,
-            input.teams
-          )
-          return [parsed.data]
-        } catch {
-          return []
-        }
+        return [parsed.data]
       })
+    const blocks = candidates.filter((block) => {
+      const source =
+        'nextMatchBlockId' in block
+          ? candidates.find((candidate) => candidate.id === block.nextMatchBlockId)
+          : undefined
+      try {
+        validateViewSpec(
+          { version: 2, title: 'Draft', message: '', blocks: source ? [source, block] : [block] },
+          input.contexts,
+          input.teams,
+          input.countries,
+          input.research
+        )
+        return true
+      } catch {
+        return false
+      }
+    })
     const signature = JSON.stringify(blocks)
     if (signature === previous) continue
     previous = signature
@@ -112,7 +144,9 @@ export async function generateView(
   const spec = validateViewSpec(
     { ...definition, blocks: outcome === 'unavailable' ? [] : definition.blocks },
     input.contexts,
-    input.teams
+    input.teams,
+    input.countries,
+    input.research
   )
   if ((await result.finishReason) !== 'stop') throw new Error('Generation did not complete.')
   if (signal.aborted) throw new Error('Generation cancelled.')

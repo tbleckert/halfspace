@@ -23,6 +23,9 @@ import { useOnline } from '@/lib/use-online'
 import { isFixtureOngoing } from '@/lib/fixture-state'
 import { viewBlockLabel } from './view-editing'
 import { BlockPending, BlockEmpty, BlockError } from './view-block-state'
+import { StatisticViewBlockContent } from './statistic-view-blocks'
+import { OddsViewBlockContent } from './odds-view-block'
+import { BroadcastViewBlockContent } from './broadcast-view-block'
 import { TeamViewBlockContent } from './team-view-blocks'
 
 export function ViewBlockOutline({ block }: { block: ViewBlock }): React.JSX.Element {
@@ -60,12 +63,35 @@ export function ViewBlockOutline({ block }: { block: ViewBlock }): React.JSX.Ele
 
 export function ViewBlockContent({
   block,
+  blocks,
   onChange
 }: {
+  blocks: ViewBlock[]
   block: ViewBlock
   onChange: (block: ViewBlock) => void
 }): React.JSX.Element {
   if (
+    block.type === 'player-profile' ||
+    block.type === 'player-comparison' ||
+    block.type === 'team-comparison'
+  )
+    return <StatisticViewBlockContent block={block} onChange={onChange} />
+  if (block.type === 'fixture-broadcasts' || block.type === 'odds-comparison') {
+    const source = blocks.find(
+      (candidate) => candidate.type === 'team-next-match' && candidate.id === block.nextMatchBlockId
+    )
+    return source?.type === 'team-next-match' ? (
+      block.type === 'odds-comparison' ? (
+        <OddsViewBlockContent block={block} source={source} onChange={onChange} />
+      ) : (
+        <BroadcastViewBlockContent block={block} source={source} onChange={onChange} />
+      )
+    ) : (
+      <BlockEmpty>Choose a Next match widget in Edit blocks.</BlockEmpty>
+    )
+  }
+  if (
+    block.type === 'team-news' ||
     block.type === 'team-next-match' ||
     block.type === 'team-fixtures' ||
     block.type === 'team-season' ||

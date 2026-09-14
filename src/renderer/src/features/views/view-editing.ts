@@ -3,8 +3,10 @@ import {
   type ViewBlock,
   type ViewContext,
   type ViewSpec,
+  type ViewStatisticContext,
   type ViewTeamContext
 } from '@shared/views'
+import { playerViewSelection, teamViewSelection } from './view-research-context'
 import { implementedViewWidgets, viewWidget, type ViewWidgetType } from '@shared/view-widgets'
 
 export type ViewBlockType =
@@ -57,7 +59,12 @@ export function addViewBlock(
   spec: ViewSpec,
   type: ViewBlockType,
   context?: ViewContext,
-  team?: ViewTeamContext
+  team?: ViewTeamContext,
+  options: {
+    nextMatchBlockId?: string
+    left?: ViewStatisticContext
+    right?: ViewStatisticContext
+  } = {}
 ): ViewSpec {
   if (spec.blocks.length >= 8) return spec
   const base = {
@@ -67,6 +74,67 @@ export function addViewBlock(
   const widgetType =
     viewBlockTypes.find((preset) => preset.value === type)?.widget ?? (type as ViewWidgetType)
   const widget = viewWidget(widgetType)
+  if (widget.context === 'next-match') {
+    const source = spec.blocks.find(
+      (block) =>
+        block.type === 'team-next-match' &&
+        (!options.nextMatchBlockId || block.id === options.nextMatchBlockId)
+    )
+    if (!source) throw new Error('Add a Next match widget first.')
+    return {
+      ...spec,
+      blocks: [
+        ...spec.blocks,
+        widgetType === 'odds-comparison'
+          ? {
+              ...base,
+              type: 'odds-comparison',
+              nextMatchBlockId: source.id,
+              marketId: null,
+              bookmakerId: null
+            }
+          : {
+              ...base,
+              type: 'fixture-broadcasts',
+              nextMatchBlockId: source.id,
+              countryId: 'preferred'
+            }
+      ]
+    }
+  }
+  if (
+    widgetType === 'player-profile' ||
+    widgetType === 'player-comparison' ||
+    widgetType === 'team-comparison'
+  ) {
+    const { left, right } = options
+    const kind = widgetType === 'team-comparison' ? 'teams' : 'players'
+    if (
+      !left ||
+      left.kind !== kind ||
+      (widgetType !== 'player-profile' && (!right || right.kind !== kind))
+    )
+      throw new Error('Choose the exact club and season for each selection.')
+    const block: ViewBlock =
+      widgetType === 'player-profile'
+        ? { ...base, span: 1, type: widgetType, selection: playerViewSelection(left) }
+        : widgetType === 'player-comparison'
+          ? {
+              ...base,
+              span: 2,
+              type: widgetType,
+              left: playerViewSelection(left),
+              right: playerViewSelection(right!)
+            }
+          : {
+              ...base,
+              span: 2,
+              type: widgetType,
+              left: teamViewSelection(left),
+              right: teamViewSelection(right!)
+            }
+    return { ...spec, blocks: [...spec.blocks, block] }
+  }
   if (widget.context !== 'competition' && !team) throw new Error('Choose a team for this widget.')
   if (widget.context !== 'team' && !context) throw new Error('Choose a competition and season.')
   const competition = context
@@ -77,6 +145,7 @@ export function addViewBlock(
     case 'team-next-match':
       block = { ...base, type: widgetType, teamId: team!.teamId, span: 2 }
       break
+    case 'team-news':
     case 'team-availability':
       block = { ...base, type: widgetType, teamId: team!.teamId }
       break
@@ -115,13 +184,19 @@ export function addViewBlock(
           : 'goals') as Extract<ViewBlock, { type: 'leaders' }>['category']
       }
       break
+    case 'odds-comparison':
+    case 'fixture-broadcasts':
+      throw new Error('Add a Next match widget first.')
   }
   return { ...spec, blocks: [...spec.blocks, block] }
 }
 
 export function removeViewBlock(spec: ViewSpec, id: string): ViewSpec {
   if (spec.blocks.length <= 1) return spec
-  return { ...spec, blocks: spec.blocks.filter((block) => block.id !== id) }
+  const blocks = spec.blocks.filter(
+    (block) => block.id !== id && !('nextMatchBlockId' in block && block.nextMatchBlockId === id)
+  )
+  return blocks.length ? { ...spec, blocks } : spec
 }
 
 export function moveViewBlock(spec: ViewSpec, id: string, direction: -1 | 1): ViewSpec {

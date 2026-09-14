@@ -20,13 +20,17 @@ it('builds a supporter home with explicit season scope and a useful season-free 
     { type: 'team-fixtures', span: 1 },
     { type: 'standings', span: 1 },
     { type: 'team-availability', span: 1 },
-    { type: 'form-trend', span: 2 }
+    { type: 'form-trend', span: 2 },
+    { type: 'fixture-broadcasts', span: 1 },
+    { type: 'team-news', span: 1 }
   ])
   expect(createTeamStarterView(team).blocks.map(({ type }) => type)).toEqual([
     'team-next-match',
     'team-fixtures',
     'team-availability',
-    'form-trend'
+    'form-trend',
+    'fixture-broadcasts',
+    'team-news'
   ])
 })
 

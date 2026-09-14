@@ -1,15 +1,15 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import { ChevronRight, RefreshCw, Tv } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { NativeSelect } from '@/components/ui/native-select'
-import { ProviderImage } from '@/components/provider-image'
 import { ErrorAlert } from '@/components/error-alert'
 import { useSubscription } from '@/features/subscription/use-subscription'
 import { featureAccess } from '@/features/subscription/subscription-access'
 import { useFixtureTv } from './use-fixture-tv'
 import { tvGuideStations } from './tv-guide-data'
+import { FixtureTvStations } from './fixture-tv-stations'
 
 export function FixtureTv({
   fixtureId,
@@ -95,56 +95,14 @@ export function FixtureTv({
           </p>
         )}
         {stations.length > 0 && (
-          <div
-            role="region"
-            aria-label="TV listings"
-            tabIndex={0}
-            className="max-h-72 overflow-y-auto rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <ul className="space-y-2 pb-2">
-              {stations.map((station) => {
-                const content = (
-                  <>
-                    <ProviderImage
-                      className="size-8 shrink-0 rounded bg-white p-1"
-                      fallback={<Tv className="size-4" />}
-                      imageClassName="size-full object-contain"
-                      imagePath={station.imagePath}
-                      online={online}
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-medium">{station.name}</span>
-                      {countryId === 'all' && (
-                        <span
-                          title={station.countries.join(', ')}
-                          className="mt-0.5 line-clamp-2 text-xs text-muted-foreground"
-                        >
-                          {station.countries.join(', ')}
-                        </span>
-                      )}
-                    </span>
-                    <ChevronRight
-                      aria-hidden="true"
-                      className="size-4 shrink-0 text-muted-foreground"
-                    />
-                  </>
-                )
-                const className = 'flex items-center gap-2 py-2'
-                return (
-                  <li key={station.id}>
-                    <Link
-                      to="/broadcasters/$stationId"
-                      params={{ stationId: String(station.id) }}
-                      search={{ fixture: fixtureId, competition: competitionId, season: seasonId }}
-                      className={`${className} hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-ring`}
-                    >
-                      {content}
-                    </Link>
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
+          <FixtureTvStations
+            stations={stations}
+            fixtureId={fixtureId}
+            competitionId={competitionId}
+            seasonId={seasonId}
+            online={online}
+            showCountries={countryId === 'all'}
+          />
         )}
       </CardContent>
     </Card>

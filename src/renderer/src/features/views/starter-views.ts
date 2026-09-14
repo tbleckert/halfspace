@@ -80,6 +80,14 @@ export function createTeamStarterView(team: ViewTeamContext, context?: ViewConte
     span: 2,
     matchLocation: 'all'
   })
+  blocks.push({
+    id: 'broadcasts',
+    type: 'fixture-broadcasts',
+    nextMatchBlockId: 'next-match',
+    countryId: 'preferred',
+    span: 1
+  })
+  blocks.push({ id: 'news', type: 'team-news', teamId: team.teamId, span: 1 })
   return validateViewSpec(
     { version: 2, title: `My ${team.teamName}`.slice(0, 80), message: '', blocks },
     context ? [context] : [],

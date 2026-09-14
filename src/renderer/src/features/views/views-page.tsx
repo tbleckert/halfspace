@@ -6,6 +6,9 @@ import {
   type SavedView,
   type ViewBlock,
   type ViewContext,
+  type ViewCountryContext,
+  type ViewResearchContext,
+  emptyViewResearchContext,
   type ViewTeamContext,
   type ViewSpec
 } from '@shared/views'
@@ -16,6 +19,8 @@ import { Label } from '@/components/ui/label'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import { useOnline } from '@/lib/use-online'
+import { useTvCountry } from '@/features/broadcasts/use-tv-country'
+import { readViewBroadcastCountries, viewBroadcastCountries } from './view-broadcast-countries'
 import {
   duplicateView,
   readViewContexts,
@@ -30,13 +35,17 @@ import { useViewGeneration } from './use-view-generation'
 import { StarterViewPicker } from './starter-view-picker'
 import { ViewLayoutEditor } from './view-layout-editor'
 import { ViewContextEditor } from './view-context-editor'
+import { PlayerStudyStarter } from './player-study-starter'
 import { TeamViewStarter } from './team-view-starter'
+import { readViewResearchContext, viewResearchContext } from './view-research-context'
 import './views.css'
 
 export function ViewsPage({ viewId }: { viewId?: string }): React.JSX.Element {
   const savedViews = useScopedLiveQuery(readSavedViews, [])
   const contexts = useScopedLiveQuery(readViewContexts, [])
   const teams = useScopedLiveQuery(readViewTeams, [])
+  const countries = useScopedLiveQuery(readViewBroadcastCountries, [])
+  const research = useScopedLiveQuery(readViewResearchContext, [])
   const navigate = useNavigate({ from: '/views' })
   const selected = savedViews?.find((view) => view.id === viewId)
   const onSelect = (id?: string): void => {
@@ -65,6 +74,8 @@ export function ViewsPage({ viewId }: { viewId?: string }): React.JSX.Element {
       savedViews={savedViews}
       contexts={contexts}
       teams={teams}
+      countries={countries ?? []}
+      research={research ?? emptyViewResearchContext}
       onSelect={onSelect}
     />
   )
@@ -75,12 +86,16 @@ function ViewEditor({
   savedViews,
   contexts,
   teams,
+  countries,
+  research,
   onSelect
 }: {
   initial: SavedView | null
   savedViews: SavedView[]
   contexts: ViewContext[]
   teams: ViewTeamContext[]
+  countries: ViewCountryContext[]
+  research: ViewResearchContext
   onSelect: (id?: string) => void
 }): React.JSX.Element {
   const [id] = useState(() => initial?.id ?? crypto.randomUUID())
@@ -93,6 +108,7 @@ function ViewEditor({
   const [reset, setReset] = useState(0)
   const online = useOnline()
   const generation = useViewGeneration()
+  const { country: preferredCountry } = useTvCountry()
   const saved = savedViews.find((view) => view.id === id)
   const dirty = Boolean(spec && JSON.stringify(spec) !== JSON.stringify(saved?.spec))
   useEffect(() => {
@@ -113,10 +129,23 @@ function ViewEditor({
   }, [])
 
   async function build(): Promise<void> {
-    if (!configured || !online || (!contexts.length && !teams.length) || !prompt.trim() || saving)
+    if (
+      !configured ||
+      !online ||
+      (!contexts.length && !teams.length && !research.statistics.length) ||
+      !prompt.trim() ||
+      saving
+    )
       return
     setStorageError(null)
-    const next = await generation.generate(prompt, contexts, spec, teams)
+    const next = await generation.generate(
+      prompt,
+      contexts,
+      spec,
+      teams,
+      viewBroadcastCountries(countries, preferredCountry, spec?.blocks ?? []),
+      viewResearchContext(research, spec?.blocks ?? [])
+    )
     if (!next) return
     setPrevious(spec)
     setSpec(next)
@@ -321,6 +350,12 @@ function ViewEditor({
                 setStorageError(null)
               }}
             />
+            <PlayerStudyStarter
+              onCreate={(next) => {
+                setSpec(next)
+                setStorageError(null)
+              }}
+            />
             <StarterViewPicker
               contexts={contexts}
               onCreate={(next) => {
@@ -383,7 +418,7 @@ function ViewEditor({
                   {generation.generating ? (
                     <ViewBlockOutline block={block} />
                   ) : (
-                    <ViewBlockContent block={block} onChange={changeBlock} />
+                    <ViewBlockContent block={block} blocks={blocks} onChange={changeBlock} />
                   )}
                 </div>
               ))}
@@ -409,7 +444,7 @@ function ViewEditor({
           hasView={Boolean(spec)}
           configured={configured}
           online={online}
-          hasContexts={contexts.length > 0 || teams.length > 0}
+          hasContexts={contexts.length > 0 || teams.length > 0 || research.statistics.length > 0}
           error={storageError ?? generation.error}
           onSubmit={() => void build()}
           onCancel={generation.cancel}

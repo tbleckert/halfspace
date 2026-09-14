@@ -513,3 +513,76 @@
     transition: none !important;
   }
 }
+
+.view-broadcast-context {
+  display: grid;
+  gap: 1rem;
+}
+@container view-widget (min-width: 520px) {
+  .view-broadcast-stations {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .view-broadcast-context {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 200px);
+    align-items: center;
+  }
+}
+@container view-widget (min-width: 860px) {
+  .view-broadcast-stations {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.view-news-matches,
+.view-player-profile,
+.view-comparison-selections,
+.view-comparison-metrics,
+.view-odds-outcomes,
+.view-odds-controls {
+  display: grid;
+  gap: 1.5rem;
+}
+.view-news-excerpt {
+  display: none;
+}
+.view-profile-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+.view-comparison-selections {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+@container view-widget (min-width: 520px) {
+  .view-news-matches,
+  .view-comparison-metrics,
+  .view-odds-outcomes,
+  .view-odds-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .view-news-excerpt {
+    display: -webkit-box;
+  }
+  .view-profile-facts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .view-profile-photo {
+    width: 80px;
+    height: 80px;
+  }
+  .view-profile-name {
+    font-size: 1.75rem;
+  }
+}
+@container view-widget (min-width: 860px) {
+  .view-news-matches,
+  .view-comparison-metrics,
+  .view-odds-outcomes {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .view-player-profile {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    align-items: center;
+  }
+}

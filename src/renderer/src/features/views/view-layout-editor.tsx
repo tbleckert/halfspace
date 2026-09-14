@@ -1,13 +1,15 @@
 import { ViewContextSelect } from './view-context-select'
 import { useState } from 'react'
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react'
-import type { ViewContext, ViewSpec, ViewTeamContext } from '@shared/views'
+import type { ViewContext, ViewSpec, ViewTeamContext, ViewStatisticContext } from '@shared/views'
 import { viewWidget, widgetColumns, type WidgetColumns } from '@shared/view-widgets'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { ViewStatisticPicker } from './view-statistic-picker'
+import { playerViewSelection, teamViewSelection } from './view-research-context'
 import { ViewTeamSelect } from './view-team-select'
 import {
   addViewBlock,
@@ -35,6 +37,19 @@ export function ViewLayoutEditor({
   const [type, setType] = useState<ViewBlockType>('standings')
   const [contextKey, setContextKey] = useState('')
   const [teamId, setTeamId] = useState<number | null>(null)
+  const [left, setLeft] = useState<ViewStatisticContext | null>(null)
+  const [right, setRight] = useState<ViewStatisticContext | null>(null)
+  const [nextMatchBlockId, setNextMatchBlockId] = useState('')
+  const sources = spec.blocks.filter((block) => block.type === 'team-next-match')
+  const source = sources.find((block) => block.id === nextMatchBlockId) ?? sources[0]
+  const sourceOptions = sources.map((block) => (
+    <NativeSelectOption key={block.id} value={block.id}>
+      Next match ·{' '}
+      {teams.find((team) => team.teamId === block.teamId)?.teamName ?? `Team ${block.teamId}`}
+      {' · Block '}
+      {spec.blocks.indexOf(block) + 1}
+    </NativeSelectOption>
+  ))
   const first = spec.blocks.find((block) => 'competitionId' in block)
   const firstTeam = spec.blocks.find((block) => 'teamId' in block && block.teamId !== null)
   const firstTeamId = firstTeam && 'teamId' in firstTeam ? firstTeam.teamId : null
@@ -44,8 +59,17 @@ export function ViewLayoutEditor({
     teams[0]
   const preset = viewBlockTypes.find((item) => item.value === type)!
   const binding = viewWidget(preset.widget).context
-  const canAdd =
-    (binding === 'team' || Boolean(contexts.length)) && (binding === 'competition' || Boolean(team))
+  const statistical =
+    type === 'player-profile' || type === 'player-comparison' || type === 'team-comparison'
+  const statisticKind = type === 'team-comparison' ? 'teams' : 'players'
+  const canAdd = statistical
+    ? Boolean(
+        left?.kind === statisticKind && (type === 'player-profile' || right?.kind === statisticKind)
+      )
+    : binding === 'next-match'
+      ? Boolean(source)
+      : (binding === 'team' || Boolean(contexts.length)) &&
+        (binding === 'competition' || Boolean(team))
   const context =
     contexts.find((item) => `${item.competitionId}:${item.seasonId}` === contextKey) ??
     contexts.find(
@@ -114,13 +138,87 @@ export function ViewLayoutEditor({
                   <Button
                     size="icon"
                     variant="ghost"
-                    disabled={disabled || spec.blocks.length === 1}
+                    disabled={disabled || removeViewBlock(spec, block.id) === spec}
                     aria-label={`Remove block ${index + 1}`}
                     onClick={() => onChange(removeViewBlock(spec, block.id))}
                   >
                     <Trash2 className="size-4" />
                   </Button>
                 </div>
+                {'nextMatchBlockId' in block && (
+                  <NativeSelect
+                    aria-label={`Next match for block ${index + 1}`}
+                    value={block.nextMatchBlockId}
+                    className="w-full"
+                    disabled={disabled}
+                    onChange={(event) =>
+                      onChange({
+                        ...spec,
+                        blocks: spec.blocks.map((item) =>
+                          item.id === block.id
+                            ? { ...block, nextMatchBlockId: event.target.value }
+                            : item
+                        )
+                      })
+                    }
+                  >
+                    {sourceOptions}
+                  </NativeSelect>
+                )}
+                {block.type === 'team-next-match' &&
+                  spec.blocks.some(
+                    (item) => 'nextMatchBlockId' in item && item.nextMatchBlockId === block.id
+                  ) && (
+                    <p className="text-xs text-muted-foreground">
+                      Removing this block also removes its linked broadcast and odds widgets.
+                    </p>
+                  )}
+                {block.type === 'player-profile' && (
+                  <ViewStatisticPicker
+                    disabled={disabled}
+                    kind="players"
+                    label={`Block ${index + 1}`}
+                    selection={block.selection}
+                    onSelect={(context) =>
+                      onChange({
+                        ...spec,
+                        blocks: spec.blocks.map((item) =>
+                          item.id === block.id
+                            ? { ...block, selection: playerViewSelection(context) }
+                            : item
+                        )
+                      })
+                    }
+                  />
+                )}
+                {(block.type === 'player-comparison' || block.type === 'team-comparison') &&
+                  (['left', 'right'] as const).map((side) => (
+                    <ViewStatisticPicker
+                      disabled={disabled}
+                      key={side}
+                      kind={block.type === 'team-comparison' ? 'teams' : 'players'}
+                      label={`${side === 'left' ? 'First' : 'Second'} selection for block ${index + 1}`}
+                      selection={block[side]}
+                      onSelect={(context) =>
+                        onChange({
+                          ...spec,
+                          blocks: spec.blocks.map((item) =>
+                            item.id === block.id
+                              ? block.type === 'team-comparison'
+                                ? {
+                                    ...block,
+                                    [side]: {
+                                      ...teamViewSelection(context),
+                                      matchLocation: block[side].matchLocation
+                                    }
+                                  }
+                                : { ...block, [side]: playerViewSelection(context) }
+                              : item
+                          )
+                        })
+                      }
+                    />
+                  ))}
                 {'teamId' in block && block.teamId !== null && (
                   <ViewTeamSelect
                     aria-label={`Team for block ${index + 1}`}
@@ -144,12 +242,19 @@ export function ViewLayoutEditor({
             </li>
           ))}
         </ol>
-        {contexts.length || teams.length ? (
+        {
           <form
             className="mt-5 space-y-3"
             onSubmit={(event) => {
               event.preventDefault()
-              if (canAdd && !disabled) onChange(addViewBlock(spec, type, context, team))
+              if (canAdd && !disabled)
+                onChange(
+                  addViewBlock(spec, type, context, team, {
+                    nextMatchBlockId: source?.id,
+                    left: left ?? undefined,
+                    right: right ?? undefined
+                  })
+                )
             }}
           >
             <div className="space-y-2">
@@ -158,7 +263,11 @@ export function ViewLayoutEditor({
                 id="block-type"
                 value={type}
                 disabled={disabled}
-                onChange={(event) => setType(event.target.value as ViewBlockType)}
+                onChange={(event) => {
+                  setType(event.target.value as ViewBlockType)
+                  setLeft(null)
+                  setRight(null)
+                }}
               >
                 {viewBlockTypes.map((item) => (
                   <NativeSelectOption key={item.value} value={item.value}>
@@ -167,7 +276,7 @@ export function ViewLayoutEditor({
                 ))}
               </NativeSelect>
             </div>
-            {binding !== 'team' && context && (
+            {(binding === 'competition' || binding === 'team-season') && context && (
               <div className="space-y-2">
                 <Label htmlFor="block-context">Competition and season for new block</Label>
                 <ViewContextSelect
@@ -180,7 +289,7 @@ export function ViewLayoutEditor({
                 />
               </div>
             )}
-            {binding !== 'competition' && team && (
+            {(binding === 'team' || binding === 'team-season') && team && (
               <div className="space-y-2">
                 <Label htmlFor="block-team">Team for new block</Label>
                 <ViewTeamSelect
@@ -192,9 +301,60 @@ export function ViewLayoutEditor({
                 />
               </div>
             )}
+            {statistical && (
+              <ViewStatisticPicker
+                disabled={disabled}
+                key={`${type}-left`}
+                kind={statisticKind}
+                label="First selection"
+                selection={
+                  left
+                    ? statisticKind === 'players'
+                      ? playerViewSelection(left)
+                      : teamViewSelection(left)
+                    : undefined
+                }
+                onSelect={setLeft}
+                onPending={() => setLeft(null)}
+              />
+            )}
+            {statistical && type !== 'player-profile' && (
+              <ViewStatisticPicker
+                disabled={disabled}
+                key={`${type}-right`}
+                kind={statisticKind}
+                label="Second selection"
+                selection={
+                  right
+                    ? statisticKind === 'players'
+                      ? playerViewSelection(right)
+                      : teamViewSelection(right)
+                    : undefined
+                }
+                onSelect={setRight}
+                onPending={() => setRight(null)}
+              />
+            )}
+            {binding === 'next-match' && source && (
+              <div className="space-y-2">
+                <Label htmlFor="block-next-match">Follow next match</Label>
+                <NativeSelect
+                  id="block-next-match"
+                  value={source.id}
+                  disabled={disabled}
+                  onChange={(event) => setNextMatchBlockId(event.target.value)}
+                >
+                  {sourceOptions}
+                </NativeSelect>
+              </div>
+            )}
             {!canAdd && (
               <p className="text-xs text-muted-foreground">
-                Open the team or competition to make its context available.
+                {statistical
+                  ? 'Choose club and season for each selection.'
+                  : binding === 'next-match'
+                    ? 'Add a Next match widget first.'
+                    : 'Open the team or competition to make its context available.'}
               </p>
             )}
             <Button type="submit" disabled={disabled || !canAdd || spec.blocks.length >= 8}>
@@ -207,11 +367,7 @@ export function ViewLayoutEditor({
               </p>
             )}
           </form>
-        ) : (
-          <p className="mt-4 text-sm text-muted-foreground">
-            Open a competition to make more blocks available.
-          </p>
-        )}
+        }
       </DialogContent>
     </Dialog>
   )

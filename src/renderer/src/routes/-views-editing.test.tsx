@@ -204,8 +204,14 @@ it('creates a team home offline, changes its widths, saves and reopens after cac
   await waitFor(() => expect(router.state.location.search.view).toBeTruthy())
   const id = router.state.location.search.view!
   const saved = (await db.savedViews.get(id))!
-  expect(saved.spec.blocks.map(({ span }) => span)).toEqual([1, 2, 3, 1, 1, 2])
-  expect(saved.spec.blocks.every((block) => 'teamId' in block && block.teamId === 19)).toBe(true)
+  expect(saved.spec.blocks.map(({ span }) => span)).toEqual([1, 2, 3, 1, 1, 2, 1, 1])
+  expect(
+    saved.spec.blocks.every((block) =>
+      block.type === 'fixture-broadcasts'
+        ? block.nextMatchBlockId === 'next-match'
+        : 'teamId' in block && block.teamId === 19
+    )
+  ).toBe(true)
   await act(() => router.navigate({ to: '/views', search: {} }))
   await act(() => clearSportmonksCache())
   await act(() => router.navigate({ to: '/views', search: { view: id } }))

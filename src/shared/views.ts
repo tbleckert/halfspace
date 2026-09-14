@@ -17,6 +17,16 @@ const competitionBinding = {
 }
 const blockContext = { ...blockLayout, ...competitionBinding }
 const teamBinding = { teamId: z.number().int().positive() }
+export const playerViewSelectionSchema = z.strictObject({
+  ...competitionBinding,
+  ...teamBinding,
+  playerId: z.number().int().positive()
+})
+export const teamViewSelectionSchema = z.strictObject({
+  ...competitionBinding,
+  ...teamBinding,
+  matchLocation: z.enum(['all', 'home', 'away'])
+})
 
 // Zod unions emit anyOf; OpenAI rejects oneOf from discriminatedUnion.
 // Choose the type before overlapping bindings in the provider's ordered output.
@@ -50,15 +60,62 @@ export const viewBlockSchema = z.union([
     ...blockLayout,
     ...teamBinding,
     matchLocation: z.enum(['all', 'home', 'away'])
+  }),
+  z.strictObject({ type: z.literal('team-news'), ...blockLayout, ...teamBinding }),
+  z.strictObject({
+    type: z.literal('player-profile'),
+    ...blockLayout,
+    selection: playerViewSelectionSchema
+  }),
+  z.strictObject({
+    type: z.literal('player-comparison'),
+    ...blockLayout,
+    left: playerViewSelectionSchema,
+    right: playerViewSelectionSchema
+  }),
+  z.strictObject({
+    type: z.literal('team-comparison'),
+    ...blockLayout,
+    left: teamViewSelectionSchema,
+    right: teamViewSelectionSchema
+  }),
+  z.strictObject({
+    type: z.literal('odds-comparison'),
+    ...blockLayout,
+    nextMatchBlockId: blockLayout.id,
+    marketId: z.number().int().positive().nullable(),
+    bookmakerId: z.number().int().positive().nullable()
+  }),
+  z.strictObject({
+    type: z.literal('fixture-broadcasts'),
+    ...blockLayout,
+    nextMatchBlockId: blockLayout.id,
+    countryId: z.union([z.literal('preferred'), z.literal('all'), z.number().int().positive()])
   })
 ])
 
-export const viewSpecSchema = z.strictObject({
-  version: z.literal(2),
-  title: z.string().min(1).max(80),
-  message: z.string().max(500),
-  blocks: z.array(viewBlockSchema).max(8)
-})
+export const viewSpecSchema = z
+  .strictObject({
+    version: z.literal(2),
+    title: z.string().min(1).max(80),
+    message: z.string().max(500),
+    blocks: z.array(viewBlockSchema).max(8)
+  })
+  .refine(
+    (spec) => new Set(spec.blocks.map((block) => block.id)).size === spec.blocks.length,
+    'Each block must have a unique identity.'
+  )
+  .refine(
+    (spec) =>
+      spec.blocks.every(
+        (block) =>
+          !('nextMatchBlockId' in block) ||
+          spec.blocks.some(
+            (source) => source.id === block.nextMatchBlockId && source.type === 'team-next-match'
+          )
+      ),
+    'Match-linked widgets must follow an existing Next match widget.'
+  )
 
 export const viewContextSchema = z.strictObject({
   competitionId: z.number().int().positive(),
@@ -72,6 +129,39 @@ export const viewTeamContextSchema = z.strictObject({
   teamName: z.string().min(1).max(200),
   currentSeasons: z.array(z.strictObject(competitionBinding)).optional()
 })
+export const viewCountryContextSchema = z.strictObject({
+  countryId: z.number().int().positive(),
+  countryName: z.string().min(1).max(200)
+})
+
+export const viewStatisticContextSchema = z.strictObject({
+  kind: z.enum(['teams', 'players']),
+  entityId: z.number().int().positive(),
+  entityName: z.string().min(1).max(200),
+  ...competitionBinding,
+  ...teamBinding,
+  competitionName: z.string().min(1).max(200),
+  seasonName: z.string().min(1).max(100),
+  teamName: z.string().min(1).max(200)
+})
+const namedIdentitySchema = z.strictObject({
+  id: z.number().int().positive(),
+  name: z.string().min(1).max(200)
+})
+export const viewResearchContextSchema = z.strictObject({
+  statistics: z.array(viewStatisticContextSchema).max(250),
+  markets: z.array(namedIdentitySchema).max(250),
+  bookmakers: z.array(namedIdentitySchema).max(250)
+})
+export type ViewStatisticContext = z.infer<typeof viewStatisticContextSchema>
+export type ViewResearchContext = z.infer<typeof viewResearchContextSchema>
+export type PlayerViewSelection = z.infer<typeof playerViewSelectionSchema>
+export type TeamViewSelection = z.infer<typeof teamViewSelectionSchema>
+export const emptyViewResearchContext: ViewResearchContext = {
+  statistics: [],
+  markets: [],
+  bookmakers: []
+}
 
 export const generateViewInputSchema = z
   .strictObject({
@@ -79,10 +169,13 @@ export const generateViewInputSchema = z
     prompt: z.string().trim().min(1).max(2000),
     contexts: z.array(viewContextSchema).max(250),
     teams: z.array(viewTeamContextSchema).max(250),
+    countries: z.array(viewCountryContextSchema).max(250),
+    research: viewResearchContextSchema,
     current: viewSpecSchema.nullable()
   })
   .refine(
-    (input) => input.contexts.length > 0 || input.teams.length > 0,
+    (input) =>
+      input.contexts.length > 0 || input.teams.length > 0 || input.research.statistics.length > 0,
     'Choose an available team or competition.'
   )
 
@@ -90,8 +183,28 @@ export type ViewBlock = z.infer<typeof viewBlockSchema>
 export type ViewSpec = z.infer<typeof viewSpecSchema>
 export type ViewContext = z.infer<typeof viewContextSchema>
 export type ViewTeamContext = z.infer<typeof viewTeamContextSchema>
-export type TeamViewBlock = Extract<ViewBlock, { type: `team-${string}` | 'form-trend' }>
-export type CompetitionViewBlock = Exclude<ViewBlock, TeamViewBlock>
+export type ViewCountryContext = z.infer<typeof viewCountryContextSchema>
+export type TeamViewBlock = Extract<
+  ViewBlock,
+  {
+    type:
+      | 'team-next-match'
+      | 'team-fixtures'
+      | 'team-season'
+      | 'team-availability'
+      | 'team-news'
+      | 'form-trend'
+  }
+>
+export type BroadcastViewBlock = Extract<ViewBlock, { type: 'fixture-broadcasts' }>
+export type CompetitionViewBlock = Extract<
+  ViewBlock,
+  { type: 'fixtures' | 'standings' | 'leaders' }
+>
+export type StatisticViewBlock = Extract<
+  ViewBlock,
+  { type: 'player-profile' | 'player-comparison' | 'team-comparison' }
+>
 export type GenerateViewInput = z.infer<typeof generateViewInputSchema>
 export interface ViewProgress {
   requestId: string
@@ -118,13 +231,54 @@ export interface ViewsApi {
 export function validateViewSpec(
   value: unknown,
   contexts: readonly ViewContext[],
-  teams: readonly ViewTeamContext[] = []
+  teams: readonly ViewTeamContext[] = [],
+  countries: readonly ViewCountryContext[] = [],
+  research: ViewResearchContext = emptyViewResearchContext
 ): ViewSpec {
   const spec = viewSpecSchema.parse(value)
-  const ids = new Set<string>()
   for (const block of spec.blocks) {
-    if (ids.has(block.id)) throw new Error('Each block must have a unique identity.')
-    ids.add(block.id)
+    if (
+      block.type === 'player-profile' ||
+      block.type === 'player-comparison' ||
+      block.type === 'team-comparison'
+    ) {
+      const kind = block.type === 'team-comparison' ? 'teams' : 'players'
+      const selections =
+        block.type === 'player-profile' ? [block.selection] : [block.left, block.right]
+      for (const selection of selections) {
+        if (
+          !research.statistics.some(
+            (context) =>
+              context.kind === kind &&
+              context.entityId ===
+                ('playerId' in selection ? selection.playerId : selection.teamId) &&
+              context.teamId === selection.teamId &&
+              context.competitionId === selection.competitionId &&
+              context.seasonId === selection.seasonId
+          )
+        )
+          throw new Error('The view references an unavailable statistics selection.')
+      }
+    }
+    if (block.type === 'odds-comparison') {
+      if (
+        block.marketId !== null &&
+        !research.markets.some((market) => market.id === block.marketId)
+      )
+        throw new Error('The view references an unavailable odds market.')
+      if (
+        block.bookmakerId !== null &&
+        !research.bookmakers.some((bookmaker) => bookmaker.id === block.bookmakerId)
+      )
+        throw new Error('The view references an unavailable bookmaker.')
+    }
+    if (
+      block.type === 'fixture-broadcasts' &&
+      typeof block.countryId === 'number' &&
+      !countries.some((country) => country.countryId === block.countryId)
+    ) {
+      throw new Error('The view references an unavailable broadcast country.')
+    }
     if (
       'competitionId' in block &&
       !contexts.some(
@@ -148,7 +302,8 @@ export function validateViewSpec(
 // Saved v1 definitions already exist on user installations. Upgrade only this storage
 // boundary; the model, IPC, editor and all new writes use the strict v2 schema.
 const legacyBlockContext = { ...blockContext, span: z.enum(['half', 'full']) }
-const legacyViewSchema = viewSpecSchema.extend({
+const legacyViewSchema = z.strictObject({
+  ...viewSpecSchema.shape,
   version: z.literal(1),
   blocks: z
     .array(
