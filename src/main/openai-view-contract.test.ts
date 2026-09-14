@@ -60,6 +60,19 @@ const firstPlayer = { playerId: 100, teamId: 19, competitionId: 8, seasonId: 12 
 const firstTeam = { teamId: 19, competitionId: 8, seasonId: 12, matchLocation: 'all' }
 
 it.each([
+  {
+    version: 2,
+    title: 'Match preparation',
+    message: '',
+    blocks: [
+      { id: 'next', type: 'team-next-match', teamId: 19, span: 2 },
+      { id: 'weather', type: 'fixture-weather', nextMatchBlockId: 'next', span: 1 },
+      { id: 'meetings', type: 'fixture-head-to-head', nextMatchBlockId: 'next', span: 2 },
+      { id: 'absences', type: 'fixture-absences', nextMatchBlockId: 'next', span: 3 },
+      { id: 'squad', type: 'team-squad', teamId: 19, competitionId: 8, seasonId: 12, span: 2 },
+      { id: 'transfers', type: 'team-transfers', teamId: 19, direction: 'incoming', span: 1 }
+    ]
+  },
   spec,
   {
     version: 2,

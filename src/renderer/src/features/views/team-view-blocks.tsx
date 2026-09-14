@@ -25,6 +25,7 @@ import { recentStandingForm, standingDetailValue } from '@/features/competitions
 import { useCompetitionDetail } from '@/features/competitions/use-competition-detail'
 import { BlockPending, BlockEmpty, BlockError } from './view-block-state'
 import { selectTeamViewFixtures, teamViewFixtureInput } from './team-view-data'
+import { TeamSquadBlock, TeamTransfersBlock } from './team-roster-blocks'
 import { TeamNewsBlock } from './team-news-block'
 import { FormTrendBlock } from './form-trend-block'
 
@@ -47,15 +48,19 @@ export function TeamViewBlockContent({
         params={{ teamId: String(block.teamId) }}
         search={{
           date: today,
-          competition: block.type === 'team-season' ? block.competitionId : undefined,
-          season: block.type === 'team-season' ? block.seasonId : undefined
+          competition: 'competitionId' in block ? block.competitionId : undefined,
+          season: 'seasonId' in block ? block.seasonId : undefined
         }}
         className="flex w-fit max-w-full items-center gap-1.5 text-xs text-muted-foreground hover:text-primary"
       >
         <span className="truncate">{team?.name ?? `Team ${block.teamId}`}</span>
         <ArrowUpRight className="size-3 shrink-0" />
       </Link>
-      {block.type === 'team-news' ? (
+      {block.type === 'team-squad' ? (
+        <TeamSquadBlock block={block} online={online} />
+      ) : block.type === 'team-transfers' ? (
+        <TeamTransfersBlock block={block} online={online} today={today} onChange={onChange} />
+      ) : block.type === 'team-news' ? (
         <TeamNewsBlock block={block} online={online} today={today} timeZone={timeZone} />
       ) : block.type === 'form-trend' ? (
         <FormTrendBlock

@@ -74,7 +74,13 @@ export function addViewBlock(
   const widgetType =
     viewBlockTypes.find((preset) => preset.value === type)?.widget ?? (type as ViewWidgetType)
   const widget = viewWidget(widgetType)
-  if (widget.context === 'next-match') {
+  if (
+    widgetType === 'odds-comparison' ||
+    widgetType === 'fixture-broadcasts' ||
+    widgetType === 'fixture-head-to-head' ||
+    widgetType === 'fixture-absences' ||
+    widgetType === 'fixture-weather'
+  ) {
     const source = spec.blocks.find(
       (block) =>
         block.type === 'team-next-match' &&
@@ -93,12 +99,9 @@ export function addViewBlock(
               marketId: null,
               bookmakerId: null
             }
-          : {
-              ...base,
-              type: 'fixture-broadcasts',
-              nextMatchBlockId: source.id,
-              countryId: 'preferred'
-            }
+          : widgetType === 'fixture-broadcasts'
+            ? { ...base, type: widgetType, nextMatchBlockId: source.id, countryId: 'preferred' }
+            : { ...base, type: widgetType, nextMatchBlockId: source.id }
       ]
     }
   }
@@ -160,6 +163,10 @@ export function addViewBlock(
         period: type === 'team-recent' ? 'recent' : 'upcoming'
       }
       break
+    case 'team-transfers':
+      block = { ...base, type: widgetType, teamId: team!.teamId, direction: 'all' }
+      break
+    case 'team-squad':
     case 'team-season':
       block = { ...base, ...competition!, type: widgetType, teamId: team!.teamId }
       break
@@ -184,9 +191,6 @@ export function addViewBlock(
           : 'goals') as Extract<ViewBlock, { type: 'leaders' }>['category']
       }
       break
-    case 'odds-comparison':
-    case 'fixture-broadcasts':
-      throw new Error('Add a Next match widget first.')
   }
   return { ...spec, blocks: [...spec.blocks, block] }
 }

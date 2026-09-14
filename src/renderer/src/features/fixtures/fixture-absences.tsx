@@ -52,7 +52,7 @@ export function FixtureAbsences({
                 ) : (
                   <div className="space-y-2 pb-2">
                     {absences.map((absence) => (
-                      <AbsenceRow
+                      <FixtureAbsenceRow
                         key={absence.id}
                         absence={absence}
                         context={{ ...context, team: team.id }}
@@ -70,7 +70,7 @@ export function FixtureAbsences({
   )
 }
 
-function AbsenceRow({
+export function FixtureAbsenceRow({
   absence,
   context,
   online

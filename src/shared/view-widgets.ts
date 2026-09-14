@@ -115,6 +115,51 @@ export const viewWidgets = [
     description: 'Independent team, season and home/away comparisons.'
   },
   {
+    type: 'fixture-head-to-head',
+    label: 'Head-to-head',
+    status: 'implemented',
+    context: 'next-match',
+    columns: widgetColumns,
+    description:
+      'Up to five completed previous meetings between the linked Next match participants, before its kickoff. Cross-competition sample, not an all-time record.'
+  },
+  {
+    type: 'fixture-absences',
+    label: 'Match absences',
+    status: 'implemented',
+    context: 'next-match',
+    columns: widgetColumns,
+    description:
+      'Reported absences for both participants of a linked Next match. Missing data is not a confirmed healthy squad.'
+  },
+  {
+    type: 'fixture-weather',
+    label: 'Match weather',
+    status: 'implemented',
+    context: 'next-match',
+    columns: widgetColumns,
+    description:
+      'Provider-reported weather for a linked Next match, with forecast or recorded status and known units. No inferred match effects.'
+  },
+  {
+    type: 'team-squad',
+    label: 'Team squad',
+    status: 'implemented',
+    context: 'team-season',
+    columns: widgetColumns,
+    description:
+      'Reported squad for an exact team and season. Shows up to twelve players with squad-reported positions and shirt numbers; links to the full squad.'
+  },
+  {
+    type: 'team-transfers',
+    label: 'Team transfers',
+    status: 'implemented',
+    context: 'team',
+    columns: widgetColumns,
+    description:
+      'Up to six reported completed transfers in the last 365 days, filtered by all, incoming or outgoing. Excludes pending moves and rumours.'
+  },
+  {
     type: 'market-shortlist',
     label: 'Market shortlist',
     status: 'planned',

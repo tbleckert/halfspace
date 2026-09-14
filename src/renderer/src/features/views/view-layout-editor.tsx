@@ -170,7 +170,7 @@ export function ViewLayoutEditor({
                     (item) => 'nextMatchBlockId' in item && item.nextMatchBlockId === block.id
                   ) && (
                     <p className="text-xs text-muted-foreground">
-                      Removing this block also removes its linked broadcast and odds widgets.
+                      Removing this block also removes all widgets linked to it.
                     </p>
                   )}
                 {block.type === 'player-profile' && (

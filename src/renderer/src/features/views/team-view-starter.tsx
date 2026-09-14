@@ -9,7 +9,7 @@ import { useOnline } from '@/lib/use-online'
 import { useTeamCompetitions } from '@/features/teams/use-team-competitions'
 import { ViewTeamSelect } from './view-team-select'
 import { ViewContextSelect } from './view-context-select'
-import { createTeamStarterView } from './starter-views'
+import { createTeamStarterView, createMatchPreparationView } from './starter-views'
 
 export function TeamViewStarter({
   teams,
@@ -99,9 +99,17 @@ export function TeamViewStarter({
             : 'No current season context available. You can start with matches and absences.'}
         </p>
       )}
-      <Button className="w-fit" onClick={() => onCreate(createTeamStarterView(team, context))}>
-        Create team home
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={() => onCreate(createTeamStarterView(team, context))}>
+          Create team home
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => onCreate(createMatchPreparationView(team, context))}
+        >
+          Prepare next match
+        </Button>
+      </div>
     </Card>
   )
 }

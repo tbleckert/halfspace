@@ -26,6 +26,7 @@ import { BlockPending, BlockEmpty, BlockError } from './view-block-state'
 import { StatisticViewBlockContent } from './statistic-view-blocks'
 import { OddsViewBlockContent } from './odds-view-block'
 import { BroadcastViewBlockContent } from './broadcast-view-block'
+import { MatchPreparationBlockContent } from './match-preparation-blocks'
 import { TeamViewBlockContent } from './team-view-blocks'
 
 export function ViewBlockOutline({ block }: { block: ViewBlock }): React.JSX.Element {
@@ -76,21 +77,25 @@ export function ViewBlockContent({
     block.type === 'team-comparison'
   )
     return <StatisticViewBlockContent block={block} onChange={onChange} />
-  if (block.type === 'fixture-broadcasts' || block.type === 'odds-comparison') {
+  if ('nextMatchBlockId' in block) {
     const source = blocks.find(
       (candidate) => candidate.type === 'team-next-match' && candidate.id === block.nextMatchBlockId
     )
     return source?.type === 'team-next-match' ? (
       block.type === 'odds-comparison' ? (
         <OddsViewBlockContent block={block} source={source} onChange={onChange} />
-      ) : (
+      ) : block.type === 'fixture-broadcasts' ? (
         <BroadcastViewBlockContent block={block} source={source} onChange={onChange} />
+      ) : (
+        <MatchPreparationBlockContent block={block} source={source} />
       )
     ) : (
       <BlockEmpty>Choose a Next match widget in Edit blocks.</BlockEmpty>
     )
   }
   if (
+    block.type === 'team-squad' ||
+    block.type === 'team-transfers' ||
     block.type === 'team-news' ||
     block.type === 'team-next-match' ||
     block.type === 'team-fixtures' ||

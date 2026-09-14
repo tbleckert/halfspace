@@ -94,3 +94,40 @@ export function createTeamStarterView(team: ViewTeamContext, context?: ViewConte
     [team]
   )
 }
+
+export function createMatchPreparationView(team: ViewTeamContext, context?: ViewContext): ViewSpec {
+  const blocks: ViewBlock[] = [
+    { id: 'next-match', type: 'team-next-match', teamId: team.teamId, span: 2 },
+    { id: 'weather', type: 'fixture-weather', nextMatchBlockId: 'next-match', span: 1 },
+    { id: 'meetings', type: 'fixture-head-to-head', nextMatchBlockId: 'next-match', span: 2 },
+    {
+      id: 'broadcasts',
+      type: 'fixture-broadcasts',
+      nextMatchBlockId: 'next-match',
+      countryId: 'preferred',
+      span: 1
+    },
+    { id: 'absences', type: 'fixture-absences', nextMatchBlockId: 'next-match', span: 3 }
+  ]
+  if (context)
+    blocks.push({
+      id: 'squad',
+      type: 'team-squad',
+      teamId: team.teamId,
+      competitionId: context.competitionId,
+      seasonId: context.seasonId,
+      span: 2
+    })
+  blocks.push({
+    id: 'transfers',
+    type: 'team-transfers',
+    teamId: team.teamId,
+    direction: 'all',
+    span: 1
+  })
+  return validateViewSpec(
+    { version: 2, title: `${team.teamName} · Match preparation`.slice(0, 80), message: '', blocks },
+    context ? [context] : [],
+    [team]
+  )
+}

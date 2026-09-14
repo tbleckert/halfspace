@@ -34,7 +34,7 @@ it.each(implementedViewWidgets)(
       {
         ...initial,
         blocks:
-          widget.type === 'fixture-broadcasts' || widget.type === 'odds-comparison'
+          widget.context === 'next-match'
             ? [{ id: 'next', type: 'team-next-match', teamId: 19, span: 2 }]
             : []
       },

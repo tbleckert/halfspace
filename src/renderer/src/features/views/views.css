@@ -586,3 +586,37 @@
     align-items: center;
   }
 }
+
+.view-preparation-list,
+.view-match-absence-teams,
+.view-match-weather,
+.view-weather-facts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.5rem;
+}
+.view-weather-facts {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@container view-widget (min-width: 520px) {
+  .view-preparation-list,
+  .view-match-absence-teams {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .view-weather-facts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@container view-widget (min-width: 860px) {
+  .view-preparation-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .view-match-absence-players {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .view-match-weather {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    align-items: center;
+  }
+}

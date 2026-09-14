@@ -62,6 +62,29 @@ export const viewBlockSchema = z.union([
     matchLocation: z.enum(['all', 'home', 'away'])
   }),
   z.strictObject({ type: z.literal('team-news'), ...blockLayout, ...teamBinding }),
+  z.strictObject({ type: z.literal('team-squad'), ...blockContext, ...teamBinding }),
+  z.strictObject({
+    type: z.literal('team-transfers'),
+    ...blockLayout,
+    ...teamBinding,
+    direction: z.enum(['all', 'incoming', 'outgoing'])
+  }),
+  z.strictObject({
+    type: z.literal('fixture-head-to-head'),
+    ...blockLayout,
+    nextMatchBlockId: blockLayout.id
+  }),
+  z.strictObject({
+    type: z.literal('fixture-absences'),
+    ...blockLayout,
+    nextMatchBlockId: blockLayout.id
+  }),
+  z.strictObject({
+    type: z.literal('fixture-weather'),
+    ...blockLayout,
+    nextMatchBlockId: blockLayout.id
+  }),
+
   z.strictObject({
     type: z.literal('player-profile'),
     ...blockLayout,
@@ -193,6 +216,8 @@ export type TeamViewBlock = Extract<
       | 'team-season'
       | 'team-availability'
       | 'team-news'
+      | 'team-squad'
+      | 'team-transfers'
       | 'form-trend'
   }
 >

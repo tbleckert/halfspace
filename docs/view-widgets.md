@@ -1,7 +1,7 @@
 # View widgets
 
 The [three accepted design studies](../design/generative-views/README.md) are our visual targets.
-The catalog contains **14 implemented widgets and 2 planned widgets**.
+The catalog contains **19 implemented widgets and 2 planned widgets**.
 The supporter home and player study are working compositions. The researcher study has bookmaker
 price comparisons; match shortlisting and probability context remain planned.
 
@@ -16,22 +16,27 @@ These widgets use shared cached football queries and the same saved definition, 
 Each accepts **1, 2 and 3 columns**. Width is presentation only: changing it retains identity, season,
 selection and data. Compact tables retain essential values and link to the full entity workspace.
 
-| Widget               | Data and scope                                                                                                             | 1 column                                          | 2 columns                                           | 3 columns                        |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | --------------------------------------------------- | -------------------------------- |
-| `team-next-match`    | Next scheduled team fixture across competitions, next 30 days                                                              | Stacked teams and kickoff                         | Horizontal match presentation                       | Larger horizontal presentation   |
-| `team-season`        | Selected team, competition and season; provider standing groups                                                            | Four facts in a compact grid, reported form below | Four facts across                                   | Facts and form side by side      |
-| `team-fixtures`      | Upcoming or recent team matches across competitions, 30 days either side of today                                          | Single fixture list                               | Two fixture columns                                 | Three fixture columns            |
-| `team-availability`  | Current reported team absences; independent of selected season                                                             | Single player list                                | Two player columns                                  | Three player columns             |
-| `fixtures`           | Competition and season; 14-day upcoming/recent window                                                                      | Single fixture list                               | Two fixture columns                                 | Three fixture columns            |
-| `standings`          | Complete reported standing groups for a competition and season; optional team highlight                                    | Position, team, points and form                   | Adds played and goal difference                     | Expanded team and table spacing  |
-| `leaders`            | Season goals, assists, yellow cards or red cards; provider ranks and totals                                                | Club beneath player name                          | Separate club column                                | Expanded player and club spacing |
-| `form-trend`         | Up to six completed team matches in the last 100 days, across all competitions; All/Home/Away selection                    | Compact goal chart and linked results below       | Taller chart and two-column results                 | Chart and results side by side   |
-| `fixture-broadcasts` | Next fixture from a linked Next match widget; preferred country, all countries or an explicit country                      | Stacked match, country and station list           | Match and country side by side; two station columns | Three station columns            |
-| `team-news`          | Up to three upcoming and three recent team fixtures, 30 days either side; Sportmonks previews and AI-written match reports | Linked headlines and sources                      | Two columns with excerpts                           | Three columns with excerpts      |
-| `player-profile`     | Exact player, club, competition and season; reported identity, minutes and statistics                                      | Stacked identity and two-column facts             | Three-column facts                                  | Identity beside facts            |
-| `player-comparison`  | Independent player, club and season samples; shared per-90 metrics and reported minutes                                    | Stacked paired metrics                            | Two metric columns                                  | Three metric columns             |
-| `team-comparison`    | Independent team, competition, season and All/Home/Away scopes                                                             | Stacked paired metrics                            | Two metric columns                                  | Three metric columns             |
-| `odds-comparison`    | Linked Next match; pre-match feed, selected market and bookmaker, exact lines/outcomes and quote times                     | Stacked outcomes and bookmaker prices             | Two outcome columns                                 | Three outcome columns            |
+| Widget                 | Data and scope                                                                                                             | 1 column                                          | 2 columns                                           | 3 columns                        |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | --------------------------------------------------- | -------------------------------- |
+| `team-next-match`      | Next scheduled team fixture across competitions, next 30 days                                                              | Stacked teams and kickoff                         | Horizontal match presentation                       | Larger horizontal presentation   |
+| `team-season`          | Selected team, competition and season; provider standing groups                                                            | Four facts in a compact grid, reported form below | Four facts across                                   | Facts and form side by side      |
+| `team-fixtures`        | Upcoming or recent team matches across competitions, 30 days either side of today                                          | Single fixture list                               | Two fixture columns                                 | Three fixture columns            |
+| `team-availability`    | Current reported team absences; independent of selected season                                                             | Single player list                                | Two player columns                                  | Three player columns             |
+| `fixtures`             | Competition and season; 14-day upcoming/recent window                                                                      | Single fixture list                               | Two fixture columns                                 | Three fixture columns            |
+| `standings`            | Complete reported standing groups for a competition and season; optional team highlight                                    | Position, team, points and form                   | Adds played and goal difference                     | Expanded team and table spacing  |
+| `leaders`              | Season goals, assists, yellow cards or red cards; provider ranks and totals                                                | Club beneath player name                          | Separate club column                                | Expanded player and club spacing |
+| `form-trend`           | Up to six completed team matches in the last 100 days, across all competitions; All/Home/Away selection                    | Compact goal chart and linked results below       | Taller chart and two-column results                 | Chart and results side by side   |
+| `fixture-broadcasts`   | Next fixture from a linked Next match widget; preferred country, all countries or an explicit country                      | Stacked match, country and station list           | Match and country side by side; two station columns | Three station columns            |
+| `team-news`            | Up to three upcoming and three recent team fixtures, 30 days either side; Sportmonks previews and AI-written match reports | Linked headlines and sources                      | Two columns with excerpts                           | Three columns with excerpts      |
+| `player-profile`       | Exact player, club, competition and season; reported identity, minutes and statistics                                      | Stacked identity and two-column facts             | Three-column facts                                  | Identity beside facts            |
+| `player-comparison`    | Independent player, club and season samples; shared per-90 metrics and reported minutes                                    | Stacked paired metrics                            | Two metric columns                                  | Three metric columns             |
+| `team-comparison`      | Independent team, competition, season and All/Home/Away scopes                                                             | Stacked paired metrics                            | Two metric columns                                  | Three metric columns             |
+| `odds-comparison`      | Linked Next match; pre-match feed, selected market and bookmaker, exact lines/outcomes and quote times                     | Stacked outcomes and bookmaker prices             | Two outcome columns                                 | Three outcome columns            |
+| `fixture-head-to-head` | Linked Next match participants; up to five completed previous meetings before kickoff, across competitions                 | One match column                                  | Two match columns                                   | Three match columns              |
+| `fixture-absences`     | Reported absences for both teams in the linked Next match                                                                  | Teams stacked                                     | Teams side by side                                  | Two player columns per team      |
+| `fixture-weather`      | Linked Next match's provider weather report; forecast/recorded status and known units                                      | Conditions above two-column facts                 | Three-column facts                                  | Conditions beside facts          |
+| `team-squad`           | Exact team and season squad; up to twelve players, with a link to the full reported squad                                  | One player column                                 | Two player columns                                  | Three player columns             |
+| `team-transfers`       | Up to six completed moves in the last 365 days; All/Incoming/Outgoing selection                                            | One transfer column                               | Two transfer columns                                | Three transfer columns           |
 
 Presentation adapts to **actual container width**, so a two-column preference on a small window can
 still use the compact arrangement. The canvas has three columns, reduces to two below 900px of
@@ -209,4 +214,45 @@ and probability estimates remain outside its scope.
 - The player-study starter was visually reviewed in Electron. Keyboard dialog activation, Escape
   and restored focus passed browser checks.
 - `pnpm check` passed 881 tests, typecheck, lint, formatting and coverage checks; the production
+  build passed.
+
+## Match preparation
+
+The **Prepare next match** action uses the selected team's Next match as the source for weather,
+previous meetings, match absences and broadcasters. When the team has an available current season,
+it also includes that season's squad, followed by recent transfers. Every match-dependent widget
+follows the source's team and next fixture. Changing its source, removing dependents, width changes,
+saving, duplication and undo use the same editor and saved format.
+
+Head-to-head uses the shared paginated query for the exact pair, then shows at most five completed
+meetings before both now and the source kickoff. It is a cross-competition sample, not an all-time
+record or a forecast. Unknown scores stay unknown, and each result links to its own fixture context.
+Match absences distinguishes unavailable data from an explicitly empty list and retains both teams.
+Weather uses the provider's forecast/recorded label and reported units; missing or unknown-unit
+measurements remain unknown. No football effect is inferred from weather or prior meetings.
+
+Squad uses the exact team-season cache, with squad-reported positions and shirt numbers. Historical
+squads do not inherit a player's current position. The card displays up to twelve players and links
+to the complete squad for that selection. Transfers includes only provider-reported completed moves
+within the last 365 local calendar days, with direction filtered before the six-row display limit.
+Pending moves, future-dated records and rumours are excluded. Missing counterpart clubs stay unknown;
+fees are omitted because this surface does not establish their currency. Transfer scope is independent
+of the View's season. Explicit selections and spans survive football-cache clearing.
+
+### Match-preparation verification · 14 September 2026
+
+- All five definitions accept and persist all three spans. Unknown team/season identities,
+  missing match references and unsupported transfer scopes are rejected.
+- Route checks cover scoped weather and absence identities, an unknown weather unit, exact squad
+  seasons, transfer direction/date filtering, manual addition, source removal, undo, saving,
+  reopening, duplication and the match-preparation starter. Retry resolves into an explicit empty
+  weather report, and late fixture responses do not replace the selected match's details.
+- The serialized OpenAI request schema and all five streamed widget types pass the mocked provider
+  contract. Live OpenAI generation and a live Sportmonks data audit were not repeated for this batch.
+- All five passed Electron overflow checks at all three spans in 1740, 1512, 1240 and 900px windows
+  (60 combinations). The match-preparation composition and empty states were reviewed with example
+  data. Historical meeting dates include their year and passed six additional layout checks.
+- Keyboard activation of the starter and editor, Escape and restored focus passed browser checks.
+- No additional Sportmonks capability is claimed for composing existing data.
+- `pnpm check` passed 899 tests, typecheck, lint, formatting and coverage checks; the production
   build passed.

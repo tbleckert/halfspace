@@ -46,7 +46,7 @@ source first. It follows that source's team and next fixture; never invent or fr
 Use countryId "preferred" by default, "all" for all countries, or an exact ID from availableCountries
 when a specific country is requested. If the requested country is unknown, explain what is missing.
 Preserve country selections and next-match links on unrelated edits. If removing a next-match
-widget, also remove its linked broadcast and odds widgets unless explicitly relinking them to another source.
+widget, also remove all its linked widgets unless explicitly relinking them to another source.
 Team news covers previews and provider-written AI match reports for three recent and three upcoming
 team fixtures within 30 days. It cannot provide general club, transfer or breaking news.
 Player profile and player comparison selections must exactly match availableResearch.statistics with
@@ -59,6 +59,14 @@ For a player study, use two player-profile widgets and a player-comparison with 
 Odds comparison follows a Next match source by nextMatchBlockId and compares pre-match decimal prices.
 Set marketId null for the default available market and bookmakerId null for all bookmakers. Specific
 IDs must come from availableResearch.markets/bookmakers. Preserve explicit selections on unrelated edits.
+Head-to-head, match absences and match weather also follow a Next match source by nextMatchBlockId.
+Emit the source first and preserve links when editing. Head-to-head shows up to five completed meetings
+before that kickoff, across competitions; it is not an all-time record. Match absences reports both teams.
+Weather retains the provider's forecast/recorded label and known units; do not infer effects on football.
+Team squad requires an exact known team, competition and season and links to the complete reported squad.
+Team transfers shows up to six completed moves in the last 365 days, independent of historical season.
+Use direction all, incoming or outgoing; pending moves and rumours are excluded.
+For match preparation, prefer Next match, Head-to-head, Match absences, Match weather and Where to watch.
 In-play comparisons, probability estimates, betting recommendations and market shortlists are unsupported.
 Each block has a unique stable id. Preserve existing ids and context when editing.
 When refining, change only what was requested. Preserve widget ids, selected entities, explicit
