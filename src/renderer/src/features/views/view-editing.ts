@@ -1,5 +1,4 @@
 import {
-  viewSpecSchema,
   type ViewBlock,
   type ViewContext,
   type ViewSpec,
@@ -145,8 +144,10 @@ export function addViewBlock(
             }
     return { ...spec, blocks: [...spec.blocks, block] }
   }
-  if (widget.context !== 'competition' && !team) throw new Error('Choose a team for this widget.')
-  if (widget.context !== 'team' && !context) throw new Error('Choose a competition and season.')
+  if (widget.context !== 'competition' && widget.context !== 'discovery' && !team)
+    throw new Error('Choose a team for this widget.')
+  if (widget.context !== 'team' && widget.context !== 'discovery' && !context)
+    throw new Error('Choose a competition and season.')
   const competition = context
     ? { competitionId: context.competitionId, seasonId: context.seasonId }
     : null
@@ -173,7 +174,7 @@ export function addViewBlock(
     case 'market-shortlist':
       block = {
         ...base,
-        ...competition!,
+        ...(competition ?? { competitionId: null, seasonId: null }),
         type: widgetType,
         period: 'next-seven-days',
         outcome: 'all',
@@ -185,6 +186,7 @@ export function addViewBlock(
       break
     case 'team-squad':
     case 'team-season':
+    case 'team-season-results':
       block = { ...base, ...competition!, type: widgetType, teamId: team!.teamId }
       break
     case 'standings':
@@ -229,51 +231,4 @@ export function moveViewBlock(spec: ViewSpec, id: string, direction: -1 | 1): Vi
   const [block] = blocks.splice(index, 1)
   blocks.splice(target, 0, block)
   return { ...spec, blocks }
-}
-
-export function changeViewContext(
-  spec: ViewSpec,
-  context: ViewContext,
-  available: ViewContext[]
-): ViewSpec {
-  const first = spec.blocks.find((block) => 'competitionId' in block)
-  const original = available.find(
-    (item) => item.competitionId === first?.competitionId && item.seasonId === first?.seasonId
-  )
-  const hasDefaultTitle =
-    original &&
-    spec.blocks.every(
-      (block) =>
-        'competitionId' in block &&
-        block.competitionId === original.competitionId &&
-        block.seasonId === original.seasonId
-    ) &&
-    spec.title === `${original.competitionName} · ${original.seasonName}`.slice(0, 80)
-  if (
-    !available.some(
-      (item) => item.competitionId === context.competitionId && item.seasonId === context.seasonId
-    )
-  )
-    throw new Error('The competition or season is unavailable.')
-  return viewSpecSchema.parse({
-    ...spec,
-    title: hasDefaultTitle
-      ? `${context.competitionName} · ${context.seasonName}`.slice(0, 80)
-      : spec.title,
-    // A generated description can refer to the previous competition or season.
-    message: '',
-    blocks: spec.blocks.map((block) =>
-      'competitionId' in block
-        ? {
-            ...block,
-            ...(block.type === 'market-shortlist' &&
-            (block.competitionId !== context.competitionId || block.seasonId !== context.seasonId)
-              ? { selectedFixtureId: null }
-              : {}),
-            competitionId: context.competitionId,
-            seasonId: context.seasonId
-          }
-        : block
-    )
-  })
 }

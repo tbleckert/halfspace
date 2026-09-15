@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { selectOption } from '../../../test/select-option'
+import { viewBlockTypes } from '@/features/views/view-editing'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { createMemoryHistory, createRouter, RouterProvider } from '@tanstack/react-router'
 import { afterAll, beforeEach, expect, it, vi } from 'vitest'
@@ -284,13 +286,9 @@ it('fetches prices only for the visible page', async () => {
 it('keeps missing market selection explicit and distinguishes subscription access from an empty report', async () => {
   open()
   await screen.findByLabelText('Probability market')
-  fireEvent.change(screen.getByLabelText('Probability market'), {
-    target: { value: 'both-teams-to-score' }
-  })
+  await selectOption(screen.getByLabelText('Probability market'), 'Both teams to score')
   await within(card('Probability context')).findByText('No probabilities reported for this market.')
-  expect((screen.getByLabelText('Probability market') as HTMLSelectElement).value).toBe(
-    'both-teams-to-score'
-  )
+  expect(screen.getByLabelText('Probability market').textContent).toContain('Both teams to score')
   await act(async () => {
     await writeSubscriptionRefresh({
       fetchedAt: Date.now(),
@@ -320,7 +318,7 @@ it('shows a scoped shortlist and sourced probabilities with genuine zero and mis
     within(card('Probability context')).getByText(/calibration and confidence interval/)
   ).toBeTruthy()
   await within(card('Match weather')).findByText('0°C')
-  expect((screen.getByLabelText('Odds market') as HTMLSelectElement).value).toBe('auto')
+  expect(screen.getByLabelText('Odds market').textContent).toContain('Auto · Match winner')
   fireEvent.click(screen.getByRole('button', { name: 'Inspect Match 11' }))
   await within(card('Probability context')).findByText('63.25%')
   expect(within(card('Probability context')).getAllByText('Not reported')).toHaveLength(2)
@@ -339,10 +337,8 @@ it('shows a scoped shortlist and sourced probabilities with genuine zero and mis
 it('retains explicit selection when a match leaves the window and restores it through undo and saving', async () => {
   const router = open()
   fireEvent.click(await screen.findByRole('button', { name: 'Inspect Match 11' }))
-  fireEvent.change(screen.getByLabelText('Shortlist outcome'), { target: { value: 'home' } })
-  fireEvent.change(screen.getByLabelText('Probability market'), {
-    target: { value: 'total-goals-2.5' }
-  })
+  await selectOption(screen.getByLabelText('Shortlist outcome'), 'Home win')
+  await selectOption(screen.getByLabelText('Probability market'), 'Total goals · 2.5')
   await within(card('Probability context')).findByText('48.50%')
   fireEvent.click(screen.getByRole('button', { name: 'Save view' }))
   await waitFor(async () =>
@@ -410,11 +406,14 @@ it('adds both research widgets manually and removes their source and dependents 
   fireEvent.click(await screen.findByRole('button', { name: 'Edit blocks' }))
   const dialog = screen.getByRole('dialog')
   for (const type of ['market-shortlist', 'probability-context']) {
-    fireEvent.change(within(dialog).getByLabelText('New block'), { target: { value: type } })
+    await selectOption(
+      within(dialog).getByLabelText('New block'),
+      viewBlockTypes.find((item) => item.value === type)!.label
+    )
     fireEvent.click(within(dialog).getByRole('button', { name: 'Add block' }))
   }
   expect(within(dialog).getAllByRole('listitem')).toHaveLength(3)
-  fireEvent.change(within(dialog).getByLabelText('Width of block 3'), { target: { value: '3' } })
+  await selectOption(within(dialog).getByLabelText('Width of block 3'), '3 columns')
   fireEvent.click(within(dialog).getByRole('button', { name: 'Remove block 2' }))
   expect(within(dialog).getAllByRole('listitem')).toHaveLength(1)
   fireEvent.keyDown(dialog, { key: 'Escape' })

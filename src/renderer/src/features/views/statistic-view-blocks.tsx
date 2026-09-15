@@ -7,7 +7,14 @@ import type {
   ViewBlock
 } from '@shared/views'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { NativeSelect } from '@/components/ui/native-select'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 import { useOnline } from '@/lib/use-online'
 import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import { db } from '@/data/db'
@@ -128,7 +135,7 @@ function PlayerProfile({
         <CardHeader>
           <CardTitle>Player profile</CardTitle>
         </CardHeader>
-        <CardContent className="view-player-profile">
+        <CardContent className="grid gap-6 @min-[860px]/view-widget:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] @min-[860px]/view-widget:items-center">
           <Link
             to="/players/$playerId/stats"
             params={{ playerId: String(selection.playerId) }}
@@ -140,12 +147,12 @@ function PlayerProfile({
             className="flex min-w-0 items-center gap-3 rounded-sm outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
           >
             <PlayerPhoto
-              className="view-profile-photo size-14 bg-background"
+              className="@min-[520px]/view-widget:size-20 size-14 bg-background"
               imagePath={identity?.imagePath ?? null}
               online={online}
             />
             <div className="min-w-0">
-              <h3 className="view-profile-name text-xl font-semibold wrap-anywhere">
+              <h3 className="@min-[520px]/view-widget:text-[28px] text-xl font-semibold wrap-anywhere">
                 {identity?.displayName ?? `Player ${selection.playerId}`}
               </h3>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -171,7 +178,7 @@ function PlayerProfile({
               No statistics reported for this club and season.
             </p>
           ) : (
-            <dl className="view-profile-facts">
+            <dl className="grid grid-cols-2 gap-6 @min-[520px]/view-widget:grid-cols-3">
               {facts.map(([label, total]) => (
                 <div key={label}>
                   <dt className="text-xs text-muted-foreground">{label}</dt>
@@ -301,6 +308,11 @@ function TeamComparison({
     teamComparisonMetrics
   )
   const error = first.error ?? second.error
+  const locationOptions = [
+    { value: 'all', label: 'All matches' },
+    { value: 'home', label: 'Home matches' },
+    { value: 'away', label: 'Away matches' }
+  ]
   return (
     <div className="space-y-2">
       <BlockError
@@ -319,27 +331,39 @@ function TeamComparison({
         </CardHeader>
         <CardContent className="space-y-5">
           <ComparisonSelections left={block.left} right={block.right} />
-          <div className="view-comparison-selections">
+          <div className="grid grid-cols-2 gap-4">
             {(['left', 'right'] as const).map((side) => (
-              <NativeSelect
+              <Select
+                items={locationOptions}
                 key={side}
-                className="w-full min-w-0"
-                aria-label={`${side === 'left' ? 'First' : 'Second'} team match location`}
-                value={block[side].matchLocation}
-                onChange={(event) =>
+                value={String(block[side].matchLocation)}
+                onValueChange={(value) => {
+                  if (value === null) return
                   onChange({
                     ...block,
                     [side]: {
                       ...block[side],
-                      matchLocation: event.target.value as TeamViewSelection['matchLocation']
+                      matchLocation: value as TeamViewSelection['matchLocation']
                     }
                   })
-                }
+                }}
               >
-                <option value="all">All matches</option>
-                <option value="home">Home matches</option>
-                <option value="away">Away matches</option>
-              </NativeSelect>
+                <SelectTrigger
+                  className="w-full min-w-0"
+                  aria-label={`${side === 'left' ? 'First' : 'Second'} team match location`}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {locationOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
             ))}
           </div>
           {!first.cached || !second.cached ? (
@@ -387,7 +411,7 @@ function ComparisonSelections({
   minutes?: [number | null, number | null]
 }): React.JSX.Element {
   return (
-    <div className="view-comparison-selections">
+    <div className="grid grid-cols-2 gap-4">
       {[left, right].map((selection, index) => (
         <ComparisonSelection
           key={index}
@@ -439,7 +463,7 @@ function ComparisonSelection({
 }
 function ComparisonMetrics({ rows }: { rows: ComparisonRow[] }): React.JSX.Element {
   return (
-    <dl className="view-comparison-metrics">
+    <dl className="grid gap-6 @min-[520px]/view-widget:grid-cols-2 @min-[860px]/view-widget:grid-cols-3">
       {rows.map((row) => {
         const maximum = Math.max(row.left ?? 0, row.right ?? 0)
         return (

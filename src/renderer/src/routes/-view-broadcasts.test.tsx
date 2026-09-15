@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { selectOption } from '../../../test/select-option'
+import { viewBlockTypes } from '@/features/views/view-editing'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { createMemoryHistory, createRouter, RouterProvider } from '@tanstack/react-router'
 import { afterAll, beforeEach, expect, it, vi } from 'vitest'
@@ -122,12 +124,12 @@ it('uses the preferred country, keeps local edits through undo, saving, reopenin
   const router = open()
   await screen.findByRole('link', { name: 'Swedish Sports' })
   expect(screen.queryByRole('link', { name: 'Norwegian Sports' })).toBeNull()
-  fireEvent.change(screen.getByLabelText('Broadcast country'), { target: { value: '1578' } })
+  await selectOption(screen.getByLabelText('Broadcast country'), 'Norway')
   await screen.findByRole('link', { name: 'Norwegian Sports' })
   expect(screen.queryByRole('link', { name: 'Swedish Sports' })).toBeNull()
   fireEvent.click(screen.getByRole('button', { name: 'Undo change' }))
   await screen.findByRole('link', { name: 'Swedish Sports' })
-  fireEvent.change(screen.getByLabelText('Broadcast country'), { target: { value: '1578' } })
+  await selectOption(screen.getByLabelText('Broadcast country'), 'Norway')
   fireEvent.click(screen.getByRole('button', { name: 'Save view' }))
   await waitFor(async () =>
     expect((await db.savedViews.get('match'))?.spec.blocks[1]).toMatchObject({ countryId: 1578 })
@@ -166,8 +168,8 @@ it('follows the linked fixture and team without showing listings from a previous
     })
   )
   await screen.findByText('No broadcasts listed in Sweden for this fixture.')
-  expect((screen.getByLabelText('Broadcast country') as HTMLSelectElement).value).toBe('preferred')
-  fireEvent.change(screen.getByLabelText('Broadcast country'), { target: { value: 'all' } })
+  expect(screen.getByLabelText('Broadcast country').textContent).toContain('Preferred · Sweden')
+  await selectOption(screen.getByLabelText('Broadcast country'), 'All countries')
   expect(
     (await screen.findByRole('link', { name: /Next fixture TV/ })).getAttribute('href')
   ).toContain('fixture=11')
@@ -176,7 +178,7 @@ it('follows the linked fixture and team without showing listings from a previous
     writeFixtureTvRefresh(12, { fetchedAt: Date.now(), listings: [listing(12, 5, 'Liverpool TV')] })
   )
   fireEvent.click(screen.getByRole('button', { name: 'Edit blocks' }))
-  fireEvent.change(await screen.findByLabelText('Team for block 1'), { target: { value: '21' } })
+  await selectOption(await screen.findByLabelText('Team for block 1'), 'Liverpool')
   fireEvent.click(screen.getByRole('button', { name: 'Done' }))
   await screen.findByRole('link', { name: /Liverpool TV/ })
   expect(screen.queryByRole('link', { name: /Next fixture TV/ })).toBeNull()
@@ -194,10 +196,11 @@ it('adds a linked widget manually and removes dependents in one undoable edit', 
   })
   open()
   fireEvent.click(await screen.findByRole('button', { name: 'Edit blocks' }))
-  fireEvent.change(await screen.findByLabelText('New block'), {
-    target: { value: 'fixture-broadcasts' }
-  })
-  expect((screen.getByLabelText('Follow match source') as HTMLSelectElement).value).toBe('next')
+  await selectOption(
+    await screen.findByLabelText('New block'),
+    viewBlockTypes.find((item) => item.value === 'fixture-broadcasts')!.label
+  )
+  expect(screen.getByLabelText('Follow match source').textContent).toContain('Next match · Arsenal')
   fireEvent.click(screen.getByRole('button', { name: 'Add block' }))
   fireEvent.click(screen.getByRole('button', { name: 'Done' }))
   await screen.findByRole('link', { name: 'Swedish Sports' })

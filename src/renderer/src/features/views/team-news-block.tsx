@@ -52,13 +52,18 @@ export function TeamNewsBlock({
               Match previews and reports · Last and next 30 days
             </p>
           </CardHeader>
-          <CardContent>
+          <CardContent
+            className="view-dashboard-scroll max-h-[min(470px,60dvh)] overflow-auto overscroll-y-contain [scrollbar-width:thin] [scrollbar-gutter:stable] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+            role="region"
+            aria-label="Team news articles"
+            tabIndex={fixtures.length ? 0 : undefined}
+          >
             {!fixtures.length ? (
               <p className="text-sm text-muted-foreground">
                 No recent or upcoming matches reported in this window.
               </p>
             ) : (
-              <div className="view-news-matches">
+              <div className="grid gap-6 @min-[520px]/view-widget:grid-cols-2 @min-[860px]/view-widget:grid-cols-3">
                 {fixtures.map((fixture) => (
                   <MatchNews
                     key={fixture.id}
@@ -119,7 +124,7 @@ function MatchNews({
             <h4 className="mt-1 text-base font-semibold leading-snug wrap-anywhere">
               {article.title}
             </h4>
-            <p className="view-news-excerpt mt-2 line-clamp-3 text-sm leading-relaxed text-muted-foreground">
+            <p className="hidden @min-[520px]/view-widget:line-clamp-2 mt-2 text-sm leading-relaxed text-muted-foreground">
               {newsParagraphs(article)[0]}
             </p>
           </Link>

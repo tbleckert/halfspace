@@ -36,6 +36,9 @@ Dexie/IndexedDB.
 
 - Build an airy editorial football identity around coral and violet, supported by white, warm
   neutrals, and dark ink. Treat shadcn/ui as a component foundation; preserve Halfspace's identity.
+- Prefer official shadcn/ui components and Tailwind utilities wherever they cover the need.
+  Avoid custom CSS and custom component implementations when existing components can be composed.
+  Keep necessary product-specific behavior focused, and express branding through shared theme tokens.
 - Keep the shell quiet and data surfaces calm. Use softly filled cards, clear typography, spacing,
   and alignment for hierarchy, with selective color for navigation, graphics, and meaningful state.
   Reuse the shared components, semantic tokens, and canonical brand assets.

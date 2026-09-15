@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { selectOption } from '../../../test/select-option'
+import { viewBlockTypes } from '@/features/views/view-editing'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { createMemoryHistory, createRouter, RouterProvider } from '@tanstack/react-router'
 import { afterAll, beforeEach, expect, it, vi } from 'vitest'
@@ -301,13 +303,12 @@ it('renders five widgets from exact cached samples and supplies known selections
 it('edits a player club independently, saves, duplicates and undoes without changing other samples', async () => {
   const router = open()
   fireEvent.click(await screen.findByRole('button', { name: 'Edit blocks' }))
-  await within(await screen.findByLabelText('Block 2 club and season')).findByRole('option', {
-    name: 'Chelsea · Premier League · 2026/27'
-  })
-  fireEvent.change(screen.getByLabelText('Block 2 club and season'), {
-    target: { value: '8:12:20' }
-  })
-  fireEvent.change(screen.getByLabelText('Width of block 2'), { target: { value: '3' } })
+
+  await selectOption(
+    screen.getByLabelText('Block 2 club and season'),
+    'Chelsea · Premier League · 2026/27'
+  )
+  await selectOption(screen.getByLabelText('Width of block 2'), '3 columns')
   fireEvent.click(screen.getByRole('button', { name: 'Done' }))
   fireEvent.click(screen.getByRole('button', { name: 'Save view' }))
   await waitFor(async () =>
@@ -324,9 +325,7 @@ it('edits a player club independently, saves, duplicates and undoes without chan
   ).toMatchObject({ selection: { teamId: 20 }, span: 3 })
   await act(() => router.navigate({ to: '/views', search: { view: 'study' } }))
   await screen.findByLabelText('First team match location')
-  fireEvent.change(screen.getByLabelText('First team match location'), {
-    target: { value: 'away' }
-  })
+  await selectOption(screen.getByLabelText('First team match location'), 'Away matches')
   const comparison = screen
     .getByRole('heading', { name: 'Team comparison' })
     .closest('[data-slot="card"]')!
@@ -334,50 +333,43 @@ it('edits a player club independently, saves, duplicates and undoes without chan
     expect(within(comparison as HTMLElement).getByLabelText('— versus 30')).toBeTruthy()
   )
   fireEvent.click(screen.getByRole('button', { name: 'Undo change' }))
-  expect((screen.getByLabelText('First team match location') as HTMLSelectElement).value).toBe(
-    'all'
-  )
+  expect(screen.getByLabelText('First team match location').textContent).toContain('All matches')
 })
 
 it('adds profile and comparison widgets with explicit season choices through the manual editor', async () => {
   await saveView('study', { ...spec, blocks: [next] })
   open()
   fireEvent.click(await screen.findByRole('button', { name: 'Edit blocks' }))
-  fireEvent.change(await screen.findByLabelText('New block'), {
-    target: { value: 'player-profile' }
-  })
-  await within(await screen.findByLabelText('First selection club and season')).findByRole(
-    'option',
-    { name: 'Arsenal · Premier League · 2026/27' }
+  await selectOption(
+    await screen.findByLabelText('New block'),
+    viewBlockTypes.find((item) => item.value === 'player-profile')!.label
   )
-  fireEvent.change(screen.getByLabelText('First selection club and season'), {
-    target: { value: '8:12:19' }
-  })
+
+  await selectOption(
+    screen.getByLabelText('First selection club and season'),
+    'Arsenal · Premier League · 2026/27'
+  )
   await waitFor(() =>
     expect((screen.getByRole('button', { name: 'Add block' }) as HTMLButtonElement).disabled).toBe(
       false
     )
   )
   fireEvent.click(screen.getByRole('button', { name: 'Add block' }))
-  fireEvent.change(screen.getByLabelText('New block'), { target: { value: 'player-comparison' } })
-  await within(await screen.findByLabelText('First selection club and season')).findByRole(
-    'option',
-    { name: 'Arsenal · Premier League · 2026/27' }
+  await selectOption(
+    screen.getByLabelText('New block'),
+    viewBlockTypes.find((item) => item.value === 'player-comparison')!.label
   )
-  fireEvent.change(screen.getByLabelText('First selection club and season'), {
-    target: { value: '8:12:19' }
-  })
-  fireEvent.change(screen.getByLabelText('Second selection player'), { target: { value: '101' } })
-  await waitFor(() =>
-    expect(
-      within(screen.getByLabelText('Second selection club and season')).getByRole('option', {
-        name: 'Arsenal · Premier League · 2026/27'
-      })
-    ).toBeTruthy()
+
+  await selectOption(
+    screen.getByLabelText('First selection club and season'),
+    'Arsenal · Premier League · 2026/27'
   )
-  fireEvent.change(screen.getByLabelText('Second selection club and season'), {
-    target: { value: '8:12:19' }
-  })
+  await selectOption(screen.getByLabelText('Second selection player'), 'Player 101')
+
+  await selectOption(
+    screen.getByLabelText('Second selection club and season'),
+    'Arsenal · Premier League · 2026/27'
+  )
   fireEvent.click(screen.getByRole('button', { name: 'Add block' }))
   fireEvent.click(screen.getByRole('button', { name: 'Done' }))
   fireEvent.click(screen.getByRole('button', { name: 'Save view' }))
@@ -391,11 +383,9 @@ it('adds profile and comparison widgets with explicit season choices through the
 
 it('preserves explicit odds choices and all stored contexts when football caches are cleared', async () => {
   const router = open()
-  await within(await screen.findByLabelText('Odds market')).findByRole('option', {
-    name: 'Example totals'
-  })
-  fireEvent.change(screen.getByLabelText('Odds market'), { target: { value: '99' } })
-  fireEvent.change(screen.getByLabelText('Odds bookmaker'), { target: { value: '7' } })
+
+  await selectOption(await screen.findByLabelText('Odds market'), 'Example totals')
+  await selectOption(screen.getByLabelText('Odds bookmaker'), 'Bookmaker 7')
   fireEvent.click(screen.getByRole('button', { name: 'Save view' }))
   await waitFor(async () =>
     expect((await db.savedViews.get('study'))?.spec.blocks[5]).toMatchObject({
@@ -425,14 +415,12 @@ it('creates a player-study starter with the same validated selections and no AI'
   await act(() => router.navigate({ to: '/views', search: {} }))
   fireEvent.click(await screen.findByRole('button', { name: 'Create a player study' }))
   const first = await screen.findByLabelText('First sample club and season')
-  await within(first).findByRole('option', { name: 'Arsenal · Premier League · 2026/27' })
-  fireEvent.change(first, { target: { value: '8:12:19' } })
-  fireEvent.change(screen.getByLabelText('Second sample player'), {
-    target: { value: '101' }
-  })
+
+  await selectOption(first, 'Arsenal · Premier League · 2026/27')
+  await selectOption(screen.getByLabelText('Second sample player'), 'Player 101')
   const second = screen.getByLabelText('Second sample club and season')
-  await within(second).findByRole('option', { name: 'Chelsea · Premier League · 2026/27' })
-  fireEvent.change(second, { target: { value: '8:12:20' } })
+
+  await selectOption(second, 'Chelsea · Premier League · 2026/27')
   fireEvent.click(screen.getByRole('button', { name: 'Create player study' }))
   await screen.findByRole('heading', { name: 'Player comparison' })
   fireEvent.click(screen.getByRole('button', { name: 'Save view' }))

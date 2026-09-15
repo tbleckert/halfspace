@@ -35,3 +35,18 @@ export function selectTeamViewFixtures(
       period === 'recent' ? b.startingAt! - a.startingAt! : a.startingAt! - b.startingAt!
     )
 }
+
+export function seasonTeamResults(
+  fixtures: CachedFixture[],
+  block: { teamId: number; competitionId: number; seasonId: number }
+): CachedFixture[] {
+  return fixtures
+    .filter(
+      (fixture) =>
+        fixture.leagueId === block.competitionId &&
+        fixture.seasonId === block.seasonId &&
+        [5, 7, 8].includes(fixture.stateId) &&
+        fixture.raw.participants?.some((team) => team.id === block.teamId)
+    )
+    .toSorted((a, b) => (a.startingAt ?? 0) - (b.startingAt ?? 0) || a.id - b.id)
+}

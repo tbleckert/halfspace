@@ -25,8 +25,8 @@ export function shortlistFixtures(
   return fixtures
     .filter(
       (fixture) =>
-        fixture.leagueId === block.competitionId &&
-        fixture.seasonId === block.seasonId &&
+        (block.competitionId === null ||
+          (fixture.leagueId === block.competitionId && fixture.seasonId === block.seasonId)) &&
         fixture.stateId === 1 &&
         fixture.startingAt !== null &&
         fixture.startingAt > now &&

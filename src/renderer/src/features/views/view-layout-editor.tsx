@@ -6,7 +6,14 @@ import { viewWidget, widgetColumns, type WidgetColumns } from '@shared/view-widg
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { ViewStatisticPicker } from './view-statistic-picker'
 import { playerViewSelection, teamViewSelection } from './view-research-context'
@@ -35,7 +42,7 @@ export function ViewLayoutEditor({
 }): React.JSX.Element {
   const [open, setOpen] = useState(false)
   const [type, setType] = useState<ViewBlockType>('standings')
-  const [contextKey, setContextKey] = useState('')
+  const [contextKey, setContextKey] = useState('all')
   const [teamId, setTeamId] = useState<number | null>(null)
   const [left, setLeft] = useState<ViewStatisticContext | null>(null)
   const [right, setRight] = useState<ViewStatisticContext | null>(null)
@@ -44,15 +51,18 @@ export function ViewLayoutEditor({
     (block) => block.type === 'team-next-match' || block.type === 'market-shortlist'
   )
   const source = sources.find((block) => block.id === fixtureSourceBlockId) ?? sources[0]
-  const sourceOptions = sources.map((block) => (
-    <NativeSelectOption key={block.id} value={block.id}>
-      {block.type === 'team-next-match'
-        ? `Next match · ${teams.find((team) => team.teamId === block.teamId)?.teamName ?? `Team ${block.teamId}`}`
-        : `Market shortlist · ${contexts.find((context) => context.competitionId === block.competitionId && context.seasonId === block.seasonId)?.competitionName ?? `Competition ${block.competitionId}`}`}
-      {' · Block '}
-      {spec.blocks.indexOf(block) + 1}
-    </NativeSelectOption>
-  ))
+  const sourceOptions = sources.map((block) => ({
+    value: String(block.id),
+    label: (
+      <>
+        {block.type === 'team-next-match'
+          ? `Next match · ${teams.find((team) => team.teamId === block.teamId)?.teamName ?? `Team ${block.teamId}`}`
+          : `Market shortlist · ${block.competitionId === null ? 'All available competitions' : (contexts.find((context) => context.competitionId === block.competitionId && context.seasonId === block.seasonId)?.competitionName ?? `Competition ${block.competitionId}`)}`}
+        {' · Block '}
+        {spec.blocks.indexOf(block) + 1}
+      </>
+    )
+  }))
   const first = spec.blocks.find((block) => 'competitionId' in block)
   const firstTeam = spec.blocks.find((block) => 'teamId' in block && block.teamId !== null)
   const firstTeamId = firstTeam && 'teamId' in firstTeam ? firstTeam.teamId : null
@@ -69,10 +79,12 @@ export function ViewLayoutEditor({
     ? Boolean(
         left?.kind === statisticKind && (type === 'player-profile' || right?.kind === statisticKind)
       )
-    : binding === 'match-source'
-      ? Boolean(source)
-      : (binding === 'team' || Boolean(contexts.length)) &&
-        (binding === 'competition' || Boolean(team))
+    : binding === 'discovery'
+      ? true
+      : binding === 'match-source'
+        ? Boolean(source)
+        : (binding === 'team' || Boolean(contexts.length)) &&
+          (binding === 'competition' || Boolean(team))
   const context =
     contexts.find((item) => `${item.competitionId}:${item.seasonId}` === contextKey) ??
     contexts.find(
@@ -80,6 +92,18 @@ export function ViewLayoutEditor({
     ) ??
     contexts[0]
 
+  const widthOptions = widgetColumns.map((span) => ({
+    value: String(span),
+    label: (
+      <>
+        {span} {span === 1 ? 'column' : 'columns'}
+      </>
+    )
+  }))
+  const blockOptions = viewBlockTypes.map((item) => ({
+    value: String(item.value),
+    label: item.label
+  }))
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button variant="outline" size="sm" disabled={disabled} />}>
@@ -98,28 +122,35 @@ export function ViewLayoutEditor({
               <Card className="space-y-2 p-3">
                 <p className="text-sm font-medium">{viewBlockLabel(block)}</p>
                 <div className="flex flex-wrap items-center gap-1">
-                  <NativeSelect
-                    size="sm"
-                    aria-label={`Width of block ${index + 1}`}
-                    value={block.span}
+                  <Select
+                    items={widthOptions}
+                    value={String(block.span)}
                     disabled={disabled}
-                    onChange={(event) =>
+                    onValueChange={(value) => {
+                      if (value === null) return
                       onChange({
                         ...spec,
                         blocks: spec.blocks.map((item) =>
                           item.id === block.id
-                            ? { ...item, span: Number(event.target.value) as WidgetColumns }
+                            ? { ...item, span: Number(value) as WidgetColumns }
                             : item
                         )
                       })
-                    }
+                    }}
                   >
-                    {widgetColumns.map((span) => (
-                      <NativeSelectOption key={span} value={span}>
-                        {span} {span === 1 ? 'column' : 'columns'}
-                      </NativeSelectOption>
-                    ))}
-                  </NativeSelect>
+                    <SelectTrigger size="sm" aria-label={`Width of block ${index + 1}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {widthOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
                   <Button
                     size="icon"
                     variant="ghost"
@@ -148,25 +179,77 @@ export function ViewLayoutEditor({
                     <Trash2 className="size-4" />
                   </Button>
                 </div>
-                {'fixtureSourceBlockId' in block && (
-                  <NativeSelect
-                    aria-label={`Match source for block ${index + 1}`}
-                    value={block.fixtureSourceBlockId}
+                {'competitionId' in block && (
+                  <ViewContextSelect
+                    aria-label={`Competition and season for block ${index + 1}`}
                     className="w-full"
+                    allowAll={block.type === 'market-shortlist'}
+                    contexts={contexts}
+                    value={
+                      block.competitionId === null
+                        ? 'all'
+                        : `${block.competitionId}:${block.seasonId}`
+                    }
                     disabled={disabled}
-                    onChange={(event) =>
+                    onValueChange={(value) => {
+                      const context = contexts.find(
+                        (item) => `${item.competitionId}:${item.seasonId}` === value
+                      )
+                      const next = context
+                        ? {
+                            ...block,
+                            competitionId: context.competitionId,
+                            seasonId: context.seasonId,
+                            ...(block.type === 'market-shortlist'
+                              ? { selectedFixtureId: null }
+                              : {})
+                          }
+                        : block.type === 'market-shortlist'
+                          ? {
+                              ...block,
+                              competitionId: null,
+                              seasonId: null,
+                              selectedFixtureId: null
+                            }
+                          : block
+                      onChange({
+                        ...spec,
+                        blocks: spec.blocks.map((item) => (item.id === block.id ? next : item))
+                      })
+                    }}
+                  />
+                )}
+                {'fixtureSourceBlockId' in block && (
+                  <Select
+                    items={sourceOptions}
+                    value={String(block.fixtureSourceBlockId)}
+                    disabled={disabled}
+                    onValueChange={(value) => {
+                      if (value === null) return
                       onChange({
                         ...spec,
                         blocks: spec.blocks.map((item) =>
-                          item.id === block.id
-                            ? { ...block, fixtureSourceBlockId: event.target.value }
-                            : item
+                          item.id === block.id ? { ...block, fixtureSourceBlockId: value } : item
                         )
                       })
-                    }
+                    }}
                   >
-                    {sourceOptions}
-                  </NativeSelect>
+                    <SelectTrigger
+                      aria-label={`Match source for block ${index + 1}`}
+                      className="w-full"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {sourceOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
                 )}
                 {(block.type === 'team-next-match' || block.type === 'market-shortlist') &&
                   spec.blocks.some(
@@ -230,13 +313,11 @@ export function ViewLayoutEditor({
                     value={block.teamId}
                     teams={teams}
                     disabled={disabled || !teams.length}
-                    onChange={(event) =>
+                    onValueChange={(value) =>
                       onChange({
                         ...spec,
                         blocks: spec.blocks.map((item) =>
-                          item.id === block.id
-                            ? { ...block, teamId: Number(event.target.value) }
-                            : item
+                          item.id === block.id ? { ...block, teamId: Number(value) } : item
                         )
                       })
                     }
@@ -253,46 +334,66 @@ export function ViewLayoutEditor({
               event.preventDefault()
               if (canAdd && !disabled)
                 onChange(
-                  addViewBlock(spec, type, context, team, {
-                    fixtureSourceBlockId: source?.id,
-                    left: left ?? undefined,
-                    right: right ?? undefined
-                  })
+                  addViewBlock(
+                    spec,
+                    type,
+                    binding === 'discovery' && contextKey === 'all' ? undefined : context,
+                    team,
+                    {
+                      fixtureSourceBlockId: source?.id,
+                      left: left ?? undefined,
+                      right: right ?? undefined
+                    }
+                  )
                 )
             }}
           >
             <div className="space-y-2">
               <Label htmlFor="block-type">New block</Label>
-              <NativeSelect
-                id="block-type"
-                value={type}
+              <Select
+                items={blockOptions}
+                value={String(type)}
                 disabled={disabled}
-                onChange={(event) => {
-                  setType(event.target.value as ViewBlockType)
+                onValueChange={(value) => {
+                  if (value === null) return
+                  setType(value as ViewBlockType)
                   setLeft(null)
                   setRight(null)
                 }}
               >
-                {viewBlockTypes.map((item) => (
-                  <NativeSelectOption key={item.value} value={item.value}>
-                    {item.label}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
+                <SelectTrigger id="block-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {blockOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
             </div>
-            {(binding === 'competition' || binding === 'team-season') && context && (
-              <div className="space-y-2">
-                <Label htmlFor="block-context">Competition and season for new block</Label>
-                <ViewContextSelect
-                  id="block-context"
-                  className="max-w-full"
-                  value={`${context.competitionId}:${context.seasonId}`}
-                  disabled={disabled}
-                  onChange={(event) => setContextKey(event.target.value)}
-                  contexts={contexts}
-                />
-              </div>
-            )}
+            {(binding === 'competition' || binding === 'team-season' || binding === 'discovery') &&
+              (context || binding === 'discovery') && (
+                <div className="space-y-2">
+                  <Label htmlFor="block-context">Competition and season for new block</Label>
+                  <ViewContextSelect
+                    id="block-context"
+                    className="max-w-full"
+                    allowAll={binding === 'discovery'}
+                    value={
+                      binding === 'discovery' && contextKey === 'all'
+                        ? 'all'
+                        : `${context?.competitionId}:${context?.seasonId}`
+                    }
+                    disabled={disabled}
+                    onValueChange={(value) => setContextKey(value)}
+                    contexts={contexts}
+                  />
+                </div>
+              )}
             {(binding === 'team' || binding === 'team-season') && team && (
               <div className="space-y-2">
                 <Label htmlFor="block-team">Team for new block</Label>
@@ -301,7 +402,7 @@ export function ViewLayoutEditor({
                   value={team.teamId}
                   teams={teams}
                   disabled={disabled}
-                  onChange={(event) => setTeamId(Number(event.target.value))}
+                  onValueChange={(value) => setTeamId(Number(value))}
                 />
               </div>
             )}
@@ -342,14 +443,28 @@ export function ViewLayoutEditor({
             {binding === 'match-source' && source && (
               <div className="space-y-2">
                 <Label htmlFor="block-next-match">Follow match source</Label>
-                <NativeSelect
-                  id="block-next-match"
-                  value={source.id}
+                <Select
+                  items={sourceOptions}
+                  value={String(source.id)}
                   disabled={disabled}
-                  onChange={(event) => setFixtureSourceBlockId(event.target.value)}
+                  onValueChange={(value) => {
+                    if (value === null) return
+                    setFixtureSourceBlockId(value)
+                  }}
                 >
-                  {sourceOptions}
-                </NativeSelect>
+                  <SelectTrigger id="block-next-match">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {sourceOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </div>
             )}
             {!canAdd && (

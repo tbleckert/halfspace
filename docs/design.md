@@ -209,10 +209,13 @@ membership from historical records.
 Comparisons use the shared Dialog, Input, Button, and Card surfaces for local saving and reopening.
 Keep the complete selections visible in the comparison workspace after reopening a saved item.
 
-Views offer compact warm starter cards with one competition-and-season selector. Keep manual block
-editing and context changes in focused dialogs, with explicit keyboard actions for reordering and
-width. The same toolbar saves drafts, duplicates views, and undoes changes. Team-home starters
-pair a known team with its reported current competition and season when available.
+Views start with three equal warm cards for a team home, match research, and a player study.
+Start broad match research directly; open setup controls for scoped starters in focused shadcn dialogs. Keep manual block editing and context changes
+in dialogs too, with explicit keyboard actions for reordering and width. Use the shared shadcn Select
+for View filters and editors. The same toolbar saves drafts, duplicates views, and undoes changes.
+Views have no global competition or season filter. Keep scope visible on the relevant widget and editable
+in the block dialog. Broad match research spans available competitions; team homes follow the club across
+competitions. Explicit historical requests bind season widgets to the requested season.
 
 Views use a quiet white canvas and a three-column grid. Every widget supports compact (1), wide (2)
 and full-width (3) spans, with content adapting to its actual width. Reduce the grid to two and then
@@ -222,13 +225,26 @@ cards use warm neutrals, monospaced facts and linked identity/season context. Th
 [widget inventory](view-widgets.md) distinguishes the working supporter slice from planned widgets
 in the accepted three-story design studies.
 
+Pack View cards within their chosen column spans using measured content heights. Keep the lead
+card anchored and reserve contiguous room for a following wide card instead of letting a narrow
+card create an avoidable gap. Full-width cards start a new section. Preserve the authored order
+for keyboard and assistive navigation. Once placed, retain each card's column during data updates;
+recompose when the column mode or the user's arrangement changes. Keep these adjustments immediate,
+without entrance or reshuffling animations.
+
+Keep long dashboard lists within a bounded content area, with the card heading and context outside
+the scroll region. Short and empty lists keep their natural height. Scrolling must be keyboard
+accessible, retain visible focus and preserve access to every listed item. Use the wider column
+modes to show more content side by side without letting a long list dominate the canvas.
+
 The View prompt floats over the scrolling canvas without a surrounding footer panel. Give only
 the input a translucent surface with backdrop blur; place the submit or stop button beside it.
 Start with one line and let the input grow with its contents up to a scrollable maximum. Omit the
 routine provider/capability row, retain accessible availability descriptions, and show failures
 only when they occur. Keep the final canvas content reachable above the floating controls.
 
-Use shared Card, Skeleton, and ErrorAlert components for View data states. Reserve the drawing
-outlines for actual AI composition; offline or unavailable data uses a static status card. Respect
-shared button and input typography and motion; avoid unlayered font resets that override utility
-classes or local motion overrides that duplicate Button behavior.
+Use shared Card, Skeleton, and ErrorAlert components for View data states. Show a simple spinner
+while composing; offline or unavailable data uses a static status card. Use Tailwind utilities for
+View presentation, retaining custom CSS only for measured packing geometry. Compose official shadcn
+components instead of rebuilding their primitives. Apply branding through shared semantic tokens.
+Keep global element defaults in Tailwind’s base layer so utility classes retain control.

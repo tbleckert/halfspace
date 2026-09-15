@@ -1,7 +1,10 @@
 import { useState } from 'react'
+import { Users } from 'lucide-react'
+import { Link } from '@tanstack/react-router'
 import { validateViewSpec, type ViewSpec, type ViewStatisticContext } from '@shared/views'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { db } from '@/data/db'
 import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import { ViewStatisticPicker } from './view-statistic-picker'
@@ -16,13 +19,31 @@ export function PlayerStudyStarter({
   const [left, setLeft] = useState<ViewStatisticContext | null>(null)
   const [right, setRight] = useState<ViewStatisticContext | null>(null)
   const count = useScopedLiveQuery(() => db.players.count(), [])
-  if (!count) return null
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="outline" />}>Create a player study</DialogTrigger>
+      <Card className="h-full">
+        <CardHeader className="gap-3">
+          <Users className="size-5 text-primary" aria-hidden />
+          <CardTitle>Player study</CardTitle>
+          <CardDescription>
+            Compare two players with their club and season in context.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="mt-auto pt-2">
+          {count ? (
+            <DialogTrigger render={<Button variant="outline" />}>
+              Create a player study
+            </DialogTrigger>
+          ) : (
+            <Button variant="outline" nativeButton={false} render={<Link to="/players" />}>
+              Browse players
+            </Button>
+          )}
+        </CardContent>
+      </Card>
       <DialogContent
         aria-describedby={undefined}
-        className="max-h-[80vh] space-y-5 overflow-y-auto p-5"
+        className="max-h-[85dvh] gap-6 overflow-y-auto p-6"
       >
         <div className="space-y-1">
           <DialogTitle>Compare two players</DialogTitle>

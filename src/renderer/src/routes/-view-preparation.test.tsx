@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { selectOption } from '../../../test/select-option'
+import { viewBlockTypes } from '@/features/views/view-editing'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { createMemoryHistory, createRouter, RouterProvider } from '@tanstack/react-router'
 import { afterAll, beforeEach, expect, it, vi } from 'vitest'
@@ -373,13 +375,13 @@ it('follows the next fixture and ignores late details for the previous match', a
 it('preserves direction, widths and source bindings through save, reopen, duplicate and undo', async () => {
   const router = open()
   const direction = await screen.findByLabelText('Transfer direction')
-  fireEvent.change(direction, { target: { value: 'incoming' } })
+  await selectOption(direction, 'Incoming')
   await waitFor(() => expect(screen.queryByText('Move 2')).toBeNull())
   fireEvent.click(screen.getByRole('button', { name: 'Undo change' }))
   await screen.findByText('Move 2')
-  fireEvent.change(screen.getByLabelText('Transfer direction'), { target: { value: 'outgoing' } })
+  await selectOption(screen.getByLabelText('Transfer direction'), 'Outgoing')
   fireEvent.click(screen.getByRole('button', { name: 'Edit blocks' }))
-  fireEvent.change(await screen.findByLabelText('Width of block 4'), { target: { value: '1' } })
+  await selectOption(await screen.findByLabelText('Width of block 4'), '1 column')
   fireEvent.click(screen.getByRole('button', { name: 'Done' }))
   fireEvent.click(screen.getByRole('button', { name: 'Save view' }))
   await waitFor(async () =>
@@ -415,7 +417,7 @@ it('adds all five widgets manually and removes their match dependencies together
     'team-squad',
     'team-transfers'
   ]) {
-    fireEvent.change(type, { target: { value } })
+    await selectOption(type, viewBlockTypes.find((item) => item.value === value)!.label)
     fireEvent.click(screen.getByRole('button', { name: 'Add block' }))
   }
   fireEvent.click(screen.getByRole('button', { name: 'Remove block 1' }))
@@ -432,7 +434,8 @@ it('adds all five widgets manually and removes their match dependencies together
 it('creates a complete match preparation starter without AI', async () => {
   const router = open()
   await act(() => router.navigate({ to: '/views', search: {} }))
-  await screen.findByLabelText('Season context')
+  fireEvent.click(await screen.findByRole('button', { name: 'Create team home' }))
+  await screen.findByLabelText('Standings & season stats')
   fireEvent.click(await screen.findByRole('button', { name: 'Prepare next match' }))
   await screen.findByRole('heading', { name: 'Head-to-head' })
   await screen.findByRole('heading', { name: 'Team squad' })

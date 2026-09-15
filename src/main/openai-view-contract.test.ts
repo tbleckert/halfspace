@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { generateView, generationErrorMessage } from './view-generation'
-import type { GenerateViewInput } from '@shared/views'
+import { generateViewInputSchema, type GenerateViewInput } from '@shared/views'
 import { implementedViewWidgets } from '@shared/view-widgets'
 
 const input: GenerateViewInput = {
@@ -41,6 +41,7 @@ const input: GenerateViewInput = {
     {
       competitionId: 8,
       competitionName: 'Premier League',
+      competitionType: 'league',
       seasonId: 12,
       seasonName: '2026/27',
       isCurrent: true
@@ -61,6 +62,36 @@ const firstPlayer = { playerId: 100, teamId: 19, competitionId: 8, seasonId: 12 
 const firstTeam = { teamId: 19, competitionId: 8, seasonId: 12, matchLocation: 'all' }
 
 it.each([
+  {
+    ...spec,
+    title: 'Across competitions',
+    blocks: [
+      {
+        id: 'shortlist',
+        type: 'market-shortlist',
+        span: 2,
+        competitionId: null,
+        seasonId: null,
+        period: 'next-seven-days',
+        outcome: 'all',
+        selectedFixtureId: null
+      }
+    ]
+  },
+  {
+    ...spec,
+    title: 'Season results',
+    blocks: [
+      {
+        id: 'season-results',
+        type: 'team-season-results',
+        span: 3,
+        teamId: 19,
+        competitionId: 8,
+        seasonId: 12
+      }
+    ]
+  },
   {
     ...spec,
     title: 'A larger football canvas',
@@ -198,9 +229,23 @@ it.each([
     const fetch = vi.fn().mockResolvedValue(response)
     vi.stubGlobal('fetch', fetch)
     const progress = vi.fn()
-    expect(await generateView(input, 'test-key', new AbortController().signal, progress)).toEqual(
-      definition
-    )
+    expect(
+      await generateView(
+        generateViewInputSchema.parse(
+          definition.title === 'Across competitions'
+            ? {
+                ...input,
+                contexts: [],
+                teams: [],
+                research: { fixtures: [], statistics: [], markets: [], bookmakers: [] }
+              }
+            : input
+        ),
+        'test-key',
+        new AbortController().signal,
+        progress
+      )
+    ).toEqual(definition)
     const [url, request] = fetch.mock.calls[0]
     expect(url).toBe('https://api.openai.com/v1/responses')
     const body = JSON.parse(request.body)

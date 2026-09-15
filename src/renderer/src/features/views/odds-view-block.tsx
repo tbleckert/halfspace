@@ -2,7 +2,14 @@ import { Link } from '@tanstack/react-router'
 import type { ViewBlock, FixtureSourceBlock } from '@shared/views'
 import type { CachedFixture } from '@/data/db'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { NativeSelect } from '@/components/ui/native-select'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 import { useFixtureOdds } from '@/features/fixtures/use-fixtures'
 import { availablePrice, oddsComparison, oddsQuoteTime } from '@/features/fixtures/odds-comparison'
 import { useSubscription } from '@/features/subscription/use-subscription'
@@ -65,6 +72,30 @@ function Prices({
   const all = oddsComparison(odds, marketId ?? 0)
   const comparison = oddsComparison(odds, marketId ?? 0, block.bookmakerId ?? undefined)
   const fetchedAt = query.cached?.query?.fetchedAt
+  const marketOptions = [
+    {
+      value: 'auto',
+      label: marketId
+        ? `Auto · ${markets.find(([id]) => id === marketId)?.[1] ?? `Market ${marketId}`}`
+        : 'Automatic market'
+    },
+    ...(block.marketId !== null && !markets.some(([id]) => id === block.marketId)
+      ? [{ value: String(block.marketId), label: <>Market {block.marketId} · Unavailable</> }]
+      : []),
+    ...markets.map(([id, name]) => ({ value: String(id), label: name }))
+  ]
+  const bookmakerOptions = [
+    { value: 'all', label: 'All bookmakers' },
+    ...(block.bookmakerId !== null && !all.bookmakers.some(({ id }) => id === block.bookmakerId)
+      ? [
+          {
+            value: String(block.bookmakerId),
+            label: <>Bookmaker {block.bookmakerId} · Unavailable</>
+          }
+        ]
+      : []),
+    ...all.bookmakers.map(({ id, name }) => ({ value: String(id), label: name }))
+  ]
   return (
     <Card className="overflow-hidden">
       <CardHeader>
@@ -88,56 +119,55 @@ function Prices({
         <p className="text-xs text-muted-foreground">Pre-match · Decimal prices</p>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="view-odds-controls">
-          <NativeSelect
-            className="w-full min-w-0"
-            aria-label="Odds market"
-            value={block.marketId ?? 'auto'}
-            onChange={(event) =>
+        <div className="grid gap-6 @min-[520px]/view-widget:grid-cols-2">
+          <Select
+            items={marketOptions}
+            value={String(block.marketId ?? 'auto')}
+            onValueChange={(value) => {
+              if (value === null) return
               onChange({
                 ...block,
-                marketId: event.target.value === 'auto' ? null : Number(event.target.value)
+                marketId: value === 'auto' ? null : Number(value)
               })
-            }
+            }}
           >
-            <option value="auto">
-              {marketId
-                ? `Auto · ${markets.find(([id]) => id === marketId)?.[1] ?? `Market ${marketId}`}`
-                : 'Automatic market'}
-            </option>
-            {block.marketId !== null && !markets.some(([id]) => id === block.marketId) && (
-              <option value={block.marketId}>Market {block.marketId} · Unavailable</option>
-            )}
-            {markets.map(([id, name]) => (
-              <option key={id} value={id}>
-                {name}
-              </option>
-            ))}
-          </NativeSelect>
-          <NativeSelect
-            className="w-full min-w-0"
-            aria-label="Odds bookmaker"
-            value={block.bookmakerId ?? 'all'}
-            onChange={(event) =>
+            <SelectTrigger className="w-full min-w-0" aria-label="Odds market">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {marketOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+          <Select
+            items={bookmakerOptions}
+            value={String(block.bookmakerId ?? 'all')}
+            onValueChange={(value) => {
+              if (value === null) return
               onChange({
                 ...block,
-                bookmakerId: event.target.value === 'all' ? null : Number(event.target.value)
+                bookmakerId: value === 'all' ? null : Number(value)
               })
-            }
+            }}
           >
-            <option value="all">All bookmakers</option>
-            {block.bookmakerId !== null &&
-              !all.bookmakers.some(({ id }) => id === block.bookmakerId) && (
-                <option value={block.bookmakerId}>
-                  Bookmaker {block.bookmakerId} · Unavailable
-                </option>
-              )}
-            {all.bookmakers.map(({ id, name }) => (
-              <option key={id} value={id}>
-                {name}
-              </option>
-            ))}
-          </NativeSelect>
+            <SelectTrigger className="w-full min-w-0" aria-label="Odds bookmaker">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {bookmakerOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </div>
         <BlockError error={query.error} online={online} refresh={query.refresh} />
         {access === 'not-included' && (
@@ -149,7 +179,7 @@ function Prices({
           </p>
         )}
         {comparison.rows.length ? (
-          <div className="view-odds-outcomes">
+          <div className="grid gap-6 @min-[520px]/view-widget:grid-cols-2 @min-[860px]/view-widget:grid-cols-3">
             {comparison.rows.map((row) => (
               <section key={row.key} className="min-w-0">
                 <h4 className="text-sm font-semibold wrap-anywhere">{row.label}</h4>

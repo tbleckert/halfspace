@@ -1,7 +1,7 @@
 # View widgets
 
 The [three accepted design studies](../design/generative-views/README.md) are our visual targets.
-The catalog contains **21 implemented widgets and 0 planned widgets**.
+The catalog contains **22 implemented widgets and 0 planned widgets**.
 The supporter home, player study, match preparation and match research are working compositions.
 Research connects a full-time result shortlist to prices, provider probabilities and match context.
 Probability gaps, value rankings and profitability claims remain outside the implemented scope.
@@ -21,6 +21,7 @@ selection and data. Compact tables retain essential values and link to the full 
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | --------------------------------------------------- | -------------------------------- |
 | `team-next-match`      | Next scheduled team fixture across competitions, next 30 days                                                              | Stacked teams and kickoff                         | Horizontal match presentation                       | Larger horizontal presentation   |
 | `team-season`          | Selected team, competition and season; provider standing groups                                                            | Four facts in a compact grid, reported form below | Four facts across                                   | Facts and form side by side      |
+| `team-season-results`  | Completed team matches from the reported schedule for an exact competition and season, including historical seasons        | Bounded single fixture list                       | Two fixture columns                                 | Three fixture columns            |
 | `team-fixtures`        | Upcoming or recent team matches across competitions, 30 days either side of today                                          | Single fixture list                               | Two fixture columns                                 | Three fixture columns            |
 | `team-availability`    | Current reported team absences; independent of selected season                                                             | Single player list                                | Two player columns                                  | Three player columns             |
 | `fixtures`             | Competition and season; 14-day upcoming/recent window                                                                      | Single fixture list                               | Two fixture columns                                 | Three fixture columns            |
@@ -39,12 +40,30 @@ selection and data. Compact tables retain essential values and link to the full 
 | `team-squad`           | Exact team and season squad; up to twelve players, with a link to the full reported squad                                  | One player column                                 | Two player columns                                  | Three player columns             |
 | `team-transfers`       | Up to six completed moves in the last 365 days; All/Incoming/Outgoing selection                                            | One transfer column                               | Two transfer columns                                | Three transfer columns           |
 
-| `market-shortlist` | Exact competition and season; seven-day or weekend window, full-time result prices, outcome filter and selected match | One match column | Two match columns | Three match columns |
+| `market-shortlist` | All available competitions by default, or an explicit competition and season; seven-day or weekend window, full-time result prices, outcome filter and selected match | One match column | Two match columns | Three match columns |
 | `probability-context` | Linked match; Sportmonks pre-match result, BTTS or goals 2.5 probabilities, provenance and missing-data context | Stacked outcomes and source | Outcomes side by side | Outcomes across; source and uncertainty side by side |
 
 Presentation adapts to **actual container width**, so a two-column preference on a small window can
 still use the compact arrangement. The canvas has three columns, reduces to two below 900px of
 content width, and to one below 580px. Stored spans are retained when the window shrinks.
+
+The canvas packs measured widget heights into these columns. It keeps the first widget anchored,
+looks ahead one widget when a narrow card precedes a wider one, and keeps full-width cards as section
+boundaries. The saved definition, widget order and native keyboard order remain unchanged. Column
+assignments are retained while data loads or refreshes; heights are measured again to prevent overlaps.
+Changing the arrangement or crossing a column breakpoint computes a fresh placement. This reduces
+row-height gaps without stretching cards, changing their spans or rearranging entire sections.
+
+## Scope
+
+Views have no global competition or season. Broad match research uses the shared date-window fixture
+query across available competitions and shows each match’s competition. Exact filters remain optional
+in the block editor. Partial cached date windows are labelled and never presented as complete coverage.
+
+An explicit historical prompt resolves named teams’ reported season metadata before generation and
+prioritizes the requested season over recent-season defaults. Season results, standings, season snapshots,
+squads and leaders retain their own exact bindings. Current fixtures, absences, news and transfers do not
+represent historical seasons. Unsupported identities remain unavailable rather than being substituted.
 
 ## Composition size and loading
 
@@ -56,7 +75,12 @@ still has a finite token budget; incomplete generation leaves the last usable de
 Manual editing, streamed drafts and saved definitions use the same uncapped widget list. All
 widgets retain their 1/2/3-column preferences. Offscreen widget content mounts as it approaches
 within 400px of the canvas viewport, or receives keyboard focus. Deferred cards show their title;
-they do not claim a data request is running. Generation outlines remain immediate.
+they do not claim a data request is running. Generation placeholders remain immediate.
+
+Current absences and Team news keep their headings above an independently scrollable body, capped
+at 470px or 60% of the window height, whichever is smaller. Short and empty states keep their natural
+height. Both remain keyboard accessible and retain their 1/2/3-column arrangements. This controls
+presentation height without truncating records or changing either widget's data scope.
 
 Once visited, widgets remain mounted to preserve controls and shared-query subscriptions. This
 reduces the initial data burst; it does not virtualize visited cards or bound the memory of an
@@ -83,13 +107,27 @@ For each new widget, verify:
 
 ## Supporter benchmark
 
-Create a team home from an available team and its reported current competition/season. The default
-composition is next match (2), season snapshot (1), calendar (1), highlighted standings (1) and
-current absences (1), followed by form trend (2), where to watch (1) and team news (1). Without current season
-metadata, the starter offers the six widgets that do not require a season and explains the missing
-season context. It works without an AI key.
+A team home is club-wide by default. Matches, form, absences, broadcasters and news follow the team
+across competitions. Multiple current competitions do not require the user to choose one before
+creating a home.
 
-For generation, try “Build a home for Arsenal using the Premier League.” Follow with “Prioritize
+Season snapshots and standings retain an explicit competition and season. Generation honors a
+competition the user names; otherwise, it uses the team's verified current memberships. A single
+reported league context supplies the main snapshot and table. Other competitions can have separate
+snapshots when useful. Competition type comes from cached provider metadata, never the name. When
+no single league context is identifiable, generation can show separately scoped snapshots or omit
+optional season widgets while still creating the home. Missing season context also leaves the
+club-wide composition available. Clarification is reserved for an unresolved team identity or an
+explicit request that needs a specific competition or season.
+
+The manual starter defaults to a reported league when available, with an optional season selector.
+Its default composition is next match (2), season snapshot (1), calendar (1), highlighted standings
+(1), current absences (1), form trend (2), where to watch (1) and team news (1). Without current season
+metadata, it offers the six widgets that do not require a season. It works without an AI key.
+
+For generation, try “Create a home for my team Juventus” with several current competitions available.
+It should compose a home without asking for a competition. Also try “Build a home for Arsenal using
+the Premier League.” Follow with “Prioritize
 preparing for the next match; keep my season context and widths.” Check that supported widgets
 use known identities, the follow-up preserves block identities and explicit settings, and the
 result remains useful with missing data. Unsupported general club or transfer news, xG trends or probability requirements must
@@ -257,7 +295,7 @@ to the complete squad for that selection. Transfers includes only provider-repor
 within the last 365 local calendar days, with direction filtered before the six-row display limit.
 Pending moves, future-dated records and rumours are excluded. Missing counterpart clubs stay unknown;
 fees are omitted because this surface does not establish their currency. Transfer scope is independent
-of the View's season. Explicit selections and spans survive football-cache clearing.
+of other widgets’ season selections. Explicit selections and spans survive football-cache clearing.
 
 ### Match-preparation verification · 14 September 2026
 
@@ -284,7 +322,8 @@ Odds comparison (3), Head-to-head (2) and Match absences (1). Selecting a match 
 card. All six match-dependent widget types, including weather and broadcasters, can follow either
 Next match or a shortlist. Source deletion removes dependents in the same undoable edit.
 
-The shortlist uses one exact competition and season. Its rolling window is today plus six days,
+The shortlist spans all available competitions by default; an explicit filter binds it to one
+competition and season. Its rolling window is today plus six days,
 or Saturday/Sunday of the current or upcoming weekend in the user's time zone. Only future,
 not-started fixtures in that window are included. Six matches are shown per page in kickoff order;
 price fetching is limited to that page. Each outcome shows its highest active, newest-per-bookmaker
@@ -297,7 +336,8 @@ A null selection follows the first match. An explicit selection stays selected w
 unavailable or leaves the window; connected cards show that state instead of choosing another match.
 Changing competition/season clears the old fixture selection. Saving, undo, duplication and football
 cache clearing retain explicit selections and source links. Generation may select only a known fixture
-in the matching competition and season, or use automatic selection.
+within its scope, or use automatic selection. Broad discovery accepts known fixtures from any
+available competition; scoped discovery retains the exact competition and season.
 
 Probability context uses the existing fixture prediction query and provider-reported percentages:
 full-time result (type 237), BTTS (231), and over/under 2.5 (235). Mappings were checked against the

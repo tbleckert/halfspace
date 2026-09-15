@@ -26,6 +26,9 @@ import {
   prefetchMatchdayWindow,
   prefetchFixtureQuery,
   refreshFixtureEntity,
+  useFixtureWindow,
+  readFixtureWindow,
+  refreshFixtureWindowQuery,
   useLiveFixtures,
   useFixtureEntity,
   useMatchdayWindow
@@ -545,3 +548,52 @@ function installHalfspace(overrides: Partial<Window['halfspace']['sportmonks']>)
     }
   }
 }
+
+it('loads a discovery window once across leagues and records every requested date', async () => {
+  const input = { startDate: '2026-09-15', endDate: '2026-09-21', timeZone: 'UTC' }
+  const refresh = fixtureListRefresh()
+  const fixture = refresh.fixtures[0]
+  refresh.fixtures = [
+    {
+      ...fixture,
+      id: 1,
+      league_id: 8,
+      season_id: 12,
+      starting_at_timestamp: Date.UTC(2026, 8, 15, 18) / 1000
+    },
+    {
+      ...fixture,
+      id: 2,
+      league_id: 384,
+      season_id: 22,
+      starting_at_timestamp: Date.UTC(2026, 8, 21, 18) / 1000
+    }
+  ]
+  const refreshFixtureWindow = vi.fn().mockResolvedValue({ ok: true, data: refresh })
+  installHalfspace({ refreshFixtureWindow })
+  await Promise.all([refreshFixtureWindowQuery(input), refreshFixtureWindowQuery(input)])
+  expect(refreshFixtureWindow).toHaveBeenCalledTimes(1)
+  expect(refreshFixtureWindow).toHaveBeenCalledWith(input)
+  expect(await readFixtureWindow(input)).toMatchObject({
+    complete: true,
+    fixtures: [{ id: 1 }, { id: 2 }]
+  })
+  expect((await readFixtureQuery('2026-09-17', 'UTC')).query).not.toBeNull()
+})
+
+it('retains partial cached discovery without presenting it as a complete empty window', async () => {
+  const input = { startDate: '2026-09-15', endDate: '2026-09-21', timeZone: 'UTC' }
+  await writeFixtureWindowRefresh(['2026-09-15'], 'UTC', {
+    timeZone: 'UTC',
+    fixtures: [],
+    fetchedAt: Date.now(),
+    pageCount: 1
+  })
+  installHalfspace({ refreshFixtureWindow: vi.fn() })
+  const { result, unmount } = renderHook(() => useFixtureWindow(input, false))
+  await waitFor(() => expect(result.current.cached?.complete).toBe(false))
+  expect(result.current.cached?.query?.staleAt).toBe(0)
+  expect(result.current.cached?.fixtures).toEqual([])
+  expect(window.halfspace.sportmonks.refreshFixtureWindow).not.toHaveBeenCalled()
+  unmount()
+})

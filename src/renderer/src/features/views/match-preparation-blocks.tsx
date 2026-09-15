@@ -111,7 +111,7 @@ function HeadToHead({ block, fixture, online, date }: MatchProps): React.JSX.Ele
             </p>
           </CardHeader>
           {meetings.length ? (
-            <div className="view-preparation-list pb-2">
+            <div className="grid grid-cols-1 gap-6 @min-[520px]/view-widget:grid-cols-2 @min-[860px]/view-widget:grid-cols-3 pb-2">
               {meetings.map((meeting) => (
                 <EntityFixtureRow
                   key={meeting.id}
@@ -178,7 +178,7 @@ function MatchAbsences({ fixture, online, date }: Omit<MatchProps, 'block'>): Re
           Match absence data unavailable.
         </CardContent>
       ) : (
-        <div className="view-match-absence-teams pb-2">
+        <div className="grid grid-cols-1 gap-6 @min-[520px]/view-widget:grid-cols-2 pb-2">
           {teams.map((team) => {
             const reported = absences.filter(
               (absence) => absence.participant_id === team.id && absence.fixture_id === fixture.id
@@ -187,7 +187,7 @@ function MatchAbsences({ fixture, online, date }: Omit<MatchProps, 'block'>): Re
               <section key={team.id} aria-label={`${team.name} match absences`} className="min-w-0">
                 <h3 className="px-4 pb-3 text-sm font-semibold wrap-anywhere">{team.name}</h3>
                 {reported.length ? (
-                  <div className="view-match-absence-players">
+                  <div className="@min-[860px]/view-widget:grid @min-[860px]/view-widget:grid-cols-2">
                     {reported.map((absence) => (
                       <FixtureAbsenceRow
                         key={absence.id}
@@ -249,7 +249,7 @@ function MatchWeather({
             No weather report available for this match.
           </p>
         ) : (
-          <div className="view-match-weather">
+          <div className="grid grid-cols-1 gap-6 @min-[860px]/view-widget:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] @min-[860px]/view-widget:items-center">
             <div className="flex items-center gap-3">
               <CloudSun className="size-8 shrink-0 text-muted-foreground" aria-hidden />
               <div className="min-w-0">
@@ -264,7 +264,7 @@ function MatchWeather({
                 )}
               </div>
             </div>
-            <dl className="view-weather-facts">
+            <dl className="grid grid-cols-2 gap-6 @min-[520px]/view-widget:grid-cols-3">
               {facts.map((fact) => (
                 <div key={fact.label}>
                   <dt className="text-xs text-muted-foreground">{fact.label}</dt>

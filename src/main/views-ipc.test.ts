@@ -96,7 +96,7 @@ it('never returns the key to the renderer and rejects untrusted calls before rea
 it('rejects invalid generation input before using credentials or making a model call', async () => {
   const { event } = owner()
   expect(
-    await mocks.handlers.get(ipcChannels.viewGenerate)!(event, { ...input, contexts: [] })
+    await mocks.handlers.get(ipcChannels.viewGenerate)!(event, { ...input, prompt: '' })
   ).toMatchObject({ ok: false, error: { code: 'invalid_input' } })
   expect(mocks.read).not.toHaveBeenCalled()
   expect(mocks.generate).not.toHaveBeenCalled()

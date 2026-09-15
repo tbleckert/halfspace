@@ -1,23 +1,53 @@
 import type { ComponentProps } from 'react'
 import type { ViewTeamContext } from '@shared/views'
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 
 export function ViewTeamSelect({
   teams,
+  value,
+  onValueChange,
+  disabled,
   ...props
-}: Omit<ComponentProps<typeof NativeSelect>, 'children'> & {
+}: {
   teams: ViewTeamContext[]
-}): React.JSX.Element {
+  value: string | number
+  onValueChange: (value: string) => void
+} & Pick<
+  ComponentProps<typeof SelectTrigger>,
+  'id' | 'className' | 'aria-label' | 'disabled'
+>): React.JSX.Element {
+  const options = teams.map((team) => ({ value: String(team.teamId), label: team.teamName }))
+  if (value && !options.some((option) => option.value === String(value))) {
+    options.unshift({ value: String(value), label: `Team ${value}` })
+  }
   return (
-    <NativeSelect {...props}>
-      {props.value && !teams.some((team) => String(team.teamId) === String(props.value)) && (
-        <NativeSelectOption value={props.value}>Team {props.value}</NativeSelectOption>
-      )}
-      {teams.map((team) => (
-        <NativeSelectOption key={team.teamId} value={team.teamId}>
-          {team.teamName}
-        </NativeSelectOption>
-      ))}
-    </NativeSelect>
+    <Select
+      items={options}
+      value={String(value)}
+      disabled={disabled}
+      onValueChange={(next) => {
+        if (next !== null) onValueChange(next)
+      }}
+    >
+      <SelectTrigger {...props}>
+        <SelectValue placeholder="Choose a team" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectGroup>
+          {options.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectGroup>
+      </SelectContent>
+    </Select>
   )
 }

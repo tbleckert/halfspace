@@ -1,13 +1,20 @@
-import * as React from 'react'
+import { buttonVariants } from './button-variants'
+import { Button as ButtonPrimitive } from '@base-ui/react/button'
 import type { VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
-import { buttonVariants } from './button-variants'
 
-export function Button({
+function Button({
   className,
-  variant,
-  size,
+  variant = 'default',
+  size = 'default',
   ...props
-}: React.ComponentProps<'button'> & VariantProps<typeof buttonVariants>): React.JSX.Element {
-  return <button className={cn(buttonVariants({ variant, size }), className)} {...props} />
+}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>): React.JSX.Element {
+  return (
+    <ButtonPrimitive
+      data-slot="button"
+      className={cn(buttonVariants({ variant, size, className }))}
+      {...props}
+    />
+  )
 }
+export { Button }

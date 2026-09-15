@@ -1,3 +1,4 @@
+import { TeamSeasonResults } from './team-season-results'
 import { useMemo } from 'react'
 import { Link } from '@tanstack/react-router'
 import { ArrowUpRight } from 'lucide-react'
@@ -56,7 +57,9 @@ export function TeamViewBlockContent({
         <span className="truncate">{team?.name ?? `Team ${block.teamId}`}</span>
         <ArrowUpRight className="size-3 shrink-0" />
       </Link>
-      {block.type === 'team-squad' ? (
+      {block.type === 'team-season-results' ? (
+        <TeamSeasonResults block={block} online={online} />
+      ) : block.type === 'team-squad' ? (
         <TeamSquadBlock block={block} online={online} />
       ) : block.type === 'team-transfers' ? (
         <TeamTransfersBlock block={block} online={online} today={today} onChange={onChange} />
@@ -73,7 +76,7 @@ export function TeamViewBlockContent({
       ) : block.type === 'team-season' ? (
         <TeamSeasonBlock block={block} online={online} date={today} />
       ) : block.type === 'team-availability' ? (
-        <div className="view-team-availability space-y-2">
+        <div className="space-y-2">
           <BlockError error={identity.error} online={online} refresh={identity.refresh} />
           {!identity.cached?.team ? (
             <BlockPending
@@ -87,6 +90,13 @@ export function TeamViewBlockContent({
               absences={identity.cached.team.raw.sidelined}
               online={online}
               teamId={block.teamId}
+              listProps={{
+                className:
+                  'view-dashboard-scroll max-h-[min(470px,60dvh)] overflow-auto overscroll-y-contain [scrollbar-width:thin] [scrollbar-gutter:stable] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring grid grid-cols-1 items-start space-y-0 gap-y-2 @min-[520px]/view-widget:grid-cols-2 @min-[860px]/view-widget:grid-cols-3 rounded-b-xl',
+                role: 'region',
+                'aria-label': 'Current absences list',
+                tabIndex: 0
+              }}
             />
           )}
         </div>
@@ -141,7 +151,7 @@ function TeamFixturesBlock({
               {period === 'upcoming' ? 'Next' : 'Last'} 30 days · All competitions
             </p>
           </CardHeader>
-          <div className="view-data-scroll view-fixture-list px-2 pb-2">
+          <div className="view-data-scroll max-h-[470px] overflow-auto [scrollbar-width:thin] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring grid grid-cols-1 gap-2 @min-[520px]/view-widget:grid-cols-2 @min-[860px]/view-widget:grid-cols-3 px-2 pb-2">
             {fixtures.length ? (
               fixtures.map((fixture) => (
                 <EntityFixtureRow
@@ -181,13 +191,13 @@ function NextMatch({
   const home = fixtureParticipantAt(fixture.raw, 'home')
   const away = fixtureParticipantAt(fixture.raw, 'away')
   return (
-    <Card className="relative isolate overflow-hidden bg-sidebar-accent">
+    <Card className="relative isolate overflow-hidden bg-sidebar-accent py-0">
       <FixtureVenueBackground imagePath={fixture.raw.venue?.image_path ?? null} online={online} />
       <Link
         to="/fixtures/$fixtureId"
         params={{ fixtureId: String(fixture.id) }}
         search={{ date, team: teamId, competition: fixture.leagueId, season: fixture.seasonId }}
-        className="view-next-match relative rounded-xl p-5 outline-none hover:bg-primary/5 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        className="flex flex-col gap-6 @min-[860px]/view-widget:gap-8 @min-[860px]/view-widget:p-7 relative rounded-xl p-5 outline-none hover:bg-primary/5 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
         {...intentPrefetchProps(online, () => prefetchFixtureEntity(fixture.id))}
       >
         <div className="flex items-center justify-between gap-3">
@@ -199,8 +209,8 @@ function NextMatch({
           </div>
           <ArrowUpRight className="size-4 text-primary" />
         </div>
-        <div className="view-match-pair">
-          <div className="view-match-team">
+        <div className="flex flex-col items-stretch gap-4.5 @min-[520px]/view-widget:grid @min-[520px]/view-widget:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] @min-[520px]/view-widget:items-center">
+          <div className="flex items-center gap-3 text-xl font-semibold tracking-tight [&>span]:wrap-anywhere @min-[520px]/view-widget:last:flex-row-reverse @min-[520px]/view-widget:last:text-right @min-[860px]/view-widget:text-[28px]">
             <TeamLogo
               className="size-10 bg-transparent"
               online={online}
@@ -208,7 +218,7 @@ function NextMatch({
             />
             <span>{home?.name ?? 'Home team'}</span>
           </div>
-          <div className="view-match-kickoff">
+          <div className="text-center">
             <span className="font-mono text-3xl tabular-nums">
               {formatFixtureTime(fixture.startingAt)}
             </span>
@@ -220,7 +230,7 @@ function NextMatch({
               }).format(fixture.startingAt!)}
             </time>
           </div>
-          <div className="view-match-team">
+          <div className="flex items-center gap-3 text-xl font-semibold tracking-tight [&>span]:wrap-anywhere @min-[520px]/view-widget:last:flex-row-reverse @min-[520px]/view-widget:last:text-right @min-[860px]/view-widget:text-[28px]">
             <TeamLogo
               className="size-10 bg-transparent"
               online={online}
@@ -292,8 +302,8 @@ function TeamSeasonBlock({
                 {season?.name ?? `Season ${block.seasonId}`} · {name}
               </Link>
             </div>
-            <div className="view-season-body">
-              <dl className="view-season-values">
+            <div className="mt-5 grid gap-6 @min-[860px]/view-widget:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] @min-[860px]/view-widget:items-center">
+              <dl className="grid grid-cols-2 gap-x-3.5 gap-y-5 [&_dd]:ml-0 @min-[520px]/view-widget:grid-cols-4">
                 {[
                   ['Position', standing.position],
                   ['Points', standing.raw.points],

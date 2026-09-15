@@ -2,7 +2,14 @@ import { Link } from '@tanstack/react-router'
 import type { FixtureSourceBlock, ViewBlock } from '@shared/views'
 import type { CachedFixture } from '@/data/db'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { NativeSelect } from '@/components/ui/native-select'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 import { fixtureParticipantAt } from '@/lib/fixture'
 import { usePredictions } from '@/features/fixtures/use-predictions'
 import { useSubscription } from '@/features/subscription/use-subscription'
@@ -88,6 +95,10 @@ function Probabilities({
   const record = records.length === 1 ? records[0] : undefined
   const home = fixtureParticipantAt(fixture.raw, 'home')?.name ?? 'Home'
   const away = fixtureParticipantAt(fixture.raw, 'away')?.name ?? 'Away'
+  const marketOptions = Object.entries(markets).map(([value, market]) => ({
+    value: String(value),
+    label: market.label
+  }))
   return (
     <Card>
       <CardHeader>
@@ -103,19 +114,27 @@ function Probabilities({
         <p className="text-xs text-muted-foreground">Sportmonks · Pre-match model</p>
       </CardHeader>
       <CardContent className="space-y-5">
-        <NativeSelect
-          aria-label="Probability market"
-          value={block.market}
-          onChange={(event) =>
-            onChange({ ...block, market: event.target.value as ProbabilityBlock['market'] })
-          }
+        <Select
+          items={marketOptions}
+          value={String(block.market)}
+          onValueChange={(value) => {
+            if (value === null) return
+            onChange({ ...block, market: value as ProbabilityBlock['market'] })
+          }}
         >
-          {Object.entries(markets).map(([value, market]) => (
-            <option key={value} value={value}>
-              {market.label}
-            </option>
-          ))}
-        </NativeSelect>
+          <SelectTrigger aria-label="Probability market">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              {marketOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
         <BlockError error={query.error} online={online} refresh={query.refresh} />
         {access === 'not-included' && (
           <p className="text-sm text-muted-foreground">
@@ -123,7 +142,7 @@ function Probabilities({
           </p>
         )}
         {query.cached && (
-          <div className="view-probability-outcomes">
+          <div className="grid grid-cols-1 gap-6 @min-[520px]/view-widget:grid-cols-3">
             {market.outcomes.map(([key, label]: readonly [string, string]) => {
               const value = record?.predictions[key]
               const probability =
@@ -167,7 +186,7 @@ function Probabilities({
                     : 'Probabilities not cached for offline use.'}
           </p>
         )}
-        <div className="view-probability-provenance text-xs text-muted-foreground">
+        <div className="grid gap-3 @min-[860px]/view-widget:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] text-xs text-muted-foreground">
           {query.cached && (
             <p>
               Fetched{' '}

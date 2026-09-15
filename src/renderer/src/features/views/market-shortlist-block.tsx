@@ -5,7 +5,14 @@ import type { ViewBlock } from '@shared/views'
 import type { CachedFixture } from '@/data/db'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { NativeSelect } from '@/components/ui/native-select'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 import { TeamLogo } from '@/features/teams/team-logo'
 import { fixtureParticipantAt } from '@/lib/fixture'
 import { useOnline } from '@/lib/use-online'
@@ -36,20 +43,34 @@ export function MarketShortlistBlockContent({
   const [page, setPage] = useState(0)
   const pageCount = Math.max(1, Math.ceil(fixtures.length / 6))
   const currentPage = Math.min(page, pageCount - 1)
+  const periodOptions = [
+    { value: 'next-seven-days', label: 'Next seven days' },
+    { value: 'weekend', label: 'This weekend' }
+  ]
+  const outcomeOptions = [
+    { value: 'all', label: 'All outcomes' },
+    { value: 'home', label: 'Home win' },
+    { value: 'draw', label: 'Draw' },
+    { value: 'away', label: 'Away win' }
+  ]
   return (
     <div className="space-y-2">
-      <Link
-        to="/competitions/$competitionId"
-        params={{ competitionId: String(block.competitionId) }}
-        search={{ season: block.seasonId, date: today }}
-        className="flex w-fit max-w-full items-center gap-1.5 text-xs text-muted-foreground hover:text-primary"
-      >
-        <span className="truncate">
-          {competition.cached?.competition?.name ?? `Competition ${block.competitionId}`} ·{' '}
-          {season?.name ?? `Season ${block.seasonId}`}
-        </span>
-        <ArrowUpRight className="size-3 shrink-0" />
-      </Link>
+      {block.competitionId === null ? (
+        <p className="text-xs text-muted-foreground">All available competitions</p>
+      ) : (
+        <Link
+          to="/competitions/$competitionId"
+          params={{ competitionId: String(block.competitionId) }}
+          search={{ season: block.seasonId ?? undefined, date: today }}
+          className="flex w-fit max-w-full items-center gap-1.5 text-xs text-muted-foreground hover:text-primary"
+        >
+          <span className="truncate">
+            {competition.cached?.competition?.name ?? `Competition ${block.competitionId}`} ·{' '}
+            {season?.name ?? `Season ${block.seasonId}`}
+          </span>
+          <ArrowUpRight className="size-3 shrink-0" />
+        </Link>
+      )}
       <Card>
         <CardHeader>
           <CardTitle>Market shortlist</CardTitle>
@@ -58,33 +79,53 @@ export function MarketShortlistBlockContent({
           </p>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="view-research-controls">
-            <NativeSelect
-              aria-label="Shortlist window"
-              value={block.period}
-              onChange={(event) => {
+          <div className="grid grid-cols-1 gap-2 @min-[520px]/view-widget:grid-cols-2">
+            <Select
+              items={periodOptions}
+              value={String(block.period)}
+              onValueChange={(value) => {
+                if (value === null) return
                 setPage(0)
-                onChange({ ...block, period: event.target.value as MarketShortlistBlock['period'] })
+                onChange({ ...block, period: value as MarketShortlistBlock['period'] })
               }}
             >
-              <option value="next-seven-days">Next seven days</option>
-              <option value="weekend">This weekend</option>
-            </NativeSelect>
-            <NativeSelect
-              aria-label="Shortlist outcome"
-              value={block.outcome}
-              onChange={(event) =>
+              <SelectTrigger aria-label="Shortlist window">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {periodOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <Select
+              items={outcomeOptions}
+              value={String(block.outcome)}
+              onValueChange={(value) => {
+                if (value === null) return
                 onChange({
                   ...block,
-                  outcome: event.target.value as MarketShortlistBlock['outcome']
+                  outcome: value as MarketShortlistBlock['outcome']
                 })
-              }
+              }}
             >
-              <option value="all">All outcomes</option>
-              <option value="home">Home win</option>
-              <option value="draw">Draw</option>
-              <option value="away">Away win</option>
-            </NativeSelect>
+              <SelectTrigger aria-label="Shortlist outcome">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {outcomeOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </div>
           <p className="font-mono text-xs tabular-nums text-muted-foreground">
             {input.startDate} – {input.endDate}
@@ -97,6 +138,16 @@ export function MarketShortlistBlockContent({
               await Promise.all([seasons.refresh(), competition.refresh()])
             }}
           />
+          {query.cached &&
+            'complete' in query.cached &&
+            !query.cached.complete &&
+            query.cached.query && (
+              <p role="status" className="text-xs text-muted-foreground">
+                {query.refreshing
+                  ? 'Showing cached matches while the remaining dates load.'
+                  : 'Only part of this window is cached.'}
+              </p>
+            )}
           {access === 'not-included' && (
             <p className="text-sm text-muted-foreground">
               Pre-match odds are not included in your Sportmonks plan.
@@ -126,7 +177,7 @@ export function MarketShortlistBlockContent({
             </p>
           ) : fixtures.length ? (
             <>
-              <div className="view-shortlist-matches">
+              <div className="grid grid-cols-1 gap-6 @min-[520px]/view-widget:grid-cols-2 @min-[860px]/view-widget:grid-cols-3">
                 {fixtures.slice(currentPage * 6, currentPage * 6 + 6).map((fixture) => (
                   <Candidate
                     key={fixture.id}
@@ -167,7 +218,9 @@ export function MarketShortlistBlockContent({
             </>
           ) : (
             <p className="text-sm text-muted-foreground">
-              No scheduled matches in this competition and season within the selected window.
+              {query.cached && 'complete' in query.cached && !query.cached.complete
+                ? 'No scheduled matches in the cached dates.'
+                : 'No scheduled matches within the selected window.'}
             </p>
           )}
           <p className="text-xs text-muted-foreground">
@@ -230,6 +283,9 @@ function Candidate({
           </time>
           {selected && <Check className="size-3.5 shrink-0 text-primary" aria-hidden />}
         </div>
+        <p className="mb-2 text-xs text-muted-foreground">
+          {fixture.raw.league?.name ?? `Competition ${fixture.leagueId}`}
+        </p>
         <div className="space-y-2">
           {(['home', 'away'] as const).map((side) => {
             const team = fixtureParticipantAt(fixture.raw, side)

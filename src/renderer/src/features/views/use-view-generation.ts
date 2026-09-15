@@ -1,3 +1,4 @@
+import { historicalViewTeams, prepareViewContexts } from './prepare-view-contexts'
 import { useEffect, useRef, useState } from 'react'
 import {
   validateViewSpec,
@@ -64,6 +65,11 @@ export function useViewGeneration(): {
     setBlocks([])
     setError(null)
     try {
+      const historicalTeams = historicalViewTeams(prompt, teams, current)
+      if (historicalTeams.length) {
+        contexts = await prepareViewContexts(prompt, contexts, historicalTeams, current)
+        if (request.current !== requestId) return null
+      }
       const result = await window.halfspace.views.generate({
         requestId,
         prompt,

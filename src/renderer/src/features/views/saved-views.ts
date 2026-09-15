@@ -1,10 +1,10 @@
 import { db } from '@/data/db'
-import { competitionSeasonOptions } from '@/features/competitions/competition-workspace-data'
 import {
   readStoredViewSpec,
   viewSpecSchema,
   type SavedView,
   type ViewContext,
+  type ViewBlock,
   type ViewSpec,
   type ViewTeamContext
 } from '@shared/views'
@@ -102,26 +102,71 @@ export async function readViewTeams(): Promise<ViewTeamContext[]> {
   }))
 }
 
-export async function readViewContexts(): Promise<ViewContext[]> {
-  const [competitions, seasonQueries] = await Promise.all([
+export async function readViewContexts(prompt = ''): Promise<ViewContext[]> {
+  const [competitions, seasonQueries, teamSeasons] = await Promise.all([
     db.competitions.orderBy('id').toArray(),
-    db.competitionSeasonQueries.toArray()
+    db.competitionSeasonQueries.toArray(),
+    db.teamSeasonsQueries.toArray()
   ])
   return competitions
     .flatMap((competition) => {
-      const seasons = competitionSeasonOptions(
-        seasonQueries.find((query) => query.competitionId === competition.id)?.seasons ?? [],
-        competition.raw.currentseason
-      )
+      const seasons = [
+        ...new Map(
+          [
+            ...(seasonQueries.find((query) => query.competitionId === competition.id)?.seasons ??
+              []),
+            ...teamSeasons
+              .flatMap((query) => query.seasons)
+              .filter((season) => season.league_id === competition.id),
+            ...(competition.raw.currentseason ? [competition.raw.currentseason] : [])
+          ].map((season) => [season.id, season])
+        ).values()
+      ]
       return seasons
         .filter((season) => season.league_id === competition.id)
         .map((season) => ({
           competitionId: competition.id,
           competitionName: competition.name,
+          competitionType: competition.raw.type ?? null,
           seasonId: season.id,
           seasonName: season.name,
           isCurrent: season.is_current
         }))
     })
-    .slice(0, 250)
+    .toSorted(
+      (a, b) =>
+        Number(matchesPromptSeason(prompt, b.seasonName)) -
+          Number(matchesPromptSeason(prompt, a.seasonName)) ||
+        Number(b.isCurrent) - Number(a.isCurrent)
+    )
+}
+
+function matchesPromptSeason(prompt: string, season: string): boolean {
+  const normalized = (text: string): string =>
+    text.replace(
+      /\b((?:19|20)\d{2})[/-](\d{2}|\d{4})\b/g,
+      (_, start: string, end: string) =>
+        `${start}/${end.length === 2 ? start.slice(0, 2) + end : end}`
+    )
+  return normalized(prompt).includes(normalized(season))
+}
+
+export function viewContexts(cached: ViewContext[], blocks: readonly ViewBlock[]): ViewContext[] {
+  const contexts = new Map<string, ViewContext>()
+  // Saved scope remains editable after disposable metadata is cleared or falls outside the context limit.
+  for (const block of blocks) {
+    if (!('competitionId' in block) || block.competitionId === null || block.seasonId === null)
+      continue
+    const key = `${block.competitionId}:${block.seasonId}`
+    contexts.set(key, {
+      competitionId: block.competitionId,
+      competitionName: `Competition ${block.competitionId}`,
+      seasonId: block.seasonId,
+      seasonName: `Season ${block.seasonId}`,
+      isCurrent: false
+    })
+  }
+  for (const context of cached)
+    contexts.set(`${context.competitionId}:${context.seasonId}`, context)
+  return [...contexts.values()].slice(0, 250)
 }

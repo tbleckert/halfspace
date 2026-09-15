@@ -4,7 +4,14 @@ import type { FixtureSourceBlock, BroadcastViewBlock, ViewBlock } from '@shared/
 import type { CachedFixture } from '@/data/db'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { NativeSelect } from '@/components/ui/native-select'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 import { formatFixtureTime } from '@/lib/date'
 import { useFixtureTv } from '@/features/fixtures/use-fixture-tv'
 import { FixtureTvStations } from '@/features/fixtures/fixture-tv-stations'
@@ -74,6 +81,17 @@ function BroadcastListings({
   const countryName =
     countries.find((country) => String(country.countryId) === selectedCountry)?.countryName ??
     `Country ${selectedCountry}`
+  const countryOptions = [
+    {
+      value: 'preferred',
+      label: preferredCountry ? `Preferred · ${preferredCountry.name}` : 'Preferred · All countries'
+    },
+    { value: 'all', label: 'All countries' },
+    ...countries.map((country) => ({
+      value: String(country.countryId),
+      label: country.countryName
+    }))
+  ]
   return (
     <Card className="overflow-hidden">
       <CardHeader className="flex-row items-center justify-between gap-2">
@@ -92,7 +110,7 @@ function BroadcastListings({
         </Button>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="view-broadcast-context">
+        <div className="grid gap-4 @min-[520px]/view-widget:grid-cols-[minmax(0,1fr)_minmax(0,200px)] @min-[520px]/view-widget:items-center">
           <Link
             to="/fixtures/$fixtureId"
             params={{ fixtureId: String(fixture.id) }}
@@ -112,32 +130,30 @@ function BroadcastListings({
                   formatFixtureTime(fixture.startingAt)}
             </p>
           </Link>
-          <NativeSelect
-            aria-label="Broadcast country"
-            value={String(block.countryId)}
-            className="w-full min-w-0"
-            onChange={(event) =>
+          <Select
+            items={countryOptions}
+            value={String(String(block.countryId))}
+            onValueChange={(value) => {
+              if (value === null) return
               onChange({
                 ...block,
-                countryId:
-                  event.target.value === 'all' || event.target.value === 'preferred'
-                    ? event.target.value
-                    : Number(event.target.value)
+                countryId: value === 'all' || value === 'preferred' ? value : Number(value)
               })
-            }
+            }}
           >
-            <option value="preferred">
-              {preferredCountry
-                ? `Preferred · ${preferredCountry.name}`
-                : 'Preferred · All countries'}
-            </option>
-            <option value="all">All countries</option>
-            {countries.map((country) => (
-              <option key={country.countryId} value={country.countryId}>
-                {country.countryName}
-              </option>
-            ))}
-          </NativeSelect>
+            <SelectTrigger aria-label="Broadcast country" className="w-full min-w-0">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {countryOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </div>
         <BlockError error={guide.error} online={online} refresh={guide.refresh} />
         {access === 'not-included' && (
@@ -172,7 +188,7 @@ function BroadcastListings({
             seasonId={fixture.seasonId ?? undefined}
             online={online}
             showCountries={selectedCountry === 'all'}
-            className="view-broadcast-stations"
+            className="@min-[520px]/view-widget:grid-cols-2 @min-[860px]/view-widget:grid-cols-3"
           />
         )}
       </CardContent>

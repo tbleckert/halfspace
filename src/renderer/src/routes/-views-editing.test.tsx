@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { selectOption } from '../../../test/select-option'
+import { viewBlockTypes } from '@/features/views/view-editing'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { createMemoryHistory, createRouter, RouterProvider } from '@tanstack/react-router'
 import { afterAll, beforeEach, expect, it, vi } from 'vitest'
@@ -54,7 +56,7 @@ function openViews(): ReturnType<typeof createRouter<typeof routeTree>> {
   return router
 }
 
-it('switches all blocks to the selected competition, replaces cached content, and supports undo', async () => {
+it('changes one widget scope independently, replaces its cached content, and supports undo', async () => {
   for (const [seasonId, playerId, name] of [
     [12, 100, 'Alex Forward'],
     [22, 101, 'Sam Striker']
@@ -72,16 +74,20 @@ it('switches all blocks to the selected competition, replaces cached content, an
     })
   }
   const router = openViews()
+  fireEvent.click(await screen.findByRole('button', { name: 'More starting points' }))
   fireEvent.click(await screen.findByRole('button', { name: /Goals & assists/ }))
   await screen.findByRole('link', { name: 'Alex Forward' })
-  fireEvent.click(screen.getByRole('button', { name: 'Change competition or season' }))
-  fireEvent.change(await screen.findByLabelText('New competition and season'), {
-    target: { value: '384:22' }
-  })
-  fireEvent.click(screen.getByRole('button', { name: 'Apply to all blocks' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Edit blocks' }))
+  await selectOption(
+    await screen.findByLabelText('Competition and season for block 1'),
+    'Serie A · 2026/27'
+  )
+  fireEvent.click(screen.getByRole('button', { name: 'Done' }))
   await screen.findByRole('link', { name: 'Sam Striker' })
   expect(screen.queryByRole('link', { name: 'Alex Forward' })).toBeNull()
-  expect((screen.getByLabelText('View name') as HTMLInputElement).value).toBe('Serie A · 2026/27')
+  expect((screen.getByLabelText('View name') as HTMLInputElement).value).toBe(
+    'Premier League · 2026/27'
+  )
   fireEvent.click(screen.getByRole('button', { name: 'Undo change' }))
   await screen.findByRole('link', { name: 'Alex Forward' })
   expect(screen.queryByRole('link', { name: 'Sam Striker' })).toBeNull()
@@ -120,9 +126,8 @@ it('duplicates the edited draft, opens its copy, and retains the original saved 
 
 it('opens, saves, and reopens a starter offline without an AI key or generation request', async () => {
   const router = openViews()
-  fireEvent.change(await screen.findByLabelText('Competition and season'), {
-    target: { value: '384:22' }
-  })
+  fireEvent.click(await screen.findByRole('button', { name: 'More starting points' }))
+  await selectOption(await screen.findByLabelText('Competition and season'), 'Serie A · 2026/27')
   fireEvent.click(screen.getByRole('button', { name: /Goals & assists/ }))
   expect(((await screen.findByLabelText('View name')) as HTMLInputElement).value).toBe(
     'Serie A · 2026/27'
@@ -147,14 +152,19 @@ it('opens, saves, and reopens a starter offline without an AI key or generation 
 
 it('edits block content and layout, undoes removal, and persists the result without AI', async () => {
   const router = openViews()
+  fireEvent.click(await screen.findByRole('button', { name: 'More starting points' }))
   fireEvent.click(await screen.findByRole('button', { name: /Goals & assists/ }))
   fireEvent.click(screen.getByRole('button', { name: 'Edit blocks' }))
-  fireEvent.change(await screen.findByLabelText('New block'), { target: { value: 'recent' } })
-  fireEvent.change(screen.getByLabelText('Competition and season for new block'), {
-    target: { value: '384:22' }
-  })
+  await selectOption(
+    await screen.findByLabelText('New block'),
+    viewBlockTypes.find((item) => item.value === 'recent')!.label
+  )
+  await selectOption(
+    screen.getByLabelText('Competition and season for new block'),
+    'Serie A · 2026/27'
+  )
   fireEvent.click(screen.getByRole('button', { name: 'Add block' }))
-  fireEvent.change(await screen.findByLabelText('Width of block 1'), { target: { value: '3' } })
+  await selectOption(await screen.findByLabelText('Width of block 1'), '3 columns')
   fireEvent.click(screen.getByRole('button', { name: 'Move block 3 up' }))
   fireEvent.click(screen.getByRole('button', { name: 'Remove block 2' }))
   fireEvent.click(screen.getByRole('button', { name: 'Done' }))
@@ -192,13 +202,14 @@ it('creates a team home offline, changes its widths, saves and reopens after cac
     competitions: [(await db.competitions.get(8))!.raw]
   })
   const router = openViews()
-  await screen.findByLabelText('Season context')
+  fireEvent.click(await screen.findByRole('button', { name: 'Create team home' }))
+  await screen.findByLabelText('Standings & season stats')
   fireEvent.click(screen.getByRole('button', { name: 'Create team home' }))
   expect(((await screen.findByLabelText('View name')) as HTMLInputElement).value).toBe('My Arsenal')
   fireEvent.click(screen.getByRole('button', { name: 'Edit blocks' }))
-  fireEvent.change(await screen.findByLabelText('Width of block 1'), { target: { value: '1' } })
-  fireEvent.change(screen.getByLabelText('Width of block 2'), { target: { value: '2' } })
-  fireEvent.change(screen.getByLabelText('Width of block 3'), { target: { value: '3' } })
+  await selectOption(await screen.findByLabelText('Width of block 1'), '1 column')
+  await selectOption(screen.getByLabelText('Width of block 2'), '2 columns')
+  await selectOption(screen.getByLabelText('Width of block 3'), '3 columns')
   fireEvent.click(screen.getByRole('button', { name: 'Done' }))
   fireEvent.click(screen.getByRole('button', { name: 'Save view' }))
   await waitFor(() => expect(router.state.location.search.view).toBeTruthy())
@@ -267,12 +278,12 @@ it('filters a cached form sample, undoes the filter, and saves and duplicates it
   await act(() => router.navigate({ to: '/views', search: { view: 'form' } }))
   const result = await screen.findByRole('link', { name: /Win home to Chelsea/ })
   expect(result.getAttribute('href')).toContain('season=12')
-  fireEvent.change(screen.getByLabelText('Form match location'), { target: { value: 'away' } })
+  await selectOption(screen.getByLabelText('Form match location'), 'Away')
   await screen.findByText('No completed away matches reported in this window.')
   expect(screen.queryByRole('link', { name: /Win home to Chelsea/ })).toBeNull()
   fireEvent.click(screen.getByRole('button', { name: 'Undo change' }))
   await screen.findByRole('link', { name: /Win home to Chelsea/ })
-  fireEvent.change(screen.getByLabelText('Form match location'), { target: { value: 'home' } })
+  await selectOption(screen.getByLabelText('Form match location'), 'Home')
   fireEvent.click(screen.getByRole('button', { name: 'Save view' }))
   await waitFor(async () =>
     expect((await db.savedViews.get('form'))?.spec.blocks[0]).toMatchObject({
@@ -283,7 +294,7 @@ it('filters a cached form sample, undoes the filter, and saves and duplicates it
   await act(() => router.navigate({ to: '/views', search: {} }))
   await act(() => router.navigate({ to: '/views', search: { view: 'form' } }))
   await screen.findByRole('link', { name: /Win home to Chelsea/ })
-  expect((screen.getByLabelText('Form match location') as HTMLSelectElement).value).toBe('home')
+  expect(screen.getByLabelText('Form match location').textContent).toContain('Home')
   fireEvent.click(screen.getByRole('button', { name: 'Duplicate view' }))
   await waitFor(() => expect(router.state.location.search.view).not.toBe('form'))
   expect(
@@ -310,7 +321,10 @@ it('adds beyond eight widgets, undoes an edit, and saves and reopens all column 
   const router = openViews()
   await act(() => router.navigate({ to: '/views', search: { view: 'large' } }))
   fireEvent.click(await screen.findByRole('button', { name: 'Edit blocks' }))
-  fireEvent.change(await screen.findByLabelText('New block'), { target: { value: 'standings' } })
+  await selectOption(
+    await screen.findByLabelText('New block'),
+    viewBlockTypes.find((item) => item.value === 'standings')!.label
+  )
   for (let count = 9; count <= 12; count++) {
     fireEvent.click(screen.getByRole('button', { name: 'Add block' }))
     await screen.findByLabelText(`Width of block ${count}`)
@@ -320,9 +334,10 @@ it('adds beyond eight widgets, undoes an edit, and saves and reopens all column 
     [11, 2],
     [12, 3]
   ]) {
-    fireEvent.change(screen.getByLabelText(`Width of block ${index}`), {
-      target: { value: String(span) }
-    })
+    await selectOption(
+      screen.getByLabelText(`Width of block ${index}`),
+      `${span} ${span === 1 ? 'column' : 'columns'}`
+    )
   }
   fireEvent.click(screen.getByRole('button', { name: 'Remove block 12' }))
   fireEvent.click(screen.getByRole('button', { name: 'Done' }))
@@ -336,7 +351,7 @@ it('adds beyond eight widgets, undoes an edit, and saves and reopens all column 
   await act(() => router.navigate({ to: '/views', search: {} }))
   await act(() => router.navigate({ to: '/views', search: { view: 'large' } }))
   fireEvent.click(await screen.findByRole('button', { name: 'Edit blocks' }))
-  expect(((await screen.findByLabelText('Width of block 12')) as HTMLSelectElement).value).toBe('3')
+  expect((await screen.findByLabelText('Width of block 12')).textContent).toContain('3 columns')
   expect((await db.savedViews.get('large'))?.spec).toEqual(saved)
   expect(window.halfspace.views.generate).not.toHaveBeenCalled()
 })

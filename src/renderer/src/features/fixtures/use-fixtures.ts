@@ -1,5 +1,9 @@
 import { useCallback } from 'react'
-import type { OddsFeed, RefreshFixtureHeadToHeadInput } from '@shared/contracts'
+import type {
+  OddsFeed,
+  RefreshFixtureHeadToHeadInput,
+  RefreshFixtureWindowInput
+} from '@shared/contracts'
 import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import { useRefreshStatus } from '@/lib/use-refresh-status'
 import {
@@ -16,6 +20,7 @@ import {
   writeFixtureRefresh,
   writeFixtureWindowRefresh
 } from '@/data/db'
+import { addDaysToIsoDate } from '@/lib/date'
 import { matchdayWindow } from './matchday-hub'
 import { isFixtureOngoing } from '@/lib/fixture-state'
 import { type RefreshableQuery, type RefreshRequest, useStaleRefresh } from '@/lib/refresh'
@@ -83,6 +88,57 @@ export function useFixtures(
   useStaleRefresh(enabled, cached !== undefined, cached?.query?.staleAt, refresh)
 
   return { cached, refreshing, error, refresh }
+}
+
+export async function readFixtureWindow(input: RefreshFixtureWindowInput): Promise<{
+  query: { fetchedAt: number; staleAt: number } | null
+  fixtures: FixtureCache['fixtures']
+  complete: boolean
+}> {
+  const days = await Promise.all(
+    fixtureWindowDates(input).map((date) => readFixtureQuery(date, input.timeZone))
+  )
+  const queries = days.flatMap((day) => (day.query ? [day.query] : []))
+  const complete = queries.length === days.length
+  return {
+    query: queries.length
+      ? {
+          fetchedAt: Math.min(...queries.map((query) => query.fetchedAt)),
+          staleAt: complete ? Math.min(...queries.map((query) => query.staleAt)) : 0
+        }
+      : null,
+    fixtures: [
+      ...new Map(
+        days.flatMap((day) => day.fixtures).map((fixture) => [fixture.id, fixture])
+      ).values()
+    ],
+    complete
+  }
+}
+
+export function useFixtureWindow(
+  input: RefreshFixtureWindowInput | null,
+  enabled: boolean
+): RefreshableQuery<Awaited<ReturnType<typeof readFixtureWindow>> | null> {
+  const key = input ? `${input.startDate}|${input.endDate}|${input.timeZone}` : null
+  const cached = useScopedLiveQuery(
+    () => (input ? readFixtureWindow(input) : Promise.resolve(null)),
+    [key]
+  )
+  const { refreshing, error, runRefresh } = useRefreshStatus(key)
+  const refresh = useCallback(async () => {
+    if (!enabled || !input) return
+    await runRefresh(() => refreshFixtureWindowQuery(input), 'Could not refresh fixtures.')
+  }, [enabled, input, runRefresh])
+  useStaleRefresh(enabled && input !== null, cached !== undefined, cached?.query?.staleAt, refresh)
+  return { cached, refreshing, error, refresh }
+}
+
+function fixtureWindowDates(input: RefreshFixtureWindowInput): string[] {
+  const dates: string[] = []
+  for (let date = input.startDate; date <= input.endDate; date = addDaysToIsoDate(date, 1))
+    dates.push(date)
+  return dates
 }
 
 export function useMatchdayWindow(
@@ -363,22 +419,23 @@ export async function refreshLiveFixtureQuery(timeZone: string): Promise<void> {
 }
 
 async function refreshMatchdayWindow(date: string, timeZone: string): Promise<void> {
-  const fixtureWindow = matchdayWindow(date)
-  const key = `${fixtureWindow.startDate}|${fixtureWindow.endDate}|${timeZone}`
+  const { startDate, endDate } = matchdayWindow(date)
+  await refreshFixtureWindowQuery({ startDate, endDate, timeZone })
+}
+
+export async function refreshFixtureWindowQuery(input: RefreshFixtureWindowInput): Promise<void> {
+  const { startDate, endDate, timeZone } = input
+  const key = `${startDate}|${endDate}|${timeZone}`
   const existing = windowRefreshes.get(key)
   if (existing?.generation === refreshGeneration) return existing.promise
 
   const generation = refreshGeneration
   const promise = (async () => {
-    const result = await window.halfspace.sportmonks.refreshFixtureWindow({
-      startDate: fixtureWindow.startDate,
-      endDate: fixtureWindow.endDate,
-      timeZone
-    })
+    const result = await window.halfspace.sportmonks.refreshFixtureWindow(input)
     if (generation !== refreshGeneration) return
     if (!result.ok) throw new Error(result.error.message)
 
-    await writeFixtureWindowRefresh(fixtureWindow.dates, timeZone, result.data)
+    await writeFixtureWindowRefresh(fixtureWindowDates(input), timeZone, result.data)
   })()
 
   windowRefreshes.set(key, { generation, promise })

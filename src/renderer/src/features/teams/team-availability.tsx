@@ -4,17 +4,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PlayerPhoto } from '@/features/players/player-photo'
 import { prefetchPlayerEntity } from '@/features/players/use-player'
 import { intentPrefetchProps } from '@/lib/prefetch'
+import { cn } from '@/lib/utils'
 
 export function TeamAvailability({
   absences,
   competitionId,
   online,
-  teamId
+  teamId,
+  listProps
 }: {
   absences?: SportmonksSidelined[]
   competitionId?: number
   online: boolean
   teamId: number
+  listProps?: React.ComponentProps<'div'>
 }): React.JSX.Element {
   const current = absences
     ?.filter(({ completed }) => !completed)
@@ -24,15 +27,15 @@ export function TeamAvailability({
 
   return (
     <Card>
-      <CardHeader className="px-4 pb-3 pt-5">
+      <CardHeader>
         <CardTitle className="text-sm">Current absences</CardTitle>
       </CardHeader>
       {!current?.length ? (
-        <CardContent className="p-4 text-sm text-muted-foreground">
+        <CardContent className="text-sm text-muted-foreground">
           {current ? 'No absences reported' : 'Absence data unavailable'}
         </CardContent>
       ) : (
-        <div className="team-availability-list space-y-2 pb-2">
+        <div {...listProps} className={cn('space-y-2 pb-2', listProps?.className)}>
           {current.map((absence) => (
             <Link
               key={absence.id}

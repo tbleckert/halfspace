@@ -24,6 +24,7 @@ export const starterViews = [
 export type StarterView = (typeof starterViews)[number]['id']
 
 export function createStarterView(template: StarterView, context: ViewContext): ViewSpec {
+  if (template === 'research') return createResearchView(context)
   const base = {
     competitionId: context.competitionId,
     seasonId: context.seasonId,
@@ -32,49 +33,11 @@ export function createStarterView(template: StarterView, context: ViewContext): 
   const upcoming: ViewBlock = { ...base, id: 'upcoming', type: 'fixtures', period: 'upcoming' }
   const goals: ViewBlock = { ...base, id: 'goals', type: 'leaders', category: 'goals' }
   const blocks: ViewBlock[] =
-    template === 'research'
-      ? [
-          {
-            ...base,
-            id: 'shortlist',
-            type: 'market-shortlist',
-            span: 2,
-            period: 'next-seven-days',
-            outcome: 'all',
-            selectedFixtureId: null
-          },
-          {
-            id: 'probability',
-            type: 'probability-context',
-            span: 1,
-            fixtureSourceBlockId: 'shortlist',
-            market: 'match-result'
-          },
-          {
-            id: 'prices',
-            type: 'odds-comparison',
-            span: 3,
-            fixtureSourceBlockId: 'shortlist',
-            marketId: null,
-            bookmakerId: null
-          },
-          {
-            id: 'meetings',
-            type: 'fixture-head-to-head',
-            span: 2,
-            fixtureSourceBlockId: 'shortlist'
-          },
-          { id: 'absences', type: 'fixture-absences', span: 1, fixtureSourceBlockId: 'shortlist' }
-        ]
-      : template === 'overview'
-        ? [
-            { ...base, id: 'table', type: 'standings', teamId: null },
-            goals,
-            { ...upcoming, span: 3 }
-          ]
-        : template === 'leaders'
-          ? [goals, { ...base, id: 'assists', type: 'leaders', category: 'assists' }]
-          : [upcoming, { ...base, id: 'recent', type: 'fixtures', period: 'recent' }]
+    template === 'overview'
+      ? [{ ...base, id: 'table', type: 'standings', teamId: null }, goals, { ...upcoming, span: 3 }]
+      : template === 'leaders'
+        ? [goals, { ...base, id: 'assists', type: 'leaders', category: 'assists' }]
+        : [upcoming, { ...base, id: 'recent', type: 'fixtures', period: 'recent' }]
   return validateViewSpec(
     {
       version: 3,
@@ -172,5 +135,50 @@ export function createMatchPreparationView(team: ViewTeamContext, context?: View
     { version: 3, title: `${team.teamName} · Match preparation`.slice(0, 80), message: '', blocks },
     context ? [context] : [],
     [team]
+  )
+}
+
+export function createResearchView(context?: ViewContext): ViewSpec {
+  return validateViewSpec(
+    {
+      version: 3,
+      title: context ? `${context.competitionName} · Match research`.slice(0, 80) : 'Find a match',
+      message: '',
+      blocks: [
+        {
+          competitionId: context?.competitionId ?? null,
+          seasonId: context?.seasonId ?? null,
+          id: 'shortlist',
+          type: 'market-shortlist',
+          span: 2,
+          period: 'next-seven-days',
+          outcome: 'all',
+          selectedFixtureId: null
+        },
+        {
+          id: 'probability',
+          type: 'probability-context',
+          span: 1,
+          fixtureSourceBlockId: 'shortlist',
+          market: 'match-result'
+        },
+        {
+          id: 'prices',
+          type: 'odds-comparison',
+          span: 3,
+          fixtureSourceBlockId: 'shortlist',
+          marketId: null,
+          bookmakerId: null
+        },
+        {
+          id: 'meetings',
+          type: 'fixture-head-to-head',
+          span: 2,
+          fixtureSourceBlockId: 'shortlist'
+        },
+        { id: 'absences', type: 'fixture-absences', span: 1, fixtureSourceBlockId: 'shortlist' }
+      ]
+    },
+    context ? [context] : []
   )
 }

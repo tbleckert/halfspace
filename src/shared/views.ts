@@ -15,6 +15,10 @@ const competitionBinding = {
   competitionId: z.number().int().positive(),
   seasonId: z.number().int().positive()
 }
+const discoveryBinding = {
+  competitionId: competitionBinding.competitionId.nullable(),
+  seasonId: competitionBinding.seasonId.nullable()
+}
 const blockContext = { ...blockLayout, ...competitionBinding }
 const teamBinding = { teamId: z.number().int().positive() }
 export const playerViewSelectionSchema = z.strictObject({
@@ -49,7 +53,8 @@ export const viewBlockSchema = z.union([
   z.strictObject({ type: z.literal('team-next-match'), ...blockLayout, ...teamBinding }),
   z.strictObject({
     type: z.literal('market-shortlist'),
-    ...blockContext,
+    ...blockLayout,
+    ...discoveryBinding,
     period: z.enum(['next-seven-days', 'weekend']),
     outcome: z.enum(['all', 'home', 'draw', 'away']),
     selectedFixtureId: z.number().int().positive().nullable()
@@ -67,6 +72,7 @@ export const viewBlockSchema = z.union([
     period: z.enum(['upcoming', 'recent'])
   }),
   z.strictObject({ type: z.literal('team-season'), ...blockContext, ...teamBinding }),
+  z.strictObject({ type: z.literal('team-season-results'), ...blockContext, ...teamBinding }),
   z.strictObject({ type: z.literal('team-availability'), ...blockLayout, ...teamBinding }),
   z.strictObject({
     type: z.literal('form-trend'),
@@ -138,6 +144,15 @@ export const viewSpecSchema = z
     blocks: z.array(viewBlockSchema)
   })
   .refine(
+    (spec) =>
+      spec.blocks.every(
+        (block) =>
+          block.type !== 'market-shortlist' ||
+          (block.competitionId === null) === (block.seasonId === null)
+      ),
+    'Choose both a competition and season, or leave both open.'
+  )
+  .refine(
     (spec) => new Set(spec.blocks.map((block) => block.id)).size === spec.blocks.length,
     'Each block must have a unique identity.'
   )
@@ -158,6 +173,7 @@ export const viewSpecSchema = z
 export const viewContextSchema = z.strictObject({
   competitionId: z.number().int().positive(),
   competitionName: z.string().min(1).max(200),
+  competitionType: z.string().max(200).nullish(),
   seasonId: z.number().int().positive(),
   seasonName: z.string().min(1).max(100),
   isCurrent: z.boolean()
@@ -191,7 +207,7 @@ export const viewResearchContextSchema = z.strictObject({
     .array(
       z.strictObject({
         fixtureId: z.number().int().positive(),
-        ...competitionBinding,
+        ...discoveryBinding,
         name: z.string().min(1).max(300)
       })
     )
@@ -211,21 +227,15 @@ export const emptyViewResearchContext: ViewResearchContext = {
   bookmakers: []
 }
 
-export const generateViewInputSchema = z
-  .strictObject({
-    requestId: z.string().uuid(),
-    prompt: z.string().trim().min(1).max(2000),
-    contexts: z.array(viewContextSchema).max(250),
-    teams: z.array(viewTeamContextSchema).max(250),
-    countries: z.array(viewCountryContextSchema).max(250),
-    research: viewResearchContextSchema,
-    current: viewSpecSchema.nullable()
-  })
-  .refine(
-    (input) =>
-      input.contexts.length > 0 || input.teams.length > 0 || input.research.statistics.length > 0,
-    'Choose an available team or competition.'
-  )
+export const generateViewInputSchema = z.strictObject({
+  requestId: z.string().uuid(),
+  prompt: z.string().trim().min(1).max(2000),
+  contexts: z.array(viewContextSchema).max(250),
+  teams: z.array(viewTeamContextSchema).max(250),
+  countries: z.array(viewCountryContextSchema).max(250),
+  research: viewResearchContextSchema,
+  current: viewSpecSchema.nullable()
+})
 
 export type ViewBlock = z.infer<typeof viewBlockSchema>
 export type FixtureSourceBlock = Extract<
@@ -243,6 +253,7 @@ export type TeamViewBlock = Extract<
       | 'team-next-match'
       | 'team-fixtures'
       | 'team-season'
+      | 'team-season-results'
       | 'team-availability'
       | 'team-news'
       | 'team-squad'
@@ -320,8 +331,8 @@ export function validateViewSpec(
       !research.fixtures.some(
         (fixture) =>
           fixture.fixtureId === block.selectedFixtureId &&
-          fixture.competitionId === block.competitionId &&
-          fixture.seasonId === block.seasonId
+          (block.competitionId === null ||
+            (fixture.competitionId === block.competitionId && fixture.seasonId === block.seasonId))
       )
     )
       throw new Error('The view references an unavailable fixture selection.')
@@ -346,6 +357,7 @@ export function validateViewSpec(
     }
     if (
       'competitionId' in block &&
+      block.competitionId !== null &&
       !contexts.some(
         (context) =>
           context.competitionId === block.competitionId && context.seasonId === block.seasonId

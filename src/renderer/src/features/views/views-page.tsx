@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { ArrowUpRight, Check, Copy, LayoutTemplate, Plus, Save, Trash2, Undo2 } from 'lucide-react'
+import { Check, Copy, LayoutTemplate, LoaderCircle, Plus, Save, Trash2, Undo2 } from 'lucide-react'
 import {
   viewSpecSchema,
   type SavedView,
@@ -16,7 +16,14 @@ import { db } from '@/data/db'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import { useOnline } from '@/lib/use-online'
 import { useTvCountry } from '@/features/broadcasts/use-tv-country'
@@ -26,16 +33,17 @@ import {
   readViewContexts,
   readViewTeams,
   readSavedViews,
+  viewContexts,
   saveView,
   undoSavedView
 } from './saved-views'
 import { ViewBlockContent, ViewBlockOutline } from './view-blocks'
 import { ViewBlockContainer } from './view-block-container'
+import { ViewBlockGrid } from './view-block-grid'
 import { ViewComposer } from './view-composer'
 import { useViewGeneration } from './use-view-generation'
 import { StarterViewPicker } from './starter-view-picker'
 import { ViewLayoutEditor } from './view-layout-editor'
-import { ViewContextEditor } from './view-context-editor'
 import { PlayerStudyStarter } from './player-study-starter'
 import { TeamViewStarter } from './team-view-starter'
 import { readViewResearchContext, viewResearchContext } from './view-research-context'
@@ -85,7 +93,7 @@ export function ViewsPage({ viewId }: { viewId?: string }): React.JSX.Element {
 function ViewEditor({
   initial,
   savedViews,
-  contexts,
+  contexts: availableContexts,
   teams,
   countries,
   research,
@@ -101,6 +109,7 @@ function ViewEditor({
 }): React.JSX.Element {
   const [id] = useState(() => initial?.id ?? crypto.randomUUID())
   const [spec, setSpec] = useState<ViewSpec | null>(initial?.spec ?? null)
+  const contexts = viewContexts(availableContexts, spec?.blocks ?? [])
   const [previous, setPrevious] = useState<ViewSpec | null>(null)
   const [prompt, setPrompt] = useState('')
   const [configured, setConfigured] = useState<boolean | null>(null)
@@ -130,14 +139,7 @@ function ViewEditor({
   }, [])
 
   async function build(): Promise<void> {
-    if (
-      !configured ||
-      !online ||
-      (!contexts.length && !teams.length && !research.statistics.length) ||
-      !prompt.trim() ||
-      saving
-    )
-      return
+    if (!configured || !online || !prompt.trim() || saving) return
     setStorageError(null)
     const next = await generation.generate(
       prompt,
@@ -242,26 +244,41 @@ function ViewEditor({
 
   const blocks = generation.generating ? generation.blocks : (spec?.blocks ?? [])
 
+  const savedViewOptions = [
+    { value: '', label: 'New view' },
+    ...savedViews.map((view) => ({ value: String(view.id), label: view.spec.title }))
+  ]
   return (
-    <div className="view-workspace" key={reset}>
-      <header className="view-toolbar">
+    <div
+      className="view-workspace @container/view-workspace relative isolate flex h-full min-h-[500px] flex-col bg-background"
+      key={reset}
+    >
+      <header className="flex min-h-[62px] flex-none items-center justify-between gap-3 bg-background px-6 py-3 @max-[740px]/view-workspace:px-4 @max-[740px]/view-workspace:py-2.5 @max-[740px]/view-workspace:flex-wrap">
         <div className="flex min-w-0 items-center gap-3">
           <LayoutTemplate className="size-4 text-primary" />
           <h1 className="text-sm font-semibold">Views</h1>
           {savedViews.length > 0 && (
-            <NativeSelect
-              aria-label="Saved views"
-              className="max-w-52"
-              value={initial?.id ?? ''}
-              onChange={(event) => onSelect(event.target.value || undefined)}
+            <Select
+              items={savedViewOptions}
+              value={String(initial?.id ?? '')}
+              onValueChange={(value) => {
+                if (value === null) return
+                onSelect(value || undefined)
+              }}
             >
-              <NativeSelectOption value="">New view</NativeSelectOption>
-              {savedViews.map((view) => (
-                <NativeSelectOption key={view.id} value={view.id}>
-                  {view.spec.title}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
+              <SelectTrigger aria-label="Saved views" className="max-w-52">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {savedViewOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           )}
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
@@ -287,7 +304,7 @@ function ViewEditor({
               >
                 <Undo2 className="size-4" />
               </Button>
-              <span className="mr-2 hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex">
+              <span className="mr-2 hidden items-center gap-1.5 text-xs text-muted-foreground @min-[740px]/view-workspace:flex">
                 {dirty ? (
                   'Unsaved changes'
                 ) : (
@@ -337,36 +354,41 @@ function ViewEditor({
         </div>
       </header>
 
-      <div className="view-canvas">
+      <div className="view-canvas flex min-h-0 flex-1 flex-col overflow-auto">
         {!spec && !generation.generating ? (
-          <div className="view-empty">
-            <CanvasIllustration />
-            <h2>Your football, your view.</h2>
-            <p>A home for your team, or a new perspective on a competition.</p>
-            <TeamViewStarter
-              teams={teams}
-              contexts={contexts}
-              onCreate={(next) => {
-                setSpec(next)
-                setStorageError(null)
-              }}
-            />
-            <PlayerStudyStarter
-              onCreate={(next) => {
-                setSpec(next)
-                setStorageError(null)
-              }}
-            />
-            <StarterViewPicker
-              contexts={contexts}
-              onCreate={(next) => {
-                setSpec(next)
-                setStorageError(null)
-              }}
-            />
+          <div className="mx-auto w-full max-w-5xl flex-1 px-6 py-12 @min-[900px]/view-workspace:px-10 @min-[900px]/view-workspace:py-20">
+            <div className="mb-8 max-w-xl space-y-3">
+              <h2 className="text-3xl font-semibold tracking-tight">Your football, your view.</h2>
+              <p className="text-base text-muted-foreground">
+                Start with a team, a competition or a player comparison. Make it yours as you go.
+              </p>
+            </div>
+            <div className="grid gap-4 @min-[800px]/view-workspace:grid-cols-3">
+              <TeamViewStarter
+                teams={teams}
+                contexts={contexts}
+                onCreate={(next) => {
+                  setSpec(next)
+                  setStorageError(null)
+                }}
+              />
+              <StarterViewPicker
+                contexts={contexts}
+                onCreate={(next) => {
+                  setSpec(next)
+                  setStorageError(null)
+                }}
+              />
+              <PlayerStudyStarter
+                onCreate={(next) => {
+                  setSpec(next)
+                  setStorageError(null)
+                }}
+              />
+            </div>
           </div>
         ) : (
-          <div className="view-sheet">
+          <div className="view-sheet @container/view-sheet mx-auto w-full max-w-[1480px] flex-none px-8 pt-9 pb-12 @max-[740px]/view-workspace:px-5 @max-[740px]/view-workspace:pt-6.5 @max-[740px]/view-workspace:pb-9">
             <div className="mb-7 flex items-end justify-between gap-4">
               <div className="min-w-0 flex-1">
                 {generation.generating ? (
@@ -380,34 +402,24 @@ function ViewEditor({
                     </Label>
                     <Input
                       id="view-title"
-                      className="h-auto rounded-none border-0 border-b border-transparent px-0 py-0.5 text-[26px] font-semibold tracking-tight focus-visible:border-ring focus-visible:ring-0"
+                      className="h-auto rounded-none border-0 border-b border-transparent px-0 py-0.5 text-[26px] font-semibold tracking-tight focus-visible:border-ring focus-visible:ring-0 md:text-[26px]"
                       maxLength={80}
                       value={spec?.title ?? ''}
                       onChange={(event) => {
                         if (spec) setSpec({ ...spec, title: event.target.value })
                       }}
                     />
-                    <p className="mt-2 text-sm text-muted-foreground">{spec?.message}</p>
-                    {spec && spec.blocks.some((block) => 'competitionId' in block) && (
-                      <div className="mt-3">
-                        <ViewContextEditor
-                          spec={spec}
-                          contexts={contexts}
-                          disabled={saving || generation.generating}
-                          onChange={changeSpec}
-                        />
-                      </div>
-                    )}
                   </>
                 )}
               </div>
-              {generation.generating && <span className="view-drawing-mark" aria-hidden="true" />}
+              {generation.generating && (
+                <LoaderCircle
+                  className="size-4 shrink-0 animate-spin text-primary motion-reduce:animate-none"
+                  aria-hidden
+                />
+              )}
             </div>
-            <div
-              className="view-block-grid"
-              aria-label="View canvas"
-              aria-busy={generation.generating}
-            >
+            <ViewBlockGrid blocks={blocks} generating={generation.generating}>
               {blocks.map((block) => (
                 <ViewBlockContainer
                   key={`${generation.generating ? 'draft' : 'view'}:${block.id}`}
@@ -422,16 +434,15 @@ function ViewEditor({
                 </ViewBlockContainer>
               ))}
               {generation.generating && blocks.length === 0 && (
-                <div className="view-awaiting">
-                  <div className="view-planning-lines" aria-hidden="true">
-                    <span />
-                    <span />
-                    <span />
-                  </div>
+                <div className="col-span-full flex min-h-60 flex-col items-center justify-center gap-4 text-sm text-muted-foreground">
+                  <LoaderCircle
+                    className="size-5 animate-spin motion-reduce:animate-none"
+                    aria-hidden
+                  />
                   <p>Finding the shape of your view</p>
                 </div>
               )}
-            </div>
+            </ViewBlockGrid>
           </div>
         )}
 
@@ -443,44 +454,11 @@ function ViewEditor({
           hasView={Boolean(spec)}
           configured={configured}
           online={online}
-          hasContexts={contexts.length > 0 || teams.length > 0 || research.statistics.length > 0}
           error={storageError ?? generation.error}
           onSubmit={() => void build()}
           onCancel={generation.cancel}
         />
       </div>
-    </div>
-  )
-}
-
-function CanvasIllustration(): React.JSX.Element {
-  return (
-    <div className="view-illustration" aria-hidden="true">
-      <div className="view-illustration-guide" />
-      <div className="view-mini-card view-mini-fixtures">
-        <span>Fixtures</span>
-        <i />
-        <i />
-        <i />
-      </div>
-      <div className="view-mini-card view-mini-table">
-        <span>Table</span>
-        <i />
-        <i />
-        <i />
-        <i />
-      </div>
-      <div className="view-mini-card view-mini-leaders">
-        <span>Player leaders</span>
-        <div>
-          <b />
-          <b />
-          <b />
-        </div>
-      </div>
-      <span className="view-cursor">
-        <ArrowUpRight className="size-4" />
-      </span>
     </div>
   )
 }

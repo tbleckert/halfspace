@@ -1,7 +1,14 @@
 import { useMemo, useState } from 'react'
 import type { PlayerViewSelection, TeamViewSelection, ViewStatisticContext } from '@shared/views'
 import { db } from '@/data/db'
-import { NativeSelect } from '@/components/ui/native-select'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 import { useScopedLiveQuery } from '@/lib/use-scoped-live-query'
 import { useOnline } from '@/lib/use-online'
 import { useStatisticSeasons } from '@/features/comparisons/use-statistic-seasons'
@@ -51,38 +58,74 @@ export function ViewStatisticPicker({
     selection && entityId === savedId
       ? `${selection.competitionId}:${selection.seasonId}:${selection.teamId}`
       : ''
+  const entityOptions = [
+    ...(!entityId
+      ? [{ value: '', label: <>Choose a {kind === 'players' ? 'player' : 'team'}</> }]
+      : []),
+    ...(entityId && !available?.some((entity) => entity.id === entityId)
+      ? [
+          {
+            value: String(entityId),
+            label: (
+              <>
+                {kind === 'players' ? 'Player' : 'Team'} {entityId}
+              </>
+            )
+          }
+        ]
+      : []),
+    ...(available?.map((entity) => ({ value: String(entity.id), label: entity.name })) ?? [])
+  ]
+  const seasonOptions = [
+    { value: '', label: 'Choose club and season', disabled: true },
+    ...(currentKey && !options.some((option) => option.key === currentKey)
+      ? [{ value: String(currentKey), label: <>Saved selection · Season {selection!.seasonId}</> }]
+      : []),
+    ...options.map((option) => ({
+      value: String(option.key),
+      label: (
+        <>
+          {option.teamName} · {option.competitionName} · {option.season.name}
+        </>
+      )
+    }))
+  ]
   return (
     <fieldset className="min-w-0 space-y-2">
       <legend className="mb-2 text-xs font-medium">{label}</legend>
-      <NativeSelect
+      <Select
+        items={entityOptions}
         disabled={disabled}
-        className="w-full min-w-0"
-        aria-label={`${label} ${kind === 'players' ? 'player' : 'team'}`}
-        value={entityId ?? ''}
-        onChange={(event) => {
-          setChosenId(Number(event.target.value))
+        value={String(entityId ?? '')}
+        onValueChange={(value) => {
+          if (value === null) return
+          setChosenId(Number(value))
           onPending?.()
         }}
       >
-        {!entityId && <option value="">Choose a {kind === 'players' ? 'player' : 'team'}</option>}
-        {entityId && !available?.some((entity) => entity.id === entityId) && (
-          <option value={entityId}>
-            {kind === 'players' ? 'Player' : 'Team'} {entityId}
-          </option>
-        )}
-        {available?.map((entity) => (
-          <option key={entity.id} value={entity.id}>
-            {entity.name}
-          </option>
-        ))}
-      </NativeSelect>
-      <NativeSelect
+        <SelectTrigger
+          className="w-full min-w-0"
+          aria-label={`${label} ${kind === 'players' ? 'player' : 'team'}`}
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            {entityOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+      <Select
+        items={seasonOptions}
         disabled={disabled}
-        className="w-full min-w-0"
-        aria-label={`${label} club and season`}
-        value={currentKey}
-        onChange={(event) => {
-          const record = options.find((item) => item.key === event.target.value)
+        value={String(currentKey)}
+        onValueChange={(value) => {
+          if (value === null) return
+          const record = options.find((item) => item.key === value)
           if (!record || !entityId) return
           onSelect({
             kind,
@@ -100,18 +143,19 @@ export function ViewStatisticPicker({
           setChosenId(null)
         }}
       >
-        <option value="" disabled>
-          Choose club and season
-        </option>
-        {currentKey && !options.some((option) => option.key === currentKey) && (
-          <option value={currentKey}>Saved selection · Season {selection!.seasonId}</option>
-        )}
-        {options.map((option) => (
-          <option key={option.key} value={option.key}>
-            {option.teamName} · {option.competitionName} · {option.season.name}
-          </option>
-        ))}
-      </NativeSelect>
+        <SelectTrigger className="w-full min-w-0" aria-label={`${label} club and season`}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            {seasonOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value} disabled={option.disabled}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
       <BlockError error={query.error} online={online} refresh={query.refresh} />
       {!records.length && (
         <p className="text-xs text-muted-foreground">

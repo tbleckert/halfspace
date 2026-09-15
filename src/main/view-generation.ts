@@ -28,11 +28,23 @@ Supported widgets: ${JSON.stringify(implementedViewWidgets.map(({ type, descript
 Layout uses three columns. Every widget supports span 1 (compact), 2 (wide) or 3 (full width).
 For a broad dashboard, default to 6–8 useful blocks. Use fewer for focused requests and more when
 the user asks or the task needs them. Do not trim an existing view to meet the default size.
-For a supporter home with an available season, include each of
-these distinct types exactly once: team-next-match (span 2), team-season (span 1), team-fixtures
-(span 1), standings (span 1, selected teamId), team-availability (span 1), form-trend (span 2),
-fixture-broadcasts (span 1, fixtureSourceBlockId referencing the team-next-match block, countryId preferred),
-team-news (span 1).
+A team home is club-wide by default. Multiple current competitions are normal, not an ambiguous
+request. For "Create a home for my team Juventus", compose the home immediately when Juventus is
+identified, even when Serie A, Champions League and Coppa Italia are all available. Do not ask the
+user to choose a competition just to create a team home.
+Start a supporter home with these club-wide widgets once each: team-next-match (span 2), team-fixtures
+(span 1), team-availability (span 1), form-trend (span 2, matchLocation all), fixture-broadcasts
+(span 1, fixtureSourceBlockId referencing the team-next-match block, countryId preferred), and
+team-news (span 1). Their matches and form cover all competitions; do not claim league-only coverage.
+Add team-season (span 1) and standings (span 1, selected teamId) as supporting season context.
+If the user names a competition, use that exact known season context. Otherwise match the team's
+currentSeasons to availableContexts. When there is one matching context, use it. When several match
+and exactly one has competitionType "league", use that league for the main season snapshot and table.
+Other competitions can have separate compact season snapshots when useful. Keep each season widget
+bound to its own competition; never combine their totals or present one competition as the whole club.
+If no single league context can be identified, use separately scoped season snapshots or omit optional
+season widgets. Missing competition types or season context must not block a club home or trigger a
+competition-choice question. Never infer competition type from its name or invent team membership.
 The standings widget MUST have type "standings": it is the full league table. The team-season
 widget is only the selected team's summary. Never use a second team-season widget as standings.
 Avoid duplicate widgets with identical data bindings and settings unless the user asks for them.
@@ -54,7 +66,7 @@ team fixtures within 30 days. It cannot provide general club, transfer or breaki
 Player profile and player comparison selections must exactly match availableResearch.statistics with
 kind players, including playerId (the context entityId), teamId, competitionId and seasonId.
 Team comparison selections must exactly match kind teams, including teamId, competitionId and seasonId.
-Each side has its own selection. Keep these season selections independent of the View's main season.
+Each widget and comparison side has its own scope. A View has no global competition or season.
 Team comparison supports independent matchLocation all, home or away. Player comparison shows shared
 reported per-90 rates with each player's minutes; no percentile ranking or adjusted league strength.
 For a player study, use two player-profile widgets and a player-comparison with the exact same selections.
@@ -69,7 +81,13 @@ Team squad requires an exact known team, competition and season and links to the
 Team transfers shows up to six completed moves in the last 365 days, independent of historical season.
 Use direction all, incoming or outgoing; pending moves and rumours are excluded.
 For match preparation, prefer Next match, Head-to-head, Match absences, Match weather and Where to watch.
-Market shortlist uses an exact competition and season, with period next-seven-days or weekend and
+Broad discovery is current and cross-competition by default. For requests such as "I want to find the
+best match to bet on", compose match research across all available competitions; do not pick a league
+from the context list or an existing unrelated selection. Help the user inspect matches using the
+supported research widgets; do not claim a best bet or guaranteed value.
+Market shortlist uses competitionId null AND seasonId null for all available competitions. Bind both
+only when the user asks for a particular competition or to keep an existing explicit filter.
+Use period next-seven-days by default, or weekend when requested, and
 outcome all, home, draw or away. It compares full-time result pre-match prices in kickoff order.
 Set selectedFixtureId null for automatic first match, or an exact matching ID from availableResearch.fixtures.
 Never invent fixture IDs; preserve explicit selections on unrelated edits, including unavailable selections.
@@ -84,10 +102,20 @@ When refining, change only what was requested. Preserve widget ids, selected ent
 seasons, metrics and user widths unless the requested edit requires changing them. A match-preparation
 request moves next match and current availability first, preserving the season context below.
 Resolve names only against the supplied contexts and teams. Keep the exact requested season.
+An explicit historical request overrides current defaults and supporter-home recipes. For "My favorite
+Juventus season is 2015/16. Make a view I can watch when I'm down", use known Juventus and 2015/2016
+contexts. Compose team-season-results, team-season, highlighted standings, team-squad and player leaders
+as appropriate. The season-results widget uses the reported full season schedule, not a current date window.
+Interpret abbreviated season names such as 2015/16 as 2015/2016; never replace them with the current season.
+Use separately scoped widgets for relevant known competitions. Do not insert current next matches, absences,
+news, transfers, recent form or upcoming betting widgets into a historical view unless explicitly requested.
+Do not invent nostalgic match narratives, highlights, footage or memories; the app supplies reported data.
 For a team's current season, only use its supplied currentSeasons memberships, matched to availableContexts.
-If more than one competition fits and none is requested, ask which competition to use.
+Ask which competition to use only when the user explicitly requests a single competition-specific
+statistic or table and its context cannot be resolved. This does not apply to a broad team home.
 For a competition without a requested season, use the context marked isCurrent.
-If no current season is known, ask for a season or offer the pure team widgets.
+If no current season is known, a team home still uses the club-wide widgets. Ask for a season only
+when an explicitly requested season-specific feature needs one.
 Do not silently
 substitute a different entity, season, or feature. If any essential requested feature or context is
 unsupported or ambiguous, return no blocks and explain what is needed in message.

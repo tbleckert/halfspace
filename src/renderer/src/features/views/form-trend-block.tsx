@@ -1,7 +1,14 @@
 import { useMemo } from 'react'
 import { Link } from '@tanstack/react-router'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 import { useTeamFixtures } from '@/features/teams/use-team'
 import { useCurrentTime } from '@/lib/use-current-time'
 import { BlockError, BlockPending } from './view-block-state'
@@ -46,6 +53,11 @@ export function FormTrendBlock({
   const hasExtraTime = matches.some(({ fixture }) => fixture.stateId === 7 || fixture.stateId === 8)
   const scope = block.matchLocation === 'all' ? '' : `${block.matchLocation} `
 
+  const locationOptions = [
+    { value: 'all', label: 'All matches' },
+    { value: 'home', label: 'Home' },
+    { value: 'away', label: 'Away' }
+  ]
   return (
     <div className="space-y-2">
       <BlockError error={query.error} online={online} refresh={query.refresh} />
@@ -61,21 +73,30 @@ export function FormTrendBlock({
           <CardHeader>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <CardTitle>Form trend</CardTitle>
-              <NativeSelect
-                size="sm"
-                aria-label="Form match location"
-                value={block.matchLocation}
-                onChange={(event) =>
+              <Select
+                items={locationOptions}
+                value={String(block.matchLocation)}
+                onValueChange={(value) => {
+                  if (value === null) return
                   onChange({
                     ...block,
-                    matchLocation: event.target.value as FormTrendDefinition['matchLocation']
+                    matchLocation: value as FormTrendDefinition['matchLocation']
                   })
-                }
+                }}
               >
-                <NativeSelectOption value="all">All matches</NativeSelectOption>
-                <NativeSelectOption value="home">Home</NativeSelectOption>
-                <NativeSelectOption value="away">Away</NativeSelectOption>
-              </NativeSelect>
+                <SelectTrigger size="sm" aria-label="Form match location">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {locationOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
             </div>
             <p className="text-xs text-muted-foreground">
               Latest {matches.length || 'six'} completed {scope}
@@ -99,9 +120,9 @@ export function FormTrendBlock({
                     </div>
                   ))}
                 </dl>
-                <div className="view-form-body">
+                <div className="grid gap-5 @min-[860px]/view-widget:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] @min-[860px]/view-widget:gap-8">
                   <FormGoalChart matches={matches} />
-                  <ol className="view-form-results">
+                  <ol className="grid content-start gap-1 @min-[520px]/view-widget:grid-cols-2 @min-[860px]/view-widget:grid-cols-1">
                     {matches.map((match) => (
                       <li key={match.fixture.id} className="min-w-0">
                         <FormResult
@@ -166,17 +187,20 @@ function FormGoalChart({ matches }: { matches: FormTrendMatch[] }): React.JSX.El
           Conceded
         </span>
       </div>
-      <div className="view-form-chart" aria-hidden="true">
-        <div className="view-form-axis font-mono text-[10px] tabular-nums text-muted-foreground">
+      <div className="flex gap-2" aria-hidden="true">
+        <div className="flex h-[110px] flex-col justify-between @min-[520px]/view-widget:h-40 font-mono text-[10px] tabular-nums text-muted-foreground">
           <span>{maximum}</span>
           <span>0</span>
         </div>
-        <div className="view-form-plot">
+        <div className="grid min-w-0 flex-1 auto-cols-fr grid-flow-col gap-2">
           {matches.map((match) => (
             <div key={match.fixture.id} className="min-w-0 text-center">
-              <div className="view-form-bars">
+              <div className="flex h-[110px] justify-center gap-0.75 border-b @min-[520px]/view-widget:h-40">
                 {[match.goalsFor, match.goalsAgainst].map((value, index) => (
-                  <div key={index} className="view-form-bar-track">
+                  <div
+                    key={index}
+                    className="flex h-full w-[30%] max-w-7 items-end justify-center [&>div]:w-full [&>div]:rounded-t-[3px]"
+                  >
                     {value === null ? (
                       <span className="text-xs text-muted-foreground">—</span>
                     ) : (

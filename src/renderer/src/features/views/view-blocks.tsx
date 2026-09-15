@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router'
 import { ArrowUpRight, CalendarDays, ChartNoAxesColumnIncreasing, Table2 } from 'lucide-react'
 import type { ViewBlock, CompetitionViewBlock } from '@shared/views'
 import { Card, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useCompetitionDetail } from '@/features/competitions/use-competition-detail'
 import {
   useCompetitionFixtures,
@@ -39,15 +40,7 @@ export function ViewBlockOutline({ block }: { block: ViewBlock }): React.JSX.Ele
         ? CalendarDays
         : ChartNoAxesColumnIncreasing
   return (
-    <div className="view-outline" aria-label={`Placing ${block.type}`}>
-      <svg
-        className="view-outline-stroke"
-        aria-hidden="true"
-        preserveAspectRatio="none"
-        viewBox="0 0 400 230"
-      >
-        <rect x="1" y="1" width="398" height="228" rx="10" pathLength="1" />
-      </svg>
+    <Card className="min-h-60 p-5" aria-label={`Placing ${block.type}`}>
       <div className="flex items-center gap-2 text-sm font-medium text-primary">
         <Icon className="size-4" />
         {viewBlockLabel(block)}
@@ -55,12 +48,15 @@ export function ViewBlockOutline({ block }: { block: ViewBlock }): React.JSX.Ele
       <div className="mt-7 space-y-4" aria-hidden="true">
         {[80, 100, 65, 90].map((width, index) => (
           <div key={index} className="flex items-center gap-3">
-            <div className="size-5 rounded-full bg-primary/10" />
-            <div className="h-1.5 rounded-full bg-primary/10" style={{ width: `${width - 15}%` }} />
+            <Skeleton className="size-5 rounded-full motion-reduce:animate-none" />
+            <Skeleton
+              className="h-1.5 motion-reduce:animate-none"
+              style={{ width: `${width - 15}%` }}
+            />
           </div>
         ))}
       </div>
-    </div>
+    </Card>
   )
 }
 
@@ -108,6 +104,7 @@ export function ViewBlockContent({
     block.type === 'team-next-match' ||
     block.type === 'team-fixtures' ||
     block.type === 'team-season' ||
+    block.type === 'team-season-results' ||
     block.type === 'team-availability' ||
     block.type === 'form-trend'
   )
@@ -203,7 +200,7 @@ function StandingsBlock({
       ) : groups.length === 0 ? (
         <BlockEmpty>No standings reported for this season.</BlockEmpty>
       ) : (
-        <div className="view-data-scroll view-standings space-y-3">
+        <div className="view-data-scroll max-h-[470px] overflow-auto [scrollbar-width:thin] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&_table]:min-w-0 @max-[380px]/view-widget:[&_th:nth-child(3)]:hidden @max-[380px]/view-widget:[&_td:nth-child(3)]:hidden @max-[380px]/view-widget:[&_th:nth-child(4)]:hidden @max-[380px]/view-widget:[&_td:nth-child(4)]:hidden space-y-3">
           {groups.map((group) => (
             <StandingsTable
               key={group.key}
@@ -245,7 +242,7 @@ function LeadersBlock({
           loading={cached === undefined || refreshing || (online && !error)}
         />
       ) : (
-        <div className="view-data-scroll view-leaders">
+        <div className="view-data-scroll max-h-[470px] overflow-auto [scrollbar-width:thin] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&_td]:whitespace-normal [&_td]:wrap-anywhere @max-[380px]/view-widget:[&_th:nth-child(3)]:hidden @max-[380px]/view-widget:[&_td:nth-child(3)]:hidden @max-[380px]/view-widget:[&_th]:px-2 @max-[380px]/view-widget:[&_td]:px-2">
           <PlayerLeaders
             competitionId={block.competitionId}
             date={date}
@@ -327,7 +324,7 @@ function FixturesBlock({
               {input!.startDate} – {input!.endDate}
             </p>
           </CardHeader>
-          <div className="view-data-scroll view-fixture-list pb-2">
+          <div className="view-data-scroll max-h-[470px] overflow-auto [scrollbar-width:thin] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring grid grid-cols-1 gap-2 @min-[520px]/view-widget:grid-cols-2 @min-[860px]/view-widget:grid-cols-3 pb-2">
             {fixtures.length ? (
               fixtures.map((fixture) => (
                 <EntityFixtureRow

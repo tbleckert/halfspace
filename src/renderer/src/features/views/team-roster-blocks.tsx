@@ -3,7 +3,14 @@ import { Link } from '@tanstack/react-router'
 import type { ViewBlock } from '@shared/views'
 import type { CachedTransfer, SquadMember } from '@/data/db'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { NativeSelect } from '@/components/ui/native-select'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 import { PlayerPhoto } from '@/features/players/player-photo'
 import { useTeamSquad, useTeamTransfers } from '@/features/teams/use-team'
 import { useCompetitionDetail } from '@/features/competitions/use-competition-detail'
@@ -65,7 +72,7 @@ export function TeamSquadBlock({
           </CardHeader>
           <CardContent className="space-y-4">
             {members.length ? (
-              <ul className="view-preparation-list">
+              <ul className="grid grid-cols-1 gap-6 @min-[520px]/view-widget:grid-cols-2 @min-[860px]/view-widget:grid-cols-3">
                 {members.slice(0, 12).map((member) => (
                   <SquadPlayer
                     key={member.entry.id}
@@ -157,6 +164,11 @@ export function TeamTransfersBlock({
     block.direction,
     today
   )
+  const directionOptions = [
+    { value: 'all', label: 'All moves' },
+    { value: 'incoming', label: 'Incoming' },
+    { value: 'outgoing', label: 'Outgoing' }
+  ]
   return (
     <div className="space-y-2">
       <BlockError error={query.error} online={online} refresh={query.refresh} />
@@ -172,21 +184,31 @@ export function TeamTransfersBlock({
           <CardHeader>
             <CardTitle>Team transfers</CardTitle>
             <p className="text-xs text-muted-foreground">Completed moves · Last 365 days</p>
-            <NativeSelect
-              aria-label="Transfer direction"
-              value={block.direction}
-              onChange={(event) =>
-                onChange({ ...block, direction: event.target.value as TransfersBlock['direction'] })
-              }
+            <Select
+              items={directionOptions}
+              value={String(block.direction)}
+              onValueChange={(value) => {
+                if (value === null) return
+                onChange({ ...block, direction: value as TransfersBlock['direction'] })
+              }}
             >
-              <option value="all">All moves</option>
-              <option value="incoming">Incoming</option>
-              <option value="outgoing">Outgoing</option>
-            </NativeSelect>
+              <SelectTrigger aria-label="Transfer direction">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {directionOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </CardHeader>
           <CardContent className="space-y-4">
             {transfers.length ? (
-              <ul className="view-preparation-list">
+              <ul className="grid grid-cols-1 gap-6 @min-[520px]/view-widget:grid-cols-2 @min-[860px]/view-widget:grid-cols-3">
                 {transfers.slice(0, 6).map((transfer) => (
                   <TransferRow
                     key={transfer.id}

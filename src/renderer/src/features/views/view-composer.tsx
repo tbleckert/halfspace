@@ -11,7 +11,6 @@ export function ViewComposer({
   hasView,
   configured,
   online,
-  hasContexts,
   error,
   onSubmit,
   onCancel
@@ -23,7 +22,6 @@ export function ViewComposer({
   hasView: boolean
   configured: boolean | null
   online: boolean
-  hasContexts: boolean
   error: string | null
   onSubmit: () => void
   onCancel: () => void
@@ -34,13 +32,11 @@ export function ViewComposer({
       ? 'Add your OpenAI key in Settings to build or edit a view.'
       : configured === null
         ? 'Checking AI settings…'
-        : !hasContexts
-          ? 'Open a team or competition to make its context available.'
-          : null
+        : null
   const canSubmit = !generating && !availability && Boolean(prompt.trim())
 
   return (
-    <div className="view-composer-wrap">
+    <div className="pointer-events-none sticky bottom-6 z-20 mx-auto mt-auto mb-6 w-[min(700px,calc(100%-48px))] flex-none @max-[740px]/view-workspace:bottom-4 @max-[740px]/view-workspace:mb-4 @max-[740px]/view-workspace:w-[calc(100%-32px)]">
       {generating && (
         <p className="sr-only" role="status">
           {placed
@@ -49,7 +45,10 @@ export function ViewComposer({
         </p>
       )}
       {error && (
-        <p className="view-composer-error text-sm text-destructive" role="alert">
+        <p
+          className="pointer-events-auto mr-15 mb-2 rounded-xl bg-background/90 px-4 py-2.5 backdrop-blur-lg text-sm text-destructive"
+          role="alert"
+        >
           {error}
         </p>
       )}
@@ -59,7 +58,7 @@ export function ViewComposer({
         </p>
       )}
       <form
-        className="view-composer"
+        className="pointer-events-auto flex items-end gap-3"
         onSubmit={(event) => {
           event.preventDefault()
           if (canSubmit) onSubmit()
@@ -70,7 +69,7 @@ export function ViewComposer({
         </Label>
         <Textarea
           id="view-prompt"
-          className="view-composer-input min-h-12 max-h-48 min-w-0 flex-1 resize-none rounded-xl px-4 py-[11px] text-[15px] leading-6 disabled:opacity-100"
+          className="bg-background/40 shadow-lg shadow-foreground/5 backdrop-blur-lg min-h-12 max-h-48 min-w-0 flex-1 resize-none rounded-xl px-4 py-[11px] text-[15px] leading-6 disabled:opacity-100"
           rows={1}
           maxLength={2000}
           value={prompt}

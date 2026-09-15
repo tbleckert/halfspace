@@ -46,6 +46,15 @@ export const viewWidgets = [
       'The selected team’s reported position, points, played matches and form, per standing group.'
   },
   {
+    type: 'team-season-results',
+    label: 'Season results',
+    status: 'implemented',
+    context: 'team-season',
+    columns: widgetColumns,
+    description:
+      'Completed matches from the reported season schedule for an exact team, competition and season, including historical seasons.'
+  },
+  {
     type: 'team-fixtures',
     label: 'Team fixtures',
     status: 'implemented',
@@ -163,10 +172,10 @@ export const viewWidgets = [
     type: 'market-shortlist',
     label: 'Market shortlist',
     status: 'implemented',
-    context: 'competition',
+    context: 'discovery',
     columns: widgetColumns,
     description:
-      'A competition-season shortlist of upcoming matches in the next seven days or this weekend, with full-time result prices and an All/Home/Draw/Away outcome filter. Selected match drives linked widgets; no value ranking.'
+      'Upcoming matches across all available competitions by default, or an explicitly selected competition and season, in the next seven days or this weekend, with full-time result prices and an All/Home/Draw/Away outcome filter. Selected match drives linked widgets; no value ranking.'
   },
   {
     type: 'odds-comparison',
