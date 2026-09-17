@@ -18,7 +18,6 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TeamsRouteImport } from './routes/teams'
 import { Route as TransfersRouteImport } from './routes/transfers'
 import { Route as TvGuideRouteImport } from './routes/tv-guide'
-import { Route as ViewsRouteImport } from './routes/views'
 import { Route as BroadcastersStationIdRouteImport } from './routes/broadcasters_.$stationId'
 import { Route as CoachesCoachIdRouteImport } from './routes/coaches_.$coachId'
 import { Route as CompetitionsCompetitionIdRouteImport } from './routes/competitions_.$competitionId'
@@ -99,11 +98,6 @@ const TransfersRoute = TransfersRouteImport.update({
 const TvGuideRoute = TvGuideRouteImport.update({
   id: '/tv-guide',
   path: '/tv-guide',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ViewsRoute = ViewsRouteImport.update({
-  id: '/views',
-  path: '/views',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BroadcastersStationIdRoute = BroadcastersStationIdRouteImport.update({
@@ -310,7 +304,6 @@ export interface FileRoutesByFullPath {
   '/teams': typeof TeamsRoute
   '/transfers': typeof TransfersRoute
   '/tv-guide': typeof TvGuideRoute
-  '/views': typeof ViewsRoute
   '/broadcasters/$stationId': typeof BroadcastersStationIdRoute
   '/coaches/$coachId': typeof CoachesCoachIdRoute
   '/competitions/$competitionId': typeof CompetitionsCompetitionIdRouteWithChildren
@@ -358,7 +351,6 @@ export interface FileRoutesByTo {
   '/teams': typeof TeamsRoute
   '/transfers': typeof TransfersRoute
   '/tv-guide': typeof TvGuideRoute
-  '/views': typeof ViewsRoute
   '/broadcasters/$stationId': typeof BroadcastersStationIdRoute
   '/coaches/$coachId': typeof CoachesCoachIdRoute
   '/competitions/$competitionId': typeof CompetitionsCompetitionIdRouteWithChildren
@@ -407,7 +399,6 @@ export interface FileRoutesById {
   '/teams': typeof TeamsRoute
   '/transfers': typeof TransfersRoute
   '/tv-guide': typeof TvGuideRoute
-  '/views': typeof ViewsRoute
   '/broadcasters_/$stationId': typeof BroadcastersStationIdRoute
   '/coaches_/$coachId': typeof CoachesCoachIdRoute
   '/competitions_/$competitionId': typeof CompetitionsCompetitionIdRouteWithChildren
@@ -457,7 +448,6 @@ export interface FileRouteTypes {
     | '/teams'
     | '/transfers'
     | '/tv-guide'
-    | '/views'
     | '/broadcasters/$stationId'
     | '/coaches/$coachId'
     | '/competitions/$competitionId'
@@ -505,7 +495,6 @@ export interface FileRouteTypes {
     | '/teams'
     | '/transfers'
     | '/tv-guide'
-    | '/views'
     | '/broadcasters/$stationId'
     | '/coaches/$coachId'
     | '/competitions/$competitionId'
@@ -553,7 +542,6 @@ export interface FileRouteTypes {
     | '/teams'
     | '/transfers'
     | '/tv-guide'
-    | '/views'
     | '/broadcasters_/$stationId'
     | '/coaches_/$coachId'
     | '/competitions_/$competitionId'
@@ -602,7 +590,6 @@ export interface RootRouteChildren {
   TeamsRoute: typeof TeamsRoute
   TransfersRoute: typeof TransfersRoute
   TvGuideRoute: typeof TvGuideRoute
-  ViewsRoute: typeof ViewsRoute
   BroadcastersStationIdRoute: typeof BroadcastersStationIdRoute
   CoachesCoachIdRoute: typeof CoachesCoachIdRoute
   CompetitionsCompetitionIdRoute: typeof CompetitionsCompetitionIdRouteWithChildren
@@ -678,13 +665,6 @@ declare module '@tanstack/react-router' {
       path: '/tv-guide'
       fullPath: '/tv-guide'
       preLoaderRoute: typeof TvGuideRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/views': {
-      id: '/views'
-      path: '/views'
-      fullPath: '/views'
-      preLoaderRoute: typeof ViewsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/broadcasters_/$stationId': {
@@ -1050,7 +1030,6 @@ const rootRouteChildren: RootRouteChildren = {
   TeamsRoute: TeamsRoute,
   TransfersRoute: TransfersRoute,
   TvGuideRoute: TvGuideRoute,
-  ViewsRoute: ViewsRoute,
   BroadcastersStationIdRoute: BroadcastersStationIdRoute,
   CoachesCoachIdRoute: CoachesCoachIdRoute,
   CompetitionsCompetitionIdRoute: CompetitionsCompetitionIdRouteWithChildren,

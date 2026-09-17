@@ -127,12 +127,6 @@ include should have a useful place in Halfspace.
 - [x] Global search across matches and football profiles, including referees, with cached results.
 - [x] Competition quick access and navigation prefetching.
 - [x] Saved team and player comparisons with complete season, club, and home/away context.
-- [x] Personal Views with starter layouts, manual block editing, local saving, duplication,
-      competition and season switching, and undo. Optional OpenAI composition and conversational
-      edits bring fixtures, standings, and player leaders together.
-- [x] Team-home Views with next match, season snapshot, team fixtures, current absences and
-      highlighted standings. Every implemented widget supports one-, two- and three-column layouts;
-      see the [implemented and planned widget inventory](docs/view-widgets.md).
 
 ### Ahead
 
@@ -145,8 +139,6 @@ the first testers to focus subsequent football features and design passes.
 - [ ] Deeper in-play analysis.
 - [ ] Premium odds and deeper bookmaker coverage.
 - [ ] Deeper comparison and analysis tools built on the local data foundation.
-- [ ] Advanced custom views with connected team and player data, comparisons, interactive filters,
-      and trustworthy analysis as Sportmonks coverage grows.
 - [ ] Dedicated design passes across football views.
 - [ ] Shareable image exports of comparisons and other football views for social media.
 - [ ] Complete Sportmonks endpoint and include coverage.
@@ -154,8 +146,8 @@ the first testers to focus subsequent football features and design passes.
 Checked items describe the features available today, not exhaustive API coverage. Every addition
 should stay local-first, with typed requests, durable caching, and natural links between entities.
 Keep complete Sportmonks coverage as the long-term goal, selecting near-term endpoint work around
-these user journeys. Build new football features with reusable queries and presentation components
-so they can also power personal views. Sharing and image exports follow once the visual design is settled.
+these user journeys. Build new football features with reusable queries and presentation components.
+Sharing and image exports follow once the visual design is settled.
 
 An endpoint or include is considered covered when its data can be fetched safely, cached locally,
 reached through the interface, and understood in the context of the related entities.

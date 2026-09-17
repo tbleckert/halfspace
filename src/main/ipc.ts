@@ -17,7 +17,6 @@ import { fetchTransferRumours, validateTransferRumoursInput } from './transfer-r
 import { fetchTeamSchedule, validateTeamScheduleInput } from './sportmonks'
 import { BrowserWindow, ipcMain } from 'electron'
 import { assertTrustedSender } from './trusted-sender'
-import { cancelViewGenerations } from './views-ipc'
 import type { ApiErrorCode, Result, SportmonksRateLimit } from '@shared/contracts'
 import { ipcChannels } from '@shared/contracts'
 import { fetchSeasonBracket } from './season-bracket'
@@ -315,7 +314,6 @@ export function registerIpcHandlers(): void {
 
     try {
       const token = validateToken((input as { token?: unknown } | undefined)?.token)
-      cancelViewGenerations()
       await saveStoredToken(token)
       resetRateLimits()
       return success({ configured: true })
@@ -328,7 +326,6 @@ export function registerIpcHandlers(): void {
     assertTrustedSender(event)
 
     try {
-      cancelViewGenerations()
       await clearStoredToken()
       resetRateLimits()
       return success(null)

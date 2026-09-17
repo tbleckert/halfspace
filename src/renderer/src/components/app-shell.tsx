@@ -8,7 +8,6 @@ import {
   CalendarDays,
   Circle,
   Clock3,
-  LayoutTemplate,
   Repeat2,
   Newspaper,
   Settings,
@@ -250,7 +249,6 @@ function Workspace({ rateLimit }: { rateLimit: SportmonksRateLimit | null }): Re
                 label="Compare"
                 to="/compare"
               />
-              <SidebarLink icon={<LayoutTemplate className="size-4" />} label="Views" to="/views" />
             </div>
           </div>
           <div className="flex shrink-0 flex-col gap-1 pt-4">
@@ -320,7 +318,6 @@ function SidebarLink({
     | '/transfers'
     | '/compare'
     | '/news'
-    | '/views'
 }): React.JSX.Element {
   return (
     <Link

@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SubscriptionCard } from '@/features/subscription/subscription-card'
-import { AiSettings } from '@/features/views/ai-settings'
 
 export function SettingsPage(): React.JSX.Element {
   const { clearToken } = useConnectionState()
@@ -32,7 +31,6 @@ export function SettingsPage(): React.JSX.Element {
       </header>
 
       <SubscriptionCard />
-      <AiSettings />
 
       <Card>
         <CardHeader>

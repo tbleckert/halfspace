@@ -16,7 +16,6 @@ import type {
 } from './season-resources-cache'
 import type { CachedTransferRumour, TransferRumoursQuery } from './transfer-rumours-cache'
 import Dexie, { type Table } from 'dexie'
-import type { SavedView } from '@shared/views'
 import type {
   RefreshStatisticSeasonsInput,
   StatisticSeasonsRefresh,
@@ -655,7 +654,6 @@ class HalfspaceDatabase extends Dexie {
   transferRumours!: Table<CachedTransferRumour, number>
   transferRumourQueries!: Table<TransferRumoursQuery, string>
 
-  savedViews!: Table<SavedView, string>
   savedComparisons!: Table<SavedComparison, string>
   roundStandingQueries!: Table<RoundStandingQuery, string>
   subscriptionQueries!: Table<SubscriptionQuery, string>
@@ -1018,6 +1016,7 @@ class HalfspaceDatabase extends Dexie {
       transferRumours: '&id',
       transferRumourQueries: '&key, staleAt'
     })
+    // Keep retired stores so existing saved work survives switching to the Views branch.
     this.version(37).stores({ savedViews: '&id, updatedAt' })
     this.version(38).stores({ tvGuideQueries: '&key, staleAt' })
     this.version(39).stores({
@@ -1042,6 +1041,12 @@ class HalfspaceDatabase extends Dexie {
     })
     this.version(43).stores({ savedComparisons: '&id, updatedAt' })
     this.version(44).stores({ venueFixtureQueries: '&key, venueId, staleAt' })
+    // Match databases already opened by the Views branch without a downgrade or data loss.
+    // These stores remain unused on main until saved data is explicitly migrated or discarded.
+    this.version(45).stores({
+      viewTextPrompts: '&key',
+      viewTextContents: '&key, widgetKey, generatedAt'
+    })
   }
 }
 

@@ -7,7 +7,6 @@ import type {
   TeamSeasonsRefresh
 } from './discovery'
 import type { TeamDirectoryInput, TeamDirectoryRefresh } from './team-directory'
-import type { ViewsApi } from './views'
 import type {
   RefreshTeamScheduleInput,
   TeamScheduleRefresh,
@@ -28,12 +27,6 @@ export const ipcChannels = {
   refreshStandingCorrections: 'sportmonks:refresh-standing-corrections',
   refreshTransferRumours: 'sportmonks:refresh-transfer-rumours',
 
-  aiSettings: 'ai:settings',
-  aiSaveKey: 'ai:save-key',
-  aiClearKey: 'ai:clear-key',
-  viewGenerate: 'views:generate',
-  viewCancel: 'views:cancel',
-  viewProgress: 'views:progress',
   refreshHonours: 'sportmonks:refresh-honours',
   refreshNews: 'sportmonks:refresh-news',
   refreshMatchFacts: 'sportmonks:refresh-match-facts',
@@ -1444,7 +1437,6 @@ export interface TransfersRefresh {
 }
 
 export interface HalfspaceApi {
-  views: ViewsApi
   credentials: {
     getConnectionState(): Promise<ConnectionState>
     saveToken(input: SaveTokenInput): Promise<Result<ConnectionState>>

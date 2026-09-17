@@ -102,32 +102,6 @@ Dexie/IndexedDB.
   inflate coverage. Keep coverage checks in CI; upstream catalog updates must not imply product
   support or merge automatically.
 
-## Generative Views
-
-- Grow toward a personal football canvas that users can compose, refine, and save. Build on
-  usable data and reusable presentation components rather than speculative AI infrastructure.
-  Use the [accepted design studies](design/generative-views/README.md) as visual targets.
-- Track implemented and planned widgets in [the catalog](src/shared/view-widgets.ts) and
-  [the inventory](docs/view-widgets.md), updating both when status changes. Every implemented
-  widget must support 1-, 2-, and 3-column presentations. Adapt to actual container width while
-  preserving the saved layout preference. Keep planned widgets out of generation and editing.
-- Generate versioned, validated definitions from an explicit catalog of supported widgets and
-  query parameters. Render trusted components; never execute generated code, queries, arbitrary
-  network requests, or IPC commands. Validate identities as well as schema shape.
-- AI chooses composition and data bindings. Deterministic application code owns football values,
-  calculations, missing-data states, and links. Reject unsupported requests clearly instead of
-  fabricating facts or substituting another team, competition, or season.
-- Keep AI requests in Electron main and credentials separate from Sportmonks credentials. Connect
-  directly to the user's provider. Send only the prompt, relevant definition, and minimum identity
-  context needed for composition; never send the Sportmonks token or persist keys in the renderer.
-- Keep model schemas compatible with the provider's supported schema format. Verify the serialized
-  request boundary as well as response parsing when changing generation contracts.
-- Use the same validated definition, editor, undo flow, and save format for manual, starter, and
-  generated Views. Opening and using saved Views must not require AI; cached Views work offline.
-- Treat generation as a cancellable draft. Stream validated content, preserve the last usable
-  definition on failure, ignore abandoned events, and save only complete validated definitions.
-  Show actual progress without invented percentages, staged waiting, or fabricated data.
-
 ## Engineering and verification
 
 - Write idiomatic, simple, maintainable code. Prefer descriptive names, focused functions,

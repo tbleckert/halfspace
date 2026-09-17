@@ -25,8 +25,7 @@ through existing football data and any verified provider gaps those journeys exp
    on a clean machine, token setup, cached reopening, and the journey from Matchday to a match and
    its team or player profiles. Observe five testers and resolve the friction they encounter.
 4. **Reusable investigations (implemented).** Save comparisons with both entities, seasons, player
-   clubs, and home/away selections. Open starter Views without an AI key, edit their blocks and layout,
-   duplicate them, and change their competition or season. AI remains optional.
+   clubs, and home/away selections.
 
 The first two steps now form one user experience: setup leads directly to personalized Matchday. Premium odds, exhaustive referee history, and image exports remain later work.
 
@@ -109,10 +108,6 @@ Implemented in the [five-feature pass](2026-09-10-five-feature-pass.md).
 
 - [x] Save and reopen team and player comparisons with resolved seasons, clubs, and match locations.
 - [x] Keep saved comparisons through football cache clearing and credential changes.
-- [x] Open starter Views for standings, fixtures, and goals/assists without an AI key.
-- [x] Add, remove, reorder, and resize blocks with keyboard controls and undo.
-- [x] Duplicate the current draft into an independent saved copy.
-- [x] Apply an available competition and season to a View while preserving its layout and metrics.
 - [x] Preserve offline caches, exact query identities, and explicit unavailable-data states.
 
 ## Pilot acceptance
@@ -134,4 +129,3 @@ and direct feedback. Use that evidence to choose the next design pass and data e
 - [Token setup](../src/renderer/src/features/credentials/token-setup.tsx)
 - [TV country preference](../src/renderer/src/features/broadcasts/tv-guide-page.tsx)
 - [Comparison workspace](../src/renderer/src/features/comparisons/comparison-page.tsx)
-- [Supported View blocks](../src/shared/views.ts)

@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
 
-import { mockViewsApi } from '../../../../test/view-api'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type {
   FixtureRefresh,
@@ -232,7 +231,6 @@ function deferred<T>(): {
 
 function installHalfspace(overrides: Partial<Window['halfspace']['sportmonks']>): void {
   window.halfspace = {
-    views: mockViewsApi(),
     credentials: {
       getConnectionState: vi.fn(),
       saveToken: vi.fn(),

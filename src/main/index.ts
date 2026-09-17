@@ -1,7 +1,6 @@
 import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'node:path'
 import { registerIpcHandlers } from './ipc'
-import { registerViewsIpc } from './views-ipc'
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -41,7 +40,6 @@ function createWindow(): void {
 app.whenReady().then(() => {
   app.setAppUserModelId('com.halfspace.app')
   registerIpcHandlers()
-  registerViewsIpc()
   createWindow()
 
   app.on('activate', () => {

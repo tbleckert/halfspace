@@ -75,5 +75,5 @@ open-source repository. Use this blank structure:
 
 The proposed targets are four of five people reaching a relevant match without assistance and
 three returning on a later matchday. Fix installation, setup, navigation, and data-trust failures
-first. Summarize repeated needs with the observed evidence, then decide whether saved comparisons
-and starter Views remain the next slice. Keep these targets separate from measured results.
+first. Summarize repeated needs with the observed evidence to choose the next slice.
+Keep these targets separate from measured results.
