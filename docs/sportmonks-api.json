@@ -1914,7 +1914,16 @@
       "name": "All Transfers Rumours",
       "documentation": "https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfer-rumours/get-all-transfers-rumours",
       "path": "/v3/football/transfer-rumours",
-      "includes": ["sport", "player", "type", "fromTeam", "toTeam", "position", "detailedPosition"]
+      "includes": [
+        "sport",
+        "player",
+        "type",
+        "fromTeam",
+        "toTeam",
+        "position",
+        "detailedPosition",
+        "status"
+      ]
     },
     {
       "id": "transfer-rumours/get-transfer-rumours-by-id",
@@ -1923,7 +1932,16 @@
       "name": "Transfer Rumours by ID",
       "documentation": "https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfer-rumours/get-transfer-rumours-by-id",
       "path": "/v3/football/transfer-rumuors/TRANSFER_ID",
-      "includes": ["sport", "player", "type", "fromTeam", "toTeam", "position", "detailedPosition"]
+      "includes": [
+        "sport",
+        "player",
+        "type",
+        "fromTeam",
+        "toTeam",
+        "position",
+        "detailedPosition",
+        "status"
+      ]
     },
     {
       "id": "transfer-rumours/get-transfers-rumours-between-date-range",
@@ -1932,7 +1950,16 @@
       "name": "Transfers Rumours Between Date Range",
       "documentation": "https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfer-rumours/get-transfers-rumours-between-date-range",
       "path": "/v3/football/transfer-rumours/between/{startDate}/{endDate}",
-      "includes": ["sport", "player", "type", "fromTeam", "toTeam", "position", "detailedPosition"]
+      "includes": [
+        "sport",
+        "player",
+        "type",
+        "fromTeam",
+        "toTeam",
+        "position",
+        "detailedPosition",
+        "status"
+      ]
     },
     {
       "id": "transfer-rumours/get-transfer-rumours-by-team-id",
@@ -1941,7 +1968,16 @@
       "name": "Transfer Rumours by Team ID",
       "documentation": "https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfer-rumours/get-transfer-rumours-by-team-id",
       "path": "/v3/football/transfer-rumours/teams/TEAM_ID",
-      "includes": ["sport", "player", "type", "fromTeam", "toTeam", "position", "detailedPosition"]
+      "includes": [
+        "sport",
+        "player",
+        "type",
+        "fromTeam",
+        "toTeam",
+        "position",
+        "detailedPosition",
+        "status"
+      ]
     },
     {
       "id": "transfer-rumours/get-transfer-rumours-by-player-id",
@@ -1950,7 +1986,25 @@
       "name": "Transfer Rumours by Player ID",
       "documentation": "https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfer-rumours/get-transfer-rumours-by-player-id",
       "path": "/v3/football/transfer-rumours/players/PLAYER_ID",
-      "includes": ["sport", "player", "type", "fromTeam", "toTeam", "position", "detailedPosition"]
+      "includes": [
+        "sport",
+        "player",
+        "type",
+        "fromTeam",
+        "toTeam",
+        "position",
+        "detailedPosition",
+        "status"
+      ]
+    },
+    {
+      "id": "transfer-rumours/get-transfer-rumours-config",
+      "category": "Transfer rumours",
+      "method": "GET",
+      "name": "Transfer Rumours Config",
+      "documentation": "https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfer-rumours/get-transfer-rumours-config",
+      "path": "/v3/football/transfer-rumours/config",
+      "includes": []
     },
     {
       "id": "venues/get-all-venues",
