@@ -1,8 +1,8 @@
 # Sportmonks API coverage
 
-Data capability coverage: **66%** (169 of 258 capabilities).
+Data capability coverage: **65%** (169 of 259 capabilities).
 
-Endpoint coverage: **44%** (67 of 153 endpoints).
+Endpoint coverage: **44%** (67 of 154 endpoints).
 
 Source: [Sportmonks Football API 3.0 documentation index](https://docs.sportmonks.com/v3/sitemap.md)
 
@@ -263,6 +263,7 @@ Every denominator unit is listed below. A supported capability shows one suffici
 | ✓ `transfer-rumours:player`                | [Transfer Rumours by Team ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfer-rumours/get-transfer-rumours-by-team-id) with `player`                                                                                                                                                                                                                                                                                                                                                                                                          |
 | ✓ `transfer-rumours:position`              | [Transfer Rumours by Team ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfer-rumours/get-transfer-rumours-by-team-id) with `position`                                                                                                                                                                                                                                                                                                                                                                                                        |
 | — `transfer-rumours:sport`                 | Not declared                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| — `transfer-rumours:status`                | Not declared                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | ✓ `transfer-rumours:toTeam`                | [Transfer Rumours by Team ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfer-rumours/get-transfer-rumours-by-team-id) with `toTeam`                                                                                                                                                                                                                                                                                                                                                                                                          |
 | ✓ `transfer-rumours:type`                  | [Transfer Rumours by Team ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfer-rumours/get-transfer-rumours-by-team-id) with `type`                                                                                                                                                                                                                                                                                                                                                                                                            |
 | ✓ `transfers`                              | [Latest Transfers](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfers/get-latest-transfers)                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
@@ -287,7 +288,7 @@ Every denominator unit is listed below. A supported capability shows one suffici
 
 ## Endpoint access paths
 
-Implemented: **67/153 endpoints** and **236/1320 endpoint/include pairs**. These counts intentionally retain alternative routes to the same data.
+Implemented: **67/154 endpoints** and **236/1325 endpoint/include pairs**. These counts intentionally retain alternative routes to the same data.
 
 ### Livescores
 
@@ -451,8 +452,9 @@ Implemented: **67/153 endpoints** and **236/1320 endpoint/include pairs**. These
 - [ ] [All Transfers Rumours](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfer-rumours/get-all-transfers-rumours)
 - [ ] [Transfer Rumours by ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfer-rumours/get-transfer-rumours-by-id)
 - [ ] [Transfers Rumours Between Date Range](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfer-rumours/get-transfers-rumours-between-date-range)
-- [x] [Transfer Rumours by Team ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfer-rumours/get-transfer-rumours-by-team-id) — includes 5/7
-- [x] [Transfer Rumours by Player ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfer-rumours/get-transfer-rumours-by-player-id) — includes 5/7
+- [x] [Transfer Rumours by Team ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfer-rumours/get-transfer-rumours-by-team-id) — includes 5/8
+- [x] [Transfer Rumours by Player ID](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfer-rumours/get-transfer-rumours-by-player-id) — includes 5/8
+- [ ] [Transfer Rumours Config](https://docs.sportmonks.com/v3/endpoints-and-entities/endpoints/transfer-rumours/get-transfer-rumours-config)
 
 ### Venues
 
